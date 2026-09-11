@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Blooket Trade Visualizer",
+  "version": "1.0.0",
+  "description": "Lets you visually build a Blooket trade by marking blooks you give and blooks you receive, even without owning them.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://*.blooket.com/*",
+    "https://blooket.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.blooket.com/*",
+        "https://blooket.com/*"
+      ],
+      "js": ["trade-utils.js", "content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "action": {
+    "default_title": "Blooket Trade Visualizer",
+    "default_popup": "popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["popup.js"],
+      "matches": ["https://*.blooket.com/*", "https://blooket.com/*"]
+    }
+  ]
+}

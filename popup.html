@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blooket Anonymity</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 12px;
+        width: 320px;
+        background: #0f172a;
+        color: #f8fafc;
+      }
+      h3 { margin: 0 0 8px; }
+      p { margin: 0 0 8px; line-height: 1.4; font-size: 13px; }
+      label { font-size: 13px; display: block; margin-top: 10px; }
+      input[type="text"] {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid #475569;
+        background: #111827;
+        color: #f8fafc;
+        margin-top: 6px;
+      }
+      .setting-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .status {
+        font-size: 12px;
+        color: #93c5fd;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Blooket Anonymity</h3>
+    <p>Use this extension to hide your visible name on the Blooket page.</p>
+
+    <div class="setting-row">
+      <label for="anonymity-toggle">Hide your name</label>
+      <input id="anonymity-toggle" type="checkbox" />
+    </div>
+    <label for="replacement-input">Replacement name</label>
+    <input id="replacement-input" type="text" maxlength="40" placeholder="Anonymous" />
+    <div id="status" class="status">Loading…</div>
+
+    <p>The page anonymity settings are saved and applied automatically.</p>
+    <script src="popup.js"></script>
+  </body>
+</html>
