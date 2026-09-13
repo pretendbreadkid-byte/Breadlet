@@ -29,28 +29,32 @@ body {
 
 .bread-floaters {
   position: fixed;
-  inset: 0;
+  inset: -120px;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: 0.13;
+  opacity: 0.11;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 2.5rem;
+  padding: 2rem;
+  animation: uniform-floaters-drift 28s linear infinite;
 }
 
 .bread-floater {
-  position: absolute;
-  width: clamp(80px, 12vw, 190px);
-  height: auto;
-  animation: bread-drift 5s linear infinite;
+  width: 75px;
+  height: 75px;
+  object-fit: contain;
+  margin: auto;
 }
 
-.bread-floater-one { left: 8%; top: 14%; transform: rotate(-12deg); animation-delay: -1s; }
-.bread-floater-two { left: 58%; top: 39%; width: clamp(70px, 9vw, 150px); animation-delay: -3s; }
-.bread-floater-three { left: 84%; bottom: 8%; width: clamp(90px, 13vw, 210px); animation-delay: -4.5s; }
-
-@keyframes bread-drift {
-  0% { margin-left: 0; transform: translate3d(0, 0, 0) rotate(-8deg); }
-  50% { margin-left: -18vw; transform: translate3d(0, 16px, 0) rotate(8deg); }
-  100% { margin-left: -38vw; transform: translate3d(0, -4px, 0) rotate(-8deg); }
+@keyframes uniform-floaters-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-180px, -180px, 0);
+  }
 }
 
 /* Blue theme overrides the prototype's original brown surfaces. */

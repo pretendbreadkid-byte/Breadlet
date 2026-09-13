@@ -4,3 +4,6 @@ out
 coverage
 npm-debug.log*
 .DS_Store
+.env.local
+supabase/migrations/.env.local
+*.mp4

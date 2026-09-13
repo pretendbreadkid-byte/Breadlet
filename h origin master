@@ -1,0 +1,11 @@
+[33m298ae15[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Fix Supabase multiplayer persistence
+ app/api/chat/route.ts                         | 113 [32m++++++[m[31m-[m
+ app/api/clans/route.ts                        |  88 [32m++++++[m
+ app/api/marketplace/route.ts                  | 138 [32m++++++++[m
+ app/api/player/route.ts                       | 101 [32m+++++[m[31m-[m
+ app/page.tsx                                  | 414 [32m++++++++++++++++++++++[m[31m--[m
+ lib/supabase/client.ts                        |   7 [32m+[m[31m-[m
+ lib/supabase/server.ts                        |  10 [32m+[m[31m-[m
+ middleware.ts                                 |   4 [32m+[m[31m-[m
+ supabase/migrations/0001_breadlet_backend.sql | 437 [32m++++++++++++++++++++++[m[31m----[m
+ 9 files changed, 1193 insertions(+), 119 deletions(-)

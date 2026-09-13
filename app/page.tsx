@@ -15,6 +15,11 @@ import {
   Store,
   Trophy,
   Users,
+  ChevronDown,
+  Image as ImageIcon,
+  HelpCircle,
+  LogOut,
+  Search,
 } from "lucide-react";
 
 type Tab =
@@ -67,7 +72,7 @@ const artFor = (name: string) =>
   ({
     Mars: "/assets/mars.svg",
     Worker: "/assets/worker.svg",
-    "Aztec Coin": "/assets/Aztect Coin (1).svg",
+    "Aztec Coin": "/assets/Aztect Coin 2.0.svg",
     Map: "/assets/map (1).svg",
     "Pixel Toast": "/assets/Pixel bread.png",
     "Pixel Chick": "/assets/pixel-chick.png",
@@ -80,20 +85,23 @@ const artFor = (name: string) =>
     Chef: "/assets/chef (1).svg",
     Earth: "/assets/earrth.svg",
     Surgeon: "/assets/surgeon.svg",
-    "Crystal Ball": "/assets/crystal ball.svg",
+    Doctor: "/assets/doctor 2.0.svg",
+    "Crystal Ball": "/assets/crystal ball 2.0.svg",
     "Pixel Fuego": "/assets/pixel fuego.png",
     "Pixel Wizard": "/assets/pixel wizard.png",
     "Blooket Life": "/assets/blooket life.jpg",
+    "Blooket Gods": "/assets/blooket gods.jpg",
     Lagoon: "/assets/lagoon.jpg",
     Shuriken: "/assets/shuricken.svg",
     "Albino Crow": "/assets/albino crow.svg",
     Baguette: "/assets/bagget.svg",
     Star: "/assets/star (1).svg",
-    "Laser Blaster": "/assets/Blaster (light sword replacement).svg",
+    Consolation: "/assets/contilation.svg",
+    "Laser Blaster": "/assets/contilation.svg",
     "Yellow Platypus": "/assets/yellowplatypus.svg",
-    Eclipse: "/assets/eclipse2.svg",
-    Necklace: "/assets/neclase.svg",
-    Ninja: "/assets/Ninja.svg",
+    Eclipse: "/assets/eclipse 2.0.svg",
+    Necklace: "/assets/neclase 2.0 .svg",
+    Ninja: "/assets/Ninja 2.0.svg",
     Santa: "/assets/santa pixel.png",
     "Fasty Jay": "/assets/fastyjay.jpg",
     Waymore: "/assets/waymore.jpg",
@@ -102,14 +110,13 @@ const artFor = (name: string) =>
     Solider: "/assets/solider.svg",
     "Gold Bread": "/assets/golden loaf.svg",
     "Stone Tablet": "/assets/Stone tablet (1).svg",
-    "Pixel Planet": "/assets/pixel planet.png",
     Actor: "/assets/actor.svg",
     Alien: "/assets/Alien (2).svg",
     "Crimson Octopus": "/assets/crimsonoctopus.svg",
     Caveman: "/assets/caveman.svg",
     Timeglass: "/assets/Time glass final animation.svg",
     "Pixel UFO": "/assets/pixel planet.png",
-    "Pixel Alien": "/assets/pixel planet.png",
+    "Star Ship": "/assets/star ship frame 1.svg",
     "Bread Blook": "/assets/breadblook.jpg",
     "Golden Shuriken": "/assets/golden-shuriken.svg",
     "Holy Bread": "/assets/holy bread.svg",
@@ -119,8 +126,8 @@ const artFor = (name: string) =>
     "Mr. Frog": "/assets/Mr.frog.svg",
     Donut: "/assets/bagel.svg",
     "Cinnamon Roll": "/assets/cinimmon role.svg",
-    "Green Astronaut": "/assets/fastyjay.jpg",
-    Astronaut: "/assets/fastyjay.jpg",
+    "Green Astronaut": "/assets/channels4_profile.jpg",
+    Astronaut: "/assets/channels4_profile.jpg",
     Megabot: "/assets/megabot.svg",
     King: "/assets/king.svg",
     Yeti: "/assets/yeti.svg",
@@ -129,6 +136,8 @@ const artFor = (name: string) =>
     "Sugar Glider": "/assets/sugar-glider.svg",
     "Tyrannosaurus Rex": "/assets/tyrannosaurus-rex.svg",
     Sandwich: "/assets/sandwich.svg",
+    Butterfly: "/assets/butterfly (1).svg",
+    Blackbeard: "/assets/captainblackbeard (1).svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const rarityBudget: Record<string, number> = {
   Common: 50,
@@ -138,7 +147,7 @@ const rarityBudget: Record<string, number> = {
   Legendary: 0.5,
   Mythic: 0.2,
   Unique: 0.2,
-  Transcendent: 0.1,
+  Transcendent: 0.025,
 };
 const rewards = (
   items: [string, string][],
@@ -165,8 +174,11 @@ const rarityClassFor = (rarity: string) =>
     : rarity === "Transcendent"
       ? "rarity-transcendent"
       : "";
-const rewardEffectClassFor = (name: string, rarity: string) =>
-  `${rarityClassFor(rarity)} ${name === "Pixel Alien" || name === "Bread Blook" ? "rainbow-blook" : ""} ${name === "Golden Shuriken" || name === "Holy Bread" ? "golden-glow" : ""} ${name === "Red Rex" ? "red-rex-bounce" : ""} ${name === "Crimson Octopus" ? "crimson-octopus-glow" : ""}`;
+const rewardEffectClassFor = (name: string, rarity: string) => {
+  const cleanName = name.replace(/^Shiny /, "");
+  if (cleanName === "Star Ship") return "";
+  return `${rarityClassFor(rarity)} ${cleanName === "Bread Blook" ? "rainbow-blook" : ""} ${cleanName === "Golden Shuriken" || cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""} ${cleanName === "Crimson Octopus" ? "crimson-octopus-glow" : ""}`;
+};
 const sellValueFor = (rarity: string) =>
   ({
     Common: 5,
@@ -239,7 +251,7 @@ const craftRecipes: { name: string; ingredients: MaterialBundle }[] = [
   { name: "Yeti", ingredients: { Metal: 12, Gold: 8 } },
   { name: "Sandwich", ingredients: { Cloth: 12, Flour: 8 } },
   { name: "Butterfly", ingredients: { Sugar: 12, Gem: 8 } },
-  { name: "Blackbird", ingredients: { Gem: 12, Cloth: 8 } },
+  { name: "Blackbeard", ingredients: { Gem: 12, Cloth: 8 } },
   { name: "Sugar Glider", ingredients: { Sugar: 12, Cloth: 8 } },
   { name: "Tyrannosaurus Rex", ingredients: { Metal: 12, Flour: 8 } },
   { name: "Megalodon", ingredients: { Gold: 12, Gem: 8 } },
@@ -271,9 +283,10 @@ const liveCapsules: Capsule[] = [
       ["Mars", "Common"],
       ["Earth", "Uncommon"],
       ["Star", "Rare"],
-      ["Laser Blaster", "Rare"],
+      ["Consolation", "Rare"],
       ["Eclipse", "Epic"],
       ["Alien", "Mythic"],
+      ["Star Ship", "Transcendent"],
     ]),
   },
   {
@@ -284,6 +297,7 @@ const liveCapsules: Capsule[] = [
       ["Worker", "Common"],
       ["Chef", "Uncommon"],
       ["Surgeon", "Rare"],
+      ["Doctor", "Rare"],
       ["Ninja", "Epic"],
       ["Actor", "Legendary"],
       ["Caveman", "Mythic"],
@@ -310,11 +324,9 @@ const liveCapsules: Capsule[] = [
       ["Pixel Toast", "Common"],
       ["Pixel Chick", "Common"],
       ["Pixel Ice Slime", "Uncommon"],
-      ["Lava Slime", "Uncommon"],
       ["Pixel Fuego", "Rare"],
       ["Pixel Wizard", "Rare"],
-      ["Pixel Planet", "Legendary"],
-      ["Pixel Alien", "Mythic"],
+      ["Pixel UFO", "Mythic"],
     ]),
   },
   {
@@ -408,6 +420,7 @@ export default function HomePage() {
   const [craftReveal, setCraftReveal] = useState<{ name: string; ingredients: MaterialBundle; phase: "processing" | "output" } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [giftChatNotice, setGiftChatNotice] = useState("");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
     if (supabaseClient) {
@@ -805,6 +818,7 @@ export default function HomePage() {
         setPassword={setPassword}
         login={login}
         notice={notice}
+        closeNotice={() => setNotice("")}
       />
     );
   const nav: NavItem[] = [
@@ -857,139 +871,236 @@ export default function HomePage() {
     { id: "info", label: "Info", icon: <span className="font-black text-sm">i</span> },
   ];
   return (
-    <main className="breadlet-blue-theme min-h-screen bg-[#24170f] text-white">
+    <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:flex-row">
       <div className="bread-floaters" aria-hidden="true">
-        <img src="/assets/bread-silhouette-loaf.svg" alt="" className="bread-floater bread-floater-one" />
-        <img src="/assets/bread-silhouette-oval.svg" alt="" className="bread-floater bread-floater-two" />
-        <img src="/assets/bread-silhouette-ring.svg" alt="" className="bread-floater bread-floater-three" />
+        {Array.from({ length: 24 }).map((_, i) => (
+          <img
+            key={i}
+            src={
+              i % 3 === 0
+                ? "/assets/bread-silhouette-loaf.svg"
+                : i % 3 === 1
+                  ? "/assets/bread-silhouette-oval.svg"
+                  : "/assets/bread-silhouette-ring.svg"
+            }
+            alt=""
+            className="bread-floater"
+          />
+        ))}
       </div>
-      <header className="sticky top-0 z-20 border-b border-[#d49a4a]/25 bg-[#24170f]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-5 py-3">
+
+      {/* Left Blooket-style Persistent Sidebar */}
+      <aside className="w-full md:w-64 shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-4 flex flex-col justify-between z-20 shadow-xl">
+        <div>
+          {/* Logo Header */}
+          <div className="flex items-center gap-3 px-2 py-2 cursor-pointer" onClick={() => setTab("profile")}>
+            <img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-12 w-auto object-contain" />
+          </div>
+
+          {/* Primary Play Button */}
+          <button
+            onClick={() => setTab("mine")}
+            className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl bg-[#22c55e] px-4 py-3 font-black text-white text-lg shadow-lg hover:bg-[#16a34a] transition transform hover:scale-105"
+          >
+            <Pickaxe size={22} />
+            Play Mine
+          </button>
+
+          {/* Sidebar Nav Buttons */}
+          <nav className="mt-6 space-y-1.5">
+            {nav.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setTab(item.id)}
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-extrabold text-base transition ${
+                  tab === item.id
+                    ? "bg-[#39a8f5] text-white shadow-md"
+                    : "text-[#9cc8e8] hover:bg-[#103f75] hover:text-white"
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Sidebar Footer Controls */}
+        <div className="mt-8 pt-4 border-t border-[#3d91cd]/20 flex items-center justify-around text-[#9cc8e8]">
+          <button title="Info & Guide" onClick={() => setTab("info")} className="hover:text-white transition"><HelpCircle size={20} /></button>
+          <button title="Promo Codes" onClick={() => setTab("promo")} className="hover:text-white transition"><Percent size={20} /></button>
+          <button title="Log out" onClick={() => { setPlayer(null); supabaseClient?.auth.signOut(); window.localStorage.removeItem(playerKey); }} className="hover:text-red-300 transition"><LogOut size={20} /></button>
+        </div>
+      </aside>
+
+      {/* Main Workspace Column */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        {/* Top Header Bar */}
+        <header className="sticky top-0 z-20 border-b border-[#3d91cd]/30 bg-[#0c3b70]/95 backdrop-blur px-6 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img
-              src="/assets/breadlet-logo.svg"
-              alt="Breadlet logo"
-              className="h-16 w-52 object-contain object-left"
-            />
-            <span className="hidden text-xs font-black uppercase tracking-[0.25em] text-[#eac477] md:block">
-              Breadlet
+            <span className="text-2xl font-black uppercase tracking-wider text-white">
+              {tab === "inventory" ? "My Blooks" : tab === "capsules" ? "Market & Packs" : tab}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <nav className="hidden items-center gap-1 rounded-xl bg-[#3a2415] p-1 md:flex">
-              {nav.filter((item) => item.id !== "promo" && item.id !== "info").map((item) => (
-                <button
-                  title={item.label}
-                  key={item.id}
-                  onClick={() => setTab(item.id)}
-                  className={`rounded-lg px-2.5 py-2 text-lg transition ${tab === item.id ? "bg-[#e9bd67] text-[#29170c]" : "text-[#cdb18c] hover:bg-[#6c4328]/40 hover:text-white"}`}
-                >
-                  {item.icon}
-                </button>
-              ))}
-            </nav>
-            <div className="flex items-center gap-2 rounded-full border border-[#eac477]/30 bg-[#eac477]/10 px-3 py-2 font-black text-[#ffe2a0]">
-              <img src="/assets/coin.svg" alt="" className="h-6 w-6" />
-              {player.tokens}
+
+          <div className="flex items-center gap-4">
+            {/* Tokens Balance Counter */}
+            <div className="flex items-center gap-2 rounded-full border border-[#ffe2a0]/40 bg-[#ffe2a0]/15 px-4 py-2 font-black text-[#ffe2a0] text-lg shadow-inner">
+              <img src="/assets/coin.svg" alt="Tokens" className="h-6 w-6" />
+              {player.tokens.toLocaleString()}
             </div>
-            <button
-              onClick={() => {
-                setPlayer(null);
-                supabaseClient?.auth.signOut();
-                window.localStorage.removeItem(playerKey);
+
+            {/* Corner Username Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2.5 rounded-2xl border border-[#3d91cd] bg-[#103f75] px-3.5 py-2 font-black text-[#bde8ff] hover:bg-[#18558f] transition"
+              >
+                <div className="h-8 w-8 rounded-xl overflow-hidden bg-[#072a54] p-0.5 border border-white/30 flex items-center justify-center">
+                  <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" />
+                </div>
+                <span className="max-w-[120px] truncate">{player.username}</span>
+                <ChevronDown size={18} />
+              </button>
+
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-[#3d91cd] bg-[#103f75] p-2 shadow-2xl z-[9999]">
+                  <button
+                    onClick={() => {
+                      setTab("profile");
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
+                  >
+                    <CircleUserRound size={18} />
+                    Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTab("promo");
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
+                  >
+                    <Percent size={18} />
+                    Promo Codes
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTab("info");
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
+                  >
+                    <HelpCircle size={18} />
+                    Info & Guide
+                  </button>
+                  {adminUnlocked && (
+                    <button
+                      onClick={() => {
+                        setTab("admin");
+                        setUserMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#ffe2a0] hover:bg-[#18558f]"
+                    >
+                      <Crown size={18} />
+                      Admin Panel
+                    </button>
+                  )}
+                  <hr className="my-1 border-[#3d91cd]/40" />
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setPlayer(null);
+                      supabaseClient?.auth.signOut();
+                      window.localStorage.removeItem(playerKey);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-300 hover:bg-red-900/30"
+                  >
+                    <LogOut size={18} />
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Dynamic Page Section */}
+        <section className="flex-1 p-6 overflow-y-auto">
+          {notice && (
+            <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+              <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
+                <p className="text-xl font-black text-[#bde8ff]">Breadlet Update</p>
+                <p className="mt-3 text-sm text-[#d9f3ff]">{notice}</p>
+                <button onClick={() => setNotice("")} className="mt-6 w-full rounded-2xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426] hover:bg-[#73c8ff] shadow-md transition">Close</button>
+              </div>
+            </div>
+          )}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} />}
+          {tab === "capsules" && (
+            <CapsulesTab
+              showRetired={showRetired}
+              setShowRetired={setShowRetired}
+              openCapsule={openCapsule}
+              showOdds={setOddsCapsule}
+              openMass={() => setMassOpen(true)}
+              playerTokens={player.tokens}
+            />
+          )}
+          {tab === "inventory" && (
+            <InventoryTab player={player} equip={equip} sell={sell} />
+          )}
+          {tab === "mine" && (
+            <MineTab player={player} mine={mine} buyUpgrade={buyUpgrade} />
+          )}
+          {tab === "market" && (
+            <Bazaar
+              player={player}
+              createListing={createListing}
+              openListing={setSelectedListing}
+              setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
+            />
+          )}
+          {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} />}
+          {tab === "leaderboard" && <Leaderboard player={player} />}
+          {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} />}
+          {tab === "crafting" && (
+            <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} craft={craft} />
+          )}
+          {tab === "promo" && (
+            <PromoTab
+              code={promoCode}
+              setCode={setPromoCode}
+              redeem={redeemPromo}
+            />
+          )}
+          {tab === "info" && <InfoTab />}
+          {tab === "admin" && adminUnlocked && (
+            <AdminTab
+              player={player}
+              grantTokens={grantTokens}
+              grantBlook={grantBlook}
+              grantBadge={grantBadge}
+              announcement={announcement}
+              setAnnouncement={setAnnouncement}
+              publishAnnouncement={() => setNotice(announcement.trim() ? `Announcement published: ${announcement.trim()}` : "Write an announcement first.")}
+              grantGift={(gift) => {
+                save({
+                  ...player,
+                  tokens: player.tokens + gift.tokens,
+                  inventory: [...player.inventory, ...gift.blooks],
+                  badges: Array.from(new Set([...player.badges, ...gift.badges])),
+                  materials: Object.fromEntries(materialNames.map((material) => [material, (player.materials[material] || 0) + (gift.materials[material] || 0)])),
+                });
+                const giftText = `${gift.title || "Admin gift"}: ${gift.message || "Gift received"}`;
+                setGiftChatNotice(giftText);
+                setNotice(`${giftText} · gift sent.`);
               }}
-              className="rounded-lg px-3 py-2 text-xs font-bold text-[#e5c59b]"
-            >
-              Log out
-            </button>
-          </div>
-        </div>
-        <nav className="mx-auto flex max-w-[1500px] gap-1 overflow-x-auto px-5 pb-3 md:hidden">
-          {nav.filter((item) => item.id !== "promo" && item.id !== "info").map((item) => (
-            <button
-              title={item.label}
-              key={item.id}
-              onClick={() => setTab(item.id)}
-              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-bold transition ${tab === item.id ? "bg-[#e9bd67] text-[#29170c]" : "text-[#cdb18c] hover:bg-[#6c4328]/40 hover:text-white"}`}
-            >
-              {item.icon} {item.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-      <section className="mx-auto max-w-[1500px] px-5 py-8">
-        {notice && (
-          <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
-            <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
-              <p className="text-lg font-black text-[#bde8ff]">Breadlet update</p>
-              <p className="mt-3 text-sm text-[#d9f3ff]">{notice}</p>
-              <button onClick={() => setNotice("")} className="mt-5 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Close</button>
-            </div>
-          </div>
-        )}
-        {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} />}
-        {tab === "capsules" && (
-          <CapsulesTab
-            showRetired={showRetired}
-            setShowRetired={setShowRetired}
-            openCapsule={openCapsule}
-            showOdds={setOddsCapsule}
-            openMass={() => setMassOpen(true)}
-            playerTokens={player.tokens}
-          />
-        )}
-        {tab === "inventory" && (
-          <InventoryTab player={player} equip={equip} sell={sell} />
-        )}
-        {tab === "mine" && (
-          <MineTab player={player} mine={mine} buyUpgrade={buyUpgrade} />
-        )}
-        {tab === "market" && (
-          <Bazaar
-            player={player}
-            createListing={createListing}
-            openListing={setSelectedListing}
-            setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
-          />
-        )}
-        {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} />}
-        {tab === "leaderboard" && <Leaderboard player={player} />}
-        {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} />}
-        {tab === "crafting" && (
-          <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} craft={craft} />
-        )}
-        {tab === "promo" && (
-          <PromoTab
-            code={promoCode}
-            setCode={setPromoCode}
-            redeem={redeemPromo}
-          />
-        )}
-        {tab === "info" && <InfoTab />}
-        {tab === "admin" && adminUnlocked && (
-          <AdminTab
-            player={player}
-            grantTokens={grantTokens}
-            grantBlook={grantBlook}
-            grantBadge={grantBadge}
-            announcement={announcement}
-            setAnnouncement={setAnnouncement}
-            publishAnnouncement={() => setNotice(announcement.trim() ? `Announcement published: ${announcement.trim()}` : "Write an announcement first.")}
-            grantGift={(gift) => {
-              save({
-                ...player,
-                tokens: player.tokens + gift.tokens,
-                inventory: [...player.inventory, ...gift.blooks],
-                badges: Array.from(new Set([...player.badges, ...gift.badges])),
-                materials: Object.fromEntries(materialNames.map((material) => [material, (player.materials[material] || 0) + (gift.materials[material] || 0)])),
-              });
-              const giftText = `${gift.title || "Admin gift"}: ${gift.message || "Gift received"}`;
-              setGiftChatNotice(giftText);
-              setNotice(`${giftText} · gift sent.`);
-            }}
-          />
-        )}
-      </section>
+            />
+          )}
+        </section>
+      </div>
       {reveal && <RevealModal reveal={reveal} close={() => setReveal(null)} />}
       {oddsCapsule && (
         <OddsModal capsule={oddsCapsule} close={() => setOddsCapsule(null)} />
@@ -1041,6 +1152,7 @@ function LoginScreen({
   setPassword,
   login,
   notice,
+  closeNotice,
 }: {
   username: string;
   email: string;
@@ -1050,6 +1162,7 @@ function LoginScreen({
   setPassword: (value: string) => void;
   login: (event: FormEvent<HTMLFormElement>) => void;
   notice: string;
+  closeNotice: () => void;
 }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#24170f] px-5 text-white">
@@ -1114,7 +1227,15 @@ function LoginScreen({
           placeholder="Create a password"
           className="mt-2 w-full rounded-xl bg-[#24170f] px-4 py-3 outline-none focus:border-[#eac477]"
         />
-        {notice && <p className="mt-3 text-sm text-[#ffe2a0]">{notice}</p>}
+        {notice && (
+          <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
+              <p className="text-lg font-black text-[#bde8ff]">Breadlet update</p>
+              <p className="mt-3 text-sm text-[#d9f3ff]">{notice}</p>
+              <button onClick={closeNotice} className="mt-5 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Close</button>
+            </div>
+          </div>
+        )}
         <button
           type="submit"
           className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] hover:bg-[#ffe2a0]"
@@ -1159,7 +1280,6 @@ function ProfileTab({
             <h1 className="mt-2 text-4xl font-black">
               {player.username} {player.clanTag && <span className="text-[#ffe2a0]">[{player.clanTag}]</span>}
             </h1>
-            <p className="mt-2 text-[#d7b88c]">Equipped: {player.equipped}</p>
             <p className="mt-1 text-xs font-bold uppercase tracking-widest text-[#eac477]">
               {rarityFor(player.equipped)}
             </p>
@@ -1317,16 +1437,151 @@ function CapsulesTab({
   );
 }
 
+function StarShipFrameSwitcher({ className }: { className: string }) {
+  const [frame, setFrame] = useState(1);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFrame((f) => (f % 7) + 1);
+    }, 150);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <img
+      src={`/assets/star ship frame ${frame}.svg`}
+      alt="Star Ship"
+      className={`max-h-full max-w-full object-contain ${className}`}
+    />
+  );
+}
+
 function RewardArt({ name, art, className }: { name: string; art: string; className: string }) {
-  if (name === "Timeglass") {
+  const cleanName = name.replace(/^Shiny /, "");
+  if (cleanName === "Star Ship") {
+    return <StarShipFrameSwitcher className={className} />;
+  }
+  if (cleanName === "Timeglass") {
     return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{["/assets/Time glass first animation.svg", "/assets/Time glass second animation2.svg", "/assets/Time glass 3rd animation3.svg", "/assets/Time glass final animation.svg"].map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;
   }
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`}>
-      <img src={art} alt={name} className={`max-h-full max-w-full object-contain ${name === "Golden Shuriken" ? "shuriken-spin" : ""}`} />
-      {name === "Caveman" && <img src="/assets/rock for caveman to throw.svg" alt="" className="caveman-accessory caveman-rock absolute bottom-0 right-0 h-1/3 w-1/3 object-contain" />}
-      {name === "Alien" && <img src="/assets/lar blaster (for alien).svg" alt="" className="alien-accessory alien-laser absolute bottom-0 right-0 h-1/2 w-1/2 object-contain" />}
+      <img src={art} alt={name} className={`max-h-full max-w-full object-contain ${cleanName === "Golden Shuriken" ? "shuriken-spin" : ""}`} />
+      {cleanName === "Caveman" && <img src="/assets/rock for caveman to throw.svg" alt="" className="caveman-accessory caveman-rock absolute bottom-0 right-0 h-1/3 w-1/3 object-contain" />}
+      {cleanName === "Alien" && <img src="/assets/lar blaster (for alien).svg" alt="" className="alien-accessory alien-laser absolute bottom-0 right-0 h-1/2 w-1/2 object-contain" />}
     </span>
+  );
+}
+
+function getBlookScoreStats(inventory: string[]) {
+  const uniqueOwned = Array.from(new Set(inventory));
+  const countsByRarity: Record<string, number> = {
+    Common: 0,
+    Uncommon: 0,
+    Rare: 0,
+    Epic: 0,
+    Legendary: 0,
+    Mythic: 0,
+    Chroma: 0,
+    Unique: 0,
+    Transcendent: 0,
+  };
+
+  let totalValue = 0;
+  let totalScore = 0;
+
+  const rarityWeights: Record<string, number> = {
+    Common: 5,
+    Uncommon: 15,
+    Rare: 35,
+    Epic: 100,
+    Legendary: 300,
+    Mythic: 750,
+    Chroma: 1200,
+    Unique: 1500,
+    Transcendent: 3000,
+  };
+
+  for (const name of inventory) {
+    const rarity = rarityFor(name);
+    totalValue += sellValueFor(rarity);
+    totalScore += rarityWeights[rarity] || 10;
+  }
+
+  for (const name of uniqueOwned) {
+    const rarity = rarityFor(name);
+    if (countsByRarity[rarity] !== undefined) {
+      countsByRarity[rarity]++;
+    }
+  }
+
+  const formatValue = (val: number) => {
+    if (val >= 1000) return (val / 1000).toFixed(1) + "K";
+    return val.toString();
+  };
+
+  return {
+    totalBlooks: inventory.length,
+    totalValueFormatted: formatValue(totalValue),
+    totalScore: totalScore.toLocaleString(),
+    countsByRarity,
+  };
+}
+
+function BlookScoreCard({ inventory }: { inventory: string[] }) {
+  const stats = getBlookScoreStats(inventory);
+
+  return (
+    <div className="w-full lg:w-80 shrink-0 rounded-3xl border border-[#3d91cd]/40 bg-gradient-to-b from-[#103f75] to-[#072a54] p-6 shadow-2xl flex flex-col items-center">
+      {/* Star Header Badge */}
+      <div className="relative flex flex-col items-center justify-center my-2">
+        <div className="relative flex h-36 w-36 items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center text-[#f59e0b] drop-shadow-[0_0_18px_rgba(245,158,11,0.7)]">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-36 h-36">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+          </div>
+          <div className="relative z-10 text-center text-slate-950 font-black px-2">
+            <span className="block text-2xl font-black text-slate-950 leading-tight">{stats.totalScore}</span>
+            <span className="block text-[10px] uppercase tracking-wider font-extrabold text-slate-900">Blook Score</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Rarity Gem Counters Grid */}
+      <div className="mt-4 w-full grid grid-cols-4 gap-2.5 bg-[#0c3b70]/80 p-4 rounded-2xl border border-[#3d91cd]/30">
+        {[
+          { name: "Common", color: "bg-slate-300 text-slate-900" },
+          { name: "Uncommon", color: "bg-emerald-500 text-white" },
+          { name: "Rare", color: "bg-blue-500 text-white" },
+          { name: "Epic", color: "bg-red-500 text-white" },
+          { name: "Legendary", color: "bg-amber-500 text-white" },
+          { name: "Mythic", color: "bg-cyan-400 text-slate-950" },
+          { name: "Unique", color: "bg-purple-500 text-white" },
+          { name: "Transcendent", color: "bg-orange-500 text-white" },
+        ].map((gem) => (
+          <div key={gem.name} className="flex flex-col items-center text-center">
+            <div className={`h-6 w-6 rounded-md flex items-center justify-center ${gem.color} text-[10px] font-black shadow-sm transform rotate-45 mb-2`}>
+              <span className="transform -rotate-45">◆</span>
+            </div>
+            <span className="text-sm font-black text-white">{stats.countsByRarity[gem.name] || 0}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Total Blooks & Collection Value */}
+      <div className="mt-5 w-full grid grid-cols-2 gap-3 pt-4 border-t border-[#3d91cd]/30">
+        <div className="bg-[#0c3b70] p-3 rounded-2xl text-center border border-[#3d91cd]/20">
+          <span className="block text-2xl font-black text-white">{stats.totalBlooks}</span>
+          <span className="text-[11px] font-bold text-[#9cc8e8] uppercase">Blooks</span>
+        </div>
+        <div className="bg-[#0c3b70] p-3 rounded-2xl text-center border border-[#3d91cd]/20">
+          <span className="block text-2xl font-black text-[#ffe2a0] flex items-center justify-center gap-1">
+            <img src="/assets/coin.svg" alt="" className="h-4 w-4" />
+            {stats.totalValueFormatted}
+          </span>
+          <span className="text-[11px] font-bold text-[#9cc8e8] uppercase">Value</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1340,8 +1595,11 @@ function InventoryTab({
   sell: (name: string) => void;
 }) {
   const [selected, setSelected] = useState<Reward | null>(null);
+  const [showPacks, setShowPacks] = useState(true);
+
   const owned = (name: string) =>
     player.inventory.filter((item) => item === name).length;
+
   const catalog = [...liveCapsules, ...retiredCapsules].map((capsule) => ({
     ...capsule,
     pool: [
@@ -1351,57 +1609,96 @@ function InventoryTab({
         .map((reward) => ({ ...reward, name: `Shiny ${reward.name}` })),
     ],
   }));
+
   return (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-        Your collection
-      </p>
-      <h1 className="mt-2 text-4xl font-black">Blooks</h1>
-      <p className="mt-2 text-[#d7b88c]">
-        Small tiles keep the collection scannable. Click any Blook for its
-        details.
-      </p>
-      <div className="mt-8 space-y-7">
+    <div className="flex flex-col lg:flex-row gap-8 items-start">
+      {/* Main Blooks Grid Area */}
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#3d91cd]/30">
+          <div>
+            <h1 className="text-4xl font-black text-white tracking-wide">My Blooks</h1>
+            <p className="mt-1 text-sm text-[#9cc8e8]">Click any Blook to view details, equip, or sell.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-[#103f75] px-3.5 py-2 text-xs font-bold text-[#bde8ff] border border-[#3d91cd]/40">
+              <input
+                type="checkbox"
+                checked={showPacks}
+                onChange={(e) => setShowPacks(e.target.checked)}
+                className="h-4 w-4 accent-[#39a8f5]"
+              />
+              Show Packs
+            </label>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-8">
           {catalog.map((capsule) => (
-          <section key={capsule.name}>
-            <div className="mb-3 flex items-center gap-3">
-              <h2 className="font-black">{capsule.name}</h2>
-              {capsule.retired && (
-                <span className="rounded-full bg-[#624833] px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#d7b88c]">
-                  Retired
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {capsule.pool.map((reward) => {
-                const quantity = owned(reward.name);
-                return (
-                  <button
-                    key={reward.name}
-                    title={quantity ? `${reward.name}, quantity ${quantity}` : "Locked Blook"}
-                    onClick={() => quantity && setSelected(reward)}
-                    className={`relative flex h-28 w-28 flex-col items-center justify-center rounded-lg border-0 bg-transparent p-1 text-center transition hover:-translate-y-0.5 ${quantity ? "" : "opacity-70"}`}
-                  >
-                    {quantity ? <RewardArt name={reward.name} art={artFor(reward.name)} className={`h-20 w-20 ${rewardEffectClassFor(reward.name, reward.rarity)}`} /> : <span className="h-20 w-20 rounded-md bg-black" aria-hidden="true" />}
-                    {!quantity && (
-                      <Lock
-                        size={13}
-                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white"
-                      />
-                    )}
-                    {quantity > 1 && (
-                      <span className="absolute bottom-1 right-1 rounded bg-[#e9bd67] px-1 text-[10px] font-black text-[#29170c]">
-                        x{quantity}
-                      </span>
-                    )}
-                    {quantity && <span className="mt-1 max-w-full truncate text-xs font-black text-[#f0d7ae]">{reward.name}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+            <section key={capsule.name} className="rounded-3xl border border-[#3d91cd]/30 bg-[#103f75]/80 p-5 shadow-md">
+              <div className="mb-4 flex items-center justify-between border-b border-[#3d91cd]/20 pb-2">
+                <h2 className="text-xl font-black text-[#bde8ff] flex items-center gap-2">
+                  <img src={capsule.art} alt="" className="h-6 w-6 object-contain" />
+                  {capsule.name}
+                </h2>
+                {capsule.retired && (
+                  <span className="rounded-full bg-[#0c3b70] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#e9bd67] border border-[#e9bd67]/30">
+                    Retired
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {capsule.pool.map((reward) => {
+                  const quantity = owned(reward.name);
+                  return (
+                    <button
+                      key={reward.name}
+                      title={quantity ? `${reward.name} (x${quantity})` : `${reward.name} (Locked)`}
+                      onClick={() => quantity && setSelected(reward)}
+                      className={`relative flex aspect-square flex-col items-center justify-center rounded-2xl border transition-all p-2 ${
+                        quantity
+                          ? "border-[#3d91cd] bg-[#18558f] shadow-md hover:-translate-y-1 hover:border-[#39a8f5] hover:shadow-lg cursor-pointer"
+                          : "border-black/50 bg-[#072a54]/90 opacity-60 cursor-not-allowed"
+                      }`}
+                    >
+                      {quantity ? (
+                        <RewardArt
+                          name={reward.name}
+                          art={artFor(reward.name)}
+                          className={`h-16 w-16 ${rewardEffectClassFor(reward.name, reward.rarity)}`}
+                        />
+                      ) : (
+                        <div className="relative flex items-center justify-center h-16 w-16">
+                          <span className="h-14 w-14 rounded-xl bg-black/80" />
+                          <Lock size={16} className="absolute text-white/80" />
+                        </div>
+                      )}
+
+                      {/* Quantity badge */}
+                      {quantity > 0 && (
+                        <span className="absolute bottom-1.5 left-1.5 rounded-lg bg-[#22c55e] px-1.5 py-0.5 text-[10px] font-black text-white shadow">
+                          {quantity}
+                        </span>
+                      )}
+
+                      {/* Equipped badge */}
+                      {player.equipped === reward.name && (
+                        <span className="absolute top-1.5 right-1.5 rounded-md bg-[#e9bd67] px-1 text-[9px] font-black text-[#031426]">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
+
+      {/* Right Side Blook Score Summary Card */}
+      <BlookScoreCard inventory={player.inventory} />
+
+      {/* Selected Blook Detail Modal */}
       {selected && (
         <BlookDetail
           reward={selected}
@@ -1432,23 +1729,23 @@ function BlookDetail({
   sell: (name: string) => void;
 }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border border-[#d49a4a]/30 bg-[#3a2415] p-6">
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">
               Blook details
             </p>
-            <h2 className="mt-2 text-2xl font-black">{reward.name}</h2>
+            <h2 className="mt-1 text-2xl font-black text-white">{reward.name}</h2>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg px-3 py-1 text-sm"
+            className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]"
           >
             Close
           </button>
         </div>
-        <div className="mt-5 flex h-36 items-center justify-center rounded-xl bg-[#24170f]">
+        <div className="mt-5 flex h-36 items-center justify-center rounded-2xl bg-[#0c3b70] p-4 border border-[#3d91cd]/30">
           <RewardArt name={reward.name} art={artFor(reward.name)} className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
@@ -1456,26 +1753,42 @@ function BlookDetail({
           <Stat label="Quantity" value={String(quantity)} />
           <Stat label="Shiny" value={shinyEligibleNames.has(reward.name.replace(/^Shiny /, "")) ? "Eligible · 1/100" : "Not eligible"} />
           <Stat
-            label="Global owned"
-            value="Not synced"
-          />
-          <Stat
             label="Sell value"
             value={`${sellValueFor(reward.rarity)} tokens`}
           />
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-2">
+        <div className="mt-6 grid grid-cols-2 gap-3">
           <button
             disabled={!quantity || equipped}
             onClick={() => {
               equip(reward.name);
               onClose();
             }}
-            className="rounded-lg bg-[#e9bd67] px-3 py-2 text-xs font-black text-[#29170c] disabled:opacity-40"
+            className="rounded-xl bg-[#39a8f5] px-4 py-3 text-sm font-black text-[#031426] hover:bg-[#73c8ff] disabled:opacity-40"
           >
             {equipped ? "Equipped" : "Equip"}
           </button>
           <button
+            disabled={quantity <= 1}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Sell ${reward.name} for ${sellValueFor(reward.rarity)} tokens?`,
+                )
+              ) {
+                sell(reward.name);
+                onClose();
+              }
+            }}
+            className="rounded-xl border border-red-400 bg-red-900/30 px-4 py-3 text-sm font-bold text-red-200 hover:bg-red-900/50 disabled:opacity-40"
+          >
+            Sell
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
             disabled={quantity <= 1}
             onClick={() => {
               if (
@@ -1506,6 +1819,7 @@ function MineTab({
   mine: () => void;
   buyUpgrade: (index: number) => void;
 }) {
+  const currentUpgrade = upgrades[player.pickaxe] || upgrades[0];
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
@@ -1514,14 +1828,23 @@ function MineTab({
       <h1 className="mt-2 text-4xl font-black">The Mine</h1>
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
-          <div className="mine-scene cave-scene relative flex h-72 items-center justify-center rounded-2xl bg-gradient-to-br from-[#6c4328] to-[#24170f]">
+          <div className="mine-scene cave-scene relative flex h-72 items-center justify-center rounded-2xl bg-gradient-to-br from-[#6c4328] to-[#24170f] overflow-hidden">
             <img src="/assets/mine scene.svg" alt="Cave mine" className="absolute inset-0 h-full w-full object-cover opacity-80" />
             <img
               src="/assets/worker.svg"
               alt="Mine worker"
-              className="mine-worker max-h-56"
+              className="mine-worker max-h-56 z-10"
             />
-            <img src="/assets/pickaxe.svg" alt="Pickaxe" className="mine-pickaxe absolute h-20 object-contain" />
+            <img src="/assets/pickaxe.svg" alt="Pickaxe" className="mine-pickaxe absolute h-20 object-contain z-10" />
+            {/* Bought rock appearing in designated placeholder spot in cave scene */}
+            <div className="absolute bottom-4 right-8 z-10 flex flex-col items-center bg-black/40 p-2 rounded-2xl border border-[#e9bd67]/30 backdrop-blur-xs">
+              <img
+                src={currentUpgrade.art}
+                alt={currentUpgrade.name}
+                className="h-20 w-20 object-contain drop-shadow-[0_0_12px_rgba(233,189,103,0.7)]"
+              />
+              <span className="mt-1 text-[10px] font-black uppercase text-[#ffe2a0] tracking-wider">{currentUpgrade.name}</span>
+            </div>
           </div>
           <div className="mt-6 flex items-end justify-between">
             <div>
@@ -1780,8 +2103,25 @@ function RevealModal({
   );
 }
 function ListingModal({ listing, close, buy }: { listing: Listing; close: () => void; buy: (listing: Listing) => void }) {
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm"><div className="w-full max-w-sm rounded-2xl border border-[#d49a4a]/30 bg-[#3a2415] p-6 text-center"><p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Bazaar listing</p><div className="mt-5 flex h-40 items-center justify-center rounded-xl bg-[#24170f]"><img src={artFor(listing.blook)} alt={listing.blook} className="max-h-full max-w-full object-contain" /></div><h2 className="mt-4 text-2xl font-black">{listing.blook}</h2><p className="mt-2 text-sm text-[#d7b88c]">{rarityFor(listing.blook)} · Seller: {listing.seller}</p><p className="mt-4 text-xl font-black text-[#ffe2a0]">{listing.price} tokens</p><div className="mt-6 grid grid-cols-2 gap-2"><button onClick={close} className="rounded-xl px-3 py-3 text-sm font-bold">Close</button><button onClick={() => buy(listing)} className="rounded-xl bg-[#e9bd67] px-3 py-3 text-sm font-black text-[#29170c]">Buy Blook</button></div></div></div>;
+  return (
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Bazaar listing</p>
+        <div className="mt-5 flex h-40 items-center justify-center rounded-2xl bg-[#0c3b70] p-4 border border-[#3d91cd]/30">
+          <img src={artFor(listing.blook)} alt={listing.blook} className="max-h-full max-w-full object-contain" />
+        </div>
+        <h2 className="mt-4 text-2xl font-black text-white">{listing.blook}</h2>
+        <p className="mt-1 text-sm text-[#9cc8e8]">{rarityFor(listing.blook)} · Seller: {listing.seller}</p>
+        <p className="mt-3 text-xl font-black text-[#ffe2a0]">{listing.price} tokens</p>
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-3 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
+          <button onClick={() => buy(listing)} className="rounded-xl bg-[#39a8f5] px-3 py-3 text-sm font-black text-[#031426] hover:bg-[#73c8ff]">Buy Blook</button>
+        </div>
+      </div>
+    </div>
+  );
 }
+
 function OddsModal({
   capsule,
   close,
@@ -1790,47 +2130,49 @@ function OddsModal({
   close: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl border border-[#d49a4a]/30 bg-[#3a2415] p-6">
-        <div className="flex items-start justify-between gap-4">
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-start justify-between gap-4 pb-3 border-b border-[#3d91cd]/30">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">
               Specific Blook chances
             </p>
-            <h2 className="mt-2 text-2xl font-black">{capsule.name}</h2>
+            <h2 className="mt-1 text-2xl font-black text-white">{capsule.name}</h2>
           </div>
           <button
             onClick={close}
-            className="rounded-lg px-3 py-1 text-sm text-[#f0d7ae]"
+            className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]"
           >
             Close
           </button>
         </div>
-        <div className="mt-6 space-y-2">
+        <div className="mt-4 space-y-2 overflow-y-auto pr-1 flex-1">
           {capsule.pool.map((reward) => (
             <div
               key={reward.name}
-              className="flex items-center justify-between rounded-lg bg-[#24170f] px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-xl bg-[#0c3b70] p-3 text-sm border border-[#3d91cd]/20"
             >
-              <span className="flex min-w-0 items-center gap-2">
-                <RewardArt name={reward.name} art={reward.art || artFor(reward.name)} className={`h-9 w-9 shrink-0 ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
-                <span className="truncate">{reward.name} <b className="ml-1 text-xs text-[#eac477]">{reward.rarity}</b></span>
+              <span className="flex min-w-0 items-center gap-3">
+                <div className="h-10 w-10 shrink-0 bg-[#072a54] rounded-lg p-1 flex items-center justify-center">
+                  <RewardArt name={reward.name} art={reward.art || artFor(reward.name)} className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
+                </div>
+                <span className="truncate font-bold text-white">{reward.name} <b className="ml-1 text-xs text-[#e9bd67]">{reward.rarity}</b></span>
               </span>
-              <b className="text-[#ffe2a0]">
+              <b className="text-[#bde8ff] text-base">
                 {chanceFor(capsule, reward).toFixed(2)}%
               </b>
             </div>
           ))}
         </div>
-        <p className="mt-5 text-xs leading-5 text-[#b58d68]">
+        <p className="mt-4 pt-3 border-t border-[#3d91cd]/30 text-xs leading-5 text-[#9cc8e8]">
           Legendary is 0.50% total per pack and Mythic is 0.20% total per pack.
-          Opening a capsule only grants its Blook reward; it never creates
-          tokens.
+          Opening a capsule only grants its Blook reward; it never creates tokens.
         </p>
       </div>
     </div>
   );
 }
+
 function MassOpenModal({
   quantities,
   setQuantity,
@@ -1851,24 +2193,24 @@ function MassOpenModal({
     0,
   );
   return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/70 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl border border-[#d49a4a]/30 bg-[#3a2415] p-6">
-        <div className="flex items-start justify-between gap-4">
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-start justify-between gap-4 pb-3 border-b border-[#3d91cd]/30">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Batch opening</p>
-            <h2 className="mt-2 text-2xl font-black">Mass open capsules</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Batch opening</p>
+            <h2 className="mt-1 text-2xl font-black text-white">Mass open capsules</h2>
           </div>
-          <button onClick={close} className="rounded-lg px-3 py-1 text-sm text-[#f0d7ae]">Close</button>
+          <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
         </div>
-        <div className="mt-6 space-y-3">
+        <div className="mt-4 space-y-3 overflow-y-auto pr-1 flex-1">
           {liveCapsules.map((capsule) => (
-            <div key={capsule.name} className="flex items-center gap-3 rounded-xl bg-[#24170f] p-3">
+            <div key={capsule.name} className="flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/20">
               <img src={capsule.art} alt={capsule.name} className="h-12 w-12 object-contain" />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-black">{capsule.name}</p>
-                <p className="text-xs text-[#b58d68]">{capsule.price} tokens each</p>
+                <p className="truncate font-black text-white">{capsule.name}</p>
+                <p className="text-xs text-[#9cc8e8]">{capsule.price} tokens each</p>
               </div>
-              <button onClick={() => setQuantity(capsule.name, Math.max(0, (quantities[capsule.name] || 0) - 1))} className="h-9 w-9 rounded-lg text-lg font-black">-</button>
+              <button onClick={() => setQuantity(capsule.name, Math.max(0, (quantities[capsule.name] || 0) - 1))} className="h-9 w-9 rounded-xl bg-[#18558f] text-lg font-black text-white hover:bg-[#24649c]">-</button>
               <input
                 type="number"
                 min="0"
@@ -1878,22 +2220,23 @@ function MassOpenModal({
                   const value = Number.parseInt(event.target.value, 10);
                   setQuantity(capsule.name, Number.isFinite(value) ? Math.min(999, Math.max(0, value)) : 0);
                 }}
-                className="h-9 w-14 rounded-lg bg-[#3a2415] text-center font-black text-white"
+                className="h-9 w-14 rounded-xl bg-[#072a54] text-center font-black text-white outline-none border border-[#3d91cd]/30"
                 aria-label={`${capsule.name} quantity`}
               />
-              <button onClick={() => setQuantity(capsule.name, (quantities[capsule.name] || 0) + 1)} className="h-9 w-9 rounded-lg text-lg font-black">+</button>
+              <button onClick={() => setQuantity(capsule.name, (quantities[capsule.name] || 0) + 1)} className="h-9 w-9 rounded-xl bg-[#18558f] text-lg font-black text-white hover:bg-[#24649c]">+</button>
             </div>
           ))}
         </div>
-        <div className="mt-6 flex items-center justify-between pt-4 text-sm">
+        <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#3d91cd]/30 text-sm font-bold text-white">
           <span>{count} capsule{count === 1 ? "" : "s"}</span>
-          <b className="text-lg text-[#ffe2a0]">{total} tokens</b>
+          <b className="text-lg text-[#ffe2a0]">{total.toLocaleString()} tokens</b>
         </div>
-        <button onClick={() => open(quantities)} className="mt-4 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]">Open selected capsules</button>
+        <button onClick={() => open(quantities)} className="mt-4 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Open selected capsules</button>
       </div>
     </div>
   );
 }
+
 function MassResultsModal({
   results,
   close,
@@ -1902,20 +2245,28 @@ function MassResultsModal({
   close: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl border border-[#d49a4a]/30 bg-[#3a2415] p-6">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Opening complete</p>
-        <h2 className="mt-2 text-2xl font-black">Your Blooks</h2>
-        <div className="mt-5 grid max-h-96 gap-2 overflow-y-auto sm:grid-cols-2">
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col text-center">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Opening complete</p>
+        <h2 className="mt-1 text-3xl font-black text-white">Your Blooks</h2>
+        <div className="mt-5 grid max-h-[60vh] gap-3 overflow-y-auto sm:grid-cols-2 pr-1">
           {results.map((result, index) => (
-            <div key={`${result.capsule}-${result.reward.name}-${index}`} className="flex items-center gap-3 rounded-xl bg-[#24170f] p-3">
-              <img src={result.reward.art} alt={result.reward.name} className="h-14 w-14 object-contain" />
-              <div className="min-w-0"><p className="truncate font-black">{result.reward.name}</p><p className="text-xs text-[#b58d68]">{result.reward.rarity}</p></div>
+            <div key={`${result.capsule}-${result.reward.name}-${index}`} className="flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/30">
+              <div className="h-14 w-14 shrink-0 bg-[#072a54] rounded-xl p-1 flex items-center justify-center">
+                <RewardArt name={result.reward.name} art={result.reward.art || artFor(result.reward.name)} className={`h-full w-full ${rewardEffectClassFor(result.reward.name, result.reward.rarity)}`} />
+              </div>
+              <div className="min-w-0 text-left">
+                <p className="truncate font-black text-white text-base">{result.reward.name}</p>
+                <p className="text-xs font-bold text-[#e9bd67]">{result.reward.rarity}</p>
+              </div>
             </div>
           ))}
         </div>
-        <button onClick={close} className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]">Add to collection</button>
+        <button onClick={close} className="mt-6 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Add to collection</button>
       </div>
+    </div>
+  );
+}
     </div>
   );
 }
@@ -1997,7 +2348,7 @@ function Leaderboard({ player }: { player: Player }) {
       {view === "blooks" && <p className="mt-3 text-sm text-[#9cc8e8]">Blook score rewards rarity and collection depth.</p>}
       {view === "clans" && <p className="mt-3 text-sm text-[#9cc8e8]">Clan rankings will use member contributions and unlocked benefits.</p>}
       <div className="mt-8 grid items-end gap-4 md:grid-cols-3">
-        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={String(row[0])} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><img src={artFor(String(row[2]))} alt={String(row[2])} className="mx-auto mt-3 h-24 w-24 object-contain" /><h2 className="mt-3 font-black">{row[0]}</h2><p className="text-sm text-[#d9f3ff]">Equipped: {row[2]}</p><p className="mt-2 font-black text-[#bde8ff]">{row[1]} mined</p></div>)}
+        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={String(row[0])} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><img src={artFor(String(row[2]))} alt={String(row[2])} className="mx-auto mt-3 h-24 w-24 object-contain" /><h2 className="mt-3 font-black">{row[0]}</h2><p className="mt-2 font-black text-[#bde8ff]">{row[1]} mined</p></div>)}
       </div>
       <div className="mt-8 max-w-2xl overflow-hidden rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415]">
         <div className="grid grid-cols-[1fr_auto] px-5 py-4 text-xs font-bold uppercase tracking-widest text-[#b58d68]">
@@ -2049,12 +2400,13 @@ function SimplePanel({
   );
 }
 
-function ChatTab({ player, showBadge, giftNotice }: { player: Player; showBadge: (badge: string) => void; giftNotice: string }) {
+function ChatTab({ player, showBadge, giftNotice, clearGiftNotice }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[] }[]>([
     { user: player.username, badges: player.badges, text: "Welcome to Breadlet chat." },
   ]);
   const supabase = useMemo(() => createSupabaseClient(), []);
+  const isVerified = player.badges?.includes("Verified");
 
   const loadMessages = useCallback(async () => {
     try {
@@ -2120,42 +2472,71 @@ function ChatTab({ player, showBadge, giftNotice }: { player: Player; showBadge:
     };
   }, [loadMessages, supabase]);
 
-  const send = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const text = message.trim();
-    if (!text) return;
-    setMessage("");
-
-    console.log('[CLIENT_CHAT] Sending message:', text, 'Supabase client exists:', Boolean(supabase));
+  const sendMessageText = async (textToSend: string) => {
+    if (!textToSend.trim()) return;
     if (supabase) {
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text }),
+          body: JSON.stringify({ message: textToSend }),
         });
-        console.log('[CLIENT_CHAT] Send POST status:', response.status);
         if (response.ok) {
           const data = await response.json();
-          console.log('[CLIENT_CHAT] Message successfully created:', data);
           const username = data.user || (Array.isArray(data.profiles) ? data.profiles[0]?.username : data.profiles?.username) || player.username;
           setMessages((current) => {
             if (data.id && current.some((m) => m.id === data.id)) return current;
             return [
               ...current,
-              { id: data.id, user: username, text: data.message || text, badges: player.badges },
+              { id: data.id, user: username, text: data.message || textToSend, badges: player.badges },
             ];
           });
-        } else {
-          const err = await response.json().catch(() => ({}));
-          console.error('[CLIENT_CHAT] Send POST failed:', err);
         }
       } catch (err) {
-        console.error('[CLIENT_CHAT] Error in send:', err);
+        console.error('[CLIENT_CHAT] Error sending message:', err);
       }
     } else {
-      setMessages((current) => [...current, { user: player.username, badges: player.badges, text }]);
+      setMessages((current) => [...current, { user: player.username, badges: player.badges, text: textToSend }]);
     }
+  };
+
+  const send = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const text = message.trim();
+    if (!text) return;
+    setMessage("");
+    await sendMessageText(text);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert("Image file size must be smaller than 3MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        sendMessageText(`[img]${reader.result}[/img]`);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const renderMessageContent = (text: string) => {
+    if (text.startsWith("[img]") && text.endsWith("[/img]")) {
+      const src = text.slice(5, -6);
+      return (
+        <img
+          src={src}
+          alt="Chat attachment"
+          className="mt-2 max-h-60 max-w-xs rounded-xl border border-[#3d91cd] object-contain bg-[#103f75] p-1 shadow-md"
+        />
+      );
+    }
+    return <p className="text-sm text-[#d7b88c] whitespace-pre-wrap break-words">{text}</p>;
   };
 
   return (
@@ -2165,17 +2546,21 @@ function ChatTab({ player, showBadge, giftNotice }: { player: Player; showBadge:
       </p>
       <h1 className="mt-2 text-4xl font-black">Global Chat</h1>
       {giftNotice && (
-        <div className="mt-4 rounded-xl border border-[#73c8ff] bg-[#18558f] px-4 py-3 font-black text-[#bde8ff]">
-          Gift notification: {giftNotice}
+        <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
+            <p className="text-lg font-black text-[#bde8ff]">Gift notification</p>
+            <p className="mt-3 text-sm text-[#d9f3ff]">{giftNotice}</p>
+            <button onClick={clearGiftNotice} className="mt-5 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Close</button>
+          </div>
         </div>
       )}
-      <div className="mt-6 min-h-72 space-y-3 rounded-2xl bg-[#24170f] p-4">
+      <div className="mt-6 min-h-72 space-y-3 rounded-2xl bg-[#24170f] p-4 max-h-[500px] overflow-y-auto">
         {messages.map((item, index) => (
           <div key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
             <img
               src={artFor(item.user === player.username ? player.equipped : "Bread Blook")}
               alt=""
-              className="h-10 w-10 rounded-lg object-contain"
+              className="h-10 w-10 rounded-lg object-contain bg-[#103f75]"
             />
             <div>
               <div className="flex items-center gap-2 font-black">
@@ -2196,17 +2581,31 @@ function ChatTab({ player, showBadge, giftNotice }: { player: Player; showBadge:
                   </button>
                 ))}
               </div>
-              <p className="text-sm text-[#d7b88c]">{item.text}</p>
+              {renderMessageContent(item.text)}
             </div>
           </div>
         ))}
       </div>
-      <form onSubmit={send} className="mt-4 flex gap-3">
+      <form onSubmit={send} className="mt-4 flex items-center gap-3">
+        {isVerified && (
+          <label
+            title="Upload image (Verified Badge Feature)"
+            className="flex cursor-pointer items-center justify-center rounded-xl border border-[#3d91cd] bg-[#103f75] p-3 text-[#bde8ff] hover:bg-[#18558f] transition"
+          >
+            <ImageIcon size={20} />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </label>
+        )}
         <input
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder="Write a message..."
-          className="min-w-0 flex-1 rounded-xl bg-[#24170f] px-4 py-3 text-white"
+          placeholder={isVerified ? "Write a message or upload an image..." : "Write a message..."}
+          className="min-w-0 flex-1 rounded-xl bg-[#24170f] px-4 py-3 text-white outline-none focus:border-[#3d91cd]"
         />
         <button type="submit" className="rounded-xl bg-[#e9bd67] px-5 py-3 font-black text-[#29170c]">
           Send
@@ -2216,7 +2615,33 @@ function ChatTab({ player, showBadge, giftNotice }: { player: Player; showBadge:
   );
 }
 
-function BadgeModal({ badge, close }: { badge: string; close: () => void }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm"><div className="w-full max-w-sm rounded-2xl border border-[#d49a4a]/30 bg-[#3a2415] p-6 text-center"><img src={badge === "First 50" ? "/assets/first-50-badge.svg" : badge === "Verified" ? "/assets/verified-badge.svg" : "/assets/blooktuber-badge.svg"} alt={badge} className="mx-auto h-24 w-24 object-contain" /><h2 className="mt-4 text-2xl font-black">{badge}</h2><p className="mt-3 text-sm leading-6 text-[#d7b88c]">{badgeDescriptions[badge]}</p><button onClick={close} className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]">Close</button></div></div>; }
+function BadgeModal({ badge, close }: { badge: string; close: () => void }) {
+  return (
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
+        <img
+          src={
+            badge === "First 50"
+              ? "/assets/first-50-badge.svg"
+              : badge === "Verified"
+                ? "/assets/verified-badge.svg"
+                : "/assets/blooktuber-badge.svg"
+          }
+          alt={badge}
+          className="mx-auto h-24 w-24 object-contain drop-shadow-md"
+        />
+        <h2 className="mt-4 text-2xl font-black text-white">{badge}</h2>
+        <p className="mt-3 text-sm leading-6 text-[#9cc8e8]">{badgeDescriptions[badge]}</p>
+        <button
+          onClick={close}
+          className="mt-6 w-full rounded-2xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426] hover:bg-[#73c8ff] shadow-md transition"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
 function PromoTab({
   code,
   setCode,
@@ -2293,6 +2718,7 @@ function AdminTab({
   grantGift: (gift: { title: string; message: string; tokens: number; materials: Record<string, number>; badges: string[]; blooks: string[] }) => void;
 }) {
   const [tokenAmount, setTokenAmount] = useState("100");
+  const [blookSearch, setBlookSearch] = useState("");
   const [banTarget, setBanTarget] = useState("");
   const [banReason, setBanReason] = useState("");
   const [banDuration, setBanDuration] = useState("24");
@@ -2303,75 +2729,234 @@ function AdminTab({
   const [giftMaterial, setGiftMaterial] = useState("Flour");
   const [giftMaterialAmount, setGiftMaterialAmount] = useState("0");
   const [banRecord, setBanRecord] = useState<{ target: string; reason: string; duration: string } | null>(null);
-  const [appeal, setAppeal] = useState("");
+
+  const allBlooks = [
+    "Bread Blook",
+    "Star Ship",
+    "Red Rex",
+    "Consolation",
+    "Pixel UFO",
+    "Golden Shuriken",
+    "Blooket Gods",
+    "Green Astronaut",
+    "Blackbeard",
+    "Butterfly",
+    "Alien",
+    "Golden UFO",
+    "Mr. Receipt",
+    "Mr. Frog",
+    "Holy Bread",
+    "Caveman",
+    "Timeglass",
+    "Aztec Coin",
+    "Eclipse",
+    "Ninja",
+    "Doctor",
+    "Crystal Ball",
+    "Necklace",
+    "Mars",
+    "Earth",
+    "Star",
+    "Worker",
+    "Chef",
+    "Surgeon",
+    "Actor",
+    "Pixel Toast",
+    "Pixel Chick",
+    "Pixel Ice Slime",
+    "Pixel Fuego",
+    "Pixel Wizard",
+    "Lava Slime",
+    "Olive Grenade",
+    "Shuriken",
+    "Shield",
+    "Spartan",
+    "Blooket Life",
+    "Fasty Jay",
+    "Waymore",
+  ];
+
+  const filteredBlooks = allBlooks.filter((b) =>
+    b.toLowerCase().includes(blookSearch.toLowerCase())
+  );
+
   return (
-    <div className="max-w-5xl space-y-6">
-      <div className="rounded-3xl border border-[#73c8ff]/50 bg-[#18558f] p-8">
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-200">
-        Local prototype only
-      </p>
-      <h1 className="mt-2 text-4xl font-black">Admin Panel</h1>
-      <p className="mt-4 leading-7 text-[#d7b88c]">
-        Grant resources to {player.username}. This panel is browser-local and is
-        not secure for production until server-side authorization is connected.
-      </p>
+    <div className="max-w-6xl space-y-6">
+      <div className="rounded-3xl border border-[#73c8ff]/50 bg-[#18558f] p-8 shadow-xl">
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">
+          Developer & Operator Controls
+        </p>
+        <h1 className="mt-2 text-4xl font-black text-white">Admin Panel</h1>
+        <p className="mt-3 leading-7 text-[#d9f3ff]">
+          Manage resources, grant Blooks with visual previews, issue badges, send announcements, and dispatch gifts to {player.username}.
+        </p>
       </div>
-      <div className="mt-7 rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5">
-        <h2 className="text-xl font-black text-[#bde8ff]">Exact token grant</h2>
-        <div className="mt-3 flex gap-3"><input value={tokenAmount} onChange={(event) => setTokenAmount(event.target.value)} type="number" min="0" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><button onClick={() => grantTokens(Number(tokenAmount) || 0)} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Grant tokens</button></div>
+
+      {/* Quick Grants & Exact Token Grant */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+          <h2 className="text-xl font-black text-[#bde8ff] flex items-center gap-2">
+            <img src="/assets/coin.svg" alt="" className="h-6 w-6" /> Token Grants
+          </h2>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[100, 1000, 10000, 100000].map((amt) => (
+              <button
+                key={amt}
+                onClick={() => grantTokens(amt)}
+                className="rounded-2xl border border-[#3d91cd]/50 bg-[#18558f] p-3 text-center font-black text-[#ffe2a0] hover:bg-[#24649c]"
+              >
+                +{amt.toLocaleString()}
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 flex gap-3">
+            <input
+              value={tokenAmount}
+              onChange={(e) => setTokenAmount(e.target.value)}
+              type="number"
+              min="0"
+              placeholder="Custom token amount"
+              className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-4 py-3 text-white outline-none"
+            />
+            <button
+              onClick={() => grantTokens(Number(tokenAmount) || 0)}
+              className="rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] hover:bg-[#73c8ff]"
+            >
+              Grant
+            </button>
+          </div>
+        </div>
+
+        {/* Global Announcement */}
+        <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+          <h2 className="text-xl font-black text-[#bde8ff]">Global Announcement</h2>
+          <p className="mt-1 text-sm text-[#9cc8e8]">Broadcast a message to all active players.</p>
+          <div className="mt-4 flex flex-col gap-3">
+            <input
+              value={announcement}
+              onChange={(e) => setAnnouncement(e.target.value)}
+              placeholder="Type system announcement..."
+              className="w-full rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-4 py-3 text-white outline-none"
+            />
+            <button
+              onClick={publishAnnouncement}
+              className="rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] hover:bg-[#73c8ff]"
+            >
+              Publish Announcement
+            </button>
+          </div>
+        </div>
       </div>
-      <div className="rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><h2 className="text-xl font-black text-[#bde8ff]">Global announcement</h2><div className="mt-3 flex gap-3"><input value={announcement} onChange={(event) => setAnnouncement(event.target.value)} placeholder="Message to all players" className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><button onClick={publishAnnouncement} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Publish</button></div></div>
-      <div className="rounded-2xl border border-[#ef8b9d]/40 bg-[#421f45] p-5"><h2 className="text-xl font-black text-[#ffd6df]">Moderation</h2><p className="mt-2 text-sm text-[#f2b9c7]">Local prototype moderation record. Server-backed bans require account storage.</p><div className="mt-3 grid gap-3 sm:grid-cols-3"><input value={banTarget} onChange={(event) => setBanTarget(event.target.value)} placeholder="Player username" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-3 text-white" /><input value={banDuration} onChange={(event) => setBanDuration(event.target.value)} type="number" min="1" placeholder="Hours" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-3 text-white" /><input value={banReason} onChange={(event) => setBanReason(event.target.value)} placeholder="Reason" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-3 text-white" /></div><button onClick={() => { if (banTarget.trim()) setBanRecord({ target: banTarget.trim(), reason: banReason.trim() || "No reason provided", duration: banDuration }); }} className="mt-3 rounded-xl bg-[#ef8b9d] px-4 py-3 font-black text-[#351c3a]">Ban player</button>{banRecord && <div className="mt-4 rounded-xl border border-[#ef8b9d]/50 bg-[#351c3a] p-4"><p className="font-black text-[#ffd6df]">{banRecord.target} is banned</p><p className="mt-1 text-sm text-[#f2b9c7]">{banRecord.duration} hours · {banRecord.reason}</p><textarea value={appeal} onChange={(event) => setAppeal(event.target.value)} placeholder="Appeal reason" className="mt-3 min-h-20 w-full rounded-xl border border-[#b85a77] bg-[#2b1830] px-3 py-2 text-white" /><button onClick={() => setAppeal("")} className="mt-2 rounded-xl border border-[#ef8b9d] px-3 py-2 text-sm font-bold text-[#ffd6df]">Submit appeal</button></div>}</div>
-      <div className="rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><h2 className="text-xl font-black text-[#bde8ff]">Admin gift composer</h2><div className="mt-3 grid gap-3 sm:grid-cols-2"><input value={giftTitle} onChange={(event) => setGiftTitle(event.target.value)} placeholder="Gift title" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={giftMessage} onChange={(event) => setGiftMessage(event.target.value)} placeholder="Gift message" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><div className="mt-3 grid gap-3 sm:grid-cols-4"><input value={giftBlook} onChange={(event) => setGiftBlook(event.target.value)} placeholder="Blook name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={giftBadge} onChange={(event) => setGiftBadge(event.target.value)} placeholder="Badge name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><select value={giftMaterial} onChange={(event) => setGiftMaterial(event.target.value)} className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white">{materialNames.map((material) => <option key={material}>{material}</option>)}</select><input value={giftMaterialAmount} onChange={(event) => setGiftMaterialAmount(event.target.value)} type="number" min="0" placeholder="Material qty" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={() => grantGift({ title: giftTitle, message: giftMessage, tokens: Number(tokenAmount) || 0, blooks: giftBlook ? [giftBlook] : [], badges: giftBadge ? [giftBadge] : [], materials: { [giftMaterial]: Number(giftMaterialAmount) || 0 } })} className="mt-4 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Send gift to current local profile</button></div>
-      <div className="rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5">
-        <h2 className="text-xl font-black text-[#bde8ff]">Quick grants</h2>
-      <div className="mt-7 grid gap-3 sm:grid-cols-3">
-        <button
-          onClick={() => grantTokens(100)}
-          className="rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]"
-        >
-          +100 tokens
-        </button>
-        <button
-          onClick={() => grantTokens(1000)}
-          className="rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]"
-        >
-          +1,000 tokens
-        </button>
-        <button
-          onClick={() => grantTokens(10000)}
-          className="rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]"
-        >
-          +10,000 tokens
-        </button>
+
+      {/* Grant Blooks with Visual Grid & Search */}
+      <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-black text-[#bde8ff]">Grant Blooks</h2>
+            <p className="mt-1 text-sm text-[#9cc8e8]">Click any Blook card to add it directly to inventory.</p>
+          </div>
+          <input
+            value={blookSearch}
+            onChange={(e) => setBlookSearch(e.target.value)}
+            placeholder="Search Blook..."
+            className="w-56 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-sm text-white outline-none"
+          />
+        </div>
+        <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-96 overflow-y-auto pr-1">
+          {filteredBlooks.map((name) => (
+            <button
+              key={name}
+              onClick={() => grantBlook(name)}
+              className="group flex flex-col items-center justify-between rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-3 text-center transition hover:border-[#39a8f5] hover:bg-[#24649c]"
+            >
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0c3b70] p-1">
+                <RewardArt name={name} art={artFor(name)} className="h-full w-full object-contain" />
+              </div>
+              <span className="mt-2 text-xs font-black text-[#bde8ff] truncate w-full">{name}</span>
+              <span className="mt-1 text-[10px] font-bold text-[#e9bd67] bg-[#0c3b70] px-2 py-0.5 rounded-full">+ Grant</span>
+            </button>
+          ))}
+        </div>
       </div>
-      <h2 className="mt-8 text-xl font-black">Grant Blook</h2>
-      <div className="mt-4 flex flex-wrap gap-3">
-        {[
-          "Bread Blook",
-          "Red Rex",
-          "Golden Shuriken",
-          "Mr. Receipt",
-          "Alien",
-          "Golden UFO",
-        ].map((name) => (
-          <button
-            key={name}
-            onClick={() => grantBlook(name)}
-            className="rounded-xl bg-[#24170f] px-4 py-3 text-sm font-bold text-[#ffe2a0]"
-          >
-            {name}
-          </button>
-        ))}
+
+      {/* Grant Badges */}
+      <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+        <h2 className="text-2xl font-black text-[#bde8ff]">Grant Badges</h2>
+        <p className="mt-1 text-sm text-[#9cc8e8]">Equip target badges to your profile.</p>
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { name: "First 50", icon: "/assets/first-50-badge.svg", desc: "First 50 pioneers" },
+            { name: "Verified", icon: "/assets/verified-badge.svg", desc: "Verified trusted badge (Unlocks Chat Image Upload)" },
+            { name: "BlookTuber", icon: "/assets/blooktuber-badge.svg", desc: "Creator badge" },
+          ].map((b) => (
+            <button
+              key={b.name}
+              onClick={() => grantBadge(b.name)}
+              className="flex items-center gap-3 rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-4 text-left transition hover:border-[#39a8f5] hover:bg-[#24649c]"
+            >
+              <img src={b.icon} alt={b.name} className="h-12 w-12 object-contain" />
+              <div>
+                <p className="font-black text-[#bde8ff]">{b.name}</p>
+                <p className="text-xs text-[#9cc8e8]">{b.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
-      <h2 className="mt-8 text-xl font-black">Grant Badge</h2>
-      <div className="mt-4 flex flex-wrap gap-3">
-        {['First 50', 'Verified', 'BlookTuber'].map((badge) => (
-          <button key={badge} onClick={() => grantBadge(badge)} className="rounded-xl bg-[#24170f] px-4 py-3 text-sm font-bold text-[#ffe2a0]">
-            {badge}
-          </button>
-        ))}
-      </div>
+
+      {/* Gift Composer & Moderation */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Gift Composer */}
+        <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+          <h2 className="text-xl font-black text-[#bde8ff]">Admin Gift Composer</h2>
+          <div className="mt-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <input value={giftTitle} onChange={(e) => setGiftTitle(e.target.value)} placeholder="Gift Title" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2.5 text-sm text-white" />
+              <input value={giftMessage} onChange={(e) => setGiftMessage(e.target.value)} placeholder="Gift Message" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2.5 text-sm text-white" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input value={giftBlook} onChange={(e) => setGiftBlook(e.target.value)} placeholder="Blook Name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2.5 text-sm text-white" />
+              <input value={giftBadge} onChange={(e) => setGiftBadge(e.target.value)} placeholder="Badge Name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2.5 text-sm text-white" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select value={giftMaterial} onChange={(e) => setGiftMaterial(e.target.value)} className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2.5 text-sm text-white">
+                {materialNames.map((m) => <option key={m}>{m}</option>)}
+              </select>
+              <input value={giftMaterialAmount} onChange={(e) => setGiftMaterialAmount(e.target.value)} type="number" min="0" placeholder="Qty" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2.5 text-sm text-white" />
+            </div>
+            <button
+              onClick={() => grantGift({ title: giftTitle, message: giftMessage, tokens: Number(tokenAmount) || 0, blooks: giftBlook ? [giftBlook] : [], badges: giftBadge ? [giftBadge] : [], materials: { [giftMaterial]: Number(giftMaterialAmount) || 0 } })}
+              className="w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426] hover:bg-[#73c8ff]"
+            >
+              Send Gift Package
+            </button>
+          </div>
+        </div>
+
+        {/* Moderation */}
+        <div className="rounded-3xl border border-[#ef8b9d]/40 bg-[#421f45] p-6 shadow-md">
+          <h2 className="text-xl font-black text-[#ffd6df]">Moderation & Bans</h2>
+          <p className="mt-1 text-sm text-[#f2b9c7]">Issue temporary or permanent sanctions.</p>
+          <div className="mt-4 space-y-3">
+            <input value={banTarget} onChange={(e) => setBanTarget(e.target.value)} placeholder="Player Username" className="w-full rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
+            <div className="grid grid-cols-2 gap-2">
+              <input value={banDuration} onChange={(e) => setBanDuration(e.target.value)} type="number" min="1" placeholder="Duration (Hours)" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
+              <input value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Reason" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
+            </div>
+            <button
+              onClick={() => { if (banTarget.trim()) setBanRecord({ target: banTarget.trim(), reason: banReason.trim() || "No reason provided", duration: banDuration }); }}
+              className="w-full rounded-xl bg-[#ef8b9d] px-4 py-3 font-black text-[#351c3a] hover:bg-[#ffb3c1]"
+            >
+              Issue Ban Sanction
+            </button>
+            {banRecord && (
+              <div className="rounded-2xl border border-[#ef8b9d]/50 bg-[#351c3a] p-3 text-xs">
+                <p className="font-black text-[#ffd6df]">{banRecord.target} is banned ({banRecord.duration} hrs)</p>
+                <p className="text-[#f2b9c7]">Reason: {banRecord.reason}</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
