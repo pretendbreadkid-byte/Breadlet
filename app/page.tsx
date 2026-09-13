@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { createClient as createSupabaseClient } from "../lib/supabase/client";
 import {
   Backpack,
@@ -39,7 +39,7 @@ type Capsule = {
   retired?: boolean;
   note?: string;
 };
-type Listing = { id: number; seller: string; blook: string; price: number };
+type Listing = { id: number | string; seller: string; blook: string; price: number };
 type Player = {
   username: string;
   password: string;
@@ -198,10 +198,10 @@ function playerFromServer(data: any): Player {
     inventory: data.inventory?.length ? data.inventory : ["Bread Blook"],
     equipped: data.profile.equipped_blook_name || data.inventory?.[0] || "Bread Blook",
     pickaxe: Math.max(0, (data.mine?.pickaxe_level || 1) - 1),
-    listings: [],
+    listings: data.listings || [],
     clanTag: data.profile.clan_tag || "",
     materials: { ...emptyMaterials(), ...(data.materials || {}) },
-    badges: data.profile.badges || [],
+    badges: data.profile.badges || data.profile.stats?.badges || [],
     friends: data.profile.friends || [],
   };
 }
@@ -442,6 +442,19 @@ export default function HomePage() {
   }, []);
   const save = (next: Player) => {
     setPlayer(next);
+    if (supabaseClient) {
+      void fetch("/api/player", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player: next }),
+      }).then(async (response) => {
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          setNotice(body?.error || "Could not save your player data.");
+        }
+      });
+      return;
+    }
     window.localStorage.setItem(playerKey, JSON.stringify(next));
   };
   const login = async (event: FormEvent<HTMLFormElement>) => {
@@ -491,6 +504,30 @@ export default function HomePage() {
       friends: [],
     });
     setNotice("Welcome to Breadlet.");
+  };
+  const addFriend = async (friendUsername: string) => {
+    if (!player || !supabaseClient) {
+      if (player) save({ ...player, friends: Array.from(new Set([...(player.friends || []), friendUsername])) });
+      return;
+    }
+    const searchResponse = await fetch(`/api/players/search?q=${encodeURIComponent(friendUsername)}`);
+    const matches = searchResponse.ok ? await searchResponse.json() : [];
+    const match = Array.isArray(matches) ? matches.find((item: { username: string }) => item.username.toLowerCase() === friendUsername.toLowerCase()) : null;
+    if (!match) {
+      setNotice("Player not found.");
+      return;
+    }
+    const response = await fetch("/api/friends", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ friendProfileId: match.id }),
+    });
+    if (!response.ok) {
+      setNotice("Could not send the friend request.");
+      return;
+    }
+    save({ ...player, friends: Array.from(new Set([...(player.friends || []), match.username])) });
+    setNotice(`Friend request sent to ${match.username}.`);
   };
   const mine = () => {
     if (!player) return;
@@ -603,7 +640,7 @@ export default function HomePage() {
     save({ ...player, tokens: player.tokens - upgrade.cost, pickaxe: index });
     setNotice(`${upgrade.name} equipped.`);
   };
-  const createListing = (blook: string, price: number) => {
+  const createListing = async (blook: string, price: number) => {
     if (
       !player ||
       !player.inventory.includes(blook) ||
@@ -613,15 +650,62 @@ export default function HomePage() {
       setNotice("Choose an owned Blook and a price from 1 to 100,000.");
       return;
     }
+    if (supabaseClient) {
+      const res = await fetch("/api/marketplace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create", blook, price }),
+      });
+      if (res.ok) {
+        const index = player.inventory.indexOf(blook);
+        const inventory = player.inventory.filter((_, i) => i !== index);
+        const nextPlayer = {
+          ...player,
+          inventory,
+          equipped: player.equipped === blook ? inventory[0] || "Bread Blook" : player.equipped,
+        };
+        const listRes = await fetch("/api/marketplace");
+        if (listRes.ok) {
+          const rows = await listRes.json();
+          nextPlayer.listings = rows;
+        }
+        setPlayer(nextPlayer);
+        setNotice(`${blook} listed in the Bazaar.`);
+        return;
+      }
+    }
     const listing = { id: Date.now(), seller: player.username, blook, price };
     save({ ...player, listings: [...player.listings, listing] });
     setNotice(`${blook} listed in the Bazaar.`);
   };
-  const buyListing = (listing: Listing) => {
+  const buyListing = async (listing: Listing) => {
     if (!player) return;
     if (player.tokens < listing.price) {
       setNotice("You need more tokens for this listing.");
       return;
+    }
+    if (supabaseClient && typeof listing.id === "string") {
+      const res = await fetch("/api/marketplace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "buy", listingId: listing.id }),
+      });
+      if (res.ok) {
+        const nextPlayer = {
+          ...player,
+          tokens: player.tokens - listing.price,
+          inventory: [...player.inventory, listing.blook],
+        };
+        const listRes = await fetch("/api/marketplace");
+        if (listRes.ok) {
+          const rows = await listRes.json();
+          nextPlayer.listings = rows;
+        }
+        setPlayer(nextPlayer);
+        setSelectedListing(null);
+        setNotice(`${listing.blook} purchased.`);
+        return;
+      }
     }
     save({ ...player, tokens: player.tokens - listing.price, inventory: [...player.inventory, listing.blook], listings: player.listings.filter((item) => item.id !== listing.id) });
     setSelectedListing(null);
@@ -843,7 +927,7 @@ export default function HomePage() {
             </div>
           </div>
         )}
-        {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} />}
+        {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} />}
         {tab === "capsules" && (
           <CapsulesTab
             showRetired={showRetired}
@@ -861,7 +945,12 @@ export default function HomePage() {
           <MineTab player={player} mine={mine} buyUpgrade={buyUpgrade} />
         )}
         {tab === "market" && (
-          <Bazaar player={player} createListing={createListing} openListing={setSelectedListing} />
+          <Bazaar
+            player={player}
+            createListing={createListing}
+            openListing={setSelectedListing}
+            setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
+          />
         )}
         {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} />}
         {tab === "leaderboard" && <Leaderboard player={player} />}
@@ -1042,11 +1131,13 @@ function ProfileTab({
   setTab,
   showBadge,
   savePlayer,
+  addFriend,
 }: {
   player: Player;
   setTab: (tab: Tab) => void;
   showBadge: (badge: string) => void;
   savePlayer: (player: Player) => void;
+  addFriend: (username: string) => void;
 }) {
   const [lookup, setLookup] = useState("");
   const foundUser = lookup.trim() && lookup.trim().toLowerCase() !== player.username.toLowerCase() ? lookup.trim() : "";
@@ -1095,7 +1186,7 @@ function ProfileTab({
         <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Social lookup</p>
         <h2 className="mt-1 text-2xl font-black">Find players</h2>
         <div className="mt-4 flex gap-2"><input value={lookup} onChange={(event) => setLookup(event.target.value)} placeholder="Search username" className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#103f75] px-3 py-3 text-white" /><button onClick={() => lookup.trim() && setLookup(lookup.trim())} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Search</button></div>
-        {foundUser && <div className="mt-4 flex items-center justify-between rounded-xl bg-[#103f75] p-3"><span className="font-black">{foundUser}</span><button onClick={() => savePlayer({ ...player, friends: Array.from(new Set([...(player.friends || []), foundUser])) })} className="rounded-lg bg-[#39a8f5] px-3 py-2 text-sm font-black text-[#031426]">Add friend</button></div>}
+        {foundUser && <div className="mt-4 flex items-center justify-between rounded-xl bg-[#103f75] p-3"><span className="font-black">{foundUser}</span><button onClick={() => addFriend(foundUser)} className="rounded-lg bg-[#39a8f5] px-3 py-2 text-sm font-black text-[#031426]">Add friend</button></div>}
         {!!player.friends?.length && <p className="mt-4 text-sm text-[#d9f3ff]">Friends: {player.friends.join(", ")}</p>}
       </div>
       <div className="flex flex-wrap gap-3 rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-4">
@@ -1491,10 +1582,12 @@ function Bazaar({
   player,
   createListing,
   openListing,
+  setPlayerListings,
 }: {
   player: Player;
   createListing: (blook: string, price: number) => void;
   openListing: (listing: Listing) => void;
+  setPlayerListings?: (listings: Listing[]) => void;
 }) {
   const [blook, setBlook] = useState(player.inventory[0]);
   const [price, setPrice] = useState("10");
@@ -1502,10 +1595,54 @@ function Bazaar({
   const [rarity, setRarity] = useState("All rarities");
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState<"browse" | "mine">("browse");
+  const [marketListings, setMarketListings] = useState<Listing[]>(player.listings);
+  const supabase = useMemo(() => createSupabaseClient(), []);
+
+  const loadListings = useCallback(async () => {
+    try {
+      const res = await fetch("/api/marketplace", { cache: "no-store" });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) {
+          setMarketListings(rows);
+          if (setPlayerListings) setPlayerListings(rows);
+        }
+      }
+    } catch {
+      // Ignore network errors
+    }
+  }, [setPlayerListings]);
+
+  useEffect(() => {
+    loadListings();
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel("marketplace-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "marketplace_listings" },
+        () => {
+          loadListings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadListings, supabase]);
+
+  useEffect(() => {
+    if (player.listings && player.listings.length > 0) {
+      setMarketListings(player.listings);
+    }
+  }, [player.listings]);
+
   const ownedBlooks = player.inventory.filter(
     (name, index, items) => items.indexOf(name) === index,
   );
-  const listings = player.listings.filter((listing) => {
+  const listings = marketListings.filter((listing) => {
     const matchesSearch = listing.blook.toLowerCase().includes(search.toLowerCase());
     const matchesRarity = rarity === "All rarities" || rarityFor(listing.blook) === rarity;
     const matchesView = view === "browse" || listing.seller === player.username;
@@ -1914,33 +2051,169 @@ function SimplePanel({
 
 function ChatTab({ player, showBadge, giftNotice }: { player: Player; showBadge: (badge: string) => void; giftNotice: string }) {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<{ user: string; text: string; badges?: string[] }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[] }[]>([
     { user: player.username, badges: player.badges, text: "Welcome to Breadlet chat." },
   ]);
   const supabase = useMemo(() => createSupabaseClient(), []);
+
+  const loadMessages = useCallback(async () => {
+    try {
+      console.log('[CLIENT_CHAT] Fetching messages from /api/chat...');
+      const response = await fetch("/api/chat", { cache: "no-store" });
+      console.log('[CLIENT_CHAT] /api/chat HTTP status:', response.status);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        console.error('[CLIENT_CHAT] /api/chat error payload:', err);
+        return;
+      }
+      const rows = await response.json();
+      console.log('[CLIENT_CHAT] /api/chat received rows:', rows);
+      if (Array.isArray(rows)) {
+        if (rows.length === 0) {
+          setMessages([
+            { user: player.username, badges: player.badges, text: "Welcome to Breadlet chat." },
+          ]);
+        } else {
+          setMessages(
+            rows.map((row: any) => {
+              const username = row.user || (Array.isArray(row.profiles) ? row.profiles[0]?.username : row.profiles?.username) || "Player";
+              return {
+                id: row.id,
+                user: username,
+                text: row.message,
+                badges: username === player.username ? player.badges : undefined,
+              };
+            })
+          );
+        }
+      }
+    } catch (err) {
+      console.error('[CLIENT_CHAT] Error in loadMessages:', err);
+    }
+  }, [player.badges, player.username]);
+
   useEffect(() => {
-    let active = true;
-    fetch("/api/chat").then((response) => response.ok ? response.json() : []).then((rows) => {
-      if (active && Array.isArray(rows)) setMessages(rows.map((row: any) => ({ user: row.profiles?.username || "Player", text: row.message })));
-    });
-    if (!supabase) return () => { active = false; };
-    const channel = supabase.channel("global-chat").on("postgres_changes", { event: "INSERT", schema: "public", table: "global_chat_messages" }, (payload) => {
-      setMessages((current) => [...current, { user: payload.new.profile_id === undefined ? "Player" : player.username, text: payload.new.message }]);
-    }).subscribe();
-    return () => { active = false; supabase.removeChannel(channel); };
-  }, [player.username, supabase]);
+    loadMessages();
+    if (!supabase) {
+      console.warn('[CLIENT_CHAT] Supabase browser client not available for Realtime subscription');
+      return;
+    }
+
+    console.log('[CLIENT_CHAT] Subscribing to Realtime postgres_changes on global_chat_messages');
+    const channel = supabase
+      .channel("global-chat")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "global_chat_messages" },
+        (payload) => {
+          console.log('[CLIENT_CHAT] Realtime event received:', payload);
+          loadMessages();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[CLIENT_CHAT] Realtime channel status:', status);
+      });
+
+    return () => {
+      console.log('[CLIENT_CHAT] Unsubscribing from Realtime global-chat');
+      supabase.removeChannel(channel);
+    };
+  }, [loadMessages, supabase]);
+
   const send = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const text = message.trim();
     if (!text) return;
+    setMessage("");
+
+    console.log('[CLIENT_CHAT] Sending message:', text, 'Supabase client exists:', Boolean(supabase));
     if (supabase) {
-      await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: text }) });
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
+        console.log('[CLIENT_CHAT] Send POST status:', response.status);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[CLIENT_CHAT] Message successfully created:', data);
+          const username = data.user || (Array.isArray(data.profiles) ? data.profiles[0]?.username : data.profiles?.username) || player.username;
+          setMessages((current) => {
+            if (data.id && current.some((m) => m.id === data.id)) return current;
+            return [
+              ...current,
+              { id: data.id, user: username, text: data.message || text, badges: player.badges },
+            ];
+          });
+        } else {
+          const err = await response.json().catch(() => ({}));
+          console.error('[CLIENT_CHAT] Send POST failed:', err);
+        }
+      } catch (err) {
+        console.error('[CLIENT_CHAT] Error in send:', err);
+      }
     } else {
       setMessages((current) => [...current, { user: player.username, badges: player.badges, text }]);
     }
-    setMessage("");
   };
-  return <div className="max-w-3xl rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6"><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">{supabase ? "Supabase realtime" : "Prototype local chat"}</p><h1 className="mt-2 text-4xl font-black">Global Chat</h1>{giftNotice && <div className="mt-4 rounded-xl border border-[#73c8ff] bg-[#18558f] px-4 py-3 font-black text-[#bde8ff]">Gift notification: {giftNotice}</div>}<div className="mt-6 min-h-72 space-y-3 rounded-2xl bg-[#24170f] p-4">{messages.map((item, index) => <div key={`${item.user}-${index}`} className="flex gap-3"><img src={artFor(item.user === player.username ? player.equipped : "Bread Blook")} alt="" className="h-10 w-10 rounded-lg object-contain" /><div><div className="flex items-center gap-2 font-black">{item.user}{(item.user === player.username ? player.badges : item.badges || []).map((badge) => <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5"><img src={badge === "First 50" ? "/assets/first-50-badge.svg" : badge === "Verified" ? "/assets/verified-badge.svg" : "/assets/blooktuber-badge.svg"} alt={badge} className="h-5 w-5 object-contain" /></button>)}</div><p className="text-sm text-[#d7b88c]">{item.text}</p></div></div>)}</div><form onSubmit={send} className="mt-4 flex gap-3"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Write a message..." className="min-w-0 flex-1 rounded-xl bg-[#24170f] px-4 py-3 text-white" /><button type="submit" className="rounded-xl bg-[#e9bd67] px-5 py-3 font-black text-[#29170c]">Send</button></form></div>;
+
+  return (
+    <div className="max-w-3xl rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
+      <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
+        {supabase ? "Supabase realtime" : "Prototype local chat"}
+      </p>
+      <h1 className="mt-2 text-4xl font-black">Global Chat</h1>
+      {giftNotice && (
+        <div className="mt-4 rounded-xl border border-[#73c8ff] bg-[#18558f] px-4 py-3 font-black text-[#bde8ff]">
+          Gift notification: {giftNotice}
+        </div>
+      )}
+      <div className="mt-6 min-h-72 space-y-3 rounded-2xl bg-[#24170f] p-4">
+        {messages.map((item, index) => (
+          <div key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
+            <img
+              src={artFor(item.user === player.username ? player.equipped : "Bread Blook")}
+              alt=""
+              className="h-10 w-10 rounded-lg object-contain"
+            />
+            <div>
+              <div className="flex items-center gap-2 font-black">
+                {item.user}
+                {(item.user === player.username ? player.badges : item.badges || []).map((badge) => (
+                  <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
+                    <img
+                      src={
+                        badge === "First 50"
+                          ? "/assets/first-50-badge.svg"
+                          : badge === "Verified"
+                            ? "/assets/verified-badge.svg"
+                            : "/assets/blooktuber-badge.svg"
+                      }
+                      alt={badge}
+                      className="h-5 w-5 object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="text-sm text-[#d7b88c]">{item.text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <form onSubmit={send} className="mt-4 flex gap-3">
+        <input
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          placeholder="Write a message..."
+          className="min-w-0 flex-1 rounded-xl bg-[#24170f] px-4 py-3 text-white"
+        />
+        <button type="submit" className="rounded-xl bg-[#e9bd67] px-5 py-3 font-black text-[#29170c]">
+          Send
+        </button>
+      </form>
+    </div>
+  );
 }
 
 function BadgeModal({ badge, close }: { badge: string; close: () => void }) { return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm"><div className="w-full max-w-sm rounded-2xl border border-[#d49a4a]/30 bg-[#3a2415] p-6 text-center"><img src={badge === "First 50" ? "/assets/first-50-badge.svg" : badge === "Verified" ? "/assets/verified-badge.svg" : "/assets/blooktuber-badge.svg"} alt={badge} className="mx-auto h-24 w-24 object-contain" /><h2 className="mt-4 text-2xl font-black">{badge}</h2><p className="mt-3 text-sm leading-6 text-[#d7b88c]">{badgeDescriptions[badge]}</p><button onClick={close} className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]">Close</button></div></div>; }
@@ -2116,13 +2389,96 @@ function ClanTab({
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [showCreate, setShowCreate] = useState(false);
-  const [clan, setClanState] = useState<{ name: string; description: string; tags: string[]; members: number; treasury: number } | null>(null);
+  const [clan, setClanState] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number } | null>(null);
   const [filter, setFilter] = useState("");
-  const clans = [
+  const [dbClans, setDbClans] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number }[]>([]);
+
+  const loadClans = useCallback(async () => {
+    try {
+      const res = await fetch("/api/clans", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.clans && Array.isArray(data.clans)) {
+          const list = data.clans.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            description: c.description || "",
+            tags: Array.isArray(c.tags) ? c.tags : [],
+            members: c.member_count || 1,
+            treasury: c.treasury || 0,
+          }));
+          setDbClans(list);
+          const myClan = list.find((c: any) => player.clanTag && c.name.toUpperCase().startsWith(player.clanTag));
+          if (myClan) setClanState(myClan);
+        }
+      }
+    } catch {
+      // Ignore network errors
+    }
+  }, [player.clanTag]);
+
+  useEffect(() => {
+    loadClans();
+  }, [loadClans]);
+
+  const allClans = dbClans.length > 0 ? dbClans : [
     { name: "Token Grinders", description: "Daily mine runs and token goals.", tags: ["grinders", "active"], members: 18, treasury: 42000 },
     { name: "Crumb Collectors", description: "For collectors chasing rare drops.", tags: ["collectors", "trading"], members: 12, treasury: 28500 },
     { name: "Fresh Loaves", description: "New-player friendly and helpful.", tags: ["new-player", "friendly"], members: 21, treasury: 16000 },
-  ].filter((item) => !filter || item.tags.some((tag) => tag.includes(filter.toLowerCase())) || item.name.toLowerCase().includes(filter.toLowerCase()));
+  ];
+
+  const clans = allClans.filter((item) => !filter || item.tags.some((tag) => tag.includes(filter.toLowerCase())) || item.name.toLowerCase().includes(filter.toLowerCase()));
+
+  const handleCreateClan = async () => {
+    if (player.tokens < 5000 || !name.trim() || tags.length > 3) return;
+    try {
+      const res = await fetch("/api/clans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), description: description.trim(), tags }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        savePlayer({ ...player, tokens: player.tokens - 5000 });
+        setClanState({ id: data.clan?.id, name, description, tags, members: 1, treasury: 0 });
+        setClan(name.slice(0, 5));
+        setShowCreate(false);
+        loadClans();
+        return;
+      }
+    } catch {
+      // Fall back to local
+    }
+    savePlayer({ ...player, tokens: player.tokens - 5000 });
+    setClanState({ name, description, tags, members: 1, treasury: 0 });
+    setClan(name.slice(0, 5));
+    setShowCreate(false);
+  };
+
+  const handleDonate = async () => {
+    if (player.tokens < 100 || !clan) return;
+    if (clan.id) {
+      try {
+        const res = await fetch("/api/clans", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clanId: clan.id, amount: 100 }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          savePlayer({ ...player, tokens: player.tokens - 100 });
+          setClanState({ ...clan, treasury: data.treasury });
+          loadClans();
+          return;
+        }
+      } catch {
+        // Fall back to local
+      }
+    }
+    savePlayer({ ...player, tokens: player.tokens - 100 });
+    setClanState({ ...clan, treasury: clan.treasury + 100 });
+  };
+
   return (
     <div className="space-y-6">
       <div className="rounded-3xl border border-[#73c8ff]/45 bg-[#18558f] p-6">
@@ -2131,8 +2487,8 @@ function ClanTab({
       </p>
       <h1 className="mt-2 text-4xl font-black">Clans</h1><p className="mt-3 text-[#d9f3ff]">Discover communities, compare benefits, and contribute tokens to your clan treasury.</p></div>
       <div className="flex justify-end"><button onClick={() => setShowCreate((current) => !current)} className="rounded-lg border border-[#73c8ff] bg-[#18558f] px-4 py-2 text-sm font-black text-[#bde8ff]">Create Clan</button></div>
-      {showCreate && <div className="rounded-2xl border border-[#247bc0] bg-[#103f75] p-5"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · 5,000 tokens</h2><div className="mt-3 grid gap-3 sm:grid-cols-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={() => { if (player.tokens >= 5000 && name.trim() && tags.length <= 3) { savePlayer({ ...player, tokens: player.tokens - 5000 }); setClanState({ name, description, tags, members: 1, treasury: 0 }); setClan(name.slice(0, 5)); setShowCreate(false); } }} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div>}
-      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={() => { if (player.tokens >= 100) { savePlayer({ ...player, tokens: player.tokens - 100 }); setClanState({ ...clan, treasury: clan.treasury + 100 }); } }} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate 100 tokens</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
+      {showCreate && <div className="rounded-2xl border border-[#247bc0] bg-[#103f75] p-5"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · 5,000 tokens</h2><div className="mt-3 grid gap-3 sm:grid-cols-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div>}
+      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={handleDonate} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate 100 tokens</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
       <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Discovery</p><h2 className="mt-1 text-2xl font-black">Find your people</h2></div><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.map((item) => <article key={item.name} className="rounded-2xl border border-[#3d91cd] bg-[#18558f] p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p></article>)}</div></div>
     </div>
   );
