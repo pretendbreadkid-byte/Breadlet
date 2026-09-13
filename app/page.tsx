@@ -1789,26 +1789,6 @@ function BlookDetail({
     </div>
   );
 }
-            disabled={quantity <= 1}
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Sell ${reward.name} for ${sellValueFor(reward.rarity)} tokens?`,
-                )
-              ) {
-                sell(reward.name);
-                onClose();
-              }
-            }}
-            className="rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-40"
-          >
-            Sell
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function MineTab({
   player,
@@ -2264,9 +2244,6 @@ function MassResultsModal({
         </div>
         <button onClick={close} className="mt-6 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Add to collection</button>
       </div>
-    </div>
-  );
-}
     </div>
   );
 }
