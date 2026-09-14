@@ -82,7 +82,6 @@ export async function POST(request: Request) {
     if (!blookName) return NextResponse.json({ error: 'Blook is required.' }, { status: 400 });
 
     const cleanName = blookName.replace(/^Shiny /, '');
-    await supabase.from('blooks').upsert({ name: cleanName, rarity: 'Common' }, { onConflict: 'name' });
     const { data: blookRow } = await supabase.from('blooks').select('id, name').eq('name', cleanName).single();
     if (!blookRow) return NextResponse.json({ error: 'Blook not found.' }, { status: 404 });
 

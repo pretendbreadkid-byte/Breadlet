@@ -9,7 +9,7 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
 
   const [{ data: clans, error: clansErr }, { data: membership }] = await Promise.all([
-    supabase.from('clans').select('id, name, description, tags, treasury, member_count, owner_profile_id, created_at').order('treasury', { ascending: false }),
+    supabase.from('clans').select('id, name, description, tags, treasury, member_count, owner_profile_id, thumbnail_url, created_at').order('treasury', { ascending: false }),
     user ? supabase.from('clan_members').select('clan_id, role, token_contributions').eq('profile_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
   const name = String(body.name || '').trim().slice(0, 30);
   const description = String(body.description || '').trim().slice(0, 200);
   const tags = Array.isArray(body.tags) ? body.tags.map((t: string) => String(t).trim()).filter(Boolean).slice(0, 3) : [];
+  const thumbnailUrl = String(body.thumbnailUrl || '').trim().slice(0, 2_000_000);
 
   if (!name || name.length < 2) return NextResponse.json({ error: 'Clan name must be at least 2 characters.' }, { status: 400 });
 
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
       owner_profile_id: user.id,
       treasury: 0,
       member_count: 1,
+      thumbnail_url: thumbnailUrl || null,
     })
     .select()
     .single();

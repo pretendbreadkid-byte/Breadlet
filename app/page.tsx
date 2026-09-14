@@ -20,6 +20,8 @@ import {
   HelpCircle,
   LogOut,
   Search,
+  GitBranch,
+  CirclePlay,
 } from "lucide-react";
 
 type Tab =
@@ -400,6 +402,7 @@ export default function HomePage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [migrationCode, setMigrationCode] = useState("");
   const [tab, setTab] = useState<Tab>("profile");
   const [notice, setNotice] = useState("");
   const [promoCode, setPromoCode] = useState("");
@@ -447,6 +450,10 @@ export default function HomePage() {
     }
   }, [supabaseClient]);
   useEffect(() => {
+    if (!supabaseClient) return;
+    fetch("/api/admin").then((response) => setAdminUnlocked(response.ok)).catch(() => setAdminUnlocked(false));
+  }, [supabaseClient]);
+  useEffect(() => {
     const logo = document.querySelector('header img[alt="Breadlet logo"]');
     if (!logo) return;
     const goToProfile = () => setTab("profile");
@@ -484,14 +491,20 @@ export default function HomePage() {
         return;
       }
       let result = await supabaseClient.auth.signInWithPassword({ email: email.trim(), password });
+      let createdAccount = false;
       if (result.error) {
         const signup = await supabaseClient.auth.signUp({ email: email.trim(), password, options: { data: { username: username.trim() } } });
         if (signup.error || !signup.data.session) {
           setNotice(signup.error?.message || "Check your email to confirm the account, then log in.");
           return;
         }
+        createdAccount = true;
       }
       await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 250, materials: emptyMaterials() }) });
+      if (createdAccount && migrationCode.trim()) {
+        const migration = await fetch("/api/migration/redeem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: migrationCode.trim() }) });
+        if (!migration.ok) setNotice((await migration.json().catch(() => null))?.error || "Migration could not be redeemed.");
+      }
       const response = await fetch("/api/player");
       if (response.ok) {
         setPlayer(playerFromServer(await response.json()));
@@ -736,23 +749,11 @@ export default function HomePage() {
       setNotice("Demo admin panel unlocked.");
     } else setNotice("That promo code is not active.");
   };
-  const grantTokens = (amount: number) => {
-    if (adminUnlocked && player) {
-      save({ ...player, tokens: player.tokens + amount });
-      setNotice(`Admin grant: +${amount} tokens.`);
-    }
-  };
-  const grantBlook = (name: string) => {
-    if (adminUnlocked && player) {
-      save({ ...player, inventory: [...player.inventory, name] });
-      setNotice(`Admin grant: ${name} added.`);
-    }
-  };
-  const grantBadge = (name: string) => {
-    if (adminUnlocked && player && !player.badges.includes(name)) {
-      save({ ...player, badges: [...player.badges, name] });
-      setNotice(`Admin grant: ${name} badge added.`);
-    }
+  const grantReward = async (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => {
+    if (!adminUnlocked) return;
+    const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId, ...reward }) });
+    if (!response.ok) return setNotice((await response.json().catch(() => null))?.error || "Admin grant failed.");
+    setNotice("Reward granted.");
   };
   const salvage = (name: string) => {
     if (!player || player.inventory.length <= 1) return;
@@ -813,9 +814,11 @@ export default function HomePage() {
         username={username}
         email={email}
         password={password}
+        migrationCode={migrationCode}
         setUsername={setUsername}
         setEmail={setEmail}
         setPassword={setPassword}
+        setMigrationCode={setMigrationCode}
         login={login}
         notice={notice}
         closeNotice={() => setNotice("")}
@@ -863,15 +866,9 @@ export default function HomePage() {
       label: "Ranks",
       icon: <Trophy size={20} strokeWidth={2.2} />,
     },
-    {
-      id: "promo",
-      label: "Promo",
-      icon: <Percent size={20} strokeWidth={2.2} />,
-    },
-    { id: "info", label: "Info", icon: <span className="font-black text-sm">i</span> },
   ];
   return (
-    <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:flex-row">
+    <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
       <div className="bread-floaters" aria-hidden="true">
         {Array.from({ length: 24 }).map((_, i) => (
           <img
@@ -890,20 +887,20 @@ export default function HomePage() {
       </div>
 
       {/* Left Blooket-style Persistent Sidebar */}
-      <aside className="w-full md:w-64 shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-4 flex flex-col justify-between z-20 shadow-xl">
+      <aside className="w-full md:w-64 md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-4 flex flex-col justify-between z-20 shadow-xl">
         <div>
           {/* Logo Header */}
           <div className="flex items-center gap-3 px-2 py-2 cursor-pointer" onClick={() => setTab("profile")}>
             <img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-12 w-auto object-contain" />
           </div>
 
-          {/* Primary Play Button */}
+          {/* Primary profile button */}
           <button
-            onClick={() => setTab("mine")}
+            onClick={() => setTab("profile")}
             className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl bg-[#22c55e] px-4 py-3 font-black text-white text-lg shadow-lg hover:bg-[#16a34a] transition transform hover:scale-105"
           >
-            <Pickaxe size={22} />
-            Play Mine
+            <CircleUserRound size={22} />
+            Profile
           </button>
 
           {/* Sidebar Nav Buttons */}
@@ -926,9 +923,10 @@ export default function HomePage() {
         </div>
 
         {/* Sidebar Footer Controls */}
-        <div className="mt-8 pt-4 border-t border-[#3d91cd]/20 flex items-center justify-around text-[#9cc8e8]">
-          <button title="Info & Guide" onClick={() => setTab("info")} className="hover:text-white transition"><HelpCircle size={20} /></button>
-          <button title="Promo Codes" onClick={() => setTab("promo")} className="hover:text-white transition"><Percent size={20} /></button>
+        <div className="mt-8 pt-4 border-t border-[#3d91cd]/20 flex items-center justify-around text-white">
+          <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
+          <a title="YouTube" href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><CirclePlay size={18} /></a>
+          <a title="Discord" href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><MessageCircle size={18} /></a>
           <button title="Log out" onClick={() => { setPlayer(null); supabaseClient?.auth.signOut(); window.localStorage.removeItem(playerKey); }} className="hover:text-red-300 transition"><LogOut size={20} /></button>
         </div>
       </aside>
@@ -938,15 +936,14 @@ export default function HomePage() {
         {/* Top Header Bar */}
         <header className="sticky top-0 z-20 border-b border-[#3d91cd]/30 bg-[#0c3b70]/95 backdrop-blur px-6 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-black uppercase tracking-wider text-white">
-              {tab === "inventory" ? "My Blooks" : tab === "capsules" ? "Market & Packs" : tab}
-            </span>
+            <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-14 w-32 object-contain" />
+            <div><p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Breadlet player</p><span className="text-2xl font-black text-white">{player.username}</span></div>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Tokens Balance Counter */}
-            <div className="flex items-center gap-2 rounded-full border border-[#ffe2a0]/40 bg-[#ffe2a0]/15 px-4 py-2 font-black text-[#ffe2a0] text-lg shadow-inner">
-              <img src="/assets/coin.svg" alt="Tokens" className="h-6 w-6" />
+            <div className="flex items-center gap-1.5 rounded-full bg-[#ffe2a0]/15 px-3 py-1.5 font-black text-[#ffe2a0] text-sm shadow-inner">
+              <img src="/assets/coin.svg" alt="Tokens" className="h-4 w-4" />
               {player.tokens.toLocaleString()}
             </div>
 
@@ -1079,9 +1076,7 @@ export default function HomePage() {
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
-              grantTokens={grantTokens}
-              grantBlook={grantBlook}
-              grantBadge={grantBadge}
+              grantReward={grantReward}
               announcement={announcement}
               setAnnouncement={setAnnouncement}
               publishAnnouncement={() => setNotice(announcement.trim() ? `Announcement published: ${announcement.trim()}` : "Write an announcement first.")}
@@ -1147,9 +1142,11 @@ function LoginScreen({
   username,
   email,
   password,
+  migrationCode,
   setUsername,
   setEmail,
   setPassword,
+  setMigrationCode,
   login,
   notice,
   closeNotice,
@@ -1157,9 +1154,11 @@ function LoginScreen({
   username: string;
   email: string;
   password: string;
+  migrationCode: string;
   setUsername: (value: string) => void;
   setEmail: (value: string) => void;
   setPassword: (value: string) => void;
+  setMigrationCode: (value: string) => void;
   login: (event: FormEvent<HTMLFormElement>) => void;
   notice: string;
   closeNotice: () => void;
@@ -1226,6 +1225,16 @@ function LoginScreen({
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Create a password"
           className="mt-2 w-full rounded-xl bg-[#24170f] px-4 py-3 outline-none focus:border-[#eac477]"
+        />
+        <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#bde8ff]" htmlFor="migration-code">
+          Do you have a Breadlet migration code?
+        </label>
+        <input
+          id="migration-code"
+          value={migrationCode}
+          onChange={(event) => setMigrationCode(event.target.value)}
+          placeholder="Optional migration code"
+          className="mt-2 w-full rounded-xl bg-[#072a54] px-4 py-3 text-white outline-none"
         />
         {notice && (
           <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
@@ -1489,18 +1498,17 @@ function getBlookScoreStats(inventory: string[]) {
   let totalScore = 0;
 
   const rarityWeights: Record<string, number> = {
-    Common: 5,
-    Uncommon: 15,
-    Rare: 35,
-    Epic: 100,
-    Legendary: 300,
-    Mythic: 750,
-    Chroma: 1200,
-    Unique: 1500,
-    Transcendent: 3000,
+    Common: 1,
+    Uncommon: 5,
+    Rare: 10,
+    Epic: 15,
+    Legendary: 20,
+    Mythic: 30,
+    Unique: 40,
+    Transcendent: 75,
   };
 
-  for (const name of inventory) {
+  for (const name of uniqueOwned) {
     const rarity = rarityFor(name);
     totalValue += sellValueFor(rarity);
     totalScore += rarityWeights[rarity] || 10;
@@ -2315,9 +2323,19 @@ function CraftingMachineModal({
     </div>
   );
 }
-function Leaderboard({ player }: { player: Player }) {
+function Leaderboard({ player: _player }: { player: Player }) {
   const [view, setView] = useState<"blooks" | "tokens" | "clans">("blooks");
-  const podium = [["BreadMaster", 1875, "Bread Blook"], ["ToastLord", 1420, "Red Rex"], [player.username, player.mined, player.equipped]].sort((a, b) => Number(b[1]) - Number(a[1]));
+  const [data, setData] = useState<{ players: { username: string; tokens: number; blookScore: number }[]; clans: { name: string; treasury: number }[] }>({ players: [], clans: [] });
+  useEffect(() => {
+    fetch("/api/leaderboard", { cache: "no-store" }).then(async (response) => {
+      if (response.ok) setData(await response.json());
+    }).catch(() => undefined);
+  }, []);
+  const rows = (view === "clans"
+    ? data.clans.map((clan) => ({ name: clan.name, value: clan.treasury }))
+    : data.players.map((profile) => ({ name: profile.username, value: view === "tokens" ? profile.tokens : profile.blookScore }))
+  ).sort((left, right) => right.value - left.value);
+  const podium = [...rows.slice(0, 3), ...Array.from({ length: Math.max(0, 3 - rows.length) }, () => ({ name: "N/A", value: null as number | null }))];
   return (
     <div>
       <h1 className="text-4xl font-black">Leaderboard</h1>
@@ -2325,31 +2343,25 @@ function Leaderboard({ player }: { player: Player }) {
       {view === "blooks" && <p className="mt-3 text-sm text-[#9cc8e8]">Blook score rewards rarity and collection depth.</p>}
       {view === "clans" && <p className="mt-3 text-sm text-[#9cc8e8]">Clan rankings will use member contributions and unlocked benefits.</p>}
       <div className="mt-8 grid items-end gap-4 md:grid-cols-3">
-        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={String(row[0])} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><img src={artFor(String(row[2]))} alt={String(row[2])} className="mx-auto mt-3 h-24 w-24 object-contain" /><h2 className="mt-3 font-black">{row[0]}</h2><p className="mt-2 font-black text-[#bde8ff]">{row[1]} mined</p></div>)}
+        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={`${row.name}-${index}`} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center text-3xl font-black text-white/50">{row.name === "N/A" ? "N/A" : "#"}</div><h2 className="mt-3 font-black">{row.name}</h2><p className="mt-2 font-black text-[#bde8ff]">{row.value === null ? "N/A" : row.value.toLocaleString()}</p></div>)}
       </div>
       <div className="mt-8 max-w-2xl overflow-hidden rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415]">
         <div className="grid grid-cols-[1fr_auto] px-5 py-4 text-xs font-bold uppercase tracking-widest text-[#b58d68]">
-          <span>Player</span>
-          <span>Tokens mined</span>
+          <span>{view === "clans" ? "Clan" : "Player"}</span>
+          <span>{view === "blooks" ? "Blook score" : view === "clans" ? "Treasury" : "Tokens"}</span>
         </div>
-        {[
-          [player.username, player.mined],
-          ["BreadMaster", 1875],
-          ["ToastLord", 1420],
-        ]
-          .sort((a, b) => Number(b[1]) - Number(a[1]))
-          .map((row, index) => (
+        {rows.length ? rows.map((row, index) => (
             <div
-              key={String(row[0])}
+              key={`${row.name}-${index}`}
               className="grid grid-cols-[1fr_auto] px-5 py-4 text-sm"
             >
               <span>
                 <b className="mr-3 text-[#ffe2a0]">#{index + 1}</b>
-                {row[0]}
+                {row.name}
               </span>
-              <span className="font-bold text-[#f0d7ae]">{row[1]}</span>
+              <span className="font-bold text-[#f0d7ae]">{row.value.toLocaleString()}</span>
             </div>
-          ))}
+          )) : <p className="px-5 py-8 text-center text-[#d9f3ff]">N/A</p>}
       </div>
     </div>
   );
@@ -2677,18 +2689,14 @@ function InfoTab() {
 }
 function AdminTab({
   player,
-  grantTokens,
-  grantBlook,
-  grantBadge,
+  grantReward,
   announcement,
   setAnnouncement,
   publishAnnouncement,
   grantGift,
 }: {
   player: Player;
-  grantTokens: (amount: number) => void;
-  grantBlook: (name: string) => void;
-  grantBadge: (name: string) => void;
+  grantReward: (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => Promise<void>;
   announcement: string;
   setAnnouncement: (value: string) => void;
   publishAnnouncement: () => void;
@@ -2706,6 +2714,19 @@ function AdminTab({
   const [giftMaterial, setGiftMaterial] = useState("Flour");
   const [giftMaterialAmount, setGiftMaterialAmount] = useState("0");
   const [banRecord, setBanRecord] = useState<{ target: string; reason: string; duration: string } | null>(null);
+  const [players, setPlayers] = useState<{ id: string; username: string }[]>([]);
+  const [targetId, setTargetId] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin").then(async (response) => {
+      if (!response.ok) return;
+      const rows = await response.json();
+      if (Array.isArray(rows)) {
+        setPlayers(rows);
+        setTargetId((current) => current || rows[0]?.id || "");
+      }
+    }).catch(() => undefined);
+  }, []);
 
   const allBlooks = [
     "Bread Blook",
@@ -2765,8 +2786,13 @@ function AdminTab({
         </p>
         <h1 className="mt-2 text-4xl font-black text-white">Admin Panel</h1>
         <p className="mt-3 leading-7 text-[#d9f3ff]">
-          Manage resources, grant Blooks with visual previews, issue badges, send announcements, and dispatch gifts to {player.username}.
+          Select a real player, then grant resources, Blooks, and badges through the server-side admin role.
         </p>
+        <label className="mt-5 block max-w-md text-sm font-bold text-white">Reward target
+          <select value={targetId} onChange={(event) => setTargetId(event.target.value)} className="mt-2 w-full rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white">
+            {players.map((profile) => <option key={profile.id} value={profile.id}>{profile.username}</option>)}
+          </select>
+        </label>
       </div>
 
       {/* Quick Grants & Exact Token Grant */}
@@ -2779,7 +2805,7 @@ function AdminTab({
             {[100, 1000, 10000, 100000].map((amt) => (
               <button
                 key={amt}
-                onClick={() => grantTokens(amt)}
+                onClick={() => grantReward(targetId, { tokens: amt })}
                 className="rounded-2xl border border-[#3d91cd]/50 bg-[#18558f] p-3 text-center font-black text-[#ffe2a0] hover:bg-[#24649c]"
               >
                 +{amt.toLocaleString()}
@@ -2796,7 +2822,7 @@ function AdminTab({
               className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-4 py-3 text-white outline-none"
             />
             <button
-              onClick={() => grantTokens(Number(tokenAmount) || 0)}
+              onClick={() => grantReward(targetId, { tokens: Number(tokenAmount) || 0 })}
               className="rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] hover:bg-[#73c8ff]"
             >
               Grant
@@ -2843,7 +2869,7 @@ function AdminTab({
           {filteredBlooks.map((name) => (
             <button
               key={name}
-              onClick={() => grantBlook(name)}
+              onClick={() => grantReward(targetId, { blookName: name })}
               className="group flex flex-col items-center justify-between rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-3 text-center transition hover:border-[#39a8f5] hover:bg-[#24649c]"
             >
               <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0c3b70] p-1">
@@ -2868,7 +2894,7 @@ function AdminTab({
           ].map((b) => (
             <button
               key={b.name}
-              onClick={() => grantBadge(b.name)}
+              onClick={() => grantReward(targetId, { badge: b.name })}
               className="flex items-center gap-3 rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-4 text-left transition hover:border-[#39a8f5] hover:bg-[#24649c]"
             >
               <img src={b.icon} alt={b.name} className="h-12 w-12 object-contain" />

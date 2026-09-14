@@ -57,13 +57,6 @@ export async function PATCH(request: Request) {
   const inventoryCounts = new Map<string, number>();
   inventoryNames.forEach((name: string) => inventoryCounts.set(name, (inventoryCounts.get(name) || 0) + 1));
 
-  const catalogNames = Array.from(inventoryCounts.keys()).map((name) => name.replace(/^Shiny /, ''));
-  if (player.equipped) catalogNames.push(String(player.equipped).replace(/^Shiny /, ''));
-  const { error: catalogError } = await supabase.from('blooks').upsert(
-    Array.from(new Set(catalogNames)).map((name) => ({ name, rarity: 'Common' })),
-    { onConflict: 'name', ignoreDuplicates: true },
-  );
-  if (catalogError) return NextResponse.json({ error: catalogError.message }, { status: 400 });
   const { data: blooks, error: blooksError } = await supabase.from('blooks').select('id, name');
   if (blooksError) return NextResponse.json({ error: blooksError.message }, { status: 500 });
   const blookIds = new Map((blooks || []).map((blook: { id: string; name: string }) => [blook.name, blook.id]));
