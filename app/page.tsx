@@ -891,7 +891,7 @@ export default function HomePage() {
         <div>
           {/* Logo Header */}
           <div className="flex items-center gap-3 px-2 py-2 cursor-pointer" onClick={() => setTab("profile")}>
-            <img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-12 w-auto object-contain" />
+            <img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-16 w-full object-contain" />
           </div>
 
           {/* Primary profile button */}
@@ -936,14 +936,14 @@ export default function HomePage() {
         {/* Top Header Bar */}
         <header className="sticky top-0 z-20 border-b border-[#3d91cd]/30 bg-[#0c3b70]/95 backdrop-blur px-6 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-14 w-32 object-contain" />
+            <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-20 w-48 object-contain" />
             <div><p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Breadlet player</p><span className="text-2xl font-black text-white">{player.username}</span></div>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Tokens Balance Counter */}
-            <div className="flex items-center gap-1.5 rounded-full bg-[#ffe2a0]/15 px-3 py-1.5 font-black text-[#ffe2a0] text-sm shadow-inner">
-              <img src="/assets/coin.svg" alt="Tokens" className="h-4 w-4" />
+            <div className="flex items-center gap-1.5 px-1 font-black text-[#ffe2a0] text-xs">
+              <img src="/assets/coin.svg" alt="Tokens" className="h-3.5 w-3.5" />
               {player.tokens.toLocaleString()}
             </div>
 
@@ -1480,119 +1480,6 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   );
 }
 
-function getBlookScoreStats(inventory: string[]) {
-  const uniqueOwned = Array.from(new Set(inventory));
-  const countsByRarity: Record<string, number> = {
-    Common: 0,
-    Uncommon: 0,
-    Rare: 0,
-    Epic: 0,
-    Legendary: 0,
-    Mythic: 0,
-    Chroma: 0,
-    Unique: 0,
-    Transcendent: 0,
-  };
-
-  let totalValue = 0;
-  let totalScore = 0;
-
-  const rarityWeights: Record<string, number> = {
-    Common: 1,
-    Uncommon: 5,
-    Rare: 10,
-    Epic: 15,
-    Legendary: 20,
-    Mythic: 30,
-    Unique: 40,
-    Transcendent: 75,
-  };
-
-  for (const name of uniqueOwned) {
-    const rarity = rarityFor(name);
-    totalValue += sellValueFor(rarity);
-    totalScore += rarityWeights[rarity] || 10;
-  }
-
-  for (const name of uniqueOwned) {
-    const rarity = rarityFor(name);
-    if (countsByRarity[rarity] !== undefined) {
-      countsByRarity[rarity]++;
-    }
-  }
-
-  const formatValue = (val: number) => {
-    if (val >= 1000) return (val / 1000).toFixed(1) + "K";
-    return val.toString();
-  };
-
-  return {
-    totalBlooks: inventory.length,
-    totalValueFormatted: formatValue(totalValue),
-    totalScore: totalScore.toLocaleString(),
-    countsByRarity,
-  };
-}
-
-function BlookScoreCard({ inventory }: { inventory: string[] }) {
-  const stats = getBlookScoreStats(inventory);
-
-  return (
-    <div className="w-full lg:w-80 shrink-0 rounded-3xl border border-[#3d91cd]/40 bg-gradient-to-b from-[#103f75] to-[#072a54] p-6 shadow-2xl flex flex-col items-center">
-      {/* Star Header Badge */}
-      <div className="relative flex flex-col items-center justify-center my-2">
-        <div className="relative flex h-36 w-36 items-center justify-center">
-          <div className="absolute inset-0 flex items-center justify-center text-[#f59e0b] drop-shadow-[0_0_18px_rgba(245,158,11,0.7)]">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-36 h-36">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
-          </div>
-          <div className="relative z-10 text-center text-slate-950 font-black px-2">
-            <span className="block text-2xl font-black text-slate-950 leading-tight">{stats.totalScore}</span>
-            <span className="block text-[10px] uppercase tracking-wider font-extrabold text-slate-900">Blook Score</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Rarity Gem Counters Grid */}
-      <div className="mt-4 w-full grid grid-cols-4 gap-2.5 bg-[#0c3b70]/80 p-4 rounded-2xl border border-[#3d91cd]/30">
-        {[
-          { name: "Common", color: "bg-slate-300 text-slate-900" },
-          { name: "Uncommon", color: "bg-emerald-500 text-white" },
-          { name: "Rare", color: "bg-blue-500 text-white" },
-          { name: "Epic", color: "bg-red-500 text-white" },
-          { name: "Legendary", color: "bg-amber-500 text-white" },
-          { name: "Mythic", color: "bg-cyan-400 text-slate-950" },
-          { name: "Unique", color: "bg-purple-500 text-white" },
-          { name: "Transcendent", color: "bg-orange-500 text-white" },
-        ].map((gem) => (
-          <div key={gem.name} className="flex flex-col items-center text-center">
-            <div className={`h-6 w-6 rounded-md flex items-center justify-center ${gem.color} text-[10px] font-black shadow-sm transform rotate-45 mb-2`}>
-              <span className="transform -rotate-45">◆</span>
-            </div>
-            <span className="text-sm font-black text-white">{stats.countsByRarity[gem.name] || 0}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Total Blooks & Collection Value */}
-      <div className="mt-5 w-full grid grid-cols-2 gap-3 pt-4 border-t border-[#3d91cd]/30">
-        <div className="bg-[#0c3b70] p-3 rounded-2xl text-center border border-[#3d91cd]/20">
-          <span className="block text-2xl font-black text-white">{stats.totalBlooks}</span>
-          <span className="text-[11px] font-bold text-[#9cc8e8] uppercase">Blooks</span>
-        </div>
-        <div className="bg-[#0c3b70] p-3 rounded-2xl text-center border border-[#3d91cd]/20">
-          <span className="block text-2xl font-black text-[#ffe2a0] flex items-center justify-center gap-1">
-            <img src="/assets/coin.svg" alt="" className="h-4 w-4" />
-            {stats.totalValueFormatted}
-          </span>
-          <span className="text-[11px] font-bold text-[#9cc8e8] uppercase">Value</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function InventoryTab({
   player,
   equip,
@@ -1608,15 +1495,12 @@ function InventoryTab({
   const owned = (name: string) =>
     player.inventory.filter((item) => item === name).length;
 
-  const catalog = [...liveCapsules, ...retiredCapsules].map((capsule) => ({
-    ...capsule,
-    pool: [
-      ...capsule.pool,
-      ...capsule.pool
-        .filter((reward) => shinyEligibleNames.has(reward.name))
-        .map((reward) => ({ ...reward, name: `Shiny ${reward.name}` })),
-    ],
-  }));
+  const catalog = [...liveCapsules, ...retiredCapsules].map((capsule) => {
+    const shinyRewards = capsule.pool
+      .filter((reward) => shinyEligibleNames.has(reward.name))
+      .map((reward) => ({ ...reward, name: `Shiny ${reward.name}` }));
+    return { ...capsule, pool: [...capsule.pool, ...shinyRewards] };
+  });
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -1702,9 +1586,6 @@ function InventoryTab({
           ))}
         </div>
       </div>
-
-      {/* Right Side Blook Score Summary Card */}
-      <BlookScoreCard inventory={player.inventory} />
 
       {/* Selected Blook Detail Modal */}
       {selected && (
@@ -2324,8 +2205,8 @@ function CraftingMachineModal({
   );
 }
 function Leaderboard({ player: _player }: { player: Player }) {
-  const [view, setView] = useState<"blooks" | "tokens" | "clans">("blooks");
-  const [data, setData] = useState<{ players: { username: string; tokens: number; blookScore: number }[]; clans: { name: string; treasury: number }[] }>({ players: [], clans: [] });
+  const [view, setView] = useState<"tokens" | "clans">("tokens");
+  const [data, setData] = useState<{ players: { username: string; tokens: number }[]; clans: { name: string; treasury: number }[] }>({ players: [], clans: [] });
   useEffect(() => {
     fetch("/api/leaderboard", { cache: "no-store" }).then(async (response) => {
       if (response.ok) setData(await response.json());
@@ -2333,14 +2214,13 @@ function Leaderboard({ player: _player }: { player: Player }) {
   }, []);
   const rows = (view === "clans"
     ? data.clans.map((clan) => ({ name: clan.name, value: clan.treasury }))
-    : data.players.map((profile) => ({ name: profile.username, value: view === "tokens" ? profile.tokens : profile.blookScore }))
+    : data.players.map((profile) => ({ name: profile.username, value: profile.tokens }))
   ).sort((left, right) => right.value - left.value);
   const podium = [...rows.slice(0, 3), ...Array.from({ length: Math.max(0, 3 - rows.length) }, () => ({ name: "N/A", value: null as number | null }))];
   return (
     <div>
       <h1 className="text-4xl font-black">Leaderboard</h1>
-      <div className="mt-6 flex gap-2 rounded-2xl border border-[#247bc0] bg-[#18558f] p-1">{[["blooks", "Blook score"], ["tokens", "Tokens"], ["clans", "Clans"]].map(([key, label]) => <button key={key} onClick={() => setView(key as typeof view)} className={`flex-1 rounded-xl px-3 py-3 font-black ${view === key ? "bg-[#bde8ff] text-[#062443]" : "text-[#d9f3ff]"}`}>{label}</button>)}</div>
-      {view === "blooks" && <p className="mt-3 text-sm text-[#9cc8e8]">Blook score rewards rarity and collection depth.</p>}
+      <div className="mt-6 flex gap-2 rounded-2xl border border-[#247bc0] bg-[#18558f] p-1">{[["tokens", "Tokens"], ["clans", "Clans"]].map(([key, label]) => <button key={key} onClick={() => setView(key as typeof view)} className={`flex-1 rounded-xl px-3 py-3 font-black ${view === key ? "bg-[#bde8ff] text-[#062443]" : "text-[#d9f3ff]"}`}>{label}</button>)}</div>
       {view === "clans" && <p className="mt-3 text-sm text-[#9cc8e8]">Clan rankings will use member contributions and unlocked benefits.</p>}
       <div className="mt-8 grid items-end gap-4 md:grid-cols-3">
         {[podium[1], podium[0], podium[2]].map((row, index) => <div key={`${row.name}-${index}`} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center text-3xl font-black text-white/50">{row.name === "N/A" ? "N/A" : "#"}</div><h2 className="mt-3 font-black">{row.name}</h2><p className="mt-2 font-black text-[#bde8ff]">{row.value === null ? "N/A" : row.value.toLocaleString()}</p></div>)}
@@ -2348,7 +2228,7 @@ function Leaderboard({ player: _player }: { player: Player }) {
       <div className="mt-8 max-w-2xl overflow-hidden rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415]">
         <div className="grid grid-cols-[1fr_auto] px-5 py-4 text-xs font-bold uppercase tracking-widest text-[#b58d68]">
           <span>{view === "clans" ? "Clan" : "Player"}</span>
-          <span>{view === "blooks" ? "Blook score" : view === "clans" ? "Treasury" : "Tokens"}</span>
+          <span>{view === "clans" ? "Treasury" : "Tokens"}</span>
         </div>
         {rows.length ? rows.map((row, index) => (
             <div

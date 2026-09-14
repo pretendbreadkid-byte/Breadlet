@@ -4,14 +4,20 @@
 
 :root {
   color-scheme: dark;
+  --breadlet-background: #17131f;
+  --breadlet-primary: #6d4aff;
+  --breadlet-accent: #57e6b1;
+  --breadlet-panel: #24202d;
+  --breadlet-text: #f3eff8;
+  --breadlet-gold: #ffd166;
 }
 
 html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #07111f;
-  color: #edf2ff;
+  background: var(--breadlet-background);
+  color: var(--breadlet-text);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -19,7 +25,7 @@ body {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: #0c3b70 !important;
+  background: var(--breadlet-background) !important;
 }
 
 .breadlet-blue-theme > *:not(.bread-floaters) {
@@ -33,7 +39,7 @@ body {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: 0.11;
+  opacity: 0.06;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 2.5rem;
@@ -57,19 +63,29 @@ body {
   }
 }
 
-/* Blue theme overrides the prototype's original brown surfaces. */
-.breadlet-blue-theme [class*="bg-[#24170f"] { background-color: #103f75 !important; }
-.breadlet-blue-theme [class*="bg-[#3a2415"] { background-color: #18558f !important; }
-.breadlet-blue-theme [class*="bg-[#6c4328"] { background-color: #2878b8 !important; }
-.breadlet-blue-theme [class*="bg-[#302016"] { background-color: #0a2343 !important; }
-.breadlet-blue-theme [class*="border-[#8e623c"] { border-color: #24649c !important; }
-.breadlet-blue-theme [class*="border-[#d49a4a"] { border-color: #247bc0 !important; }
-.breadlet-blue-theme [class*="bg-[#e9bd67"] { background-color: #39a8f5 !important; }
-.breadlet-blue-theme [class*="text-[#29170c"] { color: #031426 !important; }
-.breadlet-blue-theme [class*="text-[#ffe2a0"] { color: #bde8ff !important; }
+/* Theme the original prototype utilities without changing its gameplay markup. */
+.breadlet-blue-theme [class*="bg-[#24170f"] { background-color: #17131f !important; }
+.breadlet-blue-theme [class*="bg-[#3a2415"] { background-color: #24202d !important; }
+.breadlet-blue-theme [class*="bg-[#6c4328"] { background-color: #332c42 !important; }
+.breadlet-blue-theme [class*="bg-[#302016"] { background-color: #1d1926 !important; }
+.breadlet-blue-theme [class*="border-[#8e623c"] { border-color: #6d4aff !important; }
+.breadlet-blue-theme [class*="border-[#d49a4a"] { border-color: #6d4aff !important; }
+.breadlet-blue-theme [class*="bg-[#e9bd67"] { background-color: #6d4aff !important; }
+.breadlet-blue-theme [class*="text-[#29170c"] { color: #f3eff8 !important; }
+.breadlet-blue-theme [class*="text-[#ffe2a0"] { color: #ffd166 !important; }
 .breadlet-blue-theme [class*="text-[#d7b88c"],
-.breadlet-blue-theme [class*="text-[#cdb18c"] { color: #9cc8e8 !important; }
-.breadlet-blue-theme header { background-color: rgba(12, 59, 112, 0.95) !important; border-color: #3d91cd !important; }
+.breadlet-blue-theme [class*="text-[#cdb18c"] { color: #f3eff8 !important; }
+.breadlet-blue-theme [class*="bg-[#103f75"] { background-color: #24202d !important; }
+.breadlet-blue-theme [class*="bg-[#18558f"] { background-color: #2d2738 !important; }
+.breadlet-blue-theme [class*="bg-[#072a54"],
+.breadlet-blue-theme [class*="bg-[#0c3b70"] { background-color: #17131f !important; }
+.breadlet-blue-theme [class*="bg-[#39a8f5"] { background-color: #6d4aff !important; }
+.breadlet-blue-theme [class*="border-[#3d91cd"],
+.breadlet-blue-theme [class*="border-[#247bc0"] { border-color: rgba(109, 74, 255, 0.55) !important; }
+.breadlet-blue-theme [class*="text-[#bde8ff"],
+.breadlet-blue-theme [class*="text-[#9cc8e8"],
+.breadlet-blue-theme [class*="text-[#d9f3ff"] { color: #f3eff8 !important; }
+.breadlet-blue-theme header { background-color: rgba(23, 19, 31, 0.95) !important; border-color: rgba(109, 74, 255, 0.55) !important; }
 .modal-layer { position: fixed !important; inset: 0 !important; z-index: 9999 !important; }
 
 body {
