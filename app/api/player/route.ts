@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 
-const materialNames = ['Flour', 'Metal', 'Gem', 'Gold', 'Cloth', 'Sugar'];
+const materialNames = ['Flour', 'Metal', 'Gem', 'Gold', 'Diamond', 'Cloth', 'Sugar'];
 
 function emptyMaterials() {
   return Object.fromEntries(materialNames.map((name) => [name, 0]));
@@ -30,6 +30,7 @@ export async function GET() {
       equipped_blook_name: equipped?.name || null,
       badges: profile.stats?.badges || [],
       clan_tag: profile.stats?.clanTag || '',
+      wheel_spun: Boolean(profile.stats?.wheelSpun),
     },
     inventory: (inventory || []).flatMap((entry: { quantity: number; shiny: boolean; blooks: { name: string }[] | null }) =>
       Array.from({ length: entry.quantity }, () => entry.blooks?.[0]?.name ? `${entry.shiny ? 'Shiny ' : ''}${entry.blooks[0].name}` : null).filter(Boolean),
@@ -65,7 +66,11 @@ export async function PATCH(request: Request) {
     username: String(player.username || '').trim().slice(0, 20),
     tokens: Math.max(0, Math.floor(Number(player.tokens) || 0)),
     luck: 0,
-    stats: { badges: Array.isArray(player.badges) ? player.badges : [], clanTag: String(player.clanTag || '').slice(0, 5) },
+    stats: {
+      badges: Array.isArray(player.badges) ? player.badges : [],
+      clanTag: String(player.clanTag || '').slice(0, 5),
+      wheelSpun: Boolean(player.wheelSpun),
+    },
     materials: player.materials || emptyMaterials(),
     friends: Array.isArray(player.friends) ? player.friends : [],
     equipped_blook_id: blookIds.get(String(player.equipped || '').replace(/^Shiny /, '')) || null,
@@ -126,7 +131,7 @@ export async function POST(request: Request) {
     username,
     tokens: Math.max(0, Math.min(2500, Number(body.tokens) || 250)),
     luck: 0,
-    stats: {},
+    stats: { wheelSpun: false },
     materials: { ...emptyMaterials(), ...(body.materials || {}) },
     account_status: 'active',
   }, { onConflict: 'id', ignoreDuplicates: true });

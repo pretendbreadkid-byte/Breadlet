@@ -28,7 +28,7 @@ type Tab =
   | "profile"
   | "capsules"
   | "inventory"
-  | "mine"
+  | "wheel"
   | "market"
   | "chat"
   | "leaderboard"
@@ -60,10 +60,12 @@ type Player = {
   materials: Record<string, number>;
   badges: string[];
   friends?: string[];
+  wheelSpun?: boolean;
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 
 const playerKey = "breadlet-player";
+const wheelSpinKey = "breadlet-wheel-spun";
 const firstFiftyKey = "breadlet-first-fifty-count";
 const badgeDescriptions: Record<string, string> = {
   "First 50": "Awarded to the first 50 players to join Breadlet.",
@@ -129,7 +131,9 @@ const artFor = (name: string) =>
     Donut: "/assets/bagel.svg",
     "Cinnamon Roll": "/assets/cinimmon role.svg",
     "Green Astronaut": "/assets/channels4_profile.jpg",
-    Astronaut: "/assets/channels4_profile.jpg",
+    Astronaut: "/assets/new the green astronaut.png",
+    "Rainbow Astro": "/assets/rainbowastronaut.svg",
+    "Phantom Kind": "/assets/phantomking.svg",
     Megabot: "/assets/megabot.svg",
     King: "/assets/king.svg",
     Yeti: "/assets/yeti.svg",
@@ -179,7 +183,7 @@ const rarityClassFor = (rarity: string) =>
 const rewardEffectClassFor = (name: string, rarity: string) => {
   const cleanName = name.replace(/^Shiny /, "");
   if (cleanName === "Star Ship") return "";
-  return `${rarityClassFor(rarity)} ${cleanName === "Bread Blook" ? "rainbow-blook" : ""} ${cleanName === "Golden Shuriken" || cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""} ${cleanName === "Crimson Octopus" ? "crimson-octopus-glow" : ""}`;
+  return `${rarityClassFor(rarity)} ${cleanName === "Bread Blook" ? "rainbow-blook" : ""} ${cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""} ${cleanName === "Crimson Octopus" ? "crimson-octopus-glow" : ""}`;
 };
 const sellValueFor = (rarity: string) =>
   ({
@@ -192,36 +196,53 @@ const sellValueFor = (rarity: string) =>
     Unique: 500,
     Transcendent: 1000,
   })[rarity] || 5;
-const shinyEligibleNames = new Set(["Mars", "Aztec Coin", "Worker", "Olive Grenade", "Green Astronaut"]);
-const shinyNameFor = (name: string) => shinyEligibleNames.has(name) && Math.floor(Math.random() * 100) === 0 ? `Shiny ${name}` : name;
+const shinyEligibleNames = new Set<string>();
+const shinyNameFor = (name: string) => name;
 const materialNames = [
   "Flour",
   "Metal",
   "Gem",
   "Gold",
+  "Diamond",
   "Cloth",
   "Sugar",
 ];
+const dismantleMaterialNames = ["Flour", "Metal", "Gem", "Cloth", "Sugar"];
+const wheelRewards = [
+  { label: "250 tokens", type: "tokens", amount: 250, chance: 35 },
+  { label: "500 tokens", type: "tokens", amount: 500, chance: 25 },
+  { label: "1,000 tokens", type: "tokens", amount: 1000, chance: 18 },
+  { label: "2,000 tokens", type: "tokens", amount: 2000, chance: 10 },
+  { label: "3,000 tokens", type: "tokens", amount: 3000, chance: 5 },
+  { label: "4,000 tokens", type: "tokens", amount: 4000, chance: 3.5 },
+  { label: "5,000 tokens", type: "tokens", amount: 5000, chance: 1 },
+  { label: "5 Gold", type: "material", material: "Gold", amount: 5, chance: 2.5 },
+  { label: "5 Diamond", type: "material", material: "Diamond", amount: 5, chance: 2.5 },
+] as const;
 
 function playerFromServer(data: any): Player {
+  const serverInventory = data.inventory?.length ? data.inventory : ["Bread Blook"];
+  const legacyShinyCount = serverInventory.filter((name: string) => name.startsWith("Shiny ")).length;
+  const inventory = serverInventory.filter((name: string) => !name.startsWith("Shiny "));
   return {
     username: data.profile.username,
     password: "",
-    tokens: data.profile.tokens || 0,
+    tokens: (data.profile.tokens || 0) + legacyShinyCount * 200,
     mined: data.mine?.current_earnings_today || 0,
-    inventory: data.inventory?.length ? data.inventory : ["Bread Blook"],
-    equipped: data.profile.equipped_blook_name || data.inventory?.[0] || "Bread Blook",
+    inventory: inventory.length ? inventory : ["Bread Blook"],
+    equipped: data.profile.equipped_blook_name?.replace(/^Shiny /, "") || inventory[0] || "Bread Blook",
     pickaxe: Math.max(0, (data.mine?.pickaxe_level || 1) - 1),
     listings: data.listings || [],
     clanTag: data.profile.clan_tag || "",
     materials: { ...emptyMaterials(), ...(data.materials || {}) },
     badges: data.profile.badges || data.profile.stats?.badges || [],
     friends: data.profile.friends || [],
+    wheelSpun: Boolean(data.profile.wheel_spun),
   };
 }
 const materialFor = (name: string, rarity: string) =>
   rarity === "Mythic" || rarity === "Transcendent"
-    ? "Gold"
+    ? "Gem"
     : rarity === "Legendary"
       ? "Gem"
       : name.toLowerCase().includes("bread") ||
@@ -235,39 +256,41 @@ const materialFor = (name: string, rarity: string) =>
           : name.toLowerCase().includes("crystal") ||
               name.toLowerCase().includes("glass")
             ? "Gem"
-            : materialNames[name.length % materialNames.length];
+            : dismantleMaterialNames[name.length % dismantleMaterialNames.length];
 type MaterialBundle = Record<string, number>;
 const bundleEntries = (bundle: MaterialBundle) => Object.entries(bundle);
 const dismantleBundleFor = (name: string, rarity: string): MaterialBundle => {
   const primary = materialFor(name, rarity);
-  const primaryIndex = materialNames.indexOf(primary);
-  const secondary = materialNames[(primaryIndex + name.length + rarity.length) % materialNames.length];
+  const primaryIndex = dismantleMaterialNames.indexOf(primary);
+  const secondary = dismantleMaterialNames[(primaryIndex + name.length + rarity.length) % dismantleMaterialNames.length];
   return {
     [primary]: 3,
-    [secondary === primary ? materialNames[(primaryIndex + 1) % materialNames.length] : secondary]: 2,
+    [secondary === primary ? dismantleMaterialNames[(primaryIndex + 1) % dismantleMaterialNames.length] : secondary]: 2,
   };
 };
 const craftRecipes: { name: string; ingredients: MaterialBundle }[] = [
   { name: "Lion", ingredients: { Flour: 12, Sugar: 8 } },
-  { name: "Astronaut", ingredients: { Gem: 12, Gold: 8 } },
-  { name: "Yeti", ingredients: { Metal: 12, Gold: 8 } },
+  { name: "Yeti", ingredients: { Metal: 12, Cloth: 8 } },
   { name: "Sandwich", ingredients: { Cloth: 12, Flour: 8 } },
   { name: "Butterfly", ingredients: { Sugar: 12, Gem: 8 } },
   { name: "Blackbeard", ingredients: { Gem: 12, Cloth: 8 } },
   { name: "Sugar Glider", ingredients: { Sugar: 12, Cloth: 8 } },
   { name: "Tyrannosaurus Rex", ingredients: { Metal: 12, Flour: 8 } },
-  { name: "Megalodon", ingredients: { Gold: 12, Gem: 8 } },
+  { name: "Megalodon", ingredients: { Sugar: 12, Gem: 8 } },
   { name: "Megabot", ingredients: { Metal: 12, Gem: 8 } },
-  { name: "King", ingredients: { Gold: 12, Cloth: 8 } },
+  { name: "King", ingredients: { Flour: 12, Cloth: 8 } },
+  { name: "Phantom Kind", ingredients: { Gold: 10, Diamond: 10 } },
+  { name: "Rainbow Astro", ingredients: { Gold: 10, Diamond: 10 } },
 ];
 const craftRecipeFor = (name: string) =>
   craftRecipes.find((recipe) => recipe.name === name);
 const materialArtFor = (material: string) =>
   ({
-    Flour: "/assets/flower.svg",
+    Flour: "/assets/material-flour.svg",
     Metal: "/assets/metal.svg",
     Gem: "/assets/gem.svg",
     Gold: "/assets/gold.svg",
+    Diamond: "/assets/diamond-rock.svg",
     Cloth: "/assets/cloth.svg",
     Sugar: "/assets/sugar.svg",
   })[material] || "/assets/flower.svg";
@@ -321,7 +344,7 @@ const liveCapsules: Capsule[] = [
   {
     name: "Pixel Capsule",
     price: 25,
-    art: "/assets/pixel-capsule-new.svg",
+    art: "/assets/pixel capsule extra new.svg",
     pool: rewards([
       ["Pixel Toast", "Common"],
       ["Pixel Chick", "Common"],
@@ -346,12 +369,13 @@ const liveCapsules: Capsule[] = [
   {
     name: "BlookTuber Capsule",
     price: 25,
-    art: "/assets/blooktuber-capsule-new.svg",
+    art: "/assets/Blooktuber Pack.svg",
     pool: rewards([
       ["Blooket Life", "Uncommon"],
       ["Green Astronaut", "Uncommon"],
-      ["Blooket Gods", "Rare"],
       ["Fasty Jay", "Epic"],
+      ["Blooket Gods", "Rare"],
+      ["Lagoon", "Rare"],
       ["Waymore", "Epic"],
       ["Bread Blook", "Mythic"],
     ]),
@@ -403,7 +427,8 @@ export default function HomePage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [migrationCode, setMigrationCode] = useState("");
-  const [tab, setTab] = useState<Tab>("profile");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [tab, setTab] = useState<Tab>("wheel");
   const [notice, setNotice] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
@@ -438,17 +463,30 @@ export default function HomePage() {
     if (saved) {
       const old = JSON.parse(saved);
       if (old.password)
+        (() => {
+          const legacyShinyCount = Array.isArray(old.inventory) ? old.inventory.filter((name: string) => name.startsWith("Shiny ")).length : 0;
+          const inventory = (old.inventory || []).filter((name: string) => !name.startsWith("Shiny "));
         setPlayer({
           listings: [],
           pickaxe: 0,
           clanTag: "",
           ...old,
+          tokens: (old.tokens || 0) + legacyShinyCount * 200,
+          inventory: inventory.length ? inventory : ["Bread Blook"],
+          equipped: String(old.equipped || "Bread Blook").replace(/^Shiny /, ""),
           materials: { ...emptyMaterials(), ...(old.materials || {}) },
           badges: old.badges || [],
           friends: old.friends || [],
         });
+        })();
     }
   }, [supabaseClient]);
+  useEffect(() => {
+    if (!player || player.wheelSpun) return;
+    if (window.localStorage.getItem(`${wheelSpinKey}:${player.username}`) === "1") {
+      setPlayer((current) => current ? { ...current, wheelSpun: true } : current);
+    }
+  }, [player?.username, player?.wheelSpun]);
   useEffect(() => {
     if (!supabaseClient) return;
     fetch("/api/admin").then((response) => setAdminUnlocked(response.ok)).catch(() => setAdminUnlocked(false));
@@ -456,7 +494,7 @@ export default function HomePage() {
   useEffect(() => {
     const logo = document.querySelector('header img[alt="Breadlet logo"]');
     if (!logo) return;
-    const goToProfile = () => setTab("profile");
+    const goToProfile = () => setTab("wheel");
     logo.addEventListener("click", goToProfile);
     return () => logo.removeEventListener("click", goToProfile);
   }, []);
@@ -486,19 +524,42 @@ export default function HomePage() {
       return;
     }
     if (supabaseClient) {
-      if (!email.trim()) {
-        setNotice("Enter an email address for Supabase Auth.");
-        return;
-      }
-      let result = await supabaseClient.auth.signInWithPassword({ email: email.trim(), password });
-      let createdAccount = false;
-      if (result.error) {
-        const signup = await supabaseClient.auth.signUp({ email: email.trim(), password, options: { data: { username: username.trim() } } });
-        if (signup.error || !signup.data.session) {
-          setNotice(signup.error?.message || "Check your email to confirm the account, then log in.");
+      let result: { error: { message: string } | null; data?: { session?: unknown } };
+      if (authMode === "signup") {
+        if (!email.trim()) {
+          setNotice("Enter an email address to create your account.");
           return;
         }
-        createdAccount = true;
+        const signupResponse = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), username: username.trim(), password }),
+        });
+        const signupBody = await signupResponse.json().catch(() => null);
+        if (!signupResponse.ok) {
+          result = { error: { message: signupBody?.error || "Could not create your account." } };
+        } else {
+          const loginResponse = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username.trim(), password }),
+          });
+          const loginBody = await loginResponse.json().catch(() => null);
+          result = { error: loginResponse.ok ? null : { message: loginBody?.error || "Account created, but automatic login failed." } };
+        }
+      } else {
+        const loginResponse = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: username.trim(), password }),
+        });
+        const loginBody = await loginResponse.json().catch(() => null);
+        result = { error: loginResponse.ok ? null : { message: loginBody?.error || "Log in failed. Check your username and password, then try again." } };
+      }
+      let createdAccount = authMode === "signup";
+      if (result.error) {
+        setNotice(authMode === "signup" ? result.error.message : "Log in failed. Check your username and password, then try again.");
+        return;
       }
       await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 250, materials: emptyMaterials() }) });
       if (createdAccount && migrationCode.trim()) {
@@ -528,6 +589,7 @@ export default function HomePage() {
       materials: emptyMaterials(),
       badges,
       friends: [],
+      wheelSpun: false,
     });
     setNotice("Welcome to Breadlet.");
   };
@@ -555,20 +617,24 @@ export default function HomePage() {
     save({ ...player, friends: Array.from(new Set([...(player.friends || []), match.username])) });
     setNotice(`Friend request sent to ${match.username}.`);
   };
-  const mine = () => {
+  const spinWheel = (reward: (typeof wheelRewards)[number]) => {
     if (!player) return;
-    const dailyCap = mineCapFor(player.pickaxe);
-    const amount = Math.min(25, dailyCap - player.mined);
-    if (!amount) {
-      setNotice(`You reached today's ${dailyCap.toLocaleString()} token limit.`);
+    if (player.wheelSpun) {
+      setNotice("You already spun today's wheel.");
       return;
+    }
+    const nextMaterials = { ...player.materials };
+    if (reward.type === "material" && reward.material) {
+      nextMaterials[reward.material] = (nextMaterials[reward.material] || 0) + reward.amount;
     }
     save({
       ...player,
-    tokens: player.tokens + amount,
-      mined: player.mined + amount,
+      tokens: reward.type === "tokens" ? player.tokens + reward.amount : player.tokens,
+      materials: nextMaterials,
+      wheelSpun: true,
     });
-    setNotice(`+${amount} tokens mined.`);
+    window.localStorage.setItem(`${wheelSpinKey}:${player.username}`, "1");
+    setNotice(`Wheel reward: ${reward.label}.`);
   };
   const openCapsule = (capsule: Capsule) => {
     if (!player) return;
@@ -819,17 +885,15 @@ export default function HomePage() {
         setEmail={setEmail}
         setPassword={setPassword}
         setMigrationCode={setMigrationCode}
+        authMode={authMode}
+        setAuthMode={setAuthMode}
         login={login}
         notice={notice}
         closeNotice={() => setNotice("")}
       />
     );
   const nav: NavItem[] = [
-    {
-      id: "profile",
-      label: "Profile",
-      icon: <CircleUserRound size={20} strokeWidth={2.2} />,
-    },
+    { id: "wheel", label: "Wheel Spin", icon: <CirclePlay size={20} strokeWidth={2.2} /> },
     {
       id: "capsules",
       label: "Capsules",
@@ -839,11 +903,6 @@ export default function HomePage() {
       id: "inventory",
       label: "Collection",
       icon: <Backpack size={20} strokeWidth={2.2} />,
-    },
-    {
-      id: "mine",
-      label: "Mine",
-      icon: <Pickaxe size={20} strokeWidth={2.2} />,
     },
     {
       id: "crafting",
@@ -890,18 +949,9 @@ export default function HomePage() {
       <aside className="w-full md:w-64 md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-4 flex flex-col justify-between z-20 shadow-xl">
         <div>
           {/* Logo Header */}
-          <div className="flex items-center gap-3 px-2 py-2 cursor-pointer" onClick={() => setTab("profile")}>
-            <img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-16 w-full object-contain" />
+          <div className="flex items-center gap-3 px-2 py-2 cursor-pointer" onClick={() => setTab("wheel")}>
+            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-8 w-8 object-contain" /><div><p className="text-2xl font-black uppercase text-white">Breadlet</p><p className="text-[10px] font-bold tracking-widest text-[#bde8ff]">BRED-lit</p></div></div>
           </div>
-
-          {/* Primary profile button */}
-          <button
-            onClick={() => setTab("profile")}
-            className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl bg-[#22c55e] px-4 py-3 font-black text-white text-lg shadow-lg hover:bg-[#16a34a] transition transform hover:scale-105"
-          >
-            <CircleUserRound size={22} />
-            Profile
-          </button>
 
           {/* Sidebar Nav Buttons */}
           <nav className="mt-6 space-y-1.5">
@@ -934,26 +984,25 @@ export default function HomePage() {
       {/* Main Workspace Column */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-20 border-b border-[#3d91cd]/30 bg-[#0c3b70]/95 backdrop-blur px-6 py-3.5 flex items-center justify-between gap-4">
+        <div className="workspace-island pointer-events-none fixed right-5 top-5 z-30 flex items-center gap-3 rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] px-3 py-2 shadow-xl">
           <div className="flex items-center gap-3">
-            <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-20 w-48 object-contain" />
-            <div><p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Breadlet player</p><span className="text-2xl font-black text-white">{player.username}</span></div>
+            <div><span className="text-sm font-black text-white">{player.username}</span></div>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Tokens Balance Counter */}
             <div className="flex items-center gap-1.5 px-1 font-black text-[#ffe2a0] text-xs">
-              <img src="/assets/coin.svg" alt="Tokens" className="h-3.5 w-3.5" />
-              {player.tokens.toLocaleString()}
+              <img src="/assets/coin.svg" alt="Tokens" className="h-5 w-5" />
+              <span className="text-sm">{player.tokens.toLocaleString()}</span>
             </div>
 
             {/* Corner Username Dropdown */}
-            <div className="relative">
+            <div className="relative pointer-events-auto">
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
                 className="flex items-center gap-2.5 rounded-2xl border border-[#3d91cd] bg-[#103f75] px-3.5 py-2 font-black text-[#bde8ff] hover:bg-[#18558f] transition"
               >
-                <div className="h-8 w-8 rounded-xl overflow-hidden bg-[#072a54] p-0.5 border border-white/30 flex items-center justify-center">
+                <div className="h-6 w-6 rounded-lg overflow-hidden bg-[#072a54] p-0.5 border border-white/30 flex items-center justify-center">
                   <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" />
                 </div>
                 <span className="max-w-[120px] truncate">{player.username}</span>
@@ -1021,7 +1070,7 @@ export default function HomePage() {
               )}
             </div>
           </div>
-        </header>
+        </div>
 
         {/* Dynamic Page Section */}
         <section className="flex-1 p-6 overflow-y-auto">
@@ -1035,6 +1084,7 @@ export default function HomePage() {
             </div>
           )}
           {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} />}
+          {tab === "wheel" && <WheelTab player={player} spin={spinWheel} />}
           {tab === "capsules" && (
             <CapsulesTab
               showRetired={showRetired}
@@ -1047,9 +1097,6 @@ export default function HomePage() {
           )}
           {tab === "inventory" && (
             <InventoryTab player={player} equip={equip} sell={sell} />
-          )}
-          {tab === "mine" && (
-            <MineTab player={player} mine={mine} buyUpgrade={buyUpgrade} />
           )}
           {tab === "market" && (
             <Bazaar
@@ -1138,6 +1185,30 @@ export default function HomePage() {
   );
 }
 
+/* Signup is intentionally kept focused on authentication. */
+function SignupBlookPile() {
+  const [items, setItems] = useState(() => [
+    "Bread Blook", "Astronaut", "Worker", "Mars", "Chef", "Earth", "Star", "Alien", "Caveman", "Blooket Life", "Doctor", "Ninja", "King", "Yeti", "Megabot", "Lion", "Butterfly", "Blackbeard",
+  ].map((name, index) => ({ name, x: 5 + (index * 11) % 88, y: -18 - index * 12, velocity: 0.2 + index * 0.03, rotation: (index % 2 ? -1 : 1) * (index * 7), dragging: false })));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setItems((current) => current.map((item, index) => {
+        if (item.dragging) return item;
+        const nextVelocity = Math.min(1.8, item.velocity + 0.08);
+        const nextY = item.y + nextVelocity;
+        const floor = 78 - (index % 5) * 4;
+        return nextY > floor
+          ? { ...item, y: floor, velocity: 0, rotation: item.rotation + 1 }
+          : { ...item, y: nextY, velocity: nextVelocity, rotation: item.rotation + nextVelocity * 2 };
+      }));
+    }, 40);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return null;
+}
+
 function LoginScreen({
   username,
   email,
@@ -1147,6 +1218,8 @@ function LoginScreen({
   setEmail,
   setPassword,
   setMigrationCode,
+  authMode,
+  setAuthMode,
   login,
   notice,
   closeNotice,
@@ -1159,26 +1232,28 @@ function LoginScreen({
   setEmail: (value: string) => void;
   setPassword: (value: string) => void;
   setMigrationCode: (value: string) => void;
+  authMode: "login" | "signup";
+  setAuthMode: (value: "login" | "signup") => void;
   login: (event: FormEvent<HTMLFormElement>) => void;
   notice: string;
   closeNotice: () => void;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#24170f] px-5 text-white">
+    <main className="auth-screen flex min-h-screen items-center justify-center bg-[#0c3b70] px-5 text-white">
       <form
         onSubmit={login}
-        className="w-full max-w-md rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-8 shadow-2xl"
+        className="w-full max-w-md rounded-3xl border border-[#3d91cd] bg-[#103f75] p-8 shadow-2xl"
       >
         <img
           src="/assets/breadlet-logo.svg"
           alt="Breadlet logo"
-          className="mx-auto mb-8 h-24 w-64 object-contain"
+          className="mx-auto mb-8 h-32 w-80 object-contain"
         />
         <h1 className="text-center text-3xl font-black">
-          Start your collection
+          {authMode === "login" ? "Welcome back" : "Start your collection"}
         </h1>
-        <p className="mt-3 text-center text-sm leading-6 text-[#d7b88c]">
-          Create your account and enter the game.
+        <p className="mt-3 text-center text-sm leading-6 text-[#bde8ff]">
+          {authMode === "login" ? "Log in to continue your collection." : "Create your account and enter the game."}
         </p>
         <label
           className="mt-8 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
@@ -1194,22 +1269,22 @@ function LoginScreen({
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           placeholder="Choose a username"
-          className="mt-2 w-full rounded-xl bg-[#24170f] px-4 py-3 outline-none focus:border-[#eac477]"
+          className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />
-        <label
+        {authMode === "signup" && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="email"
         >
           Email
-        </label>
-        <input
+        </label>}
+        {authMode === "signup" && <input
           id="email"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="you@example.com"
-          className="mt-2 w-full rounded-xl bg-[#24170f] px-4 py-3 outline-none focus:border-[#eac477]"
-        />
+          className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
+        />}
         <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="password"
@@ -1224,18 +1299,18 @@ function LoginScreen({
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Create a password"
-          className="mt-2 w-full rounded-xl bg-[#24170f] px-4 py-3 outline-none focus:border-[#eac477]"
+          className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />
-        <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#bde8ff]" htmlFor="migration-code">
+        {authMode === "signup" && <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#bde8ff]" htmlFor="migration-code">
           Do you have a Breadlet migration code?
-        </label>
-        <input
+        </label>}
+        {authMode === "signup" && <input
           id="migration-code"
           value={migrationCode}
           onChange={(event) => setMigrationCode(event.target.value)}
           placeholder="Optional migration code"
           className="mt-2 w-full rounded-xl bg-[#072a54] px-4 py-3 text-white outline-none"
-        />
+        />}
         {notice && (
           <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
             <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
@@ -1245,11 +1320,11 @@ function LoginScreen({
             </div>
           </div>
         )}
-        <button
-          type="submit"
-          className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] hover:bg-[#ffe2a0]"
-        >
-          Log in / Sign up
+        <button type="submit" className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] hover:bg-[#ffe2a0]">
+          {authMode === "login" ? "Log in" : "Create account"}
+        </button>
+        <button type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">
+          {authMode === "login" ? "Need an account? Sign up" : "Already have an account? Log in"}
         </button>
       </form>
     </main>
@@ -1357,15 +1432,7 @@ function CapsulesTab({
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-            The drop room
-          </p>
-          <h1 className="mt-2 text-4xl font-black">Capsules</h1>
-          <p className="mt-2 max-w-xl text-[#d7b88c]">
-            Every capsule has its own pool and specific Blook chances.
-          </p>
-        </div>
+        <h1 className="text-4xl font-black">Capsules</h1>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={openMass}
@@ -1393,9 +1460,10 @@ function CapsulesTab({
         {capsules.map((capsule) => (
           <div
             key={capsule.name}
+            onClick={() => !capsule.retired && openCapsule(capsule)}
             className={`group rounded-2xl p-6 transition hover:-translate-y-1 ${
               capsule.retired ? "bg-[#302016] opacity-80" : "border border-[#d49a4a]/25 bg-[#3a2415]"
-            }`}
+            } ${capsule.retired ? "" : "cursor-pointer"}`}
           >
             <div className="flex h-64 items-center justify-center">
               <img
@@ -1409,9 +1477,6 @@ function CapsulesTab({
             <div className="mt-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-xl font-black">{capsule.name}</h2>
-                <p className="mt-1 text-sm text-[#d7b88c]">
-                  {capsule.pool.length} possible Blooks
-                </p>
               </div>
               <button
                 title="View Blook chances"
@@ -1426,19 +1491,7 @@ function CapsulesTab({
                 {capsule.note}
               </p>
             )}
-            <button
-              type="button"
-              disabled={capsule.retired}
-              onClick={() => openCapsule(capsule)}
-              className="mt-5 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] disabled:cursor-not-allowed disabled:bg-[#624833] disabled:text-[#a68a6e]"
-            >
-              {capsule.retired ? "Retired" : `Open for ${capsule.price}`}
-            </button>
-            {!capsule.retired && (
-              <p className="mt-2 text-center text-xs text-[#9cc8e8]">
-                {playerTokens >= capsule.price ? "Ready to open" : `Need ${capsule.price - playerTokens} more tokens`}
-              </p>
-            )}
+            {capsule.retired && <p className="mt-5 text-center text-xs font-bold uppercase text-[#9cc8e8]">Retired</p>}
           </div>
         ))}
       </div>
@@ -1473,7 +1526,7 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`}>
-      <img src={art} alt={name} className={`max-h-full max-w-full object-contain ${cleanName === "Golden Shuriken" ? "shuriken-spin" : ""}`} />
+      <img src={art} alt={name} className="max-h-full max-w-full object-contain" />
       {cleanName === "Caveman" && <img src="/assets/rock for caveman to throw.svg" alt="" className="caveman-accessory caveman-rock absolute bottom-0 right-0 h-1/3 w-1/3 object-contain" />}
       {cleanName === "Alien" && <img src="/assets/lar blaster (for alien).svg" alt="" className="alien-accessory alien-laser absolute bottom-0 right-0 h-1/2 w-1/2 object-contain" />}
     </span>
@@ -1519,7 +1572,7 @@ function InventoryTab({
                 onChange={(e) => setShowPacks(e.target.checked)}
                 className="h-4 w-4 accent-[#39a8f5]"
               />
-              Show Packs
+              Show retired boxes
             </label>
           </div>
         </div>
@@ -1546,21 +1599,21 @@ function InventoryTab({
                       key={reward.name}
                       title={quantity ? `${reward.name} (x${quantity})` : `${reward.name} (Locked)`}
                       onClick={() => quantity && setSelected(reward)}
-                      className={`relative flex aspect-square flex-col items-center justify-center rounded-2xl border transition-all p-2 ${
+                        className={`relative flex aspect-square flex-col items-center justify-center transition-all p-0 ${
                         quantity
-                          ? "border-[#3d91cd] bg-[#18558f] shadow-md hover:-translate-y-1 hover:border-[#39a8f5] hover:shadow-lg cursor-pointer"
-                          : "border-black/50 bg-[#072a54]/90 opacity-60 cursor-not-allowed"
+                          ? "cursor-pointer hover:-translate-y-1"
+                          : "opacity-60 cursor-not-allowed"
                       }`}
                     >
                       {quantity ? (
                         <RewardArt
                           name={reward.name}
                           art={artFor(reward.name)}
-                          className={`h-16 w-16 ${rewardEffectClassFor(reward.name, reward.rarity)}`}
+                          className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`}
                         />
                       ) : (
-                        <div className="relative flex items-center justify-center h-16 w-16">
-                          <span className="h-14 w-14 rounded-xl bg-black/80" />
+                        <div className="relative flex h-full w-full items-center justify-center">
+                          <span className="h-full w-full rounded-xl bg-black/80" />
                           <Lock size={16} className="absolute text-white/80" />
                         </div>
                       )}
@@ -1634,8 +1687,8 @@ function BlookDetail({
             Close
           </button>
         </div>
-        <div className="mt-5 flex h-36 items-center justify-center rounded-2xl bg-[#0c3b70] p-4 border border-[#3d91cd]/30">
-          <RewardArt name={reward.name} art={artFor(reward.name)} className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
+        <div className="mt-5 flex h-64 items-center justify-center bg-transparent p-0">
+          <RewardArt name={reward.name} art={artFor(reward.name)} className={`h-full w-full scale-125 ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Stat label="Rarity" value={reward.rarity} />
@@ -1679,91 +1732,59 @@ function BlookDetail({
   );
 }
 
-function MineTab({
+function WheelTab({
   player,
-  mine,
-  buyUpgrade,
+  spin,
 }: {
   player: Player;
-  mine: () => void;
-  buyUpgrade: (index: number) => void;
+  spin: (reward: (typeof wheelRewards)[number]) => void;
 }) {
-  const currentUpgrade = upgrades[player.pickaxe] || upgrades[0];
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState<(typeof wheelRewards)[number] | null>(null);
+  const spinNow = () => {
+    if (spinning || player.wheelSpun) return;
+    setSpinning(true);
+    setResult(null);
+    const roll = Math.random() * 100;
+    let cursor = 0;
+    const reward = wheelRewards.find((item) => {
+      cursor += item.chance;
+      return roll < cursor;
+    }) || wheelRewards[0];
+    window.setTimeout(() => {
+      setResult(reward);
+      setSpinning(false);
+      spin(reward);
+    }, 1400);
+  };
   return (
-    <div>
+    <div className="max-w-5xl">
       <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-        Earn your currency
+        Daily rewards
       </p>
-      <h1 className="mt-2 text-4xl font-black">The Mine</h1>
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
-          <div className="mine-scene cave-scene relative flex h-72 items-center justify-center rounded-2xl bg-gradient-to-br from-[#6c4328] to-[#24170f] overflow-hidden">
-            <img src="/assets/mine scene.svg" alt="Cave mine" className="absolute inset-0 h-full w-full object-cover opacity-80" />
-            <img
-              src="/assets/worker.svg"
-              alt="Mine worker"
-              className="mine-worker max-h-56 z-10"
-            />
-            <img src="/assets/pickaxe.svg" alt="Pickaxe" className="mine-pickaxe absolute h-20 object-contain z-10" />
-            {/* Bought rock appearing in designated placeholder spot in cave scene */}
-            <div className="absolute bottom-4 right-8 z-10 flex flex-col items-center bg-black/40 p-2 rounded-2xl border border-[#e9bd67]/30 backdrop-blur-xs">
-              <img
-                src={currentUpgrade.art}
-                alt={currentUpgrade.name}
-                className="h-20 w-20 object-contain drop-shadow-[0_0_12px_rgba(233,189,103,0.7)]"
-              />
-              <span className="mt-1 text-[10px] font-black uppercase text-[#ffe2a0] tracking-wider">{currentUpgrade.name}</span>
-            </div>
+      <h1 className="mt-2 text-4xl font-black">Wheel Spin</h1>
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_0.8fr]">
+        <div className="wheel-stage rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-8 text-center">
+          <div className={`reward-wheel relative mx-auto h-80 w-80 rounded-full border-[14px] border-[#73c8ff] bg-[#05070b] shadow-2xl ${spinning ? "wheel-spinning" : ""}`}>
+            {wheelRewards.map((reward, index) => {
+              const angle = (index / wheelRewards.length) * 360;
+              const image = reward.type === "tokens" ? "/assets/coin.svg" : reward.material === "Diamond" ? "/assets/diamond-rock.svg" : "/assets/gold.svg";
+              return <div key={reward.label} className="wheel-segment" style={{ transform: `rotate(${angle}deg)` }}><img src={image} alt="" /><span>{reward.label}</span></div>;
+            })}
+            <div className="absolute left-1/2 top-1/2 z-10 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[#73c8ff] bg-black" />
           </div>
-          <div className="mt-6 flex items-end justify-between">
-            <div>
-              <p className="text-sm text-[#d7b88c]">Daily earnings</p>
-              <p className="mt-1 text-4xl font-black">
-                {player.mined}{" "}
-                <span className="text-lg text-[#b58d68]">/ {mineCapFor(player.pickaxe)}</span>
-              </p>
-            </div>
-            <button
-              onClick={mine}
-              className="rounded-xl bg-[#e9bd67] px-5 py-3 font-black text-[#29170c]"
-            >
-              Mine 25
-            </button>
-          </div>
-          <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#24170f]">
-            <div
-              className="h-full rounded-full bg-[#e9bd67] transition-all"
-              style={{ width: `${Math.min(100, player.mined / 25)}%` }}
-            />
-          </div>
+          <button onClick={spinNow} disabled={spinning || player.wheelSpun} className="mt-8 rounded-2xl bg-[#e9bd67] px-10 py-4 text-xl font-black text-[#29170c] disabled:opacity-60">
+            {player.wheelSpun ? "Already spun" : spinning ? "Spinning..." : "Spin the wheel"}
+          </button>
+          {result && <p className="mt-5 text-2xl font-black text-[#ffe2a0]">You won {result.label}!</p>}
         </div>
         <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
-          <h2 className="text-xl font-black">Pickaxe upgrades</h2>
-          <p className="mt-2 text-sm text-[#d7b88c]">
-            Buy the next tool to show it in your mine.
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {upgrades.map((upgrade, index) => (
-              <button
-                key={upgrade.name}
-                onClick={() => buyUpgrade(index)}
-                disabled={index <= player.pickaxe}
-                className={`rounded-xl p-3 text-center ${index === player.pickaxe ? "border border-[#e9bd67] bg-[#6c4328]" : "bg-[#24170f]"} disabled:cursor-default`}
-              >
-                <img
-                  src={upgrade.art}
-                  alt={upgrade.name}
-                  className="mx-auto h-20 object-contain"
-                />
-                <p className="mt-2 text-xs font-bold">{upgrade.name}</p>
-                <p className="mt-1 text-xs text-[#ffe2a0]">
-                  {index === player.pickaxe
-                    ? "Equipped"
-                    : upgrade.cost + " tokens"}
-                </p>
-              </button>
-            ))}
+          <h2 className="text-xl font-black">Wheel rewards</h2>
+          <p className="mt-2 text-sm text-[#d7b88c]">Gold and Diamond only come from the wheel, five at a time.</p>
+          <div className="mt-5 space-y-2">
+            {wheelRewards.map((reward) => <div key={reward.label} className="flex items-center justify-between rounded-xl bg-[#24170f] px-3 py-2 text-sm"><span className="font-bold">{reward.label}</span><span className="text-[#ffe2a0]">{reward.chance}%</span></div>)}
           </div>
+          <p className="mt-5 text-sm text-[#d7b88c]">Current tokens: <strong className="text-[#ffe2a0]">{player.tokens.toLocaleString()}</strong></p>
         </div>
       </div>
     </div>
@@ -2184,7 +2205,7 @@ function CraftingMachineModal({
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-[#031426]/85 px-5 backdrop-blur-sm">
       <div className="craft-machine-modal w-full max-w-xl rounded-3xl border border-[#5dbdff] bg-[#bfe8ff] p-6 text-center text-[#062443] shadow-2xl">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-[#17659c]">Workshop machine</p>
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-[#17659c]">Crafting machine</p>
         <h2 className="mt-2 text-3xl font-black">{phase === "processing" ? "Forging your Blook" : "Craft complete"}</h2>
           <div className="mt-6 rounded-2xl border-4 border-[#17659c] bg-[#e8f8ff] p-5">
             <img src="/assets/crafting machine.svg" alt="Crafting machine" className="mx-auto mb-4 h-28 w-full object-contain" />
@@ -2271,6 +2292,7 @@ function SimplePanel({
 
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void }) {
   const [message, setMessage] = useState("");
+  const [onlineCount, setOnlineCount] = useState(1);
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[] }[]>([
     { user: player.username, badges: player.badges, text: "Welcome to Breadlet chat." },
   ]);
@@ -2315,9 +2337,20 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice }: { player: P
 
   useEffect(() => {
     loadMessages();
+    const loadPlayerCount = () => {
+      fetch("/api/leaderboard", { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) return;
+          const data = await response.json();
+          if (Array.isArray(data.players)) setOnlineCount(Math.max(1, data.players.length));
+        })
+        .catch(() => undefined);
+    };
+    loadPlayerCount();
+    const countTimer = window.setInterval(loadPlayerCount, 30000);
     if (!supabase) {
       console.warn('[CLIENT_CHAT] Supabase browser client not available for Realtime subscription');
-      return;
+      return () => window.clearInterval(countTimer);
     }
 
     console.log('[CLIENT_CHAT] Subscribing to Realtime postgres_changes on global_chat_messages');
@@ -2336,6 +2369,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice }: { player: P
       });
 
     return () => {
+      window.clearInterval(countTimer);
       console.log('[CLIENT_CHAT] Unsubscribing from Realtime global-chat');
       supabase.removeChannel(channel);
     };
@@ -2413,7 +2447,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice }: { player: P
       <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
         {supabase ? "Supabase realtime" : "Prototype local chat"}
       </p>
-      <h1 className="mt-2 text-4xl font-black">Global Chat</h1>
+      <div className="mt-2 flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlineCount} players</span></div>
       {giftNotice && (
         <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
@@ -2556,7 +2590,7 @@ function InfoTab() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {[
-          ["Mine", "Mine up to 2,500 tokens each day. Upgrade your pickaxe to change the mine display."],
+          ["Wheel Spin", "Spin once to win tokens or five Gold or Diamond. The 5,000-token reward has a 1% chance."],
           ["Capsules", "Buy capsules with tokens. Open a capsule to roll from its listed Blook pool, or use Mass Open for typed quantities."],
           ["Collection", "Locked Blooks stay black silhouettes. Owned Blooks can be equipped or sold from their detail view."],
           ["Crafting", "Dismantle extra Blooks into five-unit material bundles, then combine ingredients totaling 20 to craft approved Blooks."],
@@ -2669,8 +2703,8 @@ function AdminTab({
           Select a real player, then grant resources, Blooks, and badges through the server-side admin role.
         </p>
         <label className="mt-5 block max-w-md text-sm font-bold text-white">Reward target
-          <select value={targetId} onChange={(event) => setTargetId(event.target.value)} className="mt-2 w-full rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white">
-            {players.map((profile) => <option key={profile.id} value={profile.id}>{profile.username}</option>)}
+            <select value={targetId} onChange={(event) => setTargetId(event.target.value)} className="mt-2 w-full rounded-xl border border-[#3d91cd] bg-[#bde8ff] px-3 py-2 text-[#062443]">
+            {players.map((profile) => <option className="text-[#062443]" key={profile.id} value={profile.id}>{profile.username}</option>)}
           </select>
         </label>
       </div>
@@ -2855,6 +2889,7 @@ function ClanTab({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [clan, setClanState] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number } | null>(null);
@@ -2889,11 +2924,7 @@ function ClanTab({
     loadClans();
   }, [loadClans]);
 
-  const allClans = dbClans.length > 0 ? dbClans : [
-    { name: "Token Grinders", description: "Daily mine runs and token goals.", tags: ["grinders", "active"], members: 18, treasury: 42000 },
-    { name: "Crumb Collectors", description: "For collectors chasing rare drops.", tags: ["collectors", "trading"], members: 12, treasury: 28500 },
-    { name: "Fresh Loaves", description: "New-player friendly and helpful.", tags: ["new-player", "friendly"], members: 21, treasury: 16000 },
-  ];
+  const allClans = dbClans;
 
   const clans = allClans.filter((item) => !filter || item.tags.some((tag) => tag.includes(filter.toLowerCase())) || item.name.toLowerCase().includes(filter.toLowerCase()));
 
@@ -2903,7 +2934,7 @@ function ClanTab({
       const res = await fetch("/api/clans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), description: description.trim(), tags }),
+        body: JSON.stringify({ name: name.trim(), description: description.trim(), tags, thumbnailUrl }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -2949,15 +2980,10 @@ function ClanTab({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-[#73c8ff]/45 bg-[#18558f] p-6">
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-        Social identity
-      </p>
-      <h1 className="mt-2 text-4xl font-black">Clans</h1><p className="mt-3 text-[#d9f3ff]">Discover communities, compare benefits, and contribute tokens to your clan treasury.</p></div>
-      <div className="flex justify-end"><button onClick={() => setShowCreate((current) => !current)} className="rounded-lg border border-[#73c8ff] bg-[#18558f] px-4 py-2 text-sm font-black text-[#bde8ff]">Create Clan</button></div>
-      {showCreate && <div className="rounded-2xl border border-[#247bc0] bg-[#103f75] p-5"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · 5,000 tokens</h2><div className="mt-3 grid gap-3 sm:grid-cols-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div>}
+      <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button onClick={() => setShowCreate(true)} className="rounded-xl bg-[#39a8f5] px-4 py-2 font-black text-white">Create Clan</button></div>
+      {showCreate && <div className="modal-layer fixed inset-0 flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · 5,000 tokens</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
       {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={handleDonate} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate 100 tokens</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
-      <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Discovery</p><h2 className="mt-1 text-2xl font-black">Find your people</h2></div><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.map((item) => <article key={item.name} className="rounded-2xl border border-[#3d91cd] bg-[#18558f] p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p></article>)}</div></div>
+      <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => <article key={item.name} className="rounded-2xl border border-[#3d91cd] bg-[#18558f] p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p></article>) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">N/A</p>}</div></div>
     </div>
   );
 }
@@ -2976,17 +3002,11 @@ function CraftingTab({
   ).filter((name) => name.toLowerCase().includes(search.toLowerCase()));
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-        Workshop
-      </p>
-      <h1 className="mt-2 text-4xl font-black">Crafting</h1>
-      <p className="mt-2 text-[#d7b88c]">
-        Break down a Blook, collect materials, and build something new.
-      </p>
+      <h1 className="text-4xl font-black">Crafting</h1>
       <div className="mt-8 rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
         <div className="flex items-center justify-between gap-4">
           <div><p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Your stock</p><h2 className="mt-1 text-2xl font-black">Materials</h2></div>
-          <span className="rounded-full px-3 py-1 text-xs font-bold text-[#d7b88c]">6 resources</span>
+          <span className="rounded-full px-3 py-1 text-xs font-bold text-[#d7b88c]">7 resources</span>
         </div>
         <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
           {materialNames.map((material) => (
