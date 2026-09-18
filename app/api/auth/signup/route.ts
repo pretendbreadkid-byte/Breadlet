@@ -8,7 +8,12 @@ export async function POST(request: Request) {
   const password = String(body.password || '');
   const admin = createAdminClient();
 
-  if (!admin) return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
+  if (!admin) {
+    return NextResponse.json(
+      { error: 'Server auth is not configured. Add SUPABASE_SERVICE_ROLE_KEY to .env.local, then restart the dev server.' },
+      { status: 503 },
+    );
+  }
   if (username.length < 3 || !email || password.length < 4) {
     return NextResponse.json({ error: 'Username, email, and password are required.' }, { status: 400 });
   }
