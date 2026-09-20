@@ -428,6 +428,7 @@ export default function HomePage() {
   const [password, setPassword] = useState("");
   const [migrationCode, setMigrationCode] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [forgotPassword, setForgotPassword] = useState(false);
   const [tab, setTab] = useState<Tab>("wheel");
   const [notice, setNotice] = useState("");
   const [promoCode, setPromoCode] = useState("");
@@ -517,6 +518,20 @@ export default function HomePage() {
   };
   const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (forgotPassword) {
+      if (username.trim().length < 3) {
+        setNotice("Enter your username first.");
+        return;
+      }
+      const resetResponse = await fetch("/api/auth/reset-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim() }),
+      });
+      const resetBody = await resetResponse.json().catch(() => null);
+      setNotice(resetBody?.message || resetBody?.error || "Password reset request failed.");
+      return;
+    }
     if (username.trim().length < 3 || password.length < 4) {
       setNotice(
         "Use a username with 3+ characters and a password with 4+ characters.",
@@ -887,6 +902,8 @@ export default function HomePage() {
         setMigrationCode={setMigrationCode}
         authMode={authMode}
         setAuthMode={setAuthMode}
+        forgotPassword={forgotPassword}
+        setForgotPassword={setForgotPassword}
         login={login}
         notice={notice}
         closeNotice={() => setNotice("")}
@@ -929,7 +946,7 @@ export default function HomePage() {
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
       <div className="bread-floaters" aria-hidden="true">
-        {Array.from({ length: 24 }).map((_, i) => (
+        {Array.from({ length: 120 }).map((_, i) => (
           <img
             key={i}
             src={
@@ -1220,6 +1237,8 @@ function LoginScreen({
   setMigrationCode,
   authMode,
   setAuthMode,
+  forgotPassword,
+  setForgotPassword,
   login,
   notice,
   closeNotice,
@@ -1234,6 +1253,8 @@ function LoginScreen({
   setMigrationCode: (value: string) => void;
   authMode: "login" | "signup";
   setAuthMode: (value: "login" | "signup") => void;
+  forgotPassword: boolean;
+  setForgotPassword: (value: boolean) => void;
   login: (event: FormEvent<HTMLFormElement>) => void;
   notice: string;
   closeNotice: () => void;
@@ -1250,10 +1271,10 @@ function LoginScreen({
           className="mx-auto mb-8 h-32 w-80 object-contain"
         />
         <h1 className="text-center text-3xl font-black">
-          {authMode === "login" ? "Welcome back" : "Start your collection"}
+          {forgotPassword ? "Reset your password" : authMode === "login" ? "Welcome back" : "Start your collection"}
         </h1>
         <p className="mt-3 text-center text-sm leading-6 text-[#bde8ff]">
-          {authMode === "login" ? "Log in to continue your collection." : "Create your account and enter the game."}
+          {forgotPassword ? "Enter your username and we will email a reset link." : authMode === "login" ? "Log in to continue your collection." : "Create your account and enter the game."}
         </p>
         <label
           className="mt-8 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
@@ -1271,13 +1292,13 @@ function LoginScreen({
           placeholder="Choose a username"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />
-        {authMode === "signup" && <label
+        {!forgotPassword && authMode === "signup" && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="email"
         >
           Email
         </label>}
-        {authMode === "signup" && <input
+        {!forgotPassword && authMode === "signup" && <input
           id="email"
           type="email"
           value={email}
@@ -1285,13 +1306,13 @@ function LoginScreen({
           placeholder="you@example.com"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />}
-        <label
+        {!forgotPassword && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="password"
         >
           Password
-        </label>
-        <input
+        </label>}
+        {!forgotPassword && <input
           id="password"
           required
           minLength={4}
@@ -1300,7 +1321,7 @@ function LoginScreen({
           onChange={(event) => setPassword(event.target.value)}
           placeholder="Create a password"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
-        />
+        />}
         {authMode === "signup" && <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#bde8ff]" htmlFor="migration-code">
           Do you have a Breadlet migration code?
         </label>}
@@ -1321,11 +1342,13 @@ function LoginScreen({
           </div>
         )}
         <button type="submit" className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] hover:bg-[#ffe2a0]">
-          {authMode === "login" ? "Log in" : "Create account"}
+          {forgotPassword ? "Email reset link" : authMode === "login" ? "Log in" : "Create account"}
         </button>
-        <button type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">
+        {authMode === "login" && !forgotPassword && <button type="button" onClick={() => setForgotPassword(true)} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Forgot password?</button>}
+        {forgotPassword && <button type="button" onClick={() => setForgotPassword(false)} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Back to log in</button>}
+        {!forgotPassword && <button type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">
           {authMode === "login" ? "Need an account? Sign up" : "Already have an account? Log in"}
-        </button>
+        </button>}
       </form>
     </main>
   );

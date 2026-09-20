@@ -22,11 +22,20 @@ export async function POST(request: Request) {
     .ilike('username', username)
     .maybeSingle();
 
-  if (profileError || !profile?.email) {
+  let loginEmail = profile?.email || '';
+  if (!loginEmail && !profileError) {
+    const { data: users } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const authUser = users.users.find((user) =>
+      String(user.user_metadata?.username || '').toLowerCase() === username.toLowerCase(),
+    );
+    loginEmail = authUser?.email || '';
+  }
+
+  if (!loginEmail) {
     return NextResponse.json({ error: 'Log in failed. Check your username and password, then try again.' }, { status: 401 });
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email: profile.email, password });
+  const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
   if (error) {
     return NextResponse.json({ error: 'Log in failed. Check your username and password, then try again.' }, { status: 401 });
   }
