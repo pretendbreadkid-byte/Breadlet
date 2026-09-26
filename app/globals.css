@@ -95,6 +95,21 @@ body {
 .wheel-segment { position: absolute; left: 50%; top: 50%; display: flex; width: 50%; height: 3.4rem; transform-origin: 0 50%; align-items: center; gap: 0.25rem; border-left: 1px solid rgba(115, 200, 255, 0.4); padding-left: 0.5rem; color: #fff; font-size: 0.55rem; font-weight: 900; text-transform: uppercase; }
 .wheel-segment img { height: 1.5rem; width: 1.5rem; object-fit: contain; }
 .wheel-segment span { max-width: 4.5rem; line-height: 0.9; }
+.roulette-viewport { --roulette-card-width: 112px; }
+.roulette-belt { position: absolute; inset-block: 0; left: 0; display: flex; width: max-content; align-items: center; gap: 8px; padding-inline: 8px; will-change: transform; transition-property: transform; transition-timing-function: cubic-bezier(0.08, 0.72, 0.12, 1); }
+.roulette-prize { display: flex; width: var(--roulette-card-width); height: calc(100% - 12px); flex: 0 0 var(--roulette-card-width); flex-direction: column; align-items: center; justify-content: center; gap: 2px; overflow: hidden; border-bottom-width: 3px; border-radius: 8px; padding: 4px; }
+.roulette-pointer { position: absolute; inset-block: 0; left: 50%; z-index: 2; width: 3px; transform: translateX(-50%); background: #facc15; box-shadow: 0 0 18px #facc1599; }
+.roulette-pointer::before, .roulette-pointer::after { position: absolute; left: 50%; width: 0; height: 0; content: ""; transform: translateX(-50%); border-right: 8px solid transparent; border-left: 8px solid transparent; }
+.roulette-pointer::before { top: 0; border-top: 11px solid #facc15; }
+.roulette-pointer::after { bottom: 0; border-bottom: 11px solid #facc15; }
+.crate-display { display: flex; min-height: 112px; align-items: center; justify-content: center; }
+.crate-opening { animation: crate-rattle 0.18s linear infinite; }
+.reward-burst { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; }
+.reward-particle { position: absolute; top: 50%; left: 50%; width: 7px; height: 11px; border-radius: 2px; background: var(--burst-color); box-shadow: 0 0 9px color-mix(in srgb, var(--burst-color), transparent 25%); opacity: 0; animation: reward-particle-burst 1.15s cubic-bezier(0.12, 0.72, 0.18, 1) forwards; }
+.reward-particle-1 { width: 8px; height: 8px; border-radius: 50%; }
+.reward-particle-2 { width: 4px; height: 14px; }
+@keyframes crate-rattle { 0%, 100% { transform: rotate(-2deg) scale(1); } 25% { transform: rotate(2deg) scale(1.03); } 50% { transform: rotate(-1.5deg) scale(1.04); } 75% { transform: rotate(1.5deg) scale(1.02); } }
+@keyframes reward-particle-burst { 0% { transform: rotate(var(--burst-angle)) translateX(0) scale(0.4); opacity: 0; } 12% { opacity: 1; } 100% { transform: rotate(var(--burst-angle)) translateX(var(--burst-distance)) scale(0.1); opacity: 0; } }
 .auth-screen, .auth-screen form { font-family: Arial, Helvetica, sans-serif; }
 .modal-layer { position: fixed !important; inset: 0 !important; z-index: 9999 !important; }
 .signup-blook-layer { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }

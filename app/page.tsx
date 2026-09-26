@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient } from "../lib/supabase/client";
 import {
   Backpack,
@@ -22,6 +22,7 @@ import {
   Search,
   GitBranch,
   CirclePlay,
+  Package,
 } from "lucide-react";
 
 type Tab =
@@ -61,10 +62,12 @@ type Player = {
   badges: string[];
   friends?: string[];
   wheelSpun?: boolean;
+  guestStarterRemoved?: boolean;
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 
 const playerKey = "breadlet-player";
+const guestPlayerKey = "breadlet-guest-player";
 const wheelSpinKey = "breadlet-wheel-spun";
 const firstFiftyKey = "breadlet-first-fifty-count";
 const badgeDescriptions: Record<string, string> = {
@@ -93,9 +96,9 @@ const artFor = (name: string) =>
     "Crystal Ball": "/assets/crystal ball 2.0.svg",
     "Pixel Fuego": "/assets/pixel fuego.png",
     "Pixel Wizard": "/assets/pixel wizard.png",
-    "Blooket Life": "/assets/blooket life.jpg",
-    "Blooket Gods": "/assets/blooket gods.jpg",
-    Lagoon: "/assets/lagoon.jpg",
+    "Blooket Life": "/assets/new blooket life.png",
+    "Blooket Gods": "/assets/new blooket gods.png",
+    Lagoon: "/assets/New Lag0n.png",
     Shuriken: "/assets/shuricken.svg",
     "Albino Crow": "/assets/albino crow.svg",
     Baguette: "/assets/bagget.svg",
@@ -107,8 +110,8 @@ const artFor = (name: string) =>
     Necklace: "/assets/neclase 2.0 .svg",
     Ninja: "/assets/Ninja 2.0.svg",
     Santa: "/assets/santa pixel.png",
-    "Fasty Jay": "/assets/fastyjay.jpg",
-    Waymore: "/assets/waymore.jpg",
+    "Fasty Jay": "/assets/fastyjaynew.png",
+    Waymore: "/assets/new waymore.png",
     Shield: "/assets/sheild (1).svg",
     Spartan: "/assets/spartin  (1).svg",
     Solider: "/assets/solider.svg",
@@ -130,7 +133,7 @@ const artFor = (name: string) =>
     "Mr. Frog": "/assets/Mr.frog.svg",
     Donut: "/assets/bagel.svg",
     "Cinnamon Roll": "/assets/cinimmon role.svg",
-    "Green Astronaut": "/assets/channels4_profile.jpg",
+    "Green Astronaut": "/assets/new the green astronaut.png",
     Astronaut: "/assets/new the green astronaut.png",
     "Rainbow Astro": "/assets/rainbowastronaut.svg",
     "Phantom Kind": "/assets/phantomking.svg",
@@ -180,6 +183,19 @@ const rarityClassFor = (rarity: string) =>
     : rarity === "Transcendent"
       ? "rarity-transcendent"
       : "";
+const rarityTileClass = (rarity: string) => {
+  const classes: Record<string, string> = {
+    Common: "border-slate-400/40 bg-slate-400/10 text-slate-200",
+    Uncommon: "border-emerald-400/50 bg-emerald-500/10 text-emerald-200",
+    Rare: "border-sky-400/50 bg-sky-500/10 text-sky-200",
+    Epic: "border-violet-400/50 bg-violet-500/10 text-violet-200",
+    Legendary: "border-amber-400/60 bg-amber-500/10 text-amber-200",
+    Mythic: "border-rose-400/60 bg-rose-500/10 text-rose-200",
+    Unique: "border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-200",
+    Transcendent: "border-yellow-300/70 bg-yellow-400/15 text-yellow-100",
+  };
+  return classes[rarity] || classes.Common;
+};
 const rewardEffectClassFor = (name: string, rarity: string) => {
   const cleanName = name.replace(/^Shiny /, "");
   if (cleanName === "Star Ship") return "";
@@ -200,16 +216,15 @@ const shinyEligibleNames = new Set<string>();
 const shinyNameFor = (name: string) => name;
 const materialNames = [
   "Flour",
-  "Metal",
-  "Gem",
-  "Gold",
-  "Diamond",
-  "Cloth",
   "Sugar",
+  "Diamond",
+  "Leather",
+  "Gold",
+  "Silver",
 ];
-const dismantleMaterialNames = ["Flour", "Metal", "Gem", "Cloth", "Sugar"];
+const dismantleMaterialNames = ["Flour", "Sugar", "Diamond", "Leather", "Silver"];
 const wheelRewards = [
-  { label: "250 tokens", type: "tokens", amount: 250, chance: 35 },
+  { label: "250 tokens", type: "tokens", amount: 250, chance: 32.5 },
   { label: "500 tokens", type: "tokens", amount: 500, chance: 25 },
   { label: "1,000 tokens", type: "tokens", amount: 1000, chance: 18 },
   { label: "2,000 tokens", type: "tokens", amount: 2000, chance: 10 },
@@ -219,6 +234,15 @@ const wheelRewards = [
   { label: "5 Gold", type: "material", material: "Gold", amount: 5, chance: 2.5 },
   { label: "5 Diamond", type: "material", material: "Diamond", amount: 5, chance: 2.5 },
 ] as const;
+const wheelRarityFor = (reward: (typeof wheelRewards)[number]) => {
+  if (reward.type === "material") return reward.material === "Diamond" ? "Legendary" : "Epic";
+  if (reward.amount >= 5000) return "Mythic";
+  if (reward.amount >= 4000) return "Legendary";
+  if (reward.amount >= 2000) return "Epic";
+  if (reward.amount >= 1000) return "Rare";
+  if (reward.amount >= 500) return "Uncommon";
+  return "Common";
+};
 
 function playerFromServer(data: any): Player {
   const serverInventory = data.inventory?.length ? data.inventory : ["Bread Blook"];
@@ -242,9 +266,9 @@ function playerFromServer(data: any): Player {
 }
 const materialFor = (name: string, rarity: string) =>
   rarity === "Mythic" || rarity === "Transcendent"
-    ? "Gem"
+    ? "Diamond"
     : rarity === "Legendary"
-      ? "Gem"
+      ? "Diamond"
       : name.toLowerCase().includes("bread") ||
           name.toLowerCase().includes("toast") ||
           name.toLowerCase().includes("dough")
@@ -252,10 +276,10 @@ const materialFor = (name: string, rarity: string) =>
         : name.toLowerCase().includes("grenade") ||
             name.toLowerCase().includes("shuriken") ||
             name.toLowerCase().includes("blaster")
-          ? "Metal"
+          ? "Silver"
           : name.toLowerCase().includes("crystal") ||
               name.toLowerCase().includes("glass")
-            ? "Gem"
+            ? "Diamond"
             : dismantleMaterialNames[name.length % dismantleMaterialNames.length];
 type MaterialBundle = Record<string, number>;
 const bundleEntries = (bundle: MaterialBundle) => Object.entries(bundle);
@@ -270,15 +294,15 @@ const dismantleBundleFor = (name: string, rarity: string): MaterialBundle => {
 };
 const craftRecipes: { name: string; ingredients: MaterialBundle }[] = [
   { name: "Lion", ingredients: { Flour: 12, Sugar: 8 } },
-  { name: "Yeti", ingredients: { Metal: 12, Cloth: 8 } },
-  { name: "Sandwich", ingredients: { Cloth: 12, Flour: 8 } },
-  { name: "Butterfly", ingredients: { Sugar: 12, Gem: 8 } },
-  { name: "Blackbeard", ingredients: { Gem: 12, Cloth: 8 } },
-  { name: "Sugar Glider", ingredients: { Sugar: 12, Cloth: 8 } },
-  { name: "Tyrannosaurus Rex", ingredients: { Metal: 12, Flour: 8 } },
-  { name: "Megalodon", ingredients: { Sugar: 12, Gem: 8 } },
-  { name: "Megabot", ingredients: { Metal: 12, Gem: 8 } },
-  { name: "King", ingredients: { Flour: 12, Cloth: 8 } },
+  { name: "Yeti", ingredients: { Silver: 12, Leather: 8 } },
+  { name: "Sandwich", ingredients: { Leather: 12, Flour: 8 } },
+  { name: "Butterfly", ingredients: { Sugar: 12, Diamond: 8 } },
+  { name: "Blackbeard", ingredients: { Diamond: 12, Leather: 8 } },
+  { name: "Sugar Glider", ingredients: { Sugar: 12, Leather: 8 } },
+  { name: "Tyrannosaurus Rex", ingredients: { Silver: 12, Flour: 8 } },
+  { name: "Megalodon", ingredients: { Sugar: 12, Diamond: 8 } },
+  { name: "Megabot", ingredients: { Silver: 12, Diamond: 8 } },
+  { name: "King", ingredients: { Flour: 12, Leather: 8 } },
   { name: "Phantom Kind", ingredients: { Gold: 10, Diamond: 10 } },
   { name: "Rainbow Astro", ingredients: { Gold: 10, Diamond: 10 } },
 ];
@@ -287,13 +311,12 @@ const craftRecipeFor = (name: string) =>
 const materialArtFor = (material: string) =>
   ({
     Flour: "/assets/material-flour.svg",
-    Metal: "/assets/metal.svg",
-    Gem: "/assets/gem.svg",
-    Gold: "/assets/gold.svg",
-    Diamond: "/assets/diamond-rock.svg",
-    Cloth: "/assets/cloth.svg",
     Sugar: "/assets/sugar.svg",
-  })[material] || "/assets/flower.svg";
+    Diamond: "/assets/diamond-rock.svg",
+    Leather: "/assets/material-leather.svg",
+    Gold: "/assets/gold.svg",
+    Silver: "/assets/material-silver.svg",
+  })[material] || "/assets/material-flour.svg";
 const emptyMaterials = () =>
   materialNames.reduce<Record<string, number>>((all, material) => {
     all[material] = 0;
@@ -372,12 +395,10 @@ const liveCapsules: Capsule[] = [
     art: "/assets/Blooktuber Pack.svg",
     pool: rewards([
       ["Blooket Life", "Uncommon"],
-      ["Green Astronaut", "Uncommon"],
-      ["Fasty Jay", "Epic"],
       ["Blooket Gods", "Rare"],
+      ["Fasty Jay", "Epic"],
       ["Lagoon", "Rare"],
       ["Waymore", "Epic"],
-      ["Bread Blook", "Mythic"],
     ]),
   },
 ];
@@ -422,6 +443,12 @@ const mineCapFor = (pickaxe: number) => [500, 1500, 2500, 3500, 4250, 5000][pick
 
 export default function HomePage() {
   const [player, setPlayer] = useState<Player | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestProgressUnlocked, setGuestProgressUnlocked] = useState(false);
+  const [guestWelcomeOpen, setGuestWelcomeOpen] = useState(false);
+  const resetClickCountRef = useRef(0);
+  const pendingGuestRef = useRef<Player | null>(null);
+  const [authFeedback, setAuthFeedback] = useState("");
   const [supabaseClient] = useState(() => createSupabaseClient());
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -437,7 +464,9 @@ export default function HomePage() {
   const [reveal, setReveal] = useState<{
     capsule: Capsule;
     reward: Reward;
-    phase: "wiggle" | "dark" | "result";
+    track: Reward[];
+    winnerIndex: number;
+    phase: "spinning" | "result";
   } | null>(null);
   const [oddsCapsule, setOddsCapsule] = useState<Capsule | null>(null);
   const [badgeInfo, setBadgeInfo] = useState<string | null>(null);
@@ -452,14 +481,31 @@ export default function HomePage() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   useEffect(() => {
+    const restoreGuest = () => {
+      const savedGuest = window.localStorage.getItem(guestPlayerKey);
+      if (!savedGuest) return false;
+      setPlayer(JSON.parse(savedGuest));
+      setIsGuest(true);
+      setGuestProgressUnlocked(true);
+      return true;
+    };
     if (supabaseClient) {
       supabaseClient.auth.getUser().then(async ({ data }) => {
-        if (!data.user) return;
+        if (!data.user) {
+          restoreGuest();
+          return;
+        }
         const response = await fetch("/api/player");
-        if (response.ok) setPlayer(playerFromServer(await response.json()));
+        if (response.ok) {
+          setIsGuest(false);
+          setPlayer(playerFromServer(await response.json()));
+          return;
+        }
+        restoreGuest();
       });
       return;
     }
+    if (restoreGuest()) return;
     const saved = window.localStorage.getItem(playerKey);
     if (saved) {
       const old = JSON.parse(saved);
@@ -483,11 +529,11 @@ export default function HomePage() {
     }
   }, [supabaseClient]);
   useEffect(() => {
-    if (!player || player.wheelSpun) return;
+    if (!player || isGuest || player.wheelSpun) return;
     if (window.localStorage.getItem(`${wheelSpinKey}:${player.username}`) === "1") {
       setPlayer((current) => current ? { ...current, wheelSpun: true } : current);
     }
-  }, [player?.username, player?.wheelSpun]);
+  }, [isGuest, player?.username, player?.wheelSpun]);
   useEffect(() => {
     if (!supabaseClient) return;
     fetch("/api/admin").then((response) => setAdminUnlocked(response.ok)).catch(() => setAdminUnlocked(false));
@@ -501,6 +547,12 @@ export default function HomePage() {
   }, []);
   const save = (next: Player) => {
     setPlayer(next);
+    if (isGuest) {
+      if (guestProgressUnlocked) {
+        window.localStorage.setItem(guestPlayerKey, JSON.stringify(next));
+      }
+      return;
+    }
     if (supabaseClient) {
       void fetch("/api/player", {
         method: "PATCH",
@@ -519,6 +571,22 @@ export default function HomePage() {
   const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (forgotPassword) {
+      resetClickCountRef.current += 1;
+      const clicks = resetClickCountRef.current;
+      if (clicks === 5) {
+        setGuestProgressUnlocked(true);
+        const guestToSave = isGuest ? player : pendingGuestRef.current;
+        if (guestToSave) {
+          window.localStorage.setItem(guestPlayerKey, JSON.stringify(guestToSave));
+        }
+        pendingGuestRef.current = null;
+        setAuthFeedback("Secret unlocked: guest progress will now be saved in this browser.");
+        return;
+      }
+      if (clicks > 1) {
+        setAuthFeedback(`${5 - clicks} more reset clicks to unlock guest saves.`);
+        return;
+      }
       if (username.trim().length < 3) {
         setNotice("Enter your username first.");
         return;
@@ -529,7 +597,7 @@ export default function HomePage() {
         body: JSON.stringify({ username: username.trim() }),
       });
       const resetBody = await resetResponse.json().catch(() => null);
-      setNotice(resetBody?.message || resetBody?.error || "Password reset request failed.");
+      setAuthFeedback(resetBody?.message || resetBody?.error || "Password reset request failed.");
       return;
     }
     if (username.trim().length < 3 || password.length < 4) {
@@ -583,6 +651,8 @@ export default function HomePage() {
       }
       const response = await fetch("/api/player");
       if (response.ok) {
+        pendingGuestRef.current = null;
+        setIsGuest(false);
         setPlayer(playerFromServer(await response.json()));
         setNotice("Signed in with Supabase.");
       }
@@ -606,7 +676,49 @@ export default function HomePage() {
       friends: [],
       wheelSpun: false,
     });
+    setIsGuest(false);
     setNotice("Welcome to Breadlet.");
+  };
+  const startGuest = () => {
+    const savedGuest = window.localStorage.getItem(guestPlayerKey);
+    const storedPlayer: Player | null = savedGuest ? JSON.parse(savedGuest) : pendingGuestRef.current;
+    const guestInventory = storedPlayer ? [...storedPlayer.inventory] : [];
+    if (storedPlayer && !storedPlayer.guestStarterRemoved) {
+      const oldStarterIndex = guestInventory.indexOf("Bread Blook");
+      if (oldStarterIndex !== -1) guestInventory.splice(oldStarterIndex, 1);
+    }
+    const guestPlayer: Player = storedPlayer ? {
+      ...storedPlayer,
+      inventory: guestInventory,
+      equipped: storedPlayer.equipped === "Bread Blook" && !guestInventory.includes("Bread Blook") ? guestInventory[0] || "" : storedPlayer.equipped,
+      materials: { ...emptyMaterials(), ...storedPlayer.materials },
+      guestStarterRemoved: true,
+    } : {
+      username: "Guest",
+      password: "",
+      tokens: 250,
+      mined: 0,
+      inventory: [],
+      equipped: "",
+      pickaxe: 0,
+      listings: [],
+      clanTag: "",
+      materials: emptyMaterials(),
+      badges: [],
+      friends: [],
+      wheelSpun: false,
+      guestStarterRemoved: true,
+    };
+    setIsGuest(true);
+    setPlayer(guestPlayer);
+    pendingGuestRef.current = null;
+    setTab("wheel");
+    setShowRetired(true);
+    setNotice("");
+    setGuestWelcomeOpen(true);
+    if (guestProgressUnlocked) {
+      window.localStorage.setItem(guestPlayerKey, JSON.stringify(guestPlayer));
+    }
   };
   const addFriend = async (friendUsername: string) => {
     if (!player || !supabaseClient) {
@@ -634,7 +746,7 @@ export default function HomePage() {
   };
   const spinWheel = (reward: (typeof wheelRewards)[number]) => {
     if (!player) return;
-    if (player.wheelSpun) {
+    if (player.wheelSpun && !isGuest) {
       setNotice("You already spun today's wheel.");
       return;
     }
@@ -646,14 +758,14 @@ export default function HomePage() {
       ...player,
       tokens: reward.type === "tokens" ? player.tokens + reward.amount : player.tokens,
       materials: nextMaterials,
-      wheelSpun: true,
+      wheelSpun: !isGuest,
     });
-    window.localStorage.setItem(`${wheelSpinKey}:${player.username}`, "1");
-    setNotice(`Wheel reward: ${reward.label}.`);
+    if (!isGuest) window.localStorage.setItem(`${wheelSpinKey}:${player.username}`, "1");
+    if (!isGuest) setNotice(`Wheel reward: ${reward.label}.`);
   };
   const openCapsule = (capsule: Capsule) => {
     if (!player) return;
-    if (player.tokens < capsule.price) {
+    if (!isGuest && player.tokens < capsule.price) {
       setNotice("You need more tokens for that capsule.");
       return;
     }
@@ -667,24 +779,24 @@ export default function HomePage() {
         return roll <= 0;
       }) || capsule.pool[0];
     const finalReward = { ...reward, name: shinyNameFor(reward.name) };
-    const next = { ...player, tokens: player.tokens - capsule.price };
-    save(next);
-    setReveal({ capsule, reward: finalReward, phase: "wiggle" });
-    window.setTimeout(
-      () =>
-        setReveal((current) =>
-          current ? { ...current, phase: "dark" } : null,
-        ),
-      900,
+    const winnerIndex = 28;
+    const track = Array.from({ length: 36 }, (_, index) =>
+      index === winnerIndex
+        ? finalReward
+        : capsule.pool[Math.floor(Math.random() * capsule.pool.length)],
     );
+    const next = { ...player, tokens: isGuest ? player.tokens : player.tokens - capsule.price };
+    save(next);
+    setReveal({ capsule, reward: finalReward, track, winnerIndex, phase: "spinning" });
     window.setTimeout(() => {
       save({ ...next, inventory: [...next.inventory, finalReward.name] });
-      setReveal({ capsule, reward: finalReward, phase: "result" });
-    }, 1700);
+      setReveal((current) => current ? { ...current, phase: "result" } : null);
+    }, 4800);
   };
   const openMassCapsules = (quantities: Record<string, number>) => {
     if (!player) return;
-    const selected = liveCapsules.flatMap((capsule) =>
+    const openableCapsules = isGuest ? [...liveCapsules, ...retiredCapsules] : liveCapsules;
+    const selected = openableCapsules.flatMap((capsule) =>
       Array.from({ length: quantities[capsule.name] || 0 }, () => capsule),
     );
     const cost = selected.reduce((total, capsule) => total + capsule.price, 0);
@@ -692,7 +804,7 @@ export default function HomePage() {
       setNotice("Choose at least one capsule to mass open.");
       return;
     }
-    if (player.tokens < cost) {
+    if (!isGuest && player.tokens < cost) {
       setNotice("You need more tokens for that mass opening.");
       return;
     }
@@ -711,7 +823,7 @@ export default function HomePage() {
     });
     save({
       ...player,
-      tokens: player.tokens - cost,
+      tokens: isGuest ? player.tokens : player.tokens - cost,
       inventory: [...player.inventory, ...results.map((result) => result.reward.name)],
     });
     setMassOpen(false);
@@ -740,11 +852,11 @@ export default function HomePage() {
   const buyUpgrade = (index: number) => {
     if (!player || index <= player.pickaxe) return;
     const upgrade = upgrades[index];
-    if (player.tokens < upgrade.cost) {
+    if (!isGuest && player.tokens < upgrade.cost) {
       setNotice(`You need ${upgrade.cost} tokens for ${upgrade.name}.`);
       return;
     }
-    save({ ...player, tokens: player.tokens - upgrade.cost, pickaxe: index });
+    save({ ...player, tokens: isGuest ? player.tokens : player.tokens - upgrade.cost, pickaxe: index });
     setNotice(`${upgrade.name} equipped.`);
   };
   const createListing = async (blook: string, price: number) => {
@@ -757,7 +869,7 @@ export default function HomePage() {
       setNotice("Choose an owned Blook and a price from 1 to 100,000.");
       return;
     }
-    if (supabaseClient) {
+    if (supabaseClient && !isGuest) {
       const res = await fetch("/api/marketplace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -787,11 +899,11 @@ export default function HomePage() {
   };
   const buyListing = async (listing: Listing) => {
     if (!player) return;
-    if (player.tokens < listing.price) {
+    if (!isGuest && player.tokens < listing.price) {
       setNotice("You need more tokens for this listing.");
       return;
     }
-    if (supabaseClient && typeof listing.id === "string") {
+    if (supabaseClient && !isGuest && typeof listing.id === "string") {
       const res = await fetch("/api/marketplace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -814,7 +926,7 @@ export default function HomePage() {
         return;
       }
     }
-    save({ ...player, tokens: player.tokens - listing.price, inventory: [...player.inventory, listing.blook], listings: player.listings.filter((item) => item.id !== listing.id) });
+    save({ ...player, tokens: isGuest ? player.tokens : player.tokens - listing.price, inventory: [...player.inventory, listing.blook], listings: player.listings.filter((item) => item.id !== listing.id) });
     setSelectedListing(null);
     setNotice(`${listing.blook} purchased.`);
   };
@@ -862,7 +974,7 @@ export default function HomePage() {
   const craft = (name: string) => {
     const recipe = craftRecipeFor(name);
     if (!player || !recipe) return;
-    const missing = bundleEntries(recipe.ingredients).find(
+    const missing = isGuest ? undefined : bundleEntries(recipe.ingredients).find(
       ([material, amount]) => (player.materials[material] || 0) < amount,
     );
     if (missing) {
@@ -870,9 +982,11 @@ export default function HomePage() {
       return;
     }
     const materials = { ...player.materials };
-    bundleEntries(recipe.ingredients).forEach(([material, amount]) => {
-      materials[material] = (materials[material] || 0) - amount;
-    });
+    if (!isGuest) {
+      bundleEntries(recipe.ingredients).forEach(([material, amount]) => {
+        materials[material] = (materials[material] || 0) - amount;
+      });
+    }
     const next = { ...player, materials };
     save(next);
     setCraftReveal({ name, ingredients: recipe.ingredients, phase: "processing" });
@@ -888,6 +1002,16 @@ export default function HomePage() {
         `Clan tag set to ${tag.trim().slice(0, 5).toUpperCase() || "none"}.`,
       );
     }
+  };
+  const leaveSession = () => {
+    if (isGuest && player && !guestProgressUnlocked) {
+      pendingGuestRef.current = player;
+    }
+    setPlayer(null);
+    setIsGuest(false);
+    setUserMenuOpen(false);
+    if (!isGuest) supabaseClient?.auth.signOut();
+    window.localStorage.removeItem(playerKey);
   };
   if (!player)
     return (
@@ -907,10 +1031,14 @@ export default function HomePage() {
         login={login}
         notice={notice}
         closeNotice={() => setNotice("")}
+        authFeedback={authFeedback}
+        startGuest={startGuest}
+        resetClickCountRef={resetClickCountRef}
+        setAuthFeedback={setAuthFeedback}
       />
     );
   const nav: NavItem[] = [
-    { id: "wheel", label: "Wheel Spin", icon: <CirclePlay size={20} strokeWidth={2.2} /> },
+    { id: "wheel", label: "Daily Crate", icon: <Package size={20} strokeWidth={2.2} /> },
     {
       id: "capsules",
       label: "Capsules",
@@ -943,6 +1071,9 @@ export default function HomePage() {
       icon: <Trophy size={20} strokeWidth={2.2} />,
     },
   ];
+  const visibleNav = isGuest
+    ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
+    : nav;
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
       <div className="bread-floaters" aria-hidden="true">
@@ -972,7 +1103,7 @@ export default function HomePage() {
 
           {/* Sidebar Nav Buttons */}
           <nav className="mt-6 space-y-1.5">
-            {nav.map((item) => (
+            {visibleNav.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setTab(item.id)}
@@ -994,7 +1125,7 @@ export default function HomePage() {
           <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
           <a title="YouTube" href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><CirclePlay size={18} /></a>
           <a title="Discord" href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><MessageCircle size={18} /></a>
-          <button title="Log out" onClick={() => { setPlayer(null); supabaseClient?.auth.signOut(); window.localStorage.removeItem(playerKey); }} className="hover:text-red-300 transition"><LogOut size={20} /></button>
+          <button title={isGuest ? "End guest session" : "Log out"} onClick={leaveSession} className="hover:text-red-300 transition"><LogOut size={20} /></button>
         </div>
       </aside>
 
@@ -1003,7 +1134,7 @@ export default function HomePage() {
         {/* Top Header Bar */}
         <div className="workspace-island pointer-events-none fixed right-5 top-5 z-30 flex items-center gap-3 rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] px-3 py-2 shadow-xl">
           <div className="flex items-center gap-3">
-            <div><span className="text-sm font-black text-white">{player.username}</span></div>
+              <div><span className="text-sm font-black text-white">{player.username}{isGuest && player.username !== "Guest" && <small className="ml-2 rounded bg-amber-300/15 px-2 py-1 text-[9px] font-black uppercase text-amber-200">Guest</small>}</span></div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -1020,7 +1151,7 @@ export default function HomePage() {
                 className="flex items-center gap-2.5 rounded-2xl border border-[#3d91cd] bg-[#103f75] px-3.5 py-2 font-black text-[#bde8ff] hover:bg-[#18558f] transition"
               >
                 <div className="h-6 w-6 rounded-lg overflow-hidden bg-[#072a54] p-0.5 border border-white/30 flex items-center justify-center">
-                  <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" />
+                  {player.equipped ? <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={18} className="text-[#9cc8e8]" />}
                 </div>
                 <span className="max-w-[120px] truncate">{player.username}</span>
                 <ChevronDown size={18} />
@@ -1073,10 +1204,7 @@ export default function HomePage() {
                   <hr className="my-1 border-[#3d91cd]/40" />
                   <button
                     onClick={() => {
-                      setUserMenuOpen(false);
-                      setPlayer(null);
-                      supabaseClient?.auth.signOut();
-                      window.localStorage.removeItem(playerKey);
+                      leaveSession();
                     }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-300 hover:bg-red-900/30"
                   >
@@ -1091,6 +1219,7 @@ export default function HomePage() {
 
         {/* Dynamic Page Section */}
         <section className="flex-1 p-6 overflow-y-auto">
+          {isGuest && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress resets when you leave"}</span><button onClick={leaveSession} className="font-black underline decoration-amber-200/50 underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
               <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
@@ -1101,7 +1230,7 @@ export default function HomePage() {
             </div>
           )}
           {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} />}
-          {tab === "wheel" && <WheelTab player={player} spin={spinWheel} />}
+          {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
               showRetired={showRetired}
@@ -1110,6 +1239,7 @@ export default function HomePage() {
               showOdds={setOddsCapsule}
               openMass={() => setMassOpen(true)}
               playerTokens={player.tokens}
+              isGuest={isGuest}
             />
           )}
           {tab === "inventory" && (
@@ -1120,14 +1250,15 @@ export default function HomePage() {
               player={player}
               createListing={createListing}
               openListing={setSelectedListing}
+                isGuest={isGuest}
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
             />
           )}
-          {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} />}
+          {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} />}
           {tab === "leaderboard" && <Leaderboard player={player} />}
-          {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} />}
+          {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (
-            <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} craft={craft} />
+            <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} craft={craft} isGuest={isGuest} />
           )}
           {tab === "promo" && (
             <PromoTab
@@ -1160,6 +1291,21 @@ export default function HomePage() {
           )}
         </section>
       </div>
+      {guestWelcomeOpen && (
+        <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-emerald-300/40 bg-[#10251f] p-6 text-white shadow-2xl">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-300">Guest test session</p>
+            <h2 className="mt-2 text-2xl font-black">Everything is open to try</h2>
+            <ul className="mt-4 space-y-2 text-sm leading-6 text-emerald-50/80">
+              <li>Crates and every capsule, including retired boxes, are free to open.</li>
+              <li>Crafting is free, and guests start with an empty collection.</li>
+              <li>Chat, ranks, clans, and Bazaar are hidden during guest testing.</li>
+              <li>Progress is temporary and disappears when you end this session unless you have unlocked browser saving.</li>
+            </ul>
+            <button onClick={() => setGuestWelcomeOpen(false)} className="mt-6 w-full rounded-xl bg-emerald-300 px-4 py-3 font-black text-emerald-950 hover:bg-emerald-200">Start testing</button>
+          </div>
+        </div>
+      )}
       {reveal && <RevealModal reveal={reveal} close={() => setReveal(null)} />}
       {oddsCapsule && (
         <OddsModal capsule={oddsCapsule} close={() => setOddsCapsule(null)} />
@@ -1172,6 +1318,7 @@ export default function HomePage() {
           }
           close={() => setMassOpen(false)}
           open={openMassCapsules}
+          isGuest={isGuest}
         />
       )}
       {massResults.length > 0 && (
@@ -1197,7 +1344,7 @@ export default function HomePage() {
         />
       )}
       {badgeInfo && <BadgeModal badge={badgeInfo} close={() => setBadgeInfo(null)} />}
-      {selectedListing && <ListingModal listing={selectedListing} close={() => setSelectedListing(null)} buy={buyListing} />}
+      {selectedListing && <ListingModal listing={selectedListing} close={() => setSelectedListing(null)} buy={buyListing} isGuest={isGuest} />}
     </main>
   );
 }
@@ -1242,6 +1389,10 @@ function LoginScreen({
   login,
   notice,
   closeNotice,
+  authFeedback,
+  startGuest,
+  resetClickCountRef,
+  setAuthFeedback,
 }: {
   username: string;
   email: string;
@@ -1258,6 +1409,10 @@ function LoginScreen({
   login: (event: FormEvent<HTMLFormElement>) => void;
   notice: string;
   closeNotice: () => void;
+  authFeedback: string;
+  startGuest: () => void;
+  resetClickCountRef: { current: number };
+  setAuthFeedback: (value: string) => void;
 }) {
   return (
     <main className="auth-screen flex min-h-screen items-center justify-center bg-[#0c3b70] px-5 text-white">
@@ -1344,8 +1499,10 @@ function LoginScreen({
         <button type="submit" className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] hover:bg-[#ffe2a0]">
           {forgotPassword ? "Email reset link" : authMode === "login" ? "Log in" : "Create account"}
         </button>
-        {authMode === "login" && !forgotPassword && <button type="button" onClick={() => setForgotPassword(true)} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Forgot password?</button>}
-        {forgotPassword && <button type="button" onClick={() => setForgotPassword(false)} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Back to log in</button>}
+        {authFeedback && <p role="status" className="mt-3 text-center text-xs leading-5 text-emerald-200">{authFeedback}</p>}
+        {authMode === "login" && !forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(true); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Forgot password?</button>}
+        {forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(false); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Back to log in</button>}
+        {!forgotPassword && authMode === "login" && <button type="button" onClick={startGuest} className="mt-4 w-full rounded-xl border border-emerald-300/50 bg-emerald-300/10 px-4 py-3 font-black text-emerald-100 hover:bg-emerald-300/20">Play as guest · free</button>}
         {!forgotPassword && <button type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">
           {authMode === "login" ? "Need an account? Sign up" : "Already have an account? Log in"}
         </button>}
@@ -1374,11 +1531,11 @@ function ProfileTab({
       <div className="profile-hero rounded-3xl border border-[#73c8ff]/45 bg-gradient-to-br from-[#58b8f2] to-[#1677bd] p-7">
         <div className="flex flex-wrap items-center gap-5">
           <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl border border-white/50 bg-[#bde8ff] p-0">
-            <img
+            {player.equipped ? <img
               src={artFor(player.equipped)}
               alt={player.equipped}
               className="h-full w-full object-cover"
-            />
+            /> : <CircleUserRound size={48} className="text-[#17659c]" />}
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
@@ -1387,9 +1544,9 @@ function ProfileTab({
             <h1 className="mt-2 text-4xl font-black">
               {player.username} {player.clanTag && <span className="text-[#ffe2a0]">[{player.clanTag}]</span>}
             </h1>
-            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-[#eac477]">
+            {player.equipped && <p className="mt-1 text-xs font-bold uppercase tracking-widest text-[#eac477]">
               {rarityFor(player.equipped)}
-            </p>
+            </p>}
           </div>
         </div>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -1440,6 +1597,7 @@ function CapsulesTab({
   showOdds,
   openMass,
   playerTokens,
+  isGuest,
 }: {
   showRetired: boolean;
   setShowRetired: (value: boolean) => void;
@@ -1447,8 +1605,9 @@ function CapsulesTab({
   showOdds: (capsule: Capsule) => void;
   openMass: () => void;
   playerTokens: number;
+  isGuest: boolean;
 }) {
-  const capsules = showRetired
+  const capsules = isGuest || showRetired
     ? [...liveCapsules, ...retiredCapsules]
     : liveCapsules;
 
@@ -1476,17 +1635,17 @@ function CapsulesTab({
       </div>
       {showRetired && (
         <div className="mt-5 rounded-xl border border-[#d49a4a]/35 bg-[#6c4328]/35 px-4 py-3 text-sm text-[#ffe2a0]">
-          Retired boxes are visual-only and can come back at any time.
+          {isGuest ? "Guest test mode: retired boxes are openable for free." : "Retired boxes are visual-only and can come back at any time."}
         </div>
       )}
       <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {capsules.map((capsule) => (
           <div
             key={capsule.name}
-            onClick={() => !capsule.retired && openCapsule(capsule)}
+            onClick={() => (!capsule.retired || isGuest) && openCapsule(capsule)}
             className={`group rounded-2xl p-6 transition hover:-translate-y-1 ${
               capsule.retired ? "bg-[#302016] opacity-80" : "border border-[#d49a4a]/25 bg-[#3a2415]"
-            } ${capsule.retired ? "" : "cursor-pointer"}`}
+            } ${!capsule.retired || isGuest ? "cursor-pointer" : ""}`}
           >
             <div className="flex h-64 items-center justify-center">
               <img
@@ -1509,6 +1668,26 @@ function CapsulesTab({
                 i
               </button>
             </div>
+            {(!capsule.retired || isGuest) && (
+              <>
+                <div className="mt-4 flex items-center justify-between border-y border-white/10 py-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/60">{capsule.retired ? "Retired crate · open capsule" : "Open capsule"}</span>
+                  <span className="flex items-center gap-2 text-lg font-black text-[#ffe27a]">
+                    <img src="/assets/coin.svg" alt="" className="h-6 w-6 object-contain" />
+                    {isGuest ? "FREE" : capsule.price.toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {capsule.pool.map((reward) => (
+                    <div key={reward.name} className={`flex min-w-0 items-center gap-2 rounded-lg border px-2 py-2 ${rarityTileClass(reward.rarity)}`}>
+                      <img src={reward.art || artFor(reward.name)} alt="" className="h-8 w-8 shrink-0 object-contain" />
+                      <span className="min-w-0 flex-1 truncate text-left text-xs font-bold">{reward.name}</span>
+                      <span className="shrink-0 text-[10px] font-black">{chanceFor(capsule, reward).toFixed(2)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             {capsule.note && (
               <p className="mt-3 text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">
                 {capsule.note}
@@ -1755,59 +1934,140 @@ function BlookDetail({
   );
 }
 
+function RewardBurst({ rarity }: { rarity: string }) {
+  const palettes: Record<string, string[]> = {
+    Common: ["#d1d5db", "#ffffff"],
+    Uncommon: ["#34d399", "#a7f3d0", "#ffffff"],
+    Rare: ["#38bdf8", "#bae6fd", "#ffffff"],
+    Epic: ["#c084fc", "#e9d5ff", "#ffffff"],
+    Legendary: ["#fbbf24", "#fde68a", "#fff7ed"],
+    Mythic: ["#fb7185", "#fda4af", "#fef2f2"],
+    Unique: ["#e879f9", "#f5d0fe", "#ffffff"],
+    Transcendent: ["#facc15", "#f0abfc", "#67e8f9", "#ffffff"],
+  };
+  const counts: Record<string, number> = { Common: 12, Uncommon: 16, Rare: 20, Epic: 24, Legendary: 28, Mythic: 32, Unique: 36, Transcendent: 40 };
+  const colors = palettes[rarity] || palettes.Common;
+  const count = counts[rarity] || counts.Common;
+  const distance = 64 + Object.keys(counts).indexOf(rarity) * 24;
+  return (
+    <span className="reward-burst" aria-hidden="true">
+      {Array.from({ length: count }, (_, index) => (
+        <i
+          key={index}
+          className={`reward-particle reward-particle-${index % 3}`}
+          style={{
+            "--burst-angle": `${(index * 360) / count}deg`,
+            "--burst-color": colors[index % colors.length],
+            "--burst-distance": `${distance + (index % 4) * 10}px`,
+          } as React.CSSProperties}
+        />
+      ))}
+    </span>
+  );
+}
+
 function WheelTab({
   player,
   spin,
+  isGuest,
 }: {
   player: Player;
   spin: (reward: (typeof wheelRewards)[number]) => void;
+  isGuest: boolean;
 }) {
-  const [spinning, setSpinning] = useState(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [phase, setPhase] = useState<"ready" | "spinning" | "result">("ready");
   const [result, setResult] = useState<(typeof wheelRewards)[number] | null>(null);
+  const [track, setTrack] = useState<(typeof wheelRewards)[number][]>(() =>
+    Array.from({ length: 36 }, () => wheelRewards[Math.floor(Math.random() * wheelRewards.length)]),
+  );
+  const [beltOffset, setBeltOffset] = useState(0);
+  const winnerIndex = 28;
   const spinNow = () => {
-    if (spinning || player.wheelSpun) return;
-    setSpinning(true);
+    if (phase === "spinning" || (player.wheelSpun && !isGuest)) return;
     setResult(null);
-    const roll = Math.random() * 100;
+    setBeltOffset(0);
+    const totalChance = wheelRewards.reduce((sum, item) => sum + item.chance, 0);
+    const roll = Math.random() * totalChance;
     let cursor = 0;
     const reward = wheelRewards.find((item) => {
       cursor += item.chance;
       return roll < cursor;
     }) || wheelRewards[0];
+    setTrack(Array.from({ length: 36 }, (_, index) =>
+      index === winnerIndex
+        ? reward
+        : wheelRewards[Math.floor(Math.random() * wheelRewards.length)],
+    ));
+    setPhase("spinning");
+    window.setTimeout(() => {
+      const viewport = viewportRef.current;
+      if (viewport) setBeltOffset(viewport.clientWidth / 2 - winnerIndex * 120 - 56);
+    }, 80);
     window.setTimeout(() => {
       setResult(reward);
-      setSpinning(false);
+      setPhase("result");
       spin(reward);
-    }, 1400);
+    }, 4800);
   };
+  const resultIcon = result?.type === "tokens"
+    ? "/assets/coin.svg"
+    : result?.material === "Diamond" ? "/assets/diamond-rock.svg" : "/assets/gold.svg";
   return (
-    <div className="max-w-5xl">
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-        Daily rewards
-      </p>
-      <h1 className="mt-2 text-4xl font-black">Wheel Spin</h1>
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_0.8fr]">
-        <div className="wheel-stage rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-8 text-center">
-          <div className={`reward-wheel relative mx-auto h-80 w-80 rounded-full border-[14px] border-[#73c8ff] bg-[#05070b] shadow-2xl ${spinning ? "wheel-spinning" : ""}`}>
-            {wheelRewards.map((reward, index) => {
-              const angle = (index / wheelRewards.length) * 360;
-              const image = reward.type === "tokens" ? "/assets/coin.svg" : reward.material === "Diamond" ? "/assets/diamond-rock.svg" : "/assets/gold.svg";
-              return <div key={reward.label} className="wheel-segment" style={{ transform: `rotate(${angle}deg)` }}><img src={image} alt="" /><span>{reward.label}</span></div>;
-            })}
-            <div className="absolute left-1/2 top-1/2 z-10 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[#73c8ff] bg-black" />
+    <div className="max-w-6xl">
+      <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Guest crate · unlimited free opens" : "Daily crate · 1 free opening"}</p>
+      <h1 className="mt-2 text-4xl font-black">Daily Crate</h1>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-xl">
+          <div className={`crate-display ${phase === "spinning" ? "crate-opening" : ""}`}>
+            <img src="/assets/crate%20(1).svg" alt="Daily reward crate" className="h-24 w-24 object-contain drop-shadow-2xl sm:h-28 sm:w-28" />
           </div>
-          <button onClick={spinNow} disabled={spinning || player.wheelSpun} className="mt-8 rounded-2xl bg-[#e9bd67] px-10 py-4 text-xl font-black text-[#29170c] disabled:opacity-60">
-            {player.wheelSpun ? "Already spun" : spinning ? "Spinning..." : "Spin the wheel"}
+          <div ref={viewportRef} className="roulette-viewport relative mt-2 h-24 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-28">
+            <div className="roulette-pointer" />
+            <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: phase === "spinning" ? "4.55s" : "0ms" }}>
+              {track.map((reward, index) => {
+                const rarity = wheelRarityFor(reward);
+                const icon = reward.type === "tokens" ? "/assets/coin.svg" : reward.material === "Diamond" ? "/assets/diamond-rock.svg" : "/assets/gold.svg";
+                return <div key={`${index}-${reward.label}`} className={`roulette-prize ${rarityTileClass(rarity)}`}>
+                  <img src={icon} alt="" className="h-9 w-9 object-contain sm:h-10 sm:w-10" />
+                  <span className="max-w-full truncate text-[9px] font-black sm:text-[10px]">{reward.type === "tokens" ? reward.amount.toLocaleString() : `x${reward.amount}`} {reward.type === "tokens" ? "tokens" : reward.material}</span>
+                  <span className="text-[8px] font-bold opacity-70">{rarity} · {reward.chance}%</span>
+                </div>;
+              })}
+            </div>
+          </div>
+          <button onClick={spinNow} disabled={phase === "spinning" || (player.wheelSpun && !isGuest)} className="mt-3 rounded-xl bg-amber-300 px-8 py-2.5 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
+            {player.wheelSpun && !isGuest ? "Crate already opened today" : phase === "spinning" ? "Opening crate..." : isGuest ? "Open free crate" : "Open daily crate"}
           </button>
-          {result && <p className="mt-5 text-2xl font-black text-[#ffe2a0]">You won {result.label}!</p>}
+          {result && phase === "result" && (
+            <div className="relative mt-5 flex min-h-28 items-center justify-center gap-4 overflow-visible rounded-xl border border-white/10 bg-[#090e1b] p-4">
+              <RewardBurst rarity={wheelRarityFor(result)} />
+              <img src={resultIcon} alt="" className="relative z-10 h-16 w-16 object-contain" />
+              <div className="relative z-10 text-left">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/50">You won · {wheelRarityFor(result)}</p>
+                <p className="text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} tokens` : `${result.amount} ${result.material}`}</p>
+                <p className="text-xs font-bold text-white/60">{result.chance}% chance</p>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
-          <h2 className="text-xl font-black">Wheel rewards</h2>
-          <p className="mt-2 text-sm text-[#d7b88c]">Gold and Diamond only come from the wheel, five at a time.</p>
-          <div className="mt-5 space-y-2">
-            {wheelRewards.map((reward) => <div key={reward.label} className="flex items-center justify-between rounded-xl bg-[#24170f] px-3 py-2 text-sm"><span className="font-bold">{reward.label}</span><span className="text-[#ffe2a0]">{reward.chance}%</span></div>)}
+        <div className="rounded-2xl border border-white/10 bg-[#10182b] p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-black text-white">Possible prizes</h2>
+            <span className="flex items-center gap-1.5 text-xs font-black text-amber-200"><img src="/assets/coin.svg" alt="" className="h-5 w-5" />{player.tokens.toLocaleString()}</span>
           </div>
-          <p className="mt-5 text-sm text-[#d7b88c]">Current tokens: <strong className="text-[#ffe2a0]">{player.tokens.toLocaleString()}</strong></p>
+          <div className="mt-4 space-y-2">
+            {wheelRewards.map((reward) => {
+              const rarity = wheelRarityFor(reward);
+              const icon = reward.type === "tokens" ? "/assets/coin.svg" : reward.material === "Diamond" ? "/assets/diamond-rock.svg" : "/assets/gold.svg";
+              return <div key={reward.label} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${rarityTileClass(rarity)}`}>
+                <img src={icon} alt="" className="h-8 w-8 shrink-0 object-contain" />
+                <span className="min-w-0 flex-1 truncate text-sm font-bold">{reward.type === "tokens" ? `${reward.amount.toLocaleString()} tokens` : `${reward.amount} ${reward.material}`}</span>
+                <span className="text-xs font-black">{reward.chance}%</span>
+              </div>;
+            })}
+          </div>
+          <p className="mt-4 text-xs leading-5 text-white/50">Tokens display with the coin icon. Materials display with their own icon. Prize odds add up to 100%.</p>
         </div>
       </div>
     </div>
@@ -1819,11 +2079,13 @@ function Bazaar({
   createListing,
   openListing,
   setPlayerListings,
+  isGuest,
 }: {
   player: Player;
   createListing: (blook: string, price: number) => void;
   openListing: (listing: Listing) => void;
   setPlayerListings?: (listings: Listing[]) => void;
+  isGuest: boolean;
 }) {
   const [blook, setBlook] = useState(player.inventory[0]);
   const [price, setPrice] = useState("10");
@@ -1957,7 +2219,7 @@ function Bazaar({
             </div>
             <h2 className="mt-3 font-black">{listing.blook}</h2>
             <p className="mt-1 text-xs font-bold text-[#e9bd67]">{rarityFor(listing.blook)}</p>
-            <p className="mt-3 font-black text-[#ffe2a0]">{listing.price} tokens</p>
+            <p className="mt-3 font-black text-[#ffe2a0]">{isGuest ? "FREE" : `${listing.price} tokens`}</p>
             <p className="mt-1 text-xs text-[#b58d68]">Seller: {listing.seller}</p>
           </button>
         )) : <p className="col-span-full rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415] p-8 text-center text-[#d7b88c]">No listings match your search yet.</p>}
@@ -1973,49 +2235,70 @@ function RevealModal({
   reveal: {
     capsule: Capsule;
     reward: Reward;
-    phase: "wiggle" | "dark" | "result";
+    track: Reward[];
+    winnerIndex: number;
+    phase: "spinning" | "result";
   };
   close: () => void;
 }) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [beltOffset, setBeltOffset] = useState(0);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || reveal.phase !== "spinning") return;
+    const timer = window.setTimeout(() => {
+      setBeltOffset(viewport.clientWidth / 2 - reveal.winnerIndex * 120 - 56);
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [reveal.phase, reveal.winnerIndex]);
+
   return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl border border-[#d49a4a]/30 bg-[#3a2415] p-7 text-center shadow-2xl">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-          {reveal.phase === "result" ? "New collectible" : "Opening capsule"}
-        </p>
-        {reveal.phase !== "result" && (
-          <div
-            className={`mx-auto mt-7 flex h-72 items-center justify-center ${reveal.phase === "wiggle" ? "capsule-wiggle" : "capsule-dark"}`}
-          >
-            <img
-              src={reveal.capsule.art}
-              alt={reveal.capsule.name}
-              className="max-h-full max-w-full object-contain"
-            />
-          </div>
-        )}
-        {reveal.phase === "result" && (
-          <>
-            <div className="mx-auto mt-7 flex h-56 items-center justify-center rounded-2xl bg-[#24170f] p-5">
-              <RewardArt name={reveal.reward.name} art={reveal.reward.art || artFor(reveal.reward.name)} className={`h-full w-full ${rewardEffectClassFor(reveal.reward.name, reveal.reward.rarity)}`} />
+    <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center overflow-y-auto bg-[#050916]/90 px-4 py-6 backdrop-blur-md">
+      <div className="w-full max-w-6xl rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-2xl sm:p-7">
+        <div className="flex items-center justify-between gap-4 text-left">
+          <div className="flex min-w-0 items-center gap-3">
+            <img src={reveal.capsule.art} alt="" className="h-14 w-14 object-contain" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">{reveal.phase === "result" ? "Crate opened" : "Opening crate"}</p>
+              <h2 className="truncate text-xl font-black text-white sm:text-2xl">{reveal.capsule.name}</h2>
             </div>
-            <h1 className="mt-5 text-3xl font-black">{reveal.reward.name}</h1>
-            <p className="mt-2 text-lg font-bold text-[#ffe2a0]">
-              {reveal.reward.rarity}
-            </p>
-            <button
-              onClick={close}
-              className="mt-7 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]"
-            >
-              Add to collection
-            </button>
-          </>
+          </div>
+          {reveal.phase === "result" && <button onClick={close} aria-label="Close" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>}
+        </div>
+        <div ref={viewportRef} className="roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44">
+          <div className="roulette-pointer" />
+          <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: reveal.phase === "result" ? "0ms" : "4.55s" }}>
+            {reveal.track.map((reward, index) => (
+              <div key={`${index}-${reward.name}`} className={`roulette-prize ${rarityTileClass(reward.rarity)}`}>
+                <img src={reward.art || artFor(reward.name)} alt="" className="h-16 w-16 object-contain sm:h-20 sm:w-20" />
+                <span className="max-w-full truncate text-[10px] font-black sm:text-xs">{reward.name}</span>
+                <span className="text-[9px] font-bold opacity-70">{reward.rarity}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        {reveal.phase === "spinning" ? (
+          <p className="mt-5 text-sm font-bold text-white/60">Good luck. Your reward is on the way...</p>
+        ) : (
+          <div className="relative mt-5 flex flex-col items-center gap-3 overflow-visible sm:flex-row sm:justify-between sm:text-left">
+            <RewardBurst rarity={reveal.reward.rarity} />
+            <div className="flex items-center gap-4">
+              <RewardArt name={reveal.reward.name} art={reveal.reward.art || artFor(reveal.reward.name)} className={`h-20 w-20 shrink-0 ${rewardEffectClassFor(reveal.reward.name, reveal.reward.rarity)}`} />
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-white/50">You got</p>
+                <h1 className="text-2xl font-black text-white">{reveal.reward.name}</h1>
+                <p className="mt-1 text-sm font-black text-sky-300">{reveal.reward.rarity}</p>
+              </div>
+            </div>
+            <button onClick={close} className="w-full rounded-xl bg-sky-400 px-6 py-3 font-black text-slate-950 transition hover:bg-sky-300 sm:w-auto">Add to collection</button>
+          </div>
         )}
       </div>
     </div>
   );
 }
-function ListingModal({ listing, close, buy }: { listing: Listing; close: () => void; buy: (listing: Listing) => void }) {
+function ListingModal({ listing, close, buy, isGuest }: { listing: Listing; close: () => void; buy: (listing: Listing) => void; isGuest: boolean }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
@@ -2025,7 +2308,7 @@ function ListingModal({ listing, close, buy }: { listing: Listing; close: () => 
         </div>
         <h2 className="mt-4 text-2xl font-black text-white">{listing.blook}</h2>
         <p className="mt-1 text-sm text-[#9cc8e8]">{rarityFor(listing.blook)} · Seller: {listing.seller}</p>
-        <p className="mt-3 text-xl font-black text-[#ffe2a0]">{listing.price} tokens</p>
+        <p className="mt-3 text-xl font-black text-[#ffe2a0]">{isGuest ? "FREE" : `${listing.price} tokens`}</p>
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-3 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
           <button onClick={() => buy(listing)} className="rounded-xl bg-[#39a8f5] px-3 py-3 text-sm font-black text-[#031426] hover:bg-[#73c8ff]">Buy Blook</button>
@@ -2091,17 +2374,20 @@ function MassOpenModal({
   setQuantity,
   close,
   open,
+  isGuest,
 }: {
   quantities: Record<string, number>;
   setQuantity: (name: string, quantity: number) => void;
   close: () => void;
   open: (quantities: Record<string, number>) => void;
+  isGuest: boolean;
 }) {
-  const total = liveCapsules.reduce(
+  const availableCapsules = isGuest ? [...liveCapsules, ...retiredCapsules] : liveCapsules;
+  const total = availableCapsules.reduce(
     (sum, capsule) => sum + (quantities[capsule.name] || 0) * capsule.price,
     0,
   );
-  const count = liveCapsules.reduce(
+  const count = availableCapsules.reduce(
     (sum, capsule) => sum + (quantities[capsule.name] || 0),
     0,
   );
@@ -2116,12 +2402,12 @@ function MassOpenModal({
           <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
         </div>
         <div className="mt-4 space-y-3 overflow-y-auto pr-1 flex-1">
-          {liveCapsules.map((capsule) => (
+          {availableCapsules.map((capsule) => (
             <div key={capsule.name} className="flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/20">
               <img src={capsule.art} alt={capsule.name} className="h-12 w-12 object-contain" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-black text-white">{capsule.name}</p>
-                <p className="text-xs text-[#9cc8e8]">{capsule.price} tokens each</p>
+                <p className="text-xs text-[#9cc8e8]">{isGuest ? "FREE" : `${capsule.price} tokens each`}</p>
               </div>
               <button onClick={() => setQuantity(capsule.name, Math.max(0, (quantities[capsule.name] || 0) - 1))} className="h-9 w-9 rounded-xl bg-[#18558f] text-lg font-black text-white hover:bg-[#24649c]">-</button>
               <input
@@ -2142,7 +2428,7 @@ function MassOpenModal({
         </div>
         <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#3d91cd]/30 text-sm font-bold text-white">
           <span>{count} capsule{count === 1 ? "" : "s"}</span>
-          <b className="text-lg text-[#ffe2a0]">{total.toLocaleString()} tokens</b>
+          <b className="text-lg text-[#ffe2a0]">{isGuest ? "FREE" : `${total.toLocaleString()} tokens`}</b>
         </div>
         <button onClick={() => open(quantities)} className="mt-4 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Open selected capsules</button>
       </div>
@@ -2313,13 +2599,13 @@ function SimplePanel({
   );
 }
 
-function ChatTab({ player, showBadge, giftNotice, clearGiftNotice }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void }) {
+function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean }) {
   const [message, setMessage] = useState("");
   const [onlineCount, setOnlineCount] = useState(1);
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[] }[]>([
     { user: player.username, badges: player.badges, text: "Welcome to Breadlet chat." },
   ]);
-  const supabase = useMemo(() => createSupabaseClient(), []);
+  const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
   const isVerified = player.badges?.includes("Verified");
 
   const loadMessages = useCallback(async () => {
@@ -2613,7 +2899,7 @@ function InfoTab() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {[
-          ["Wheel Spin", "Spin once to win tokens or five Gold or Diamond. The 5,000-token reward has a 1% chance."],
+          ["Daily Crate", "Open once per day to win tokens, five Gold, or five Diamond. The 5,000-token reward has a 1% chance."],
           ["Capsules", "Buy capsules with tokens. Open a capsule to roll from its listed Blook pool, or use Mass Open for typed quantities."],
           ["Collection", "Locked Blooks stay black silhouettes. Owned Blooks can be equipped or sold from their detail view."],
           ["Crafting", "Dismantle extra Blooks into five-unit material bundles, then combine ingredients totaling 20 to craft approved Blooks."],
@@ -2905,10 +3191,12 @@ function ClanTab({
   player,
   setClan,
   savePlayer,
+  isGuest,
 }: {
   player: Player;
   setClan: (tag: string) => void;
   savePlayer: (player: Player) => void;
+  isGuest: boolean;
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -2952,7 +3240,13 @@ function ClanTab({
   const clans = allClans.filter((item) => !filter || item.tags.some((tag) => tag.includes(filter.toLowerCase())) || item.name.toLowerCase().includes(filter.toLowerCase()));
 
   const handleCreateClan = async () => {
-    if (player.tokens < 5000 || !name.trim() || tags.length > 3) return;
+    if ((!isGuest && player.tokens < 5000) || !name.trim() || tags.length > 3) return;
+    if (isGuest) {
+      setClanState({ name, description, tags, members: 1, treasury: 0 });
+      setClan(name.slice(0, 5));
+      setShowCreate(false);
+      return;
+    }
     try {
       const res = await fetch("/api/clans", {
         method: "POST",
@@ -2978,7 +3272,11 @@ function ClanTab({
   };
 
   const handleDonate = async () => {
-    if (player.tokens < 100 || !clan) return;
+    if ((!isGuest && player.tokens < 100) || !clan) return;
+    if (isGuest) {
+      setClanState({ ...clan, treasury: clan.treasury + 100 });
+      return;
+    }
     if (clan.id) {
       try {
         const res = await fetch("/api/clans", {
@@ -3004,8 +3302,8 @@ function ClanTab({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button onClick={() => setShowCreate(true)} className="rounded-xl bg-[#39a8f5] px-4 py-2 font-black text-white">Create Clan</button></div>
-      {showCreate && <div className="modal-layer fixed inset-0 flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · 5,000 tokens</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
-      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={handleDonate} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate 100 tokens</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
+      {showCreate && <div className="modal-layer fixed inset-0 flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
+      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={handleDonate} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
       <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => <article key={item.name} className="rounded-2xl border border-[#3d91cd] bg-[#18558f] p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p></article>) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">N/A</p>}</div></div>
     </div>
   );
@@ -3014,10 +3312,12 @@ function CraftingTab({
   player,
   salvage,
   craft,
+  isGuest,
 }: {
   player: Player;
   salvage: (name: string) => void;
   craft: (material: string) => void;
+  isGuest: boolean;
 }) {
   const [search, setSearch] = useState("");
   const unique = player.inventory.filter(
@@ -3029,7 +3329,7 @@ function CraftingTab({
       <div className="mt-8 rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
         <div className="flex items-center justify-between gap-4">
           <div><p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Your stock</p><h2 className="mt-1 text-2xl font-black">Materials</h2></div>
-          <span className="rounded-full px-3 py-1 text-xs font-bold text-[#d7b88c]">7 resources</span>
+          <span className="rounded-full px-3 py-1 text-xs font-bold text-[#d7b88c]">6 resources</span>
         </div>
         <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
           {materialNames.map((material) => (
@@ -3057,7 +3357,7 @@ function CraftingTab({
         <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
           <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Blooks</h2>
           <div className="mt-5 space-y-3">
-            {craftRecipes.map((recipe) => { const enough = bundleEntries(recipe.ingredients).every(([material, amount]) => (player.materials[material] || 0) >= amount); return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className="craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left"><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{enough ? "Ready to craft" : "20 total materials"}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>→</span></button>; })}
+            {craftRecipes.map((recipe) => { const enough = isGuest || bundleEntries(recipe.ingredients).every(([material, amount]) => (player.materials[material] || 0) >= amount); return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className="craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left"><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{isGuest ? "Free to craft" : enough ? "Ready to craft" : "20 total materials"}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>→</span></button>; })}
           </div>
         </div>
       </div>
