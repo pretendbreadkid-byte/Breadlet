@@ -49,6 +49,7 @@ type Capsule = {
 };
 type Listing = { id: number | string; seller: string; blook: string; price: number };
 type Player = {
+  id?: string;
   username: string;
   password: string;
   tokens: number;
@@ -86,6 +87,7 @@ const artFor = (name: string) =>
     "Pixel Ice Slime": "/assets/pixel ice slime.png",
     "Lava Slime": "/assets/lava-slime.svg",
     "Olive Grenade": "/assets/grenade.png",
+    "Golden Grenade": "/assets/golden grenade.png",
     "Sour Dough": "/assets/Bread.svg",
     "Burnt Toast": "/assets/Burnt toast.svg",
     Brioche: "/assets/brioche.svg",
@@ -137,6 +139,7 @@ const artFor = (name: string) =>
     Astronaut: "/assets/new the green astronaut.png",
     "Rainbow Astro": "/assets/rainbowastronaut.svg",
     "Phantom Kind": "/assets/phantomking.svg",
+    "Phantom King": "/assets/phantomking.svg",
     Megabot: "/assets/megabot.svg",
     King: "/assets/king.svg",
     Yeti: "/assets/yeti.svg",
@@ -215,14 +218,14 @@ const sellValueFor = (rarity: string) =>
 const shinyEligibleNames = new Set<string>();
 const shinyNameFor = (name: string) => name;
 const materialNames = [
-  "Flour",
-  "Sugar",
-  "Diamond",
-  "Leather",
   "Gold",
-  "Silver",
+  "Cloth",
+  "Gem",
+  "Sugar",
+  "Flower",
+  "Metal",
 ];
-const dismantleMaterialNames = ["Flour", "Sugar", "Diamond", "Leather", "Silver"];
+const dismantleMaterialNames = materialNames;
 const wheelRewards = [
   { label: "250 tokens", type: "tokens", amount: 250, chance: 32.5 },
   { label: "500 tokens", type: "tokens", amount: 500, chance: 25 },
@@ -232,10 +235,10 @@ const wheelRewards = [
   { label: "4,000 tokens", type: "tokens", amount: 4000, chance: 3.5 },
   { label: "5,000 tokens", type: "tokens", amount: 5000, chance: 1 },
   { label: "5 Gold", type: "material", material: "Gold", amount: 5, chance: 2.5 },
-  { label: "5 Diamond", type: "material", material: "Diamond", amount: 5, chance: 2.5 },
+  { label: "5 Gem", type: "material", material: "Gem", amount: 5, chance: 2.5 },
 ] as const;
 const wheelRarityFor = (reward: (typeof wheelRewards)[number]) => {
-  if (reward.type === "material") return reward.material === "Diamond" ? "Legendary" : "Epic";
+  if (reward.type === "material") return reward.material === "Gem" ? "Legendary" : "Epic";
   if (reward.amount >= 5000) return "Mythic";
   if (reward.amount >= 4000) return "Legendary";
   if (reward.amount >= 2000) return "Epic";
@@ -249,6 +252,7 @@ function playerFromServer(data: any): Player {
   const legacyShinyCount = serverInventory.filter((name: string) => name.startsWith("Shiny ")).length;
   const inventory = serverInventory.filter((name: string) => !name.startsWith("Shiny "));
   return {
+    id: data.profile.id,
     username: data.profile.username,
     password: "",
     tokens: (data.profile.tokens || 0) + legacyShinyCount * 200,
@@ -266,20 +270,20 @@ function playerFromServer(data: any): Player {
 }
 const materialFor = (name: string, rarity: string) =>
   rarity === "Mythic" || rarity === "Transcendent"
-    ? "Diamond"
+    ? "Gem"
     : rarity === "Legendary"
-      ? "Diamond"
+      ? "Gem"
       : name.toLowerCase().includes("bread") ||
           name.toLowerCase().includes("toast") ||
           name.toLowerCase().includes("dough")
-        ? "Flour"
+        ? "Sugar"
         : name.toLowerCase().includes("grenade") ||
             name.toLowerCase().includes("shuriken") ||
             name.toLowerCase().includes("blaster")
-          ? "Silver"
+          ? "Metal"
           : name.toLowerCase().includes("crystal") ||
               name.toLowerCase().includes("glass")
-            ? "Diamond"
+            ? "Gem"
             : dismantleMaterialNames[name.length % dismantleMaterialNames.length];
 type MaterialBundle = Record<string, number>;
 const bundleEntries = (bundle: MaterialBundle) => Object.entries(bundle);
@@ -293,30 +297,32 @@ const dismantleBundleFor = (name: string, rarity: string): MaterialBundle => {
   };
 };
 const craftRecipes: { name: string; ingredients: MaterialBundle }[] = [
-  { name: "Lion", ingredients: { Flour: 12, Sugar: 8 } },
-  { name: "Yeti", ingredients: { Silver: 12, Leather: 8 } },
-  { name: "Sandwich", ingredients: { Leather: 12, Flour: 8 } },
-  { name: "Butterfly", ingredients: { Sugar: 12, Diamond: 8 } },
-  { name: "Blackbeard", ingredients: { Diamond: 12, Leather: 8 } },
-  { name: "Sugar Glider", ingredients: { Sugar: 12, Leather: 8 } },
-  { name: "Tyrannosaurus Rex", ingredients: { Silver: 12, Flour: 8 } },
-  { name: "Megalodon", ingredients: { Sugar: 12, Diamond: 8 } },
-  { name: "Megabot", ingredients: { Silver: 12, Diamond: 8 } },
-  { name: "King", ingredients: { Flour: 12, Leather: 8 } },
-  { name: "Phantom Kind", ingredients: { Gold: 10, Diamond: 10 } },
-  { name: "Rainbow Astro", ingredients: { Gold: 10, Diamond: 10 } },
+  { name: "Lion", ingredients: { Flower: 12, Sugar: 8 } },
+  { name: "Yeti", ingredients: { Metal: 12, Cloth: 8 } },
+  { name: "Sandwich", ingredients: { Cloth: 12, Flower: 8 } },
+  { name: "Butterfly", ingredients: { Sugar: 12, Flower: 8 } },
+  { name: "Blackbeard", ingredients: { Metal: 12, Cloth: 8 } },
+  { name: "Sugar Glider", ingredients: { Sugar: 12, Cloth: 8 } },
+  { name: "Tyrannosaurus Rex", ingredients: { Metal: 12, Flower: 8 } },
+  { name: "Megalodon", ingredients: { Sugar: 12, Metal: 8 } },
+  { name: "Megabot", ingredients: { Metal: 12, Flower: 8 } },
+  { name: "King", ingredients: { Flower: 12, Cloth: 8 } },
+  { name: "Phantom King", ingredients: { Gold: 10, Gem: 10 } },
+  { name: "Rainbow Astro", ingredients: { Gold: 10, Gem: 10 } },
 ];
 const craftRecipeFor = (name: string) =>
   craftRecipes.find((recipe) => recipe.name === name);
+const craftedRarityFor = (name: string) =>
+  name === "Rainbow Astro" || name === "Phantom King" ? "Mythic" : "Legendary";
 const materialArtFor = (material: string) =>
   ({
-    Flour: "/assets/material-flour.svg",
-    Sugar: "/assets/sugar.svg",
-    Diamond: "/assets/diamond-rock.svg",
-    Leather: "/assets/material-leather.svg",
     Gold: "/assets/gold.svg",
-    Silver: "/assets/material-silver.svg",
-  })[material] || "/assets/material-flour.svg";
+    Cloth: "/assets/cloth.svg",
+    Gem: "/assets/gem.svg",
+    Sugar: "/assets/sugar.svg",
+    Flower: "/assets/flower.svg",
+    Metal: "/assets/metal.svg",
+  })[material] || "/assets/flower.svg";
 const emptyMaterials = () =>
   materialNames.reduce<Record<string, number>>((all, material) => {
     all[material] = 0;
@@ -383,6 +389,7 @@ const liveCapsules: Capsule[] = [
     art: "/assets/combat-capsule-new.svg",
     pool: rewards([
       ["Olive Grenade", "Common"],
+      ["Golden Grenade", "Rare"],
       ["Shuriken", "Rare"],
       ["Shield", "Epic"],
       ["Spartan", "Legendary"],
@@ -461,12 +468,13 @@ export default function HomePage() {
   const [promoCode, setPromoCode] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [showRetired, setShowRetired] = useState(false);
+  const [capsuleToConfirm, setCapsuleToConfirm] = useState<Capsule | null>(null);
   const [reveal, setReveal] = useState<{
     capsule: Capsule;
     reward: Reward;
     track: Reward[];
     winnerIndex: number;
-    phase: "spinning" | "result";
+    phase: "charging" | "spinning" | "result";
   } | null>(null);
   const [oddsCapsule, setOddsCapsule] = useState<Capsule | null>(null);
   const [badgeInfo, setBadgeInfo] = useState<string | null>(null);
@@ -475,7 +483,7 @@ export default function HomePage() {
   const [massQuantities, setMassQuantities] = useState<Record<string, number>>({});
   const [massResults, setMassResults] = useState<{ capsule: string; reward: Reward }[]>([]);
   const [pendingDismantle, setPendingDismantle] = useState<string | null>(null);
-  const [craftReveal, setCraftReveal] = useState<{ name: string; ingredients: MaterialBundle; phase: "processing" | "output" } | null>(null);
+  const [craftReveal, setCraftReveal] = useState<{ name: string; ingredients: MaterialBundle; phase: "processing" | "charging" | "output" } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [giftChatNotice, setGiftChatNotice] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -609,10 +617,6 @@ export default function HomePage() {
     if (supabaseClient) {
       let result: { error: { message: string } | null; data?: { session?: unknown } };
       if (authMode === "signup") {
-        if (!email.trim()) {
-          setNotice("Enter an email address to create your account.");
-          return;
-        }
         const signupResponse = await fetch("/api/auth/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -787,11 +791,14 @@ export default function HomePage() {
     );
     const next = { ...player, tokens: isGuest ? player.tokens : player.tokens - capsule.price };
     save(next);
-    setReveal({ capsule, reward: finalReward, track, winnerIndex, phase: "spinning" });
+    setReveal({ capsule, reward: finalReward, track, winnerIndex, phase: "charging" });
+    window.setTimeout(() => {
+      setReveal((current) => current ? { ...current, phase: "spinning" } : null);
+    }, 950);
     window.setTimeout(() => {
       save({ ...next, inventory: [...next.inventory, finalReward.name] });
       setReveal((current) => current ? { ...current, phase: "result" } : null);
-    }, 4800);
+    }, 5600);
   };
   const openMassCapsules = (quantities: Record<string, number>) => {
     if (!player) return;
@@ -991,9 +998,12 @@ export default function HomePage() {
     save(next);
     setCraftReveal({ name, ingredients: recipe.ingredients, phase: "processing" });
     window.setTimeout(() => {
+      setCraftReveal((current) => current ? { ...current, phase: "charging" } : null);
+    }, 1400);
+    window.setTimeout(() => {
       save({ ...next, inventory: [...next.inventory, name] });
       setCraftReveal({ name, ingredients: recipe.ingredients, phase: "output" });
-    }, 1600);
+    }, 2700);
   };
   const setClan = (tag: string) => {
     if (player) {
@@ -1094,11 +1104,11 @@ export default function HomePage() {
       </div>
 
       {/* Left Blooket-style Persistent Sidebar */}
-      <aside className="w-full md:w-64 md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-4 flex flex-col justify-between z-20 shadow-xl">
+      <aside className="w-full md:w-52 md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-3 flex flex-col justify-between z-20 shadow-xl">
         <div>
           {/* Logo Header */}
-          <div className="flex items-center gap-3 px-2 py-2 cursor-pointer" onClick={() => setTab("wheel")}>
-            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-8 w-8 object-contain" /><div><p className="text-2xl font-black uppercase text-white">Breadlet</p><p className="text-[10px] font-bold tracking-widest text-[#bde8ff]">BRED-lit</p></div></div>
+          <div className="flex items-center gap-3 px-1 py-2 cursor-pointer" onClick={() => setTab("wheel")}>
+            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-14 w-14 shrink-0 object-contain" /><div className="min-w-0"><p className="text-3xl font-black uppercase leading-none text-white">Breadlet</p><p className="mt-1 text-[10px] font-bold tracking-widest text-[#bde8ff]">BRED-lit</p></div></div>
           </div>
 
           {/* Sidebar Nav Buttons */}
@@ -1107,7 +1117,7 @@ export default function HomePage() {
               <button
                 key={item.id}
                 onClick={() => setTab(item.id)}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-extrabold text-base transition ${
+                className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 font-extrabold text-sm transition ${
                   tab === item.id
                     ? "bg-[#39a8f5] text-white shadow-md"
                     : "text-[#9cc8e8] hover:bg-[#103f75] hover:text-white"
@@ -1132,12 +1142,8 @@ export default function HomePage() {
       {/* Main Workspace Column */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* Top Header Bar */}
-        <div className="workspace-island pointer-events-none fixed right-5 top-5 z-30 flex items-center gap-3 rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] px-3 py-2 shadow-xl">
-          <div className="flex items-center gap-3">
-              <div><span className="text-sm font-black text-white">{player.username}{isGuest && player.username !== "Guest" && <small className="ml-2 rounded bg-amber-300/15 px-2 py-1 text-[9px] font-black uppercase text-amber-200">Guest</small>}</span></div>
-          </div>
-
-          <div className="flex items-center gap-4">
+        <div className="workspace-island pointer-events-none fixed right-3 top-3 z-30 flex w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] px-2 py-2 shadow-xl sm:right-5 sm:top-5 sm:gap-3 sm:px-3">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             {/* Tokens Balance Counter */}
             <div className="flex items-center gap-1.5 px-1 font-black text-[#ffe2a0] text-xs">
               <img src="/assets/coin.svg" alt="Tokens" className="h-5 w-5" />
@@ -1148,12 +1154,12 @@ export default function HomePage() {
             <div className="relative pointer-events-auto">
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
-                className="flex items-center gap-2.5 rounded-2xl border border-[#3d91cd] bg-[#103f75] px-3.5 py-2 font-black text-[#bde8ff] hover:bg-[#18558f] transition"
+                className="flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3d91cd] bg-[#103f75] px-2 py-2 font-black text-[#bde8ff] transition hover:bg-[#18558f] sm:max-w-none sm:gap-2.5 sm:px-3.5"
               >
                 <div className="h-6 w-6 rounded-lg overflow-hidden bg-[#072a54] p-0.5 border border-white/30 flex items-center justify-center">
                   {player.equipped ? <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={18} className="text-[#9cc8e8]" />}
                 </div>
-                <span className="max-w-[120px] truncate">{player.username}</span>
+                <span className="whitespace-nowrap">{player.username}</span>
                 <ChevronDown size={18} />
               </button>
 
@@ -1229,13 +1235,13 @@ export default function HomePage() {
               </div>
             </div>
           )}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} />}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} />}
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
               showRetired={showRetired}
               setShowRetired={setShowRetired}
-              openCapsule={openCapsule}
+              openCapsule={(capsule) => setCapsuleToConfirm(capsule)}
               showOdds={setOddsCapsule}
               openMass={() => setMassOpen(true)}
               playerTokens={player.tokens}
@@ -1307,6 +1313,17 @@ export default function HomePage() {
         </div>
       )}
       {reveal && <RevealModal reveal={reveal} close={() => setReveal(null)} />}
+      {capsuleToConfirm && <ConfirmOpenModal
+        title={capsuleToConfirm.name}
+        description={`Are you sure you want to open ${capsuleToConfirm.name}?`}
+        confirmLabel={isGuest ? "Open for free" : `Open for ${capsuleToConfirm.price} tokens`}
+        cancel={() => setCapsuleToConfirm(null)}
+        confirm={() => {
+          const capsule = capsuleToConfirm;
+          setCapsuleToConfirm(null);
+          openCapsule(capsule);
+        }}
+      />}
       {oddsCapsule && (
         <OddsModal capsule={oddsCapsule} close={() => setOddsCapsule(null)} />
       )}
@@ -1451,16 +1468,17 @@ function LoginScreen({
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="email"
         >
-          Email
+          Email <span className="normal-case tracking-normal text-white/50">(optional)</span>
         </label>}
         {!forgotPassword && authMode === "signup" && <input
           id="email"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
+          placeholder="Skip to use username login only"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />}
+        {!forgotPassword && authMode === "signup" && <p className="mt-1 text-xs text-white/55">Without email, you can’t receive password reset links.</p>}
         {!forgotPassword && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="password"
@@ -1517,15 +1535,87 @@ function ProfileTab({
   showBadge,
   savePlayer,
   addFriend,
+  isGuest,
 }: {
   player: Player;
   setTab: (tab: Tab) => void;
   showBadge: (badge: string) => void;
   savePlayer: (player: Player) => void;
   addFriend: (username: string) => void;
+  isGuest: boolean;
 }) {
   const [lookup, setLookup] = useState("");
+  const [matches, setMatches] = useState<{ id: string; username: string }[]>([]);
+  const [trades, setTrades] = useState<any[]>([]);
+  const [tradeTarget, setTradeTarget] = useState<{ id?: string; username: string; tradeId?: string; offer?: any } | null>(null);
+  const [tradeTokens, setTradeTokens] = useState("0");
+  const [tradeBlooks, setTradeBlooks] = useState<Record<string, number>>({});
+  const [tradeMessage, setTradeMessage] = useState("");
+  const [tradeBusy, setTradeBusy] = useState(false);
   const foundUser = lookup.trim() && lookup.trim().toLowerCase() !== player.username.toLowerCase() ? lookup.trim() : "";
+
+  const loadTrades = useCallback(async () => {
+    if (isGuest) return;
+    const response = await fetch("/api/trades", { cache: "no-store" });
+    if (response.ok) setTrades(await response.json());
+  }, [isGuest]);
+
+  useEffect(() => {
+    if (isGuest) return;
+    void loadTrades();
+    const interval = window.setInterval(() => void loadTrades(), 15000);
+    return () => window.clearInterval(interval);
+  }, [isGuest, loadTrades]);
+
+  const searchPlayers = async () => {
+    if (lookup.trim().length < 2) return;
+    const response = await fetch(`/api/players/search?q=${encodeURIComponent(lookup.trim())}`);
+    if (response.ok) setMatches(await response.json());
+  };
+
+  const saveTradeOffer = async () => {
+    if (!tradeTarget) return;
+    setTradeBusy(true);
+    setTradeMessage("");
+    const offer = {
+      tokens: Math.max(0, Math.floor(Number(tradeTokens) || 0)),
+      blooks: Object.entries(tradeBlooks).filter(([, quantity]) => quantity > 0).map(([name, quantity]) => ({ name, quantity })),
+    };
+    const response = await fetch("/api/trades", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(tradeTarget.tradeId
+        ? { action: "offer", tradeId: tradeTarget.tradeId, offer }
+        : { action: "create", receiverUsername: tradeTarget.username, offer }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setTradeBusy(false);
+    if (!response.ok) {
+      setTradeMessage(result.error || "Could not send the trade offer.");
+      return;
+    }
+    setTradeTarget(null);
+    await loadTrades();
+  };
+
+  const respondToTrade = async (tradeId: string, action: string) => {
+    const response = await fetch("/api/trades", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tradeId, action }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) setTradeMessage(result.error || "Trade action failed.");
+    await loadTrades();
+  };
+
+  const uniqueBlooks = player.inventory.reduce<{ name: string; quantity: number }[]>((items, name) => {
+    const existing = items.find((item) => item.name === name);
+    if (existing) existing.quantity += 1;
+    else items.push({ name, quantity: 1 });
+    return items;
+  }, []);
+  const offerSummary = (offer: any) => {
+    const blooks = Array.isArray(offer?.blooks) ? offer.blooks : [];
+    const tokens = Number(offer?.tokens) || 0;
+    return [tokens ? `${tokens.toLocaleString()} tokens` : "", ...blooks.map((item: any) => `${item.name} ×${item.quantity}`)].filter(Boolean).join(" · ") || "No items or tokens offered";
+  };
   return (
     <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
       <div className="profile-hero rounded-3xl border border-[#73c8ff]/45 bg-gradient-to-br from-[#58b8f2] to-[#1677bd] p-7">
@@ -1569,20 +1659,89 @@ function ProfileTab({
       <div className="rounded-3xl border border-[#73c8ff]/45 bg-[#18558f] p-6">
         <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Social lookup</p>
         <h2 className="mt-1 text-2xl font-black">Find players</h2>
-        <div className="mt-4 flex gap-2"><input value={lookup} onChange={(event) => setLookup(event.target.value)} placeholder="Search username" className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#103f75] px-3 py-3 text-white" /><button onClick={() => lookup.trim() && setLookup(lookup.trim())} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Search</button></div>
-        {foundUser && <div className="mt-4 flex items-center justify-between rounded-xl bg-[#103f75] p-3"><span className="font-black">{foundUser}</span><button onClick={() => addFriend(foundUser)} className="rounded-lg bg-[#39a8f5] px-3 py-2 text-sm font-black text-[#031426]">Add friend</button></div>}
+        <div className="mt-4 flex gap-2"><input value={lookup} onChange={(event) => setLookup(event.target.value)} placeholder="Search username" className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#103f75] px-3 py-3 text-white" /><button onClick={searchPlayers} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Search</button></div>
+        {!!matches.length && <div className="mt-4 space-y-2">{matches.map((match) => <div key={match.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#103f75] p-3"><span className="font-black">{match.username}</span><div className="flex gap-2"><button onClick={() => addFriend(match.username)} className="rounded-lg border border-[#3d91cd] px-3 py-2 text-sm font-bold text-[#bde8ff]">Add friend</button><button disabled={isGuest} onClick={() => { setTradeTarget({ id: match.id, username: match.username }); setTradeTokens("0"); setTradeBlooks({}); }} className="rounded-lg bg-emerald-300 px-3 py-2 text-sm font-black text-emerald-950 disabled:opacity-40">Trade</button></div></div>)}</div>}
         {!!player.friends?.length && <p className="mt-4 text-sm text-[#d9f3ff]">Friends: {player.friends.join(", ")}</p>}
       </div>
+      {!isGuest && <div className="rounded-3xl border border-emerald-300/30 bg-[#143528] p-6 lg:col-span-2">
+        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-emerald-200">Player-to-player</p><h2 className="mt-1 text-2xl font-black">Trade inbox</h2></div><button onClick={() => void loadTrades()} className="rounded-lg border border-emerald-100/20 px-3 py-2 text-sm font-bold text-emerald-100">Refresh</button></div>
+        {tradeMessage && <p role="status" className="mt-3 text-sm text-amber-200">{tradeMessage}</p>}
+        <div className="mt-4 space-y-3">{trades.filter((trade) => trade.status === "pending").map((trade) => {
+          const sentByMe = trade.sender_profile_id === player.id;
+          const otherName = sentByMe ? trade.receiver_username : trade.sender_username;
+          const myOffer = sentByMe ? trade.sender_offer_json : trade.receiver_offer_json;
+          const theirOffer = sentByMe ? trade.receiver_offer_json : trade.sender_offer_json;
+          const confirmed = sentByMe ? trade.sender_confirmed : trade.receiver_confirmed;
+          return <article key={trade.id} className="rounded-xl border border-emerald-100/15 bg-black/15 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-black text-white">Trade with {otherName}</p><p className="mt-1 text-xs text-white/55">{sentByMe ? "Outgoing offer" : "Incoming offer"} · {new Date(trade.updated_at).toLocaleString()}</p></div><span className="rounded-full bg-amber-200/10 px-3 py-1 text-xs font-black text-amber-100">{confirmed ? "You confirmed" : "Needs confirmation"}</span></div>
+            <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2"><p className="rounded-lg bg-black/20 p-3"><b>Your side:</b> {offerSummary(myOffer)}</p><p className="rounded-lg bg-black/20 p-3"><b>Their side:</b> {offerSummary(theirOffer)}</p></div>
+            <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => { setTradeTarget({ username: otherName, tradeId: trade.id }); setTradeTokens(String(Number(myOffer?.tokens) || 0)); setTradeBlooks(Object.fromEntries((myOffer?.blooks || []).map((item: any) => [item.name, item.quantity]))); }} className="rounded-lg border border-emerald-100/20 px-3 py-2 text-sm font-bold text-emerald-100">Edit your offer</button><button onClick={() => void respondToTrade(trade.id, "confirm")} className="rounded-lg bg-emerald-300 px-3 py-2 text-sm font-black text-emerald-950">{confirmed ? "Confirm again" : "Confirm trade"}</button><button onClick={() => void respondToTrade(trade.id, sentByMe ? "cancel" : "decline")} className="rounded-lg border border-rose-300/30 px-3 py-2 text-sm font-bold text-rose-200">{sentByMe ? "Cancel" : "Decline"}</button></div>
+          </article>;
+        })}{!trades.some((trade) => trade.status === "pending") && <p className="rounded-xl bg-black/15 p-4 text-sm text-emerald-50/65">No pending trades. Search for a player above to send an offer.</p>}</div>
+      </div>}
       <div className="flex flex-wrap gap-3 rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-4">
         <button onClick={() => setTab("promo")} className="rounded-lg border border-[#3d91cd] px-4 py-2 font-bold text-[#bde8ff]">Promo Codes</button>
         <button onClick={() => setTab("info")} className="rounded-lg border border-[#3d91cd] px-4 py-2 font-bold text-[#bde8ff]">Info & Tutorial</button>
       </div>
+      {tradeTarget && <TradeOfferModal
+        targetName={tradeTarget.username}
+        ownBlooks={uniqueBlooks}
+        tokens={player.tokens}
+        tokenValue={tradeTokens}
+        setTokenValue={setTradeTokens}
+        blookQuantities={tradeBlooks}
+        setBlookQuantities={setTradeBlooks}
+        busy={tradeBusy}
+        message={tradeMessage}
+        close={() => setTradeTarget(null)}
+        submit={() => void saveTradeOffer()}
+      />}
     </div>
   );
 }
 
+function TradeOfferModal({
+  targetName,
+  ownBlooks,
+  tokens,
+  tokenValue,
+  setTokenValue,
+  blookQuantities,
+  setBlookQuantities,
+  busy,
+  message,
+  close,
+  submit,
+}: {
+  targetName: string;
+  ownBlooks: { name: string; quantity: number }[];
+  tokens: number;
+  tokenValue: string;
+  setTokenValue: (value: string) => void;
+  blookQuantities: Record<string, number>;
+  setBlookQuantities: (value: Record<string, number>) => void;
+  busy: boolean;
+  message: string;
+  close: () => void;
+  submit: () => void;
+}) {
+  return <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/80 px-4 py-6 backdrop-blur-sm">
+    <section role="dialog" aria-modal="true" aria-labelledby="trade-offer-title" className="w-full max-w-lg rounded-2xl border border-emerald-200/30 bg-[#10251f] p-5 text-white shadow-2xl sm:p-6">
+      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-200">Trade offer</p><h2 id="trade-offer-title" className="mt-1 text-2xl font-black">Trading with {targetName}</h2></div><button onClick={close} aria-label="Close trade offer" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10">×</button></div>
+      <label className="mt-5 block text-sm font-bold">Tokens to offer (you have {tokens.toLocaleString()})<input type="number" min="0" max={tokens} value={tokenValue} onChange={(event) => setTokenValue(event.target.value)} className="mt-2 w-full rounded-xl border border-emerald-100/15 bg-black/20 px-3 py-3 text-white" /></label>
+      <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">{ownBlooks.map(({ name, quantity }) => {
+        return <label key={name} className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2"><span className="min-w-0 truncate text-sm font-bold">{name} <small className="text-white/50">×{quantity}</small></span><input aria-label={`${name} quantity`} type="number" min="0" max={quantity} value={blookQuantities[name] || 0} onChange={(event) => setBlookQuantities({ ...blookQuantities, [name]: Math.max(0, Math.min(quantity, Number(event.target.value) || 0)) })} className="w-20 rounded-lg border border-emerald-100/15 bg-[#10251f] px-2 py-2 text-center text-white" /></label>;
+      })}{!ownBlooks.length && <p className="rounded-xl bg-black/20 p-4 text-sm text-white/60">Your collection is empty.</p>}</div>
+      {message && <p role="alert" className="mt-3 text-sm text-rose-200">{message}</p>}
+      <div className="mt-5 grid grid-cols-2 gap-3"><button onClick={close} className="rounded-xl border border-white/15 px-4 py-3 font-bold text-white/75 hover:bg-white/10">Cancel</button><button disabled={busy} onClick={submit} className="rounded-xl bg-emerald-300 px-4 py-3 font-black text-emerald-950 disabled:opacity-50">{busy ? "Sending..." : "Send offer"}</button></div>
+    </section>
+  </div>;
+}
+
 function rarityFor(name: string) {
   const baseName = name.replace(/^Shiny /, "");
+  const craftedRarity = craftedRarityFor(baseName);
+  if (craftRecipes.some((recipe) => recipe.name === baseName)) return craftedRarity;
   return (
     [...liveCapsules, ...retiredCapsules]
       .flatMap((capsule) => capsule.pool)
@@ -1839,6 +1998,29 @@ function InventoryTab({
               </div>
             </section>
           ))}
+          <section className="rounded-3xl border border-[#d9a9ff]/35 bg-[#27213d]/80 p-5 shadow-md">
+            <div className="mb-4 flex items-center justify-between border-b border-[#d9a9ff]/20 pb-2">
+              <h2 className="text-xl font-black text-[#ead4ff]">Crafted</h2>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#c9a8e8]">Craft-only Blooks</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+              {craftRecipes.map((recipe) => {
+                const reward: Reward = { name: recipe.name, rarity: craftedRarityFor(recipe.name), weight: 0, art: artFor(recipe.name) };
+                const quantity = owned(recipe.name);
+                return <button
+                  key={recipe.name}
+                  title={quantity ? `${recipe.name} · ${reward.rarity} (x${quantity})` : `${recipe.name} · ${reward.rarity} (Locked)`}
+                  onClick={() => quantity && setSelected(reward)}
+                  className={`relative flex aspect-square flex-col items-center justify-center p-2 transition ${quantity ? "hover:-translate-y-1" : "cursor-not-allowed opacity-55"}`}
+                >
+                  {quantity ? <RewardArt name={recipe.name} art={reward.art || artFor(recipe.name)} className={`h-full w-full ${rewardEffectClassFor(recipe.name, reward.rarity)}`} /> : <div className="relative flex h-full w-full items-center justify-center"><span className="h-full w-full rounded-xl bg-black/80" /><Lock size={16} className="absolute text-white/80" /></div>}
+                  <span className={`absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[9px] font-black ${reward.rarity === "Mythic" ? "bg-fuchsia-300 text-slate-950" : "bg-amber-300 text-slate-950"}`}>{reward.rarity}</span>
+                  {quantity > 0 && <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{quantity}</span>}
+                  {player.equipped === recipe.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
+                </button>;
+              })}
+            </div>
+          </section>
         </div>
       </div>
 
@@ -1966,6 +2148,34 @@ function RewardBurst({ rarity }: { rarity: string }) {
   );
 }
 
+function ConfirmOpenModal({
+  title,
+  description,
+  confirmLabel,
+  confirm,
+  cancel,
+}: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  confirm: () => void;
+  cancel: () => void;
+}) {
+  return (
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <section role="dialog" aria-modal="true" aria-labelledby="confirm-open-title" className="w-full max-w-sm rounded-2xl border border-sky-300/35 bg-[#10182b] p-6 text-white shadow-2xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300">Confirm opening</p>
+        <h2 id="confirm-open-title" className="mt-2 text-2xl font-black">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-white/70">{description}</p>
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button onClick={cancel} className="rounded-xl border border-white/15 px-4 py-3 font-bold text-white/75 hover:bg-white/10">Cancel</button>
+          <button onClick={confirm} className="rounded-xl bg-amber-300 px-4 py-3 font-black text-slate-950 hover:bg-amber-200">{confirmLabel}</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function WheelTab({
   player,
   spin,
@@ -1976,15 +2186,20 @@ function WheelTab({
   isGuest: boolean;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const [oddsOpen, setOddsOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [phase, setPhase] = useState<"ready" | "spinning" | "result">("ready");
+  const [charging, setCharging] = useState(false);
   const [result, setResult] = useState<(typeof wheelRewards)[number] | null>(null);
   const [track, setTrack] = useState<(typeof wheelRewards)[number][]>(() =>
     Array.from({ length: 36 }, () => wheelRewards[Math.floor(Math.random() * wheelRewards.length)]),
   );
   const [beltOffset, setBeltOffset] = useState(0);
   const winnerIndex = 28;
-  const spinNow = () => {
+  const performSpin = () => {
     if (phase === "spinning" || (player.wheelSpun && !isGuest)) return;
+    setCharging(true);
+    window.setTimeout(() => setCharging(false), 900);
     setResult(null);
     setBeltOffset(0);
     const totalChance = wheelRewards.reduce((sum, item) => sum + item.chance, 0);
@@ -2010,66 +2225,86 @@ function WheelTab({
       spin(reward);
     }, 4800);
   };
+  const spinNow = () => {
+    if (phase === "spinning" || (player.wheelSpun && !isGuest)) return;
+    setConfirmOpen(true);
+  };
   const resultIcon = result?.type === "tokens"
     ? "/assets/coin.svg"
-    : result?.material === "Diamond" ? "/assets/diamond-rock.svg" : "/assets/gold.svg";
+    : materialArtFor(result?.material || "Gold");
   return (
     <div className="max-w-6xl">
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Guest crate · unlimited free opens" : "Daily crate · 1 free opening"}</p>
-      <h1 className="mt-2 text-4xl font-black">Daily Crate</h1>
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-xl">
-          <div className={`crate-display ${phase === "spinning" ? "crate-opening" : ""}`}>
-            <img src="/assets/crate%20(1).svg" alt="Daily reward crate" className="h-24 w-24 object-contain drop-shadow-2xl sm:h-28 sm:w-28" />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Guest crate · unlimited free opens" : "Daily crate · 1 free opening"}</p>
+          <h1 className="mt-2 text-4xl font-black">Daily Crate</h1>
+        </div>
+        <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
+      </div>
+      <div className="mt-5">
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-xl sm:p-6">
+          <div className={`crate-display ${phase === "spinning" ? "crate-opening" : charging ? "reveal-crate-charge" : ""}`}>
+            <img src="/assets/crate%20(1).svg" alt="Daily reward crate" className="h-40 w-40 object-contain drop-shadow-2xl sm:h-48 sm:w-48" />
           </div>
-          <div ref={viewportRef} className="roulette-viewport relative mt-2 h-24 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-28">
+          <div ref={viewportRef} className={`roulette-viewport relative mt-2 h-28 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-36 ${charging ? "roulette-charge" : phase === "result" ? "roulette-win-flash" : ""}`}>
             <div className="roulette-pointer" />
-            <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: phase === "spinning" ? "4.55s" : "0ms" }}>
+            {charging ? <div className="absolute inset-0 flex items-center justify-center"><span className="reveal-scanline" /><span className="relative z-10 text-sm font-black uppercase tracking-[0.28em] text-sky-100">Crate charging...</span></div> : phase === "spinning" ? <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: "4.55s" }}>
               {track.map((reward, index) => {
                 const rarity = wheelRarityFor(reward);
-                const icon = reward.type === "tokens" ? "/assets/coin.svg" : reward.material === "Diamond" ? "/assets/diamond-rock.svg" : "/assets/gold.svg";
+                const icon = reward.type === "tokens" ? "/assets/coin.svg" : materialArtFor(reward.material || "Gold");
                 return <div key={`${index}-${reward.label}`} className={`roulette-prize ${rarityTileClass(rarity)}`}>
                   <img src={icon} alt="" className="h-9 w-9 object-contain sm:h-10 sm:w-10" />
                   <span className="max-w-full truncate text-[9px] font-black sm:text-[10px]">{reward.type === "tokens" ? reward.amount.toLocaleString() : `x${reward.amount}`} {reward.type === "tokens" ? "tokens" : reward.material}</span>
-                  <span className="text-[8px] font-bold opacity-70">{rarity} · {reward.chance}%</span>
+                  <span className="text-[8px] font-bold opacity-70">{rarity}</span>
                 </div>;
               })}
-            </div>
+            </div> : <div className="absolute inset-0 flex items-center justify-center text-xs font-bold uppercase tracking-widest text-white/35">{phase === "result" ? "Reward revealed" : "Your reward appears here"}</div>}
           </div>
-          <button onClick={spinNow} disabled={phase === "spinning" || (player.wheelSpun && !isGuest)} className="mt-3 rounded-xl bg-amber-300 px-8 py-2.5 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
+          <button onClick={spinNow} disabled={phase === "spinning" || (player.wheelSpun && !isGuest)} className="mt-4 rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
             {player.wheelSpun && !isGuest ? "Crate already opened today" : phase === "spinning" ? "Opening crate..." : isGuest ? "Open free crate" : "Open daily crate"}
           </button>
           {result && phase === "result" && (
-            <div className="relative mt-5 flex min-h-28 items-center justify-center gap-4 overflow-visible rounded-xl border border-white/10 bg-[#090e1b] p-4">
+            <div className="relative mt-5 flex min-h-36 items-center justify-center gap-4 overflow-visible rounded-xl border border-white/10 bg-[#090e1b] p-4">
               <RewardBurst rarity={wheelRarityFor(result)} />
-              <img src={resultIcon} alt="" className="relative z-10 h-16 w-16 object-contain" />
-              <div className="relative z-10 text-left">
+              <img src={resultIcon} alt="" className="reveal-win-slam relative z-10 h-24 w-24 object-contain" />
+              <div className="reveal-win-slam relative z-10 text-left">
                 <p className="text-[10px] font-black uppercase tracking-widest text-white/50">You won · {wheelRarityFor(result)}</p>
                 <p className="text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} tokens` : `${result.amount} ${result.material}`}</p>
-                <p className="text-xs font-bold text-white/60">{result.chance}% chance</p>
               </div>
             </div>
           )}
         </div>
-        <div className="rounded-2xl border border-white/10 bg-[#10182b] p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black text-white">Possible prizes</h2>
-            <span className="flex items-center gap-1.5 text-xs font-black text-amber-200"><img src="/assets/coin.svg" alt="" className="h-5 w-5" />{player.tokens.toLocaleString()}</span>
+      </div>
+      {oddsOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
+        <section role="dialog" aria-modal="true" aria-labelledby="crate-odds-title" className="w-full max-w-md rounded-2xl border border-sky-300/30 bg-[#10182b] p-5 text-white shadow-2xl sm:p-6">
+          <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">Daily crate</p><h2 id="crate-odds-title" className="mt-1 text-2xl font-black">Possible prizes</h2></div>
+            <button onClick={() => setOddsOpen(false)} aria-label="Close prize chances" className="flex h-10 w-10 items-center justify-center rounded-lg text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>
           </div>
           <div className="mt-4 space-y-2">
             {wheelRewards.map((reward) => {
               const rarity = wheelRarityFor(reward);
-              const icon = reward.type === "tokens" ? "/assets/coin.svg" : reward.material === "Diamond" ? "/assets/diamond-rock.svg" : "/assets/gold.svg";
+              const icon = reward.type === "tokens" ? "/assets/coin.svg" : materialArtFor(reward.material || "Gold");
               return <div key={reward.label} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${rarityTileClass(rarity)}`}>
-                <img src={icon} alt="" className="h-8 w-8 shrink-0 object-contain" />
+                <img src={icon} alt="" className="h-9 w-9 shrink-0 object-contain" />
                 <span className="min-w-0 flex-1 truncate text-sm font-bold">{reward.type === "tokens" ? `${reward.amount.toLocaleString()} tokens` : `${reward.amount} ${reward.material}`}</span>
                 <span className="text-xs font-black">{reward.chance}%</span>
               </div>;
             })}
           </div>
-          <p className="mt-4 text-xs leading-5 text-white/50">Tokens display with the coin icon. Materials display with their own icon. Prize odds add up to 100%.</p>
-        </div>
-      </div>
+          <p className="mt-4 flex items-center gap-2 border-t border-white/10 pt-3 text-sm font-bold text-amber-100"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />Balance: {player.tokens.toLocaleString()} tokens</p>
+        </section>
+      </div>}
+      {confirmOpen && <ConfirmOpenModal
+        title="Daily Crate"
+        description="Are you sure you want to open the Daily Crate?"
+        confirmLabel="Open crate"
+        cancel={() => setConfirmOpen(false)}
+        confirm={() => {
+          setConfirmOpen(false);
+          performSpin();
+        }}
+      />}
     </div>
   );
 }
@@ -2237,7 +2472,7 @@ function RevealModal({
     reward: Reward;
     track: Reward[];
     winnerIndex: number;
-    phase: "spinning" | "result";
+    phase: "charging" | "spinning" | "result";
   };
   close: () => void;
 }) {
@@ -2258,16 +2493,16 @@ function RevealModal({
       <div className="w-full max-w-6xl rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-2xl sm:p-7">
         <div className="flex items-center justify-between gap-4 text-left">
           <div className="flex min-w-0 items-center gap-3">
-            <img src={reveal.capsule.art} alt="" className="h-14 w-14 object-contain" />
+            <img src={reveal.capsule.art} alt="" className={`h-14 w-14 object-contain ${reveal.phase === "charging" ? "reveal-crate-charge" : reveal.phase === "spinning" ? "reveal-crate-rattle" : ""}`} />
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">{reveal.phase === "result" ? "Crate opened" : "Opening crate"}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">{reveal.phase === "result" ? "Crate opened" : reveal.phase === "charging" ? "Crate energy building" : "Opening crate"}</p>
               <h2 className="truncate text-xl font-black text-white sm:text-2xl">{reveal.capsule.name}</h2>
             </div>
           </div>
           {reveal.phase === "result" && <button onClick={close} aria-label="Close" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>}
         </div>
-        <div ref={viewportRef} className="roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44">
-          <div className="roulette-pointer" />
+        <div ref={viewportRef} className={`roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44 ${reveal.phase === "charging" ? "roulette-charge" : reveal.phase === "result" ? "roulette-win-flash" : ""}`}>
+          {reveal.phase !== "charging" && <><div className="roulette-pointer" />
           <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: reveal.phase === "result" ? "0ms" : "4.55s" }}>
             {reveal.track.map((reward, index) => (
               <div key={`${index}-${reward.name}`} className={`roulette-prize ${rarityTileClass(reward.rarity)}`}>
@@ -2277,18 +2512,20 @@ function RevealModal({
               </div>
             ))}
           </div>
+          </>}
+          {reveal.phase === "charging" && <div className="absolute inset-0 flex items-center justify-center"><span className="reveal-scanline" /><span className="text-sm font-black uppercase tracking-[0.28em] text-sky-100">Locked in...</span></div>}
         </div>
-        {reveal.phase === "spinning" ? (
-          <p className="mt-5 text-sm font-bold text-white/60">Good luck. Your reward is on the way...</p>
+        {reveal.phase !== "result" ? (
+          <p className="mt-5 text-sm font-bold text-white/60">{reveal.phase === "charging" ? "Crate is powering up..." : "Good luck. Your reward is on the way..."}</p>
         ) : (
-          <div className="relative mt-5 flex flex-col items-center gap-3 overflow-visible sm:flex-row sm:justify-between sm:text-left">
+          <div className="relative mt-5 flex flex-col items-center gap-3 overflow-visible rounded-xl border border-white/10 bg-[#090e1b] p-4 sm:flex-row sm:justify-between sm:text-left">
             <RewardBurst rarity={reveal.reward.rarity} />
-            <div className="flex items-center gap-4">
-              <RewardArt name={reveal.reward.name} art={reveal.reward.art || artFor(reveal.reward.name)} className={`h-20 w-20 shrink-0 ${rewardEffectClassFor(reveal.reward.name, reveal.reward.rarity)}`} />
+            <div className="reveal-win-slam relative z-10 flex items-center gap-4">
+              <RewardArt name={reveal.reward.name} art={reveal.reward.art || artFor(reveal.reward.name)} className={`h-28 w-28 shrink-0 ${rewardEffectClassFor(reveal.reward.name, reveal.reward.rarity)}`} />
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-white/50">You got</p>
-                <h1 className="text-2xl font-black text-white">{reveal.reward.name}</h1>
-                <p className="mt-1 text-sm font-black text-sky-300">{reveal.reward.rarity}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-white/60">Prize unlocked</p>
+                <h1 className="text-3xl font-black text-white">{reveal.reward.name}</h1>
+                <p className="mt-1 text-sm font-black text-sky-300">{reveal.reward.rarity} rarity</p>
               </div>
             </div>
             <button onClick={close} className="w-full rounded-xl bg-sky-400 px-6 py-3 font-black text-slate-950 transition hover:bg-sky-300 sm:w-auto">Add to collection</button>
@@ -2443,20 +2680,27 @@ function MassResultsModal({
   results: { capsule: string; reward: Reward }[];
   close: () => void;
 }) {
+  const groupedResults = results.reduce<{ capsule: string; reward: Reward; count: number }[]>((groups, result) => {
+    const existing = groups.find((group) => group.reward.name === result.reward.name && group.reward.rarity === result.reward.rarity);
+    if (existing) existing.count += 1;
+    else groups.push({ ...result, count: 1 });
+    return groups;
+  }, []);
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col text-center">
         <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Opening complete</p>
         <h2 className="mt-1 text-3xl font-black text-white">Your Blooks</h2>
         <div className="mt-5 grid max-h-[60vh] gap-3 overflow-y-auto sm:grid-cols-2 pr-1">
-          {results.map((result, index) => (
-            <div key={`${result.capsule}-${result.reward.name}-${index}`} className="flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/30">
-              <div className="h-14 w-14 shrink-0 bg-[#072a54] rounded-xl p-1 flex items-center justify-center">
+          {groupedResults.map((result) => (
+            <div key={`${result.reward.name}-${result.reward.rarity}`} className="relative flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/30">
+              <div className="relative h-14 w-14 shrink-0 bg-[#072a54] rounded-xl p-1 flex items-center justify-center">
                 <RewardArt name={result.reward.name} art={result.reward.art || artFor(result.reward.name)} className={`h-full w-full ${rewardEffectClassFor(result.reward.name, result.reward.rarity)}`} />
+                {result.count > 1 && <span className="absolute -right-2 -top-2 rounded-full border-2 border-[#103f75] bg-amber-300 px-2 py-1 text-xs font-black text-slate-950">×{result.count}</span>}
               </div>
               <div className="min-w-0 text-left">
                 <p className="truncate font-black text-white text-base">{result.reward.name}</p>
-                <p className="text-xs font-bold text-[#e9bd67]">{result.reward.rarity}</p>
+                <p className="text-xs font-bold text-[#e9bd67]">{result.reward.rarity}{result.count > 1 ? ` · ×${result.count}` : ""}</p>
               </div>
             </div>
           ))}
@@ -2508,28 +2752,30 @@ function CraftingMachineModal({
 }: {
   name: string;
   ingredients: MaterialBundle;
-  phase: "processing" | "output";
+  phase: "processing" | "charging" | "output";
   close: () => void;
 }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-[#031426]/85 px-5 backdrop-blur-sm">
       <div className="craft-machine-modal w-full max-w-xl rounded-3xl border border-[#5dbdff] bg-[#bfe8ff] p-6 text-center text-[#062443] shadow-2xl">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-[#17659c]">Crafting machine</p>
-        <h2 className="mt-2 text-3xl font-black">{phase === "processing" ? "Forging your Blook" : "Craft complete"}</h2>
+        <h2 className="mt-2 text-3xl font-black">{phase === "processing" ? "Forging your Blook" : phase === "charging" ? "Powering up" : "Craft complete!"}</h2>
           <div className="mt-6 rounded-2xl border-4 border-[#17659c] bg-[#e8f8ff] p-5">
             <img src="/assets/crafting machine.svg" alt="Crafting machine" className="mx-auto mb-4 h-28 w-full object-contain" />
-          <div className="flex min-h-44 items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#8ed2f7] p-4">
+          <div className={`craft-reveal-stage flex min-h-44 items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#8ed2f7] p-4 ${phase === "charging" ? "craft-energy-charge" : phase === "output" ? "craft-output-flash" : ""}`}>
             {phase === "processing" ? (
               <div className="craft-material-stream flex items-center gap-2">
                 {bundleEntries(ingredients).map(([material, amount]) => <span key={material} className="craft-input flex items-center rounded-xl bg-white/80 p-2"><img src={materialArtFor(material)} alt={material} className="h-12 w-12 object-contain" /><b className="text-sm">x{amount}</b></span>)}
               </div>
+            ) : phase === "charging" ? (
+              <div className="craft-energy-core"><span /><span /><span /></div>
             ) : (
-              <div className="craft-output-pop rounded-2xl bg-white/75 p-5"><img src={artFor(name)} alt={name} className="mx-auto h-36 w-36 object-contain" /></div>
+              <div className="craft-output-pop relative rounded-2xl bg-white/75 p-5"><RewardBurst rarity={craftedRarityFor(name)} /><RewardArt name={name} art={artFor(name)} className="relative z-10 mx-auto h-36 w-36 object-contain" /><strong className="relative z-10 mt-2 block text-lg">{craftedRarityFor(name)}</strong></div>
             )}
           </div>
           <div className="mx-auto mt-4 flex max-w-sm items-center gap-2"><span className="h-3 flex-1 rounded-full bg-[#17659c]" /><span className="h-10 w-20 rounded-lg border-4 border-[#17659c] bg-[#5dbdff]" /><span className="h-3 flex-1 rounded-full bg-[#17659c]" /></div>
         </div>
-        {phase === "output" && <button onClick={close} className="mt-6 w-full rounded-xl bg-[#17659c] px-4 py-3 font-black text-white">Collect {name}</button>}
+        {phase === "output" && <button onClick={close} className="craft-collect mt-6 w-full rounded-xl bg-[#17659c] px-4 py-3 font-black text-white">Collect {name}</button>}
       </div>
     </div>
   );
@@ -2899,7 +3145,7 @@ function InfoTab() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {[
-          ["Daily Crate", "Open once per day to win tokens, five Gold, or five Diamond. The 5,000-token reward has a 1% chance."],
+          ["Daily Crate", "Open once per day to win tokens, five Gold, or five Gem. The 5,000-token reward has a 1% chance."],
           ["Capsules", "Buy capsules with tokens. Open a capsule to roll from its listed Blook pool, or use Mass Open for typed quantities."],
           ["Collection", "Locked Blooks stay black silhouettes. Owned Blooks can be equipped or sold from their detail view."],
           ["Crafting", "Dismantle extra Blooks into five-unit material bundles, then combine ingredients totaling 20 to craft approved Blooks."],
@@ -2934,7 +3180,7 @@ function AdminTab({
   const [giftMessage, setGiftMessage] = useState("");
   const [giftBlook, setGiftBlook] = useState("");
   const [giftBadge, setGiftBadge] = useState("");
-  const [giftMaterial, setGiftMaterial] = useState("Flour");
+  const [giftMaterial, setGiftMaterial] = useState("Gold");
   const [giftMaterialAmount, setGiftMaterialAmount] = useState("0");
   const [banRecord, setBanRecord] = useState<{ target: string; reason: string; duration: string } | null>(null);
   const [players, setPlayers] = useState<{ id: string; username: string }[]>([]);

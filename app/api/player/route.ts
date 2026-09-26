@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 
-const materialNames = ['Flour', 'Sugar', 'Diamond', 'Leather', 'Gold', 'Silver'];
+const materialNames = ['Gold', 'Cloth', 'Gem', 'Sugar', 'Flower', 'Metal'];
 
 function emptyMaterials() {
   return Object.fromEntries(materialNames.map((name) => [name, 0]));
