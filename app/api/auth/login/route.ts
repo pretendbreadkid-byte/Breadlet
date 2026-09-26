@@ -40,5 +40,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Log in failed. Check your username and password, then try again.' }, { status: 401 });
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data: bans } = await admin.from('bans').select('reason, is_permanent, expires_at')
+      .eq('profile_id', user.id).order('started_at', { ascending: false }).limit(25);
+    const now = Date.now();
+    const activeBan = (bans || []).find((ban) =>
+      ban.is_permanent || !ban.expires_at || new Date(ban.expires_at).getTime() > now,
+    );
+    if (activeBan) {
+      await supabase.auth.signOut();
+      return NextResponse.json(
+        { error: `Sorry, your account is banned. Reason: ${activeBan.reason}${activeBan.is_permanent ? ' (permanent)' : ` (until ${new Date(activeBan.expires_at).toLocaleString()})`}` },
+        { status: 403 },
+      );
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

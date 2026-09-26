@@ -645,7 +645,7 @@ export default function HomePage() {
       }
       let createdAccount = authMode === "signup";
       if (result.error) {
-        setNotice(authMode === "signup" ? result.error.message : "Log in failed. Check your username and password, then try again.");
+        setNotice(result.error.message);
         return;
       }
       await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 250, materials: emptyMaterials() }) });
@@ -954,6 +954,21 @@ export default function HomePage() {
     const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId, ...reward }) });
     if (!response.ok) return setNotice((await response.json().catch(() => null))?.error || "Admin grant failed.");
     setNotice("Reward granted.");
+  };
+  const moderateAccount = async (action: "ban" | "delete", payload: Record<string, unknown>) => {
+    const response = action === "delete"
+      ? await fetch(`/api/admin?targetId=${encodeURIComponent(String(payload.targetId || ""))}`, { method: "DELETE" })
+      : await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...payload }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setNotice(result.error || `Could not ${action} account.`);
+      return false;
+    }
+    if (action === "delete") setNotice(`${result.username || "Account"} deleted. Its username is available again.`);
+    else {
+      setNotice("Ban applied. The player will see the reason when they try to log in.");
+    }
+    return true;
   };
   const salvage = (name: string) => {
     if (!player || player.inventory.length <= 1) return;
@@ -1278,6 +1293,7 @@ export default function HomePage() {
             <AdminTab
               player={player}
               grantReward={grantReward}
+              moderateAccount={moderateAccount}
               announcement={announcement}
               setAnnouncement={setAnnouncement}
               publishAnnouncement={() => setNotice(announcement.trim() ? `Announcement published: ${announcement.trim()}` : "Write an announcement first.")}
@@ -3159,6 +3175,7 @@ function InfoTab() {
 function AdminTab({
   player,
   grantReward,
+  moderateAccount,
   announcement,
   setAnnouncement,
   publishAnnouncement,
@@ -3166,6 +3183,7 @@ function AdminTab({
 }: {
   player: Player;
   grantReward: (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => Promise<void>;
+  moderateAccount: (action: "ban" | "delete", payload: Record<string, unknown>) => Promise<boolean>;
   announcement: string;
   setAnnouncement: (value: string) => void;
   publishAnnouncement: () => void;
@@ -3173,17 +3191,16 @@ function AdminTab({
 }) {
   const [tokenAmount, setTokenAmount] = useState("100");
   const [blookSearch, setBlookSearch] = useState("");
-  const [banTarget, setBanTarget] = useState("");
   const [banReason, setBanReason] = useState("");
   const [banDuration, setBanDuration] = useState("24");
+  const [banPermanent, setBanPermanent] = useState(false);
   const [giftTitle, setGiftTitle] = useState("");
   const [giftMessage, setGiftMessage] = useState("");
   const [giftBlook, setGiftBlook] = useState("");
   const [giftBadge, setGiftBadge] = useState("");
   const [giftMaterial, setGiftMaterial] = useState("Gold");
   const [giftMaterialAmount, setGiftMaterialAmount] = useState("0");
-  const [banRecord, setBanRecord] = useState<{ target: string; reason: string; duration: string } | null>(null);
-  const [players, setPlayers] = useState<{ id: string; username: string }[]>([]);
+  const [players, setPlayers] = useState<{ id: string; username: string; is_banned?: boolean; ban_reason?: string | null }[]>([]);
   const [targetId, setTargetId] = useState("");
 
   useEffect(() => {
@@ -3257,11 +3274,20 @@ function AdminTab({
         <p className="mt-3 leading-7 text-[#d9f3ff]">
           Select a real player, then grant resources, Blooks, and badges through the server-side admin role.
         </p>
-        <label className="mt-5 block max-w-md text-sm font-bold text-white">Reward target
+        <label className="mt-5 block max-w-md text-sm font-bold text-white">Player account
             <select value={targetId} onChange={(event) => setTargetId(event.target.value)} className="mt-2 w-full rounded-xl border border-[#3d91cd] bg-[#bde8ff] px-3 py-2 text-[#062443]">
             {players.map((profile) => <option className="text-[#062443]" key={profile.id} value={profile.id}>{profile.username}</option>)}
           </select>
         </label>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <span className={`text-xs font-bold ${players.find((profile) => profile.id === targetId)?.is_banned ? "text-rose-200" : "text-emerald-200"}`}>{players.find((profile) => profile.id === targetId)?.is_banned ? `Banned · ${players.find((profile) => profile.id === targetId)?.ban_reason || "No reason recorded"}` : "Active account"}</span>
+          <button disabled={!targetId || targetId === player.id} onClick={async () => {
+            const selected = players.find((profile) => profile.id === targetId);
+            if (!selected || !window.confirm(`Permanently delete ${selected.username}? Their username will become available again.`)) return;
+            const deleted = await moderateAccount("delete", { targetId });
+            if (deleted) setPlayers((current) => current.filter((profile) => profile.id !== targetId));
+          }} className="rounded-lg border border-rose-300/40 px-3 py-2 text-xs font-black text-rose-100 disabled:opacity-40">Delete account</button>
+        </div>
       </div>
 
       {/* Quick Grants & Exact Token Grant */}
@@ -3408,25 +3434,28 @@ function AdminTab({
         {/* Moderation */}
         <div className="rounded-3xl border border-[#ef8b9d]/40 bg-[#421f45] p-6 shadow-md">
           <h2 className="text-xl font-black text-[#ffd6df]">Moderation & Bans</h2>
-          <p className="mt-1 text-sm text-[#f2b9c7]">Issue temporary or permanent sanctions.</p>
+          <p className="mt-1 text-sm text-[#f2b9c7]">Ban the selected account. Its reason is shown when the player next logs in.</p>
           <div className="mt-4 space-y-3">
-            <input value={banTarget} onChange={(e) => setBanTarget(e.target.value)} placeholder="Player Username" className="w-full rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
             <div className="grid grid-cols-2 gap-2">
-              <input value={banDuration} onChange={(e) => setBanDuration(e.target.value)} type="number" min="1" placeholder="Duration (Hours)" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
+              <input disabled={banPermanent} value={banDuration} onChange={(e) => setBanDuration(e.target.value)} type="number" min="1" placeholder="Duration (Hours)" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white disabled:opacity-40" />
               <input value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Reason" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
             </div>
+            <label className="flex items-center gap-2 text-sm font-bold text-rose-100"><input type="checkbox" checked={banPermanent} onChange={(event) => setBanPermanent(event.target.checked)} className="h-4 w-4 accent-rose-400" />Permanent ban</label>
             <button
-              onClick={() => { if (banTarget.trim()) setBanRecord({ target: banTarget.trim(), reason: banReason.trim() || "No reason provided", duration: banDuration }); }}
-              className="w-full rounded-xl bg-[#ef8b9d] px-4 py-3 font-black text-[#351c3a] hover:bg-[#ffb3c1]"
+              disabled={!targetId || !banReason.trim() || (!banPermanent && Number(banDuration) < 1)}
+              onClick={async () => {
+                const selected = players.find((profile) => profile.id === targetId);
+                if (!selected || !window.confirm(`Ban ${selected.username}${banPermanent ? " permanently" : ` for ${banDuration} hours`}?`)) return;
+                const banned = await moderateAccount("ban", { targetId, reason: banReason.trim(), permanent: banPermanent, durationHours: Number(banDuration) });
+                if (banned) {
+                  setPlayers((current) => current.map((profile) => profile.id === targetId ? { ...profile, is_banned: true, ban_reason: banReason.trim() } : profile));
+                  setBanReason("");
+                }
+              }}
+              className="w-full rounded-xl bg-[#ef8b9d] px-4 py-3 font-black text-[#351c3a] hover:bg-[#ffb3c1] disabled:opacity-40"
             >
               Issue Ban Sanction
             </button>
-            {banRecord && (
-              <div className="rounded-2xl border border-[#ef8b9d]/50 bg-[#351c3a] p-3 text-xs">
-                <p className="font-black text-[#ffd6df]">{banRecord.target} is banned ({banRecord.duration} hrs)</p>
-                <p className="text-[#f2b9c7]">Reason: {banRecord.reason}</p>
-              </div>
-            )}
           </div>
         </div>
       </div>

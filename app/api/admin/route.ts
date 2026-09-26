@@ -17,7 +17,7 @@ async function adminSession() {
 export async function GET() {
   const session = await adminSession();
   if ('error' in session) return session.error;
-  const { data, error } = await session.supabase.from('profiles').select('id, username').order('username').limit(1000);
+  const { data, error } = await session.supabase.from('profiles').select('id, username, is_banned, ban_reason, ban_expires_at').order('username').limit(1000);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data || []);
 }
@@ -26,6 +26,29 @@ export async function POST(request: Request) {
   const session = await adminSession();
   if ('error' in session) return session.error;
   const body = await request.json();
+  if (body.action === 'ban') {
+    const targetId = String(body.targetId || '');
+    const reason = String(body.reason || '').trim().slice(0, 500);
+    const permanent = Boolean(body.permanent);
+    const hours = Math.floor(Number(body.durationHours) || 0);
+    if (!targetId || !reason || (!permanent && (hours < 1 || hours > 8760))) {
+      return NextResponse.json({ error: 'Choose a player, give a reason, and set a valid duration.' }, { status: 400 });
+    }
+    if (targetId === session.userId) return NextResponse.json({ error: 'You cannot ban your own account.' }, { status: 400 });
+    const { data: target, error: targetError } = await session.supabase.from('profiles').select('id').eq('id', targetId).maybeSingle();
+    if (targetError || !target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+    const { error: banError } = await session.supabase.from('bans').insert({
+      profile_id: targetId,
+      reason,
+      is_permanent: permanent,
+      expires_at: permanent ? null : new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(),
+      created_by_admin_id: session.userId,
+    });
+    if (banError) return NextResponse.json({ error: banError.message }, { status: 400 });
+    await session.supabase.from('profiles').update({ is_banned: true, ban_reason: reason, ban_expires_at: permanent ? null : new Date(Date.now() + hours * 60 * 60 * 1000).toISOString() }).eq('id', targetId);
+    return NextResponse.json({ ok: true });
+  }
+
   const targetId = String(body.targetId || '');
   const tokens = Math.max(0, Math.floor(Number(body.tokens) || 0));
   const blookName = String(body.blookName || '').trim().slice(0, 80);
@@ -53,4 +76,22 @@ export async function POST(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
   return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  const session = await adminSession();
+  if ('error' in session) return session.error;
+  const targetId = new URL(request.url).searchParams.get('targetId') || '';
+  if (!targetId) return NextResponse.json({ error: 'Choose an account to delete.' }, { status: 400 });
+  if (targetId === session.userId) return NextResponse.json({ error: 'You cannot delete your own admin account.' }, { status: 400 });
+
+  const { data: target, error: targetError } = await session.supabase.from('profiles').select('id, username').eq('id', targetId).maybeSingle();
+  if (targetError || !target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+  const { data: targetAdminRole, error: roleError } = await session.supabase.from('admin_roles').select('role').eq('profile_id', targetId).limit(1).maybeSingle();
+  if (roleError) return NextResponse.json({ error: roleError.message }, { status: 500 });
+  if (targetAdminRole) return NextResponse.json({ error: 'Admin accounts cannot be deleted from this panel.' }, { status: 403 });
+
+  const { error: deleteError } = await session.supabase.auth.admin.deleteUser(targetId);
+  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 400 });
+  return NextResponse.json({ ok: true, username: target.username });
 }
