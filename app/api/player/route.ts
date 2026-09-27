@@ -69,6 +69,14 @@ export async function PATCH(request: Request) {
   const { data: blooks, error: blooksError } = await supabase.from('blooks').select('id, name');
   if (blooksError) return NextResponse.json({ error: blooksError.message }, { status: 500 });
   const blookIds = new Map((blooks || []).map((blook: { id: string; name: string }) => [blook.name, blook.id]));
+  const normalizedBlookName = (displayName: string) => {
+    const name = displayName.replace(/^Shiny /, '');
+    return name === 'Surgeon' ? 'Doctor' : name;
+  };
+  const unknownBlooks = Array.from(inventoryCounts.keys()).filter((displayName) => !blookIds.has(normalizedBlookName(displayName)));
+  if (unknownBlooks.length) {
+    return NextResponse.json({ error: `These Blooks are missing from the server catalog and were not saved: ${unknownBlooks.join(', ')}. Apply the latest Blook catalog migration, then retry.` }, { status: 409 });
+  }
 
   const profileUpdate = {
     username: String(player.username || '').trim().slice(0, 20),
@@ -91,16 +99,14 @@ export async function PATCH(request: Request) {
 
   const inventoryRows = Array.from(inventoryCounts.entries()).flatMap(([displayName, quantity]) => {
     const shiny = displayName.startsWith('Shiny ');
-    const name = shiny ? displayName.slice(6) : displayName;
+    const name = normalizedBlookName(displayName);
     const blookId = blookIds.get(name);
     return blookId ? [{ profile_id: user.id, blook_id: blookId, quantity, shiny }] : [];
   });
-  const { error: deleteError } = await supabase.from('inventory').delete().eq('profile_id', user.id);
-  if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 400 });
-  if (inventoryRows.length) {
-    const { error: inventoryError } = await supabase.from('inventory').insert(inventoryRows);
-    if (inventoryError) return NextResponse.json({ error: inventoryError.message }, { status: 400 });
-  }
+  const { error: inventoryError } = await supabase.rpc('save_player_inventory', {
+    p_items: inventoryRows.map(({ blook_id, quantity, shiny }) => ({ blook_id, quantity, shiny })),
+  });
+  if (inventoryError) return NextResponse.json({ error: `Inventory was not saved: ${inventoryError.message}` }, { status: 400 });
 
   await supabase.from('marketplace_listings').delete().eq('profile_id', user.id);
   const listingRows = Array.isArray(player.listings)
