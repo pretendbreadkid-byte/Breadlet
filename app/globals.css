@@ -193,6 +193,41 @@ h3,
 .profile-popup { border-color: #247bc0; background: #103f75; box-shadow: 0 8px 0 #072a54; }
 .profile-search-row input { border-color: #247bc0; background: #0c3b70; }
 .profile-search-row button { background: #39a8f5; color: #031426; }
+.chat-online-panel { bottom: max(1rem, env(safe-area-inset-bottom)); }
+@media (max-width: 720px) {
+  .breadlet-blue-theme { min-height: 100svh; height: auto; overflow-x: hidden; }
+  .breadlet-blue-theme > aside { position: sticky; top: 0; z-index: 30; width: 100%; height: auto; max-height: none; flex: 0 0 auto; gap: .4rem; border-right: 0; border-bottom: 1px solid rgba(61, 145, 205, .4); padding: .55rem; }
+  .breadlet-blue-theme > aside > div:first-child { display: flex; min-width: 0; align-items: center; gap: .45rem; }
+  .breadlet-blue-theme > aside > div:first-child > div:first-child { width: auto; flex: 0 0 auto; padding: 0 .35rem 0 0; border: 0; }
+  .breadlet-blue-theme > aside > div:first-child > div:first-child img { width: 40px; height: 40px; }
+  .breadlet-blue-theme > aside nav { display: flex; min-width: 0; flex: 1; gap: .35rem; overflow-x: auto; margin-top: 0; padding: .15rem .05rem .35rem; scrollbar-width: thin; }
+  .breadlet-blue-theme > aside nav button { width: auto; min-height: 42px; flex: 0 0 auto; gap: .35rem; border-radius: .65rem; padding: .45rem .55rem; font-size: .72rem; }
+  .breadlet-blue-theme > aside nav button > span { white-space: nowrap; }
+  .breadlet-blue-theme > aside nav button > span > span:last-child { font-size: 7px; }
+  .breadlet-blue-theme > aside > div:last-child { margin-top: .25rem; padding-top: .35rem; }
+  .breadlet-blue-theme > div.flex-1 { min-height: 0; min-width: 0; }
+  .breadlet-blue-theme > div.flex-1 > section { min-width: 0; padding: 5.5rem .75rem 1rem; }
+  .workspace-island { top: .4rem; right: .5rem; max-width: calc(100vw - 1rem); padding: .3rem .4rem; }
+  .workspace-island button { max-width: calc(100vw - 6rem); gap: .35rem; padding: .35rem .45rem; font-size: .72rem; }
+  .workspace-island button > span { max-width: 34vw; font-size: .68rem; }
+  .workspace-island button svg { width: 15px; height: 15px; flex: 0 0 auto; }
+  .chat-online-panel { right: .5rem; bottom: calc(4.75rem + env(safe-area-inset-bottom)); }
+  .chat-online-panel > button { gap: .55rem; border-radius: 999px; padding: .55rem .8rem; }
+  .chat-online-panel > button > svg { width: 20px; height: 20px; }
+  .chat-online-panel > button > span { font-size: 1rem; }
+  .chat-online-list { max-height: 42vh; }
+  .profile-player-panel { min-width: 0; gap: .7rem; padding: .75rem; }
+  .profile-avatar-frame { width: 72px; }
+  .profile-player-copy h1 { font-size: 1.5rem; }
+  .profile-badge-row button { width: 70px; height: 74px; }
+  .profile-badge-row img { width: 66px; height: 66px; }
+  .profile-stats-panel { padding: .6rem; }
+  .profile-stats-grid { gap: .6rem; padding: .45rem; }
+  .profile-metric { min-height: 68px; gap: .35rem; padding: .45rem; }
+  .profile-metric-icon { width: 30px; height: 30px; }
+  .profile-metric p { font-size: .68rem; }
+  .profile-metric strong { font-size: 1.1rem; }
+}
 .profile-badge-row { min-height: 104px; gap: .2rem; }
 .profile-trade-status.status-declined,.profile-trade-status.status-cancelled { background: #ef444433; color: #ffc1ba; }
 .profile-trade-status.status-completed { background: #f1cd2c33; color: #fff1a6; }

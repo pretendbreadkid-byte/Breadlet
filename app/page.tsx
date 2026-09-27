@@ -3018,6 +3018,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
+  const [onlinePanelOpen, setOnlinePanelOpen] = useState(false);
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
   const isVerified = player.badges?.includes("Verified");
 
@@ -3225,9 +3226,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           Send
         </button>
       </form>
-      <aside aria-label="Online players" className="chat-online-panel fixed bottom-4 right-4 z-40 flex h-[min(22rem,42vh)] w-[min(19rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 text-white shadow-2xl backdrop-blur-md">
-        <header className="flex items-center justify-between border-b border-sky-200/20 px-4 py-3"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-950">{online.equippedBlook ? <img src={artFor(online.equippedBlook)} alt="" className="h-8 w-8 object-contain" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>
+      <aside aria-label="Online players" className={`chat-online-panel fixed right-3 z-40 ${onlinePanelOpen ? "chat-online-panel-open" : ""}`}>
+        {onlinePanelOpen && <div className="chat-online-list mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-950">{online.equippedBlook ? <img src={artFor(online.equippedBlook)} alt="" className="h-8 w-8 object-contain" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
+        <button type="button" aria-expanded={onlinePanelOpen} onClick={() => setOnlinePanelOpen((open) => !open)} className="flex items-center gap-3 rounded-2xl border border-sky-300/45 bg-[#0c2947]/95 px-5 py-3 text-white shadow-xl backdrop-blur-md hover:bg-[#103f75]"><CircleUserRound size={24} fill="currentColor" strokeWidth={1.5} /><span className="text-xl font-black">{onlinePlayers.length} online</span></button>
       </aside>
     </div>
   );
