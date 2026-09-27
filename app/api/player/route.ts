@@ -106,7 +106,23 @@ export async function PATCH(request: Request) {
   const { error: inventoryError } = await supabase.rpc('save_player_inventory', {
     p_items: inventoryRows.map(({ blook_id, quantity, shiny }) => ({ blook_id, quantity, shiny })),
   });
-  if (inventoryError) return NextResponse.json({ error: `Inventory was not saved: ${inventoryError.message}` }, { status: 400 });
+  if (inventoryError) {
+    const missingRpc = inventoryError.code === 'PGRST202' || /could not find the function public\.save_player_inventory|schema cache/i.test(inventoryError.message);
+    if (!missingRpc) return NextResponse.json({ error: `Inventory was not saved: ${inventoryError.message}` }, { status: 400 });
+
+    const { data: existingRows, error: existingError } = await supabase.from('inventory').select('id, blook_id, shiny').eq('profile_id', user.id);
+    if (existingError) return NextResponse.json({ error: `Inventory was not saved: ${existingError.message}` }, { status: 400 });
+    if (inventoryRows.length) {
+      const { error: upsertError } = await supabase.from('inventory').upsert(inventoryRows, { onConflict: 'profile_id,blook_id,shiny' });
+      if (upsertError) return NextResponse.json({ error: `Inventory was not saved: ${upsertError.message}` }, { status: 400 });
+    }
+    const retainedKeys = new Set(inventoryRows.map((row) => `${row.blook_id}:${row.shiny}`));
+    const staleIds = (existingRows || []).filter((row: any) => !retainedKeys.has(`${row.blook_id}:${row.shiny}`)).map((row: any) => row.id);
+    if (staleIds.length) {
+      const { error: cleanupError } = await supabase.from('inventory').delete().eq('profile_id', user.id).in('id', staleIds);
+      if (cleanupError) return NextResponse.json({ error: `Inventory was saved, but stale rows could not be cleaned up: ${cleanupError.message}` }, { status: 400 });
+    }
+  }
 
   await supabase.from('marketplace_listings').delete().eq('profile_id', user.id);
   const listingRows = Array.isArray(player.listings)
