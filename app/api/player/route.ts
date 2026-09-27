@@ -13,10 +13,12 @@ export async function GET() {
   if (!supabase) return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  const inventoryAdmin = createAdminClient();
+  if (!inventoryAdmin) return NextResponse.json({ error: 'Server inventory saving is not configured.' }, { status: 503 });
 
   const [{ data: profile, error: profileError }, { data: inventory }, { data: mine }, { data: listings }, capsuleCount, messageCount, tradeCount] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('inventory').select('quantity, shiny, blooks(name)').eq('profile_id', user.id),
+    inventoryAdmin.from('inventory').select('quantity, shiny, blooks(name)').eq('profile_id', user.id),
     supabase.from('mine_progress').select('*').eq('profile_id', user.id).maybeSingle(),
     supabase.from('marketplace_listings').select('id, price, status, blooks(name), profiles(username)').eq('status', 'active').order('created_at', { ascending: false }),
     supabase.from('chest_rolls').select('id', { count: 'exact', head: true }).eq('profile_id', user.id),
@@ -106,17 +108,9 @@ export async function PATCH(request: Request) {
     const blookId = blookIds.get(name);
     return blookId ? [{ profile_id: user.id, blook_id: blookId, quantity, shiny }] : [];
   });
-  const { data: existingRows, error: existingError } = await inventoryAdmin.from('inventory').select('id, blook_id, shiny').eq('profile_id', user.id);
-  if (existingError) return NextResponse.json({ error: `Inventory could not be read before saving: ${existingError.message}` }, { status: 400 });
   if (inventoryRows.length) {
     const { error: upsertError } = await inventoryAdmin.from('inventory').upsert(inventoryRows, { onConflict: 'profile_id,blook_id,shiny' });
     if (upsertError) return NextResponse.json({ error: `Inventory was not saved: ${upsertError.message}` }, { status: 400 });
-  }
-  const retainedKeys = new Set(inventoryRows.map((row) => `${row.blook_id}:${row.shiny}`));
-  const staleIds = (existingRows || []).filter((row: any) => !retainedKeys.has(`${row.blook_id}:${row.shiny}`)).map((row: any) => row.id);
-  if (staleIds.length) {
-    const { error: cleanupError } = await inventoryAdmin.from('inventory').delete().eq('profile_id', user.id).in('id', staleIds);
-    if (cleanupError) return NextResponse.json({ error: `Inventory was saved, but stale rows could not be cleaned up: ${cleanupError.message}` }, { status: 400 });
   }
 
   await supabase.from('marketplace_listings').delete().eq('profile_id', user.id);

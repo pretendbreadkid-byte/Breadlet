@@ -635,7 +635,7 @@ export default function HomePage() {
     logo.addEventListener("click", goToProfile);
     return () => logo.removeEventListener("click", goToProfile);
   }, []);
-  const save = (next: Player) => {
+  const save = (next: Player): Promise<boolean> => {
     setPlayer(next);
     if (isGuest) {
       if (guestProgressUnlocked) {
@@ -643,10 +643,11 @@ export default function HomePage() {
       } else {
         window.sessionStorage.setItem(guestSessionPlayerKey, JSON.stringify(next));
       }
-      return;
+      return Promise.resolve(true);
     }
     if (supabaseClient) {
-      playerSaveQueueRef.current = playerSaveQueueRef.current.catch(() => undefined).then(async () => {
+      const currentSave = playerSaveQueueRef.current.catch(() => undefined).then(async () => {
+        try {
         const response = await fetch("/api/player", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -655,11 +656,19 @@ export default function HomePage() {
         if (!response.ok) {
           const body = await response.json().catch(() => null);
           setNotice(body?.error || "Could not save your player data.");
+          return false;
+        }
+        return true;
+        } catch {
+          setNotice("Could not reach the save service. Your latest changes are still on screen; retry before refreshing.");
+          return false;
         }
       });
-      return;
+      playerSaveQueueRef.current = currentSave.then(() => undefined);
+      return currentSave;
     }
     window.localStorage.setItem(playerKey, JSON.stringify(next));
+    return Promise.resolve(true);
   };
   const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -847,24 +856,30 @@ export default function HomePage() {
     setViewedProfile(profile);
     setTab("profile");
   };
-  const spinWheel = (reward: (typeof wheelRewards)[number]) => {
-    if (!player) return;
+  const spinWheel = (reward: (typeof wheelRewards)[number]): Promise<boolean> => {
+    if (!player) return Promise.resolve(false);
     if (player.wheelSpun && !isGuest) {
       setNotice("You already spun today's wheel.");
-      return;
+      return Promise.resolve(false);
     }
     const nextMaterials = { ...player.materials };
     if (reward.type === "material" && reward.material) {
       nextMaterials[reward.material] = (nextMaterials[reward.material] || 0) + reward.amount;
     }
-    save({
+    const previousPlayer = player;
+    const nextPlayer = {
       ...player,
       tokens: reward.type === "tokens" ? player.tokens + reward.amount : player.tokens,
       materials: nextMaterials,
       wheelSpun: !isGuest,
+    };
+    const saving = save(nextPlayer);
+    return saving.then((saved) => {
+      if (!saved) setPlayer((current) => current === nextPlayer ? previousPlayer : current);
+      if (saved && !isGuest) window.localStorage.setItem(`${wheelSpinKey}:${player.username}`, "1");
+      if (saved && !isGuest) setNotice(`Wheel reward: ${reward.label}.`);
+      return saved;
     });
-    if (!isGuest) window.localStorage.setItem(`${wheelSpinKey}:${player.username}`, "1");
-    if (!isGuest) setNotice(`Wheel reward: ${reward.label}.`);
   };
   const openCapsule = (capsule: Capsule) => {
     if (!player) return;
@@ -888,16 +903,24 @@ export default function HomePage() {
         ? finalReward
         : capsule.pool[Math.floor(Math.random() * capsule.pool.length)],
     );
-    const next = { ...player, tokens: isGuest ? player.tokens : player.tokens - capsule.price };
-    save(next);
+    const next = {
+      ...player,
+      tokens: isGuest ? player.tokens : player.tokens - capsule.price,
+      inventory: [...player.inventory, finalReward.name],
+    };
     setReveal({ capsule, reward: finalReward, track, winnerIndex, phase: "charging" });
-    window.setTimeout(() => {
-      setReveal((current) => current ? { ...current, phase: "spinning" } : null);
-    }, 950);
-    window.setTimeout(() => {
-      save({ ...next, inventory: [...next.inventory, finalReward.name] });
-      setReveal((current) => current ? { ...current, phase: "result" } : null);
-    }, 8000);
+    void save(next).then((saved) => {
+      if (!saved) {
+        setReveal(null);
+        return;
+      }
+      window.setTimeout(() => {
+        setReveal((current) => current ? { ...current, phase: "spinning" } : null);
+      }, 950);
+      window.setTimeout(() => {
+        setReveal((current) => current ? { ...current, phase: "result" } : null);
+      }, 8000);
+    });
   };
   const openMassCapsules = (quantities: Record<string, number>) => {
     if (!player) return;
@@ -927,14 +950,16 @@ export default function HomePage() {
         }) || capsule.pool[0];
       return { capsule: capsule.name, reward: { ...reward, name: shinyNameFor(reward.name) } };
     });
-    save({
+    void save({
       ...player,
       tokens: isGuest ? player.tokens : player.tokens - cost,
       inventory: [...player.inventory, ...results.map((result) => result.reward.name)],
+    }).then((saved) => {
+      if (!saved) return;
+      setMassOpen(false);
+      setMassQuantities({});
+      setMassResults(results);
     });
-    setMassOpen(false);
-    setMassQuantities({});
-    setMassResults(results);
   };
   const equip = (name: string) => {
     if (player) {
@@ -1125,8 +1150,10 @@ export default function HomePage() {
       setCraftReveal((current) => current ? { ...current, phase: "charging" } : null);
     }, 1400);
     window.setTimeout(() => {
-      save({ ...next, inventory: [...next.inventory, name] });
-      setCraftReveal({ name, ingredients: recipe.ingredients, phase: "output" });
+      void save({ ...next, inventory: [...next.inventory, name] }).then((saved) => {
+        if (saved) setCraftReveal({ name, ingredients: recipe.ingredients, phase: "output" });
+        else setCraftReveal(null);
+      });
     }, 2700);
   };
   const setClan = (tag: string) => {
@@ -2356,7 +2383,7 @@ function WheelTab({
   isGuest,
 }: {
   player: Player;
-  spin: (reward: (typeof wheelRewards)[number]) => void;
+  spin: (reward: (typeof wheelRewards)[number]) => Promise<boolean>;
   isGuest: boolean;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -2396,9 +2423,16 @@ function WheelTab({
       }));
     }, 850);
     window.setTimeout(() => {
-      setResult(reward);
-      setPhase("result");
-      spin(reward);
+      void spin(reward).then((saved) => {
+        if (saved) {
+          setResult(reward);
+          setPhase("result");
+        } else {
+          setResult(null);
+          setPhase("ready");
+          setBeltOffset(0);
+        }
+      });
     }, 7900);
   };
   const spinNow = () => {
