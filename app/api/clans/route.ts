@@ -31,33 +31,14 @@ export async function POST(request: Request) {
 
   if (!name || name.length < 2) return NextResponse.json({ error: 'Clan name must be at least 2 characters.' }, { status: 400 });
 
-  const { data: profile } = await supabase.from('profiles').select('tokens').eq('id', user.id).single();
-  if (!profile || profile.tokens < 5000) {
-    return NextResponse.json({ error: 'Creating a clan requires 5,000 tokens.' }, { status: 400 });
-  }
-
-  const { data: clan, error: clanErr } = await supabase
-    .from('clans')
-    .insert({
-      name,
-      description,
-      tags,
-      owner_profile_id: user.id,
-      treasury: 0,
-      member_count: 1,
-      thumbnail_url: thumbnailUrl || null,
-    })
-    .select()
-    .single();
-
-  if (clanErr) return NextResponse.json({ error: clanErr.message }, { status: 400 });
-
-  await Promise.all([
-    supabase.from('profiles').update({ tokens: profile.tokens - 5000 }).eq('id', user.id),
-    supabase.from('clan_members').insert({ clan_id: clan.id, profile_id: user.id, role: 'leader', token_contributions: 0 }),
-  ]);
-
-  return NextResponse.json({ ok: true, clan }, { status: 201 });
+  const { data, error } = await supabase.rpc('create_clan_with_cost', {
+    p_name: name,
+    p_description: description,
+    p_tags: tags,
+    p_thumbnail_url: thumbnailUrl || null,
+  });
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json(data, { status: 201 });
 }
 
 export async function PATCH(request: Request) {

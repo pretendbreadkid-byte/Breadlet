@@ -10,14 +10,20 @@ export async function GET() {
   const supabase = createAdminClient();
   if (!supabase) return NextResponse.json({ error: 'Leaderboard requires server configuration.' }, { status: 503 });
   const [{ data: profiles, error: profileError }, { data: clans }] = await Promise.all([
-    supabase.from('profiles').select('id, username, tokens'),
+    supabase.from('profiles').select('id, username, tokens, equipped_blook_id'),
     supabase.from('clans').select('id, name, treasury, member_count, thumbnail_url').order('treasury', { ascending: false }),
   ]);
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
+  const equippedIds = Array.from(new Set((profiles || []).map((profile) => profile.equipped_blook_id).filter(Boolean)));
+  const { data: blooks } = equippedIds.length
+    ? await supabase.from('blooks').select('id, name').in('id', equippedIds)
+    : { data: [] };
+  const equippedById = new Map((blooks || []).map((blook: any) => [blook.id, blook.name === 'Surgeon' ? 'Doctor' : blook.name]));
   const players = (profiles || []).map((profile) => ({
     id: profile.id,
     username: profile.username,
     tokens: profile.tokens,
+    equippedBlook: equippedById.get(profile.equipped_blook_id) || '',
   }));
   return NextResponse.json({ players, clans: clans || [] });
 }

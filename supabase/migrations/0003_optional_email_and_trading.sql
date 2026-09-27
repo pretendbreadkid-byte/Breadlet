@@ -1,3 +1,37 @@
+do $$
+declare
+  duplicate_profile record;
+  candidate_username text;
+  suffix integer;
+begin
+  for duplicate_profile in
+    select id, username
+    from (
+      select id, username,
+        row_number() over (partition by lower(username) order by created_at, id) as duplicate_number
+      from public.profiles
+    ) ranked
+    where duplicate_number > 1
+    order by lower(username), id
+  loop
+    suffix := 2;
+    loop
+      candidate_username := left(duplicate_profile.username, 20 - length('_' || suffix::text)) || '_' || suffix::text;
+      exit when not exists (
+        select 1 from public.profiles
+        where lower(username) = lower(candidate_username)
+          and id <> duplicate_profile.id
+      );
+      suffix := suffix + 1;
+    end loop;
+
+    update public.profiles
+    set username = candidate_username
+    where id = duplicate_profile.id;
+  end loop;
+end;
+$$;
+
 create unique index if not exists profiles_username_ci_unique
   on public.profiles (lower(username));
 

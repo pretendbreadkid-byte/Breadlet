@@ -23,6 +23,7 @@ import {
   GitBranch,
   CirclePlay,
   Package,
+  Gift,
 } from "lucide-react";
 
 type Tab =
@@ -33,6 +34,7 @@ type Tab =
   | "market"
   | "chat"
   | "leaderboard"
+  | "migration"
   | "promo"
   | "info"
   | "clan"
@@ -64,6 +66,21 @@ type Player = {
   friends?: string[];
   wheelSpun?: boolean;
   guestStarterRemoved?: boolean;
+  capsulesOpened?: number;
+  messagesSent?: number;
+  completedTrades?: number;
+  trainScore?: number;
+};
+type PublicProfile = {
+  id: string;
+  username: string;
+  tokens: number;
+  equippedBlook: string;
+  inventoryCount: number;
+  badges: string[];
+  capsulesOpened: number;
+  messagesSent: number;
+  clanTag?: string;
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 
@@ -75,7 +92,23 @@ const badgeDescriptions: Record<string, string> = {
   "First 50": "Awarded to the first 50 players to join Breadlet.",
   Verified: "A verified badge for trusted, well-known community members.",
   BlookTuber: "Awarded to YouTubers who create Breadlet content or similar collectible-game content.",
+  "10K Tokens": "Reach a balance of 10,000 tokens.",
+  "100K Tokens": "Reach a balance of 100,000 tokens.",
+  "1M Tokens": "Reach a balance of 1,000,000 tokens.",
 };
+const tokenBadgesFor = (tokens: number) => [
+  ...(tokens >= 10000 ? ["10K Tokens"] : []),
+  ...(tokens >= 100000 ? ["100K Tokens"] : []),
+  ...(tokens >= 1000000 ? ["1M Tokens"] : []),
+];
+const badgeIconFor = (badge: string) => ({
+  "First 50": "/assets/first-50-badge.svg",
+  Verified: "/assets/verified-badge.svg",
+  BlookTuber: "/assets/blooktuber-badge.svg",
+  "10K Tokens": "/assets/token-badge-10k.svg",
+  "100K Tokens": "/assets/token-badge-100k.svg",
+  "1M Tokens": "/assets/token-badge-1m.svg",
+})[badge] || "/assets/verified-badge.svg";
 const artFor = (name: string) =>
   ({
     Mars: "/assets/mars.svg",
@@ -93,7 +126,7 @@ const artFor = (name: string) =>
     Brioche: "/assets/brioche.svg",
     Chef: "/assets/chef (1).svg",
     Earth: "/assets/earrth.svg",
-    Surgeon: "/assets/surgeon.svg",
+    Surgeon: "/assets/doctor 2.0.svg",
     Doctor: "/assets/doctor 2.0.svg",
     "Crystal Ball": "/assets/crystal ball 2.0.svg",
     "Pixel Fuego": "/assets/pixel fuego.png",
@@ -126,7 +159,7 @@ const artFor = (name: string) =>
     Timeglass: "/assets/Time glass final animation.svg",
     "Pixel UFO": "/assets/pixel planet.png",
     "Star Ship": "/assets/star ship frame 1.svg",
-    "Bread Blook": "/assets/breadblook.jpg",
+    "Bread Blook": "/assets/new breadblook.png",
     "Golden Shuriken": "/assets/golden-shuriken.svg",
     "Holy Bread": "/assets/holy bread.svg",
     "Red Rex": "/assets/red-rex.svg",
@@ -248,17 +281,15 @@ const wheelRarityFor = (reward: (typeof wheelRewards)[number]) => {
 };
 
 function playerFromServer(data: any): Player {
-  const serverInventory = data.inventory?.length ? data.inventory : ["Bread Blook"];
-  const legacyShinyCount = serverInventory.filter((name: string) => name.startsWith("Shiny ")).length;
-  const inventory = serverInventory.filter((name: string) => !name.startsWith("Shiny "));
+  const inventory = (data.inventory || []).map((name: string) => name === "Surgeon" ? "Doctor" : name);
   return {
     id: data.profile.id,
     username: data.profile.username,
     password: "",
-    tokens: (data.profile.tokens || 0) + legacyShinyCount * 200,
+    tokens: data.profile.tokens || 0,
     mined: data.mine?.current_earnings_today || 0,
-    inventory: inventory.length ? inventory : ["Bread Blook"],
-    equipped: data.profile.equipped_blook_name?.replace(/^Shiny /, "") || inventory[0] || "Bread Blook",
+    inventory,
+    equipped: (data.profile.equipped_blook_name === "Surgeon" ? "Doctor" : data.profile.equipped_blook_name) || inventory[0] || "",
     pickaxe: Math.max(0, (data.mine?.pickaxe_level || 1) - 1),
     listings: data.listings || [],
     clanTag: data.profile.clan_tag || "",
@@ -266,6 +297,10 @@ function playerFromServer(data: any): Player {
     badges: data.profile.badges || data.profile.stats?.badges || [],
     friends: data.profile.friends || [],
     wheelSpun: Boolean(data.profile.wheel_spun),
+    capsulesOpened: data.activity?.capsulesOpened || 0,
+    messagesSent: data.activity?.messagesSent || 0,
+    completedTrades: data.activity?.completedTrades || 0,
+    trainScore: data.mine?.total_tokens_mined || 0,
   };
 }
 const materialFor = (name: string, rarity: string) =>
@@ -350,7 +385,6 @@ const liveCapsules: Capsule[] = [
     pool: rewards([
       ["Worker", "Common"],
       ["Chef", "Uncommon"],
-      ["Surgeon", "Rare"],
       ["Doctor", "Rare"],
       ["Ninja", "Epic"],
       ["Actor", "Legendary"],
@@ -401,6 +435,7 @@ const liveCapsules: Capsule[] = [
     price: 25,
     art: "/assets/Blooktuber Pack.svg",
     pool: rewards([
+      ["Bread Blook", "Mythic"],
       ["Blooket Life", "Uncommon"],
       ["Blooket Gods", "Rare"],
       ["Fasty Jay", "Epic"],
@@ -460,11 +495,15 @@ export default function HomePage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [migrationCode, setMigrationCode] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [tab, setTab] = useState<Tab>("wheel");
   const [notice, setNotice] = useState("");
+  const [incomingTradeNotice, setIncomingTradeNotice] = useState("");
+  const [onlineProfileIds, setOnlineProfileIds] = useState<string[]>([]);
+  const [onlinePlayers, setOnlinePlayers] = useState<{ id: string; username: string; equippedBlook: string }[]>([]);
+  const [presenceReady, setPresenceReady] = useState(false);
+  const [viewedProfile, setViewedProfile] = useState<PublicProfile | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [showRetired, setShowRetired] = useState(false);
@@ -519,16 +558,15 @@ export default function HomePage() {
       const old = JSON.parse(saved);
       if (old.password)
         (() => {
-          const legacyShinyCount = Array.isArray(old.inventory) ? old.inventory.filter((name: string) => name.startsWith("Shiny ")).length : 0;
-          const inventory = (old.inventory || []).filter((name: string) => !name.startsWith("Shiny "));
+          const inventory = (old.inventory || []).map((name: string) => name === "Surgeon" ? "Doctor" : name);
         setPlayer({
           listings: [],
           pickaxe: 0,
           clanTag: "",
           ...old,
-          tokens: (old.tokens || 0) + legacyShinyCount * 200,
-          inventory: inventory.length ? inventory : ["Bread Blook"],
-          equipped: String(old.equipped || "Bread Blook").replace(/^Shiny /, ""),
+          tokens: old.tokens || 0,
+          inventory,
+          equipped: String(old.equipped || "").replace(/^Shiny /, "").replace(/^Surgeon$/, "Doctor"),
           materials: { ...emptyMaterials(), ...(old.materials || {}) },
           badges: old.badges || [],
           friends: old.friends || [],
@@ -546,6 +584,47 @@ export default function HomePage() {
     if (!supabaseClient) return;
     fetch("/api/admin").then((response) => setAdminUnlocked(response.ok)).catch(() => setAdminUnlocked(false));
   }, [supabaseClient]);
+  useEffect(() => {
+    if (!supabaseClient || !player?.id || isGuest) return;
+    const channel = supabaseClient.channel(`incoming-trade-notification-${player.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trades", filter: `receiver_profile_id=eq.${player.id}` }, () => {
+        setIncomingTradeNotice("You received a trade request.");
+      })
+      .subscribe();
+    return () => { void supabaseClient.removeChannel(channel); };
+  }, [isGuest, player?.id, supabaseClient]);
+  useEffect(() => {
+    if (!supabaseClient || !player?.id || isGuest) {
+      setOnlinePlayers([]);
+      setOnlineProfileIds([]);
+      setPresenceReady(false);
+      return;
+    }
+    setPresenceReady(false);
+    const channel = supabaseClient.channel("breadlet-online", { config: { presence: { key: player.id } } });
+    const syncPresence = () => {
+      const state = channel.presenceState<{ profileId: string; username: string; equippedBlook: string }>();
+      const uniquePlayers = new Map<string, { id: string; username: string; equippedBlook: string }>();
+      Object.values(state).flat().forEach((entry) => {
+        if (entry.profileId) uniquePlayers.set(entry.profileId, { id: entry.profileId, username: entry.username, equippedBlook: entry.equippedBlook || "" });
+      });
+      const next = Array.from(uniquePlayers.values());
+      setOnlinePlayers(next);
+      setOnlineProfileIds(next.map((entry) => entry.id));
+      setPresenceReady(true);
+    };
+    channel.on("presence", { event: "sync" }, syncPresence).subscribe((status) => {
+      if (status === "SUBSCRIBED") void channel.track({ profileId: player.id, username: player.username, equippedBlook: player.equipped || "" });
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setPresenceReady(true);
+    });
+    const timeout = window.setTimeout(() => setPresenceReady(true), 3000);
+    return () => {
+      window.clearTimeout(timeout);
+      void supabaseClient.removeChannel(channel);
+      setOnlinePlayers([]);
+      setOnlineProfileIds([]);
+    };
+  }, [isGuest, player?.equipped, player?.id, player?.username, supabaseClient]);
   useEffect(() => {
     const logo = document.querySelector('header img[alt="Breadlet logo"]');
     if (!logo) return;
@@ -643,16 +722,11 @@ export default function HomePage() {
         const loginBody = await loginResponse.json().catch(() => null);
         result = { error: loginResponse.ok ? null : { message: loginBody?.error || "Log in failed. Check your username and password, then try again." } };
       }
-      let createdAccount = authMode === "signup";
       if (result.error) {
         setNotice(result.error.message);
         return;
       }
       await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 250, materials: emptyMaterials() }) });
-      if (createdAccount && migrationCode.trim()) {
-        const migration = await fetch("/api/migration/redeem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: migrationCode.trim() }) });
-        if (!migration.ok) setNotice((await migration.json().catch(() => null))?.error || "Migration could not be redeemed.");
-      }
       const response = await fetch("/api/player");
       if (response.ok) {
         pendingGuestRef.current = null;
@@ -670,8 +744,8 @@ export default function HomePage() {
       password,
       tokens: 250,
       mined: 0,
-      inventory: ["Bread Blook"],
-      equipped: "Bread Blook",
+      inventory: [],
+      equipped: "",
       pickaxe: 0,
       listings: [],
       clanTag: "",
@@ -748,6 +822,22 @@ export default function HomePage() {
     save({ ...player, friends: Array.from(new Set([...(player.friends || []), match.username])) });
     setNotice(`Friend request sent to ${match.username}.`);
   };
+  const openPlayerProfile = async (username: string) => {
+    if (!player || username.toLowerCase() === player.username.toLowerCase()) {
+      setViewedProfile(null);
+      setTab("profile");
+      return;
+    }
+    const response = await fetch(`/api/players/search?q=${encodeURIComponent(username)}`, { cache: "no-store" });
+    const matches = response.ok ? await response.json().catch(() => []) : [];
+    const profile = Array.isArray(matches) ? matches.find((candidate: PublicProfile) => candidate.username.toLowerCase() === username.toLowerCase()) : null;
+    if (!profile) {
+      setNotice("That player's profile could not be loaded.");
+      return;
+    }
+    setViewedProfile(profile);
+    setTab("profile");
+  };
   const spinWheel = (reward: (typeof wheelRewards)[number]) => {
     if (!player) return;
     if (player.wheelSpun && !isGuest) {
@@ -783,8 +873,8 @@ export default function HomePage() {
         return roll <= 0;
       }) || capsule.pool[0];
     const finalReward = { ...reward, name: shinyNameFor(reward.name) };
-    const winnerIndex = 28;
-    const track = Array.from({ length: 36 }, (_, index) =>
+    const winnerIndex = 54;
+    const track = Array.from({ length: 62 }, (_, index) =>
       index === winnerIndex
         ? finalReward
         : capsule.pool[Math.floor(Math.random() * capsule.pool.length)],
@@ -798,7 +888,7 @@ export default function HomePage() {
     window.setTimeout(() => {
       save({ ...next, inventory: [...next.inventory, finalReward.name] });
       setReveal((current) => current ? { ...current, phase: "result" } : null);
-    }, 5600);
+    }, 8000);
   };
   const openMassCapsules = (quantities: Record<string, number>) => {
     if (!player) return;
@@ -937,16 +1027,26 @@ export default function HomePage() {
     setSelectedListing(null);
     setNotice(`${listing.blook} purchased.`);
   };
-  const redeemPromo = (event: FormEvent<HTMLFormElement>) => {
+  const redeemPromo = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!player) return;
     if (promoCode.trim() === "Breadlet2.0") {
       save({ ...player, tokens: player.tokens + 1000 });
       setNotice("Promo redeemed: +1,000 tokens.");
     } else if (promoCode.trim() === "admin1234532!") {
+      const response = await fetch("/api/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "unlock-reviewer", code: promoCode.trim() }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(result.error || "Request reviewer access could not be enabled.");
+        return;
+      }
       setAdminUnlocked(true);
-      setTab("admin");
-      setNotice("Demo admin panel unlocked.");
+      setTab("migration");
+      setNotice("Request review access enabled.");
     } else setNotice("That promo code is not active.");
   };
   const grantReward = async (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => {
@@ -1044,11 +1144,9 @@ export default function HomePage() {
         username={username}
         email={email}
         password={password}
-        migrationCode={migrationCode}
         setUsername={setUsername}
         setEmail={setEmail}
         setPassword={setPassword}
-        setMigrationCode={setMigrationCode}
         authMode={authMode}
         setAuthMode={setAuthMode}
         forgotPassword={forgotPassword}
@@ -1097,7 +1195,7 @@ export default function HomePage() {
     },
   ];
   const visibleNav = isGuest
-    ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
+    ? nav.filter((item) => !["clan", "market", "chat", "leaderboard", "migration"].includes(item.id))
     : nav;
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
@@ -1123,7 +1221,7 @@ export default function HomePage() {
         <div>
           {/* Logo Header */}
           <div className="flex items-center gap-3 px-1 py-2 cursor-pointer" onClick={() => setTab("wheel")}>
-            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-14 w-14 shrink-0 object-contain" /><div className="min-w-0"><p className="text-3xl font-black uppercase leading-none text-white">Breadlet</p><p className="mt-1 text-[10px] font-bold tracking-widest text-[#bde8ff]">BRED-lit</p></div></div>
+            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-14 w-14 shrink-0 object-contain" /><div className="min-w-0"><p className="breadlet-brand text-2xl font-black uppercase leading-none text-white">Breadlet</p><p className="mt-1 text-[10px] font-bold tracking-widest text-[#bde8ff]">BRED-lit</p></div></div>
           </div>
 
           {/* Sidebar Nav Buttons */}
@@ -1139,7 +1237,7 @@ export default function HomePage() {
                 }`}
               >
                 {item.icon}
-                {item.label}
+                <span className="flex min-w-0 flex-col items-start leading-none"><span>{item.label}</span><span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/45">Beta</span></span>
               </button>
             ))}
           </nav>
@@ -1174,7 +1272,7 @@ export default function HomePage() {
                 <div className="h-6 w-6 rounded-lg overflow-hidden bg-[#072a54] p-0.5 border border-white/30 flex items-center justify-center">
                   {player.equipped ? <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={18} className="text-[#9cc8e8]" />}
                 </div>
-                <span className="whitespace-nowrap">{player.username}</span>
+                <span title={player.username} className="min-w-0 max-w-[min(52vw,22rem)] whitespace-normal break-words text-left leading-tight [overflow-wrap:anywhere] sm:max-w-[24rem]">{player.username}</span>
                 <ChevronDown size={18} />
               </button>
 
@@ -1210,6 +1308,16 @@ export default function HomePage() {
                     <HelpCircle size={18} />
                     Info & Guide
                   </button>
+                  <button
+                    onClick={() => {
+                      setTab("migration");
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
+                  >
+                    <Gift size={18} />
+                    Migration
+                  </button>
                   {adminUnlocked && (
                     <button
                       onClick={() => {
@@ -1240,6 +1348,7 @@ export default function HomePage() {
 
         {/* Dynamic Page Section */}
         <section className="flex-1 p-6 overflow-y-auto">
+          {incomingTradeNotice && <button onClick={() => { setIncomingTradeNotice(""); setTab("profile"); }} className="profile-trade-toast fixed right-5 top-20 z-40 w-[min(24rem,calc(100vw-2rem))]" role="status">{incomingTradeNotice}<span>Open profile</span></button>}
           {isGuest && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress resets when you leave"}</span><button onClick={leaveSession} className="font-black underline decoration-amber-200/50 underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
@@ -1250,7 +1359,7 @@ export default function HomePage() {
               </div>
             </div>
           )}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} />}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} />}
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
@@ -1275,12 +1384,13 @@ export default function HomePage() {
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
             />
           )}
-          {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} />}
+          {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "leaderboard" && <Leaderboard player={player} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (
             <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} craft={craft} isGuest={isGuest} />
           )}
+          {tab === "migration" && <RequestsTab isGuest={isGuest} />}
           {tab === "promo" && (
             <PromoTab
               code={promoCode}
@@ -1410,11 +1520,9 @@ function LoginScreen({
   username,
   email,
   password,
-  migrationCode,
   setUsername,
   setEmail,
   setPassword,
-  setMigrationCode,
   authMode,
   setAuthMode,
   forgotPassword,
@@ -1430,11 +1538,9 @@ function LoginScreen({
   username: string;
   email: string;
   password: string;
-  migrationCode: string;
   setUsername: (value: string) => void;
   setEmail: (value: string) => void;
   setPassword: (value: string) => void;
-  setMigrationCode: (value: string) => void;
   authMode: "login" | "signup";
   setAuthMode: (value: "login" | "signup") => void;
   forgotPassword: boolean;
@@ -1511,16 +1617,6 @@ function LoginScreen({
           placeholder="Create a password"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />}
-        {authMode === "signup" && <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#bde8ff]" htmlFor="migration-code">
-          Do you have a Breadlet migration code?
-        </label>}
-        {authMode === "signup" && <input
-          id="migration-code"
-          value={migrationCode}
-          onChange={(event) => setMigrationCode(event.target.value)}
-          placeholder="Optional migration code"
-          className="mt-2 w-full rounded-xl bg-[#072a54] px-4 py-3 text-white outline-none"
-        />}
         {notice && (
           <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
             <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
@@ -1552,6 +1648,11 @@ function ProfileTab({
   savePlayer,
   addFriend,
   isGuest,
+  onlineProfileIds,
+  presenceReady,
+  viewedProfile,
+  openPlayerProfile,
+  closeViewedProfile,
 }: {
   player: Player;
   setTab: (tab: Tab) => void;
@@ -1559,16 +1660,36 @@ function ProfileTab({
   savePlayer: (player: Player) => void;
   addFriend: (username: string) => void;
   isGuest: boolean;
+  onlineProfileIds: string[];
+  presenceReady: boolean;
+  viewedProfile: PublicProfile | null;
+  openPlayerProfile: (username: string) => void | Promise<void>;
+  closeViewedProfile: () => void;
 }) {
   const [lookup, setLookup] = useState("");
-  const [matches, setMatches] = useState<{ id: string; username: string }[]>([]);
+  const [matches, setMatches] = useState<PublicProfile[]>([]);
   const [trades, setTrades] = useState<any[]>([]);
   const [tradeTarget, setTradeTarget] = useState<{ id?: string; username: string; tradeId?: string; offer?: any } | null>(null);
   const [tradeTokens, setTradeTokens] = useState("0");
   const [tradeBlooks, setTradeBlooks] = useState<Record<string, number>>({});
   const [tradeMessage, setTradeMessage] = useState("");
   const [tradeBusy, setTradeBusy] = useState(false);
+  const [tradeAlert, setTradeAlert] = useState("");
+  const [tradeErrorPopup, setTradeErrorPopup] = useState("");
+  const [chatTrade, setChatTrade] = useState<any | null>(null);
+  const [tradeMessages, setTradeMessages] = useState<any[]>([]);
+  const [tradeChatInput, setTradeChatInput] = useState("");
+  const [profileLookupOpen, setProfileLookupOpen] = useState(false);
+  const viewingOther = Boolean(viewedProfile && viewedProfile.id !== player.id);
+  const profileName = viewingOther ? viewedProfile!.username : player.username;
+  const profileTokens = viewingOther ? viewedProfile!.tokens : player.tokens;
+  const profileEquipped = viewingOther ? viewedProfile!.equippedBlook : player.equipped;
+  const profileInventoryCount = viewingOther ? viewedProfile!.inventoryCount : player.inventory.length;
+  const profileBadges = viewingOther ? viewedProfile!.badges : player.badges;
+  const profileCapsulesOpened = viewingOther ? viewedProfile!.capsulesOpened : player.capsulesOpened || 0;
+  const profileMessagesSent = viewingOther ? viewedProfile!.messagesSent : player.messagesSent || 0;
   const foundUser = lookup.trim() && lookup.trim().toLowerCase() !== player.username.toLowerCase() ? lookup.trim() : "";
+  const realtimeClient = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
 
   const loadTrades = useCallback(async () => {
     if (isGuest) return;
@@ -1579,9 +1700,47 @@ function ProfileTab({
   useEffect(() => {
     if (isGuest) return;
     void loadTrades();
-    const interval = window.setInterval(() => void loadTrades(), 15000);
-    return () => window.clearInterval(interval);
-  }, [isGuest, loadTrades]);
+    const fallback = window.setInterval(() => void loadTrades(), 30000);
+    if (!realtimeClient || !player.id) return () => window.clearInterval(fallback);
+    const channel = realtimeClient.channel(`profile-trades-${player.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: `receiver_profile_id=eq.${player.id}` }, (payload) => {
+        if (payload.eventType === "INSERT") setTradeAlert("New trade request received.");
+        void loadTrades();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: `sender_profile_id=eq.${player.id}` }, () => void loadTrades())
+      .subscribe();
+    return () => {
+      window.clearInterval(fallback);
+      void realtimeClient.removeChannel(channel);
+    };
+  }, [isGuest, loadTrades, player.id, realtimeClient]);
+
+  useEffect(() => {
+    if (!chatTrade || !realtimeClient) return;
+    const loadTradeMessages = async () => {
+      const response = await fetch(`/api/trades/messages?tradeId=${encodeURIComponent(chatTrade.id)}`, { cache: "no-store" });
+      if (response.ok) setTradeMessages(await response.json());
+    };
+    void loadTradeMessages();
+    const channel = realtimeClient.channel(`trade-chat-${chatTrade.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trade_messages", filter: `trade_id=eq.${chatTrade.id}` }, () => void loadTradeMessages())
+      .subscribe();
+    return () => { void realtimeClient.removeChannel(channel); };
+  }, [chatTrade, realtimeClient]);
+
+  const sendTradeMessage = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const message = tradeChatInput.trim();
+    if (!chatTrade || !message) return;
+    const response = await fetch("/api/trades/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tradeId: chatTrade.id, message }) });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setTradeMessage(body.error || "Could not send trade message.");
+      return;
+    }
+    setTradeChatInput("");
+    setTradeMessages((current) => current.some((item) => item.id === body.id) ? current : [...current, body]);
+  };
 
   const searchPlayers = async () => {
     if (lookup.trim().length < 2) return;
@@ -1591,6 +1750,10 @@ function ProfileTab({
 
   const saveTradeOffer = async () => {
     if (!tradeTarget) return;
+    if (!tradeTarget.tradeId && tradeTarget.id && !onlineProfileIds.includes(tradeTarget.id)) {
+      setTradeErrorPopup(presenceReady ? `${tradeTarget.username} is offline. Trade requests can only be sent while they are online.` : "Checking player availability. Please try again in a moment.");
+      return;
+    }
     setTradeBusy(true);
     setTradeMessage("");
     const offer = {
@@ -1608,6 +1771,7 @@ function ProfileTab({
     setTradeBusy(false);
     if (!response.ok) {
       setTradeMessage(result.error || "Could not send the trade offer.");
+      setTradeErrorPopup(result.error || "Could not send the trade offer.");
       return;
     }
     setTradeTarget(null);
@@ -1632,88 +1796,81 @@ function ProfileTab({
     const tokens = Number(offer?.tokens) || 0;
     return [tokens ? `${tokens.toLocaleString()} tokens` : "", ...blooks.map((item: any) => `${item.name} ×${item.quantity}`)].filter(Boolean).join(" · ") || "No items or tokens offered";
   };
+  const tokenBadges = tokenBadgesFor(profileTokens);
+  const displayedBadges = Array.from(new Set([...profileBadges, ...tokenBadges]));
+  const openLookup = () => { setMatches([]); setLookup(""); setProfileLookupOpen(true); };
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-      <div className="profile-hero rounded-3xl border border-[#73c8ff]/45 bg-gradient-to-br from-[#58b8f2] to-[#1677bd] p-7">
-        <div className="flex flex-wrap items-center gap-5">
-          <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl border border-white/50 bg-[#bde8ff] p-0">
-            {player.equipped ? <img
-              src={artFor(player.equipped)}
-              alt={player.equipped}
-              className="h-full w-full object-cover"
-            /> : <CircleUserRound size={48} className="text-[#17659c]" />}
+    <div className="profile-dashboard">
+      {tradeAlert && <button onClick={() => { setTradeAlert(""); document.getElementById("profile-trades")?.scrollIntoView({ behavior: "smooth" }); }} className="profile-trade-toast" role="status">{tradeAlert}<span>View trade</span></button>}
+      <div className="profile-top-grid">
+        <section className="profile-player-panel">
+          <div className="profile-avatar-frame">{profileEquipped ? <img src={artFor(profileEquipped)} alt={profileEquipped} /> : <CircleUserRound size={52} />}</div>
+          <div className="profile-player-copy"><span className="profile-subtitle">{viewingOther ? "Player profile · Beta" : "Player profile"}</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Blook equipped"}</p>
+            {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
+            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => { setTradeTarget({ id: viewedProfile!.id, username: viewedProfile!.username }); setTradeTokens("0"); setTradeBlooks({}); }}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Daily Crate</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
           </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-              Player profile
-            </p>
-            <h1 className="mt-2 text-4xl font-black">
-              {player.username} {player.clanTag && <span className="text-[#ffe2a0]">[{player.clanTag}]</span>}
-            </h1>
-            {player.equipped && <p className="mt-1 text-xs font-bold uppercase tracking-widest text-[#eac477]">
-              {rarityFor(player.equipped)}
-            </p>}
-          </div>
-        </div>
-        <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          <Stat label="Tokens" value={player.tokens.toString()} />
-          <Stat label="Collection" value={player.inventory.length.toString()} />
-          <Stat label="Mined today" value={`${player.mined}/${mineCapFor(player.pickaxe)}`} />
-        </div>
+        </section>
+        <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{tokenBadges.at(-1) || "Token milestones: 10K · 100K · 1M"}</div></section>
       </div>
-      <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
-        <h2 className="text-xl font-black">Badges</h2>
-        <p className="mt-2 text-sm text-[#d7b88c]">Click a badge to see what it means.</p>
-        <div className="mt-5 flex flex-wrap gap-4">
-          {player.badges.length ? player.badges.map((badge) => (
-            <button key={badge} onClick={() => showBadge(badge)} title={badge} className="rounded-2xl bg-[#24170f] p-2">
-              <img src={badge === "First 50" ? "/assets/first-50-badge.svg" : badge === "Verified" ? "/assets/verified-badge.svg" : "/assets/blooktuber-badge.svg"} alt={badge} className="h-16 w-16 object-contain" />
-            </button>
-          )) : <span className="text-sm text-[#b58d68]">No badges earned yet.</span>}
-        </div>
-      </div>
-      <div className="rounded-3xl border border-[#73c8ff]/45 bg-[#18558f] p-6">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Social lookup</p>
-        <h2 className="mt-1 text-2xl font-black">Find players</h2>
-        <div className="mt-4 flex gap-2"><input value={lookup} onChange={(event) => setLookup(event.target.value)} placeholder="Search username" className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#103f75] px-3 py-3 text-white" /><button onClick={searchPlayers} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Search</button></div>
-        {!!matches.length && <div className="mt-4 space-y-2">{matches.map((match) => <div key={match.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#103f75] p-3"><span className="font-black">{match.username}</span><div className="flex gap-2"><button onClick={() => addFriend(match.username)} className="rounded-lg border border-[#3d91cd] px-3 py-2 text-sm font-bold text-[#bde8ff]">Add friend</button><button disabled={isGuest} onClick={() => { setTradeTarget({ id: match.id, username: match.username }); setTradeTokens("0"); setTradeBlooks({}); }} className="rounded-lg bg-emerald-300 px-3 py-2 text-sm font-black text-emerald-950 disabled:opacity-40">Trade</button></div></div>)}</div>}
-        {!!player.friends?.length && <p className="mt-4 text-sm text-[#d9f3ff]">Friends: {player.friends.join(", ")}</p>}
-      </div>
-      {!isGuest && <div className="rounded-3xl border border-emerald-300/30 bg-[#143528] p-6 lg:col-span-2">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-emerald-200">Player-to-player</p><h2 className="mt-1 text-2xl font-black">Trade inbox</h2></div><button onClick={() => void loadTrades()} className="rounded-lg border border-emerald-100/20 px-3 py-2 text-sm font-bold text-emerald-100">Refresh</button></div>
-        {tradeMessage && <p role="status" className="mt-3 text-sm text-amber-200">{tradeMessage}</p>}
-        <div className="mt-4 space-y-3">{trades.filter((trade) => trade.status === "pending").map((trade) => {
+      <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
+        <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/coin.svg" />
+        <ProfileMetric label="Blooks Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
+        <ProfileMetric label="Capsules Opened" value={String(profileCapsulesOpened)} icon="/assets/space-capsule-new.svg" />
+        <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
+      </div></section>
+      {!viewingOther && <div className="profile-lower-grid">
+        <section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends</h2><button onClick={openLookup}>Find Player</button></div><div className="profile-list-body">{player.friends?.length ? player.friends.map((friend) => <div key={friend} className="profile-friend-row"><img src="/assets/logo and defualt pfp.svg" alt="" /><span>{friend}</span></div>) : <p className="profile-empty">No friends yet.</p>}</div></section>
+        {!isGuest && <section className="profile-list-panel" id="profile-trades"><div className="profile-list-heading"><h2>Trades</h2><button onClick={() => void loadTrades()}>Refresh</button></div>{tradeMessage && <p role="status" className="profile-alert-inline">{tradeMessage}</p>}<div className="profile-list-body profile-trade-list">{trades.map((trade) => {
           const sentByMe = trade.sender_profile_id === player.id;
           const otherName = sentByMe ? trade.receiver_username : trade.sender_username;
           const myOffer = sentByMe ? trade.sender_offer_json : trade.receiver_offer_json;
           const theirOffer = sentByMe ? trade.receiver_offer_json : trade.sender_offer_json;
           const confirmed = sentByMe ? trade.sender_confirmed : trade.receiver_confirmed;
-          return <article key={trade.id} className="rounded-xl border border-emerald-100/15 bg-black/15 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-black text-white">Trade with {otherName}</p><p className="mt-1 text-xs text-white/55">{sentByMe ? "Outgoing offer" : "Incoming offer"} · {new Date(trade.updated_at).toLocaleString()}</p></div><span className="rounded-full bg-amber-200/10 px-3 py-1 text-xs font-black text-amber-100">{confirmed ? "You confirmed" : "Needs confirmation"}</span></div>
-            <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2"><p className="rounded-lg bg-black/20 p-3"><b>Your side:</b> {offerSummary(myOffer)}</p><p className="rounded-lg bg-black/20 p-3"><b>Their side:</b> {offerSummary(theirOffer)}</p></div>
-            <div className="mt-3 flex flex-wrap gap-2"><button onClick={() => { setTradeTarget({ username: otherName, tradeId: trade.id }); setTradeTokens(String(Number(myOffer?.tokens) || 0)); setTradeBlooks(Object.fromEntries((myOffer?.blooks || []).map((item: any) => [item.name, item.quantity]))); }} className="rounded-lg border border-emerald-100/20 px-3 py-2 text-sm font-bold text-emerald-100">Edit your offer</button><button onClick={() => void respondToTrade(trade.id, "confirm")} className="rounded-lg bg-emerald-300 px-3 py-2 text-sm font-black text-emerald-950">{confirmed ? "Confirm again" : "Confirm trade"}</button><button onClick={() => void respondToTrade(trade.id, sentByMe ? "cancel" : "decline")} className="rounded-lg border border-rose-300/30 px-3 py-2 text-sm font-bold text-rose-200">{sentByMe ? "Cancel" : "Decline"}</button></div>
-          </article>;
-        })}{!trades.some((trade) => trade.status === "pending") && <p className="rounded-xl bg-black/15 p-4 text-sm text-emerald-50/65">No pending trades. Search for a player above to send an offer.</p>}</div>
+          return <article key={trade.id} className="profile-trade-row"><div className="profile-trade-head"><strong>{otherName}</strong><span className={`profile-trade-status status-${trade.status}`}>{trade.status}</span></div><p>You: {offerSummary(myOffer)}</p><p>Them: {offerSummary(theirOffer)}</p><div className="profile-trade-actions">{trade.status === "pending" && <><button onClick={() => { setTradeTarget({ username: otherName, tradeId: trade.id }); setTradeTokens(String(Number(myOffer?.tokens) || 0)); setTradeBlooks(Object.fromEntries((myOffer?.blooks || []).map((item: any) => [item.name, item.quantity]))); }}>Edit offer</button><button className="profile-action-primary" onClick={() => void respondToTrade(trade.id, "confirm")}>{confirmed ? "Confirm again" : "Accept / confirm"}</button><button className="profile-action-danger" onClick={() => void respondToTrade(trade.id, sentByMe ? "cancel" : "decline")}>{sentByMe ? "Cancel" : "Decline"}</button></>}{trade.status === "completed" && <button className="profile-action-primary" onClick={() => { setChatTrade(trade); setTradeMessages([]); }}>Open live chat</button>}</div></article>;
+        })}{!trades.length && <p className="profile-empty">No trades yet. Find a player to send a trade request.</p>}</div></section>}
       </div>}
-      <div className="flex flex-wrap gap-3 rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-4">
-        <button onClick={() => setTab("promo")} className="rounded-lg border border-[#3d91cd] px-4 py-2 font-bold text-[#bde8ff]">Promo Codes</button>
-        <button onClick={() => setTab("info")} className="rounded-lg border border-[#3d91cd] px-4 py-2 font-bold text-[#bde8ff]">Info & Tutorial</button>
-      </div>
-      {tradeTarget && <TradeOfferModal
-        targetName={tradeTarget.username}
-        ownBlooks={uniqueBlooks}
-        tokens={player.tokens}
-        tokenValue={tradeTokens}
-        setTokenValue={setTradeTokens}
-        blookQuantities={tradeBlooks}
-        setBlookQuantities={setTradeBlooks}
-        busy={tradeBusy}
-        message={tradeMessage}
-        close={() => setTradeTarget(null)}
-        submit={() => void saveTradeOffer()}
-      />}
+      {profileLookupOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"><section role="dialog" aria-modal="true" className="profile-popup"><div className="profile-list-heading"><h2>Find a Player</h2><button aria-label="Close player lookup" onClick={() => setProfileLookupOpen(false)}>×</button></div><div className="profile-search-row"><input value={lookup} onChange={(event) => setLookup(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchPlayers()} placeholder="Search username" /><button onClick={() => void searchPlayers()}>Search</button></div><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{matches.map((match) => <div key={match.id} className="profile-friend-row"><button onClick={() => { setProfileLookupOpen(false); void openPlayerProfile(match.username); }} className="min-w-0 flex-1 truncate text-left font-bold">{match.username}</button><button onClick={() => addFriend(match.username)}>Add</button><button disabled={isGuest} onClick={() => { setTradeTarget({ id: match.id, username: match.username }); setTradeTokens("0"); setTradeBlooks({}); setProfileLookupOpen(false); }}>Trade</button></div>)}{!matches.length && <p className="profile-empty">Search for a username to add, trade, or view.</p>}</div></section></div>}
+      {tradeTarget && <TradeOfferModal targetName={tradeTarget.username} ownBlooks={uniqueBlooks} tokens={player.tokens} tokenValue={tradeTokens} setTokenValue={setTradeTokens} blookQuantities={tradeBlooks} setBlookQuantities={setTradeBlooks} busy={tradeBusy} message={tradeMessage} close={() => setTradeTarget(null)} submit={() => void saveTradeOffer()} />}
+      {chatTrade && <TradeChatModal trade={chatTrade} playerId={player.id || ""} username={player.username} messages={tradeMessages} input={tradeChatInput} setInput={setTradeChatInput} close={() => setChatTrade(null)} send={sendTradeMessage} />}
+      {tradeErrorPopup && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 px-4"><section role="alertdialog" aria-modal="true" className="profile-popup w-full max-w-sm"><h2 className="text-xl font-black">Trade unavailable</h2><p className="mt-3 text-sm">{tradeErrorPopup}</p><button autoFocus onClick={() => setTradeErrorPopup("")} className="profile-action-primary mt-5 w-full rounded-lg px-4 py-3 font-black">OK</button></section></div>}
     </div>
   );
+}
+
+function ProfileMetric({ label, value, icon }: { label: string; value: string; icon: string | React.ReactNode }) {
+  return <div className="profile-metric">
+    <span className="profile-metric-icon" aria-hidden="true">{typeof icon === "string" ? <img src={icon} alt="" /> : icon}</span>
+    <div className="min-w-0 text-center"><p>{label}</p><strong>{value}</strong></div>
+  </div>;
+}
+
+function TradeChatModal({
+  trade,
+  playerId,
+  username,
+  messages,
+  input,
+  setInput,
+  close,
+  send,
+}: {
+  trade: any;
+  playerId: string;
+  username: string;
+  messages: any[];
+  input: string;
+  setInput: (value: string) => void;
+  close: () => void;
+  send: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const otherName = trade.sender_profile_id === playerId ? trade.receiver_username : trade.sender_username;
+  return <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-5 backdrop-blur-sm">
+    <section role="dialog" aria-modal="true" aria-label={`Trade chat with ${otherName}`} className="profile-popup flex max-h-[85vh] flex-col">
+      <div className="profile-list-heading"><div><p className="profile-section-label">Accepted trade</p><h2>Chat with {otherName}</h2></div><button onClick={close} aria-label="Close trade chat">×</button></div>
+      <div className="trade-chat-messages mt-4 flex-1 space-y-2 overflow-y-auto">{messages.map((item) => <div key={item.id} className={`trade-chat-message ${item.profile_id === playerId ? "trade-chat-mine" : ""}`}><b>{item.username || (item.profile_id === playerId ? username : otherName)}</b><p>{item.message}</p><time>{new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div>)}{!messages.length && <p className="profile-empty">Trade accepted. Say hello!</p>}</div>
+      <form onSubmit={send} className="profile-search-row mt-4"><input value={input} maxLength={1000} onChange={(event) => setInput(event.target.value)} placeholder="Message this player" /><button type="submit">Send</button></form>
+    </section>
+  </div>;
 }
 
 function TradeOfferModal({
@@ -1837,7 +1994,7 @@ function CapsulesTab({
               </div>
               <button
                 title="View Blook chances"
-                onClick={() => showOdds(capsule)}
+                onClick={(event) => { event.stopPropagation(); showOdds(capsule); }}
                 className="rounded-full px-2 py-1 text-xs font-black text-[#ffe2a0]"
               >
                 i
@@ -1851,15 +2008,6 @@ function CapsulesTab({
                     <img src="/assets/coin.svg" alt="" className="h-6 w-6 object-contain" />
                     {isGuest ? "FREE" : capsule.price.toLocaleString()}
                   </span>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {capsule.pool.map((reward) => (
-                    <div key={reward.name} className={`flex min-w-0 items-center gap-2 rounded-lg border px-2 py-2 ${rarityTileClass(reward.rarity)}`}>
-                      <img src={reward.art || artFor(reward.name)} alt="" className="h-8 w-8 shrink-0 object-contain" />
-                      <span className="min-w-0 flex-1 truncate text-left text-xs font-bold">{reward.name}</span>
-                      <span className="shrink-0 text-[10px] font-black">{chanceFor(capsule, reward).toFixed(2)}%</span>
-                    </div>
-                  ))}
                 </div>
               </>
             )}
@@ -2211,11 +2359,10 @@ function WheelTab({
     Array.from({ length: 36 }, () => wheelRewards[Math.floor(Math.random() * wheelRewards.length)]),
   );
   const [beltOffset, setBeltOffset] = useState(0);
-  const winnerIndex = 28;
+  const winnerIndex = 54;
   const performSpin = () => {
     if (phase === "spinning" || (player.wheelSpun && !isGuest)) return;
     setCharging(true);
-    window.setTimeout(() => setCharging(false), 900);
     setResult(null);
     setBeltOffset(0);
     const totalChance = wheelRewards.reduce((sum, item) => sum + item.chance, 0);
@@ -2225,21 +2372,24 @@ function WheelTab({
       cursor += item.chance;
       return roll < cursor;
     }) || wheelRewards[0];
-    setTrack(Array.from({ length: 36 }, (_, index) =>
+    setTrack(Array.from({ length: 62 }, (_, index) =>
       index === winnerIndex
         ? reward
         : wheelRewards[Math.floor(Math.random() * wheelRewards.length)],
     ));
     setPhase("spinning");
     window.setTimeout(() => {
-      const viewport = viewportRef.current;
-      if (viewport) setBeltOffset(viewport.clientWidth / 2 - winnerIndex * 120 - 56);
-    }, 80);
+      setCharging(false);
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        const viewport = viewportRef.current;
+        if (viewport) setBeltOffset(viewport.clientWidth / 2 - winnerIndex * 120 - 56);
+      }));
+    }, 850);
     window.setTimeout(() => {
       setResult(reward);
       setPhase("result");
       spin(reward);
-    }, 4800);
+    }, 7900);
   };
   const spinNow = () => {
     if (phase === "spinning" || (player.wheelSpun && !isGuest)) return;
@@ -2264,7 +2414,7 @@ function WheelTab({
           </div>
           <div ref={viewportRef} className={`roulette-viewport relative mt-2 h-28 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-36 ${charging ? "roulette-charge" : phase === "result" ? "roulette-win-flash" : ""}`}>
             <div className="roulette-pointer" />
-            {charging ? <div className="absolute inset-0 flex items-center justify-center"><span className="reveal-scanline" /><span className="relative z-10 text-sm font-black uppercase tracking-[0.28em] text-sky-100">Crate charging...</span></div> : phase === "spinning" ? <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: "4.55s" }}>
+            {phase === "spinning" && <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: "6.9s" }}>
               {track.map((reward, index) => {
                 const rarity = wheelRarityFor(reward);
                 const icon = reward.type === "tokens" ? "/assets/coin.svg" : materialArtFor(reward.material || "Gold");
@@ -2274,18 +2424,22 @@ function WheelTab({
                   <span className="text-[8px] font-bold opacity-70">{rarity}</span>
                 </div>;
               })}
-            </div> : <div className="absolute inset-0 flex items-center justify-center text-xs font-bold uppercase tracking-widest text-white/35">{phase === "result" ? "Reward revealed" : "Your reward appears here"}</div>}
+            </div>}
+            {charging && <div className="absolute inset-0 flex items-center justify-center bg-[#090e1b]/90"><span className="reveal-scanline" /><span className="relative z-10 text-sm font-black uppercase tracking-[0.28em] text-sky-100">Crate charging...</span></div>}
           </div>
           <button onClick={spinNow} disabled={phase === "spinning" || (player.wheelSpun && !isGuest)} className="mt-4 rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
             {player.wheelSpun && !isGuest ? "Crate already opened today" : phase === "spinning" ? "Opening crate..." : isGuest ? "Open free crate" : "Open daily crate"}
           </button>
           {result && phase === "result" && (
-            <div className="relative mt-5 flex min-h-36 items-center justify-center gap-4 overflow-visible rounded-xl border border-white/10 bg-[#090e1b] p-4">
+            <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
+              <div role="dialog" aria-modal="true" aria-labelledby="crate-result-title" className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-sky-300/40 bg-[#10182b] p-6 text-center text-white shadow-2xl">
               <RewardBurst rarity={wheelRarityFor(result)} />
-              <img src={resultIcon} alt="" className="reveal-win-slam relative z-10 h-24 w-24 object-contain" />
-              <div className="reveal-win-slam relative z-10 text-left">
+              <img src={resultIcon} alt="" className="reveal-win-slam relative z-10 mx-auto h-28 w-28 object-contain" />
+              <div className="reveal-win-slam relative z-10 mt-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-white/50">You won · {wheelRarityFor(result)}</p>
-                <p className="text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} tokens` : `${result.amount} ${result.material}`}</p>
+                <h2 id="crate-result-title" className="mt-2 text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} tokens` : `${result.amount} ${result.material}`}</h2>
+              </div>
+              <button onClick={() => setResult(null)} className="relative z-10 mt-6 w-full rounded-xl bg-sky-400 px-5 py-3 font-black text-slate-950 hover:bg-sky-300">Collect reward</button>
               </div>
             </div>
           )}
@@ -2419,7 +2573,6 @@ function Bazaar({
             "Legendary",
             "Mythic",
             "Unique",
-            "Transcendent",
           ].map((item) => (
             <option key={item}>{item}</option>
           ))}
@@ -2519,7 +2672,7 @@ function RevealModal({
         </div>
         <div ref={viewportRef} className={`roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44 ${reveal.phase === "charging" ? "roulette-charge" : reveal.phase === "result" ? "roulette-win-flash" : ""}`}>
           {reveal.phase !== "charging" && <><div className="roulette-pointer" />
-          <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: reveal.phase === "result" ? "0ms" : "4.55s" }}>
+          <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: reveal.phase === "result" ? "0ms" : "6.9s" }}>
             {reveal.track.map((reward, index) => (
               <div key={`${index}-${reward.name}`} className={`roulette-prize ${rarityTileClass(reward.rarity)}`}>
                 <img src={reward.art || artFor(reward.name)} alt="" className="h-16 w-16 object-contain sm:h-20 sm:w-20" />
@@ -2798,40 +2951,38 @@ function CraftingMachineModal({
 }
 function Leaderboard({ player: _player }: { player: Player }) {
   const [view, setView] = useState<"tokens" | "clans">("tokens");
-  const [data, setData] = useState<{ players: { username: string; tokens: number }[]; clans: { name: string; treasury: number }[] }>({ players: [], clans: [] });
+  const [data, setData] = useState<{ players: { username: string; tokens: number; equippedBlook?: string }[]; clans: { name: string; treasury: number }[] }>({ players: [], clans: [] });
   useEffect(() => {
     fetch("/api/leaderboard", { cache: "no-store" }).then(async (response) => {
       if (response.ok) setData(await response.json());
     }).catch(() => undefined);
   }, []);
   const rows = (view === "clans"
-    ? data.clans.map((clan) => ({ name: clan.name, value: clan.treasury }))
-    : data.players.map((profile) => ({ name: profile.username, value: profile.tokens }))
+    ? data.clans.map((clan) => ({ name: clan.name, value: clan.treasury, avatar: "" }))
+    : data.players.map((profile) => ({ name: profile.username, value: profile.tokens, avatar: profile.equippedBlook ? artFor(profile.equippedBlook) : "" }))
   ).sort((left, right) => right.value - left.value);
-  const podium = [...rows.slice(0, 3), ...Array.from({ length: Math.max(0, 3 - rows.length) }, () => ({ name: "N/A", value: null as number | null }))];
+  const podium = [...rows.slice(0, 3), ...Array.from({ length: Math.max(0, 3 - rows.length) }, () => ({ name: "N/A", value: null as number | null, avatar: "" }))];
   return (
     <div>
       <h1 className="text-4xl font-black">Leaderboard</h1>
       <div className="mt-6 flex gap-2 rounded-2xl border border-[#247bc0] bg-[#18558f] p-1">{[["tokens", "Tokens"], ["clans", "Clans"]].map(([key, label]) => <button key={key} onClick={() => setView(key as typeof view)} className={`flex-1 rounded-xl px-3 py-3 font-black ${view === key ? "bg-[#bde8ff] text-[#062443]" : "text-[#d9f3ff]"}`}>{label}</button>)}</div>
       {view === "clans" && <p className="mt-3 text-sm text-[#9cc8e8]">Clan rankings will use member contributions and unlocked benefits.</p>}
       <div className="mt-8 grid items-end gap-4 md:grid-cols-3">
-        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={`${row.name}-${index}`} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center text-3xl font-black text-white/50">{row.name === "N/A" ? "N/A" : "#"}</div><h2 className="mt-3 font-black">{row.name}</h2><p className="mt-2 font-black text-[#bde8ff]">{row.value === null ? "N/A" : row.value.toLocaleString()}</p></div>)}
+        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={`${row.name}-${index}`} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center rounded-2xl bg-[#0c3b70] p-2">{row.avatar ? <img src={row.avatar} alt={`${row.name} Blook`} className="h-full w-full object-contain" /> : <span className="text-xl font-black text-white/50">{row.name === "N/A" ? "N/A" : row.name.slice(0, 1)}</span>}</div><h2 className="mt-3 font-black">{row.name}</h2><p className="mt-2 font-black text-[#bde8ff]">{row.value === null ? "N/A" : row.value.toLocaleString()}</p></div>)}
       </div>
       <div className="mt-8 max-w-2xl overflow-hidden rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415]">
-        <div className="grid grid-cols-[1fr_auto] px-5 py-4 text-xs font-bold uppercase tracking-widest text-[#b58d68]">
+        <div className="grid grid-cols-[32px_1fr_auto] gap-3 px-5 py-4 text-xs font-bold uppercase tracking-widest text-[#bde8ff]">
           <span>{view === "clans" ? "Clan" : "Player"}</span>
           <span>{view === "clans" ? "Treasury" : "Tokens"}</span>
         </div>
         {rows.length ? rows.map((row, index) => (
             <div
               key={`${row.name}-${index}`}
-              className="grid grid-cols-[1fr_auto] px-5 py-4 text-sm"
+              className="grid grid-cols-[32px_1fr_auto] items-center gap-3 border-t border-[#247bc0]/25 px-5 py-3 text-sm"
             >
-              <span>
-                <b className="mr-3 text-[#ffe2a0]">#{index + 1}</b>
-                {row.name}
-              </span>
-              <span className="font-bold text-[#f0d7ae]">{row.value.toLocaleString()}</span>
+              {row.avatar ? <img src={row.avatar} alt={`${row.name} Blook`} className="h-8 w-8 object-contain" /> : <span className="grid h-8 w-8 place-items-center rounded bg-[#18558f] font-black text-[#bde8ff]">{row.name.slice(0, 1)}</span>}
+              <span className="min-w-0 truncate"><b className="mr-3 text-[#bde8ff]">#{index + 1}</b>{row.name}</span>
+              <span className="font-bold text-[#bde8ff]">{row.value.toLocaleString()}</span>
             </div>
           )) : <p className="px-5 py-8 text-center text-[#d9f3ff]">N/A</p>}
       </div>
@@ -2861,12 +3012,12 @@ function SimplePanel({
   );
 }
 
-function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean }) {
+function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
-  const [onlineCount, setOnlineCount] = useState(1);
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[] }[]>([
-    { user: player.username, badges: player.badges, text: "Welcome to Breadlet chat." },
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+    { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
+  const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
   const isVerified = player.badges?.includes("Verified");
 
@@ -2885,7 +3036,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { 
       if (Array.isArray(rows)) {
         if (rows.length === 0) {
           setMessages([
-            { user: player.username, badges: player.badges, text: "Welcome to Breadlet chat." },
+            { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
           ]);
         } else {
           setMessages(
@@ -2895,7 +3046,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { 
                 id: row.id,
                 user: username,
                 text: row.message,
-                badges: username === player.username ? player.badges : undefined,
+                equippedBlook: row.equippedBlook || "",
+                replyTo: row.replyTo || null,
+                badges: row.badges || (username === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : []),
               };
             })
           );
@@ -2904,24 +3057,13 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { 
     } catch (err) {
       console.error('[CLIENT_CHAT] Error in loadMessages:', err);
     }
-  }, [player.badges, player.username]);
+  }, [player.badges, player.equipped, player.tokens, player.username]);
 
   useEffect(() => {
     loadMessages();
-    const loadPlayerCount = () => {
-      fetch("/api/leaderboard", { cache: "no-store" })
-        .then(async (response) => {
-          if (!response.ok) return;
-          const data = await response.json();
-          if (Array.isArray(data.players)) setOnlineCount(Math.max(1, data.players.length));
-        })
-        .catch(() => undefined);
-    };
-    loadPlayerCount();
-    const countTimer = window.setInterval(loadPlayerCount, 30000);
     if (!supabase) {
       console.warn('[CLIENT_CHAT] Supabase browser client not available for Realtime subscription');
-      return () => window.clearInterval(countTimer);
+      return;
     }
 
     console.log('[CLIENT_CHAT] Subscribing to Realtime postgres_changes on global_chat_messages');
@@ -2940,20 +3082,19 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { 
       });
 
     return () => {
-      window.clearInterval(countTimer);
       console.log('[CLIENT_CHAT] Unsubscribing from Realtime global-chat');
       supabase.removeChannel(channel);
     };
   }, [loadMessages, supabase]);
 
-  const sendMessageText = async (textToSend: string) => {
+  const sendMessageText = async (textToSend: string, reply = replyTarget) => {
     if (!textToSend.trim()) return;
     if (supabase) {
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: textToSend }),
+          body: JSON.stringify({ message: textToSend, replyToMessageId: reply?.id == null ? null : String(reply.id) }),
         });
         if (response.ok) {
           const data = await response.json();
@@ -2962,15 +3103,17 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { 
             if (data.id && current.some((m) => m.id === data.id)) return current;
             return [
               ...current,
-              { id: data.id, user: username, text: data.message || textToSend, badges: player.badges },
+                    { id: data.id, user: username, text: data.message || textToSend, equippedBlook: player.equipped, replyTo: data.replyTo || reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) },
             ];
           });
+                  setReplyTarget(null);
         }
       } catch (err) {
         console.error('[CLIENT_CHAT] Error sending message:', err);
       }
     } else {
-      setMessages((current) => [...current, { user: player.username, badges: player.badges, text: textToSend }]);
+      setMessages((current) => [...current, { id: `local-${Date.now()}`, user: player.username, equippedBlook: player.equipped, replyTo: reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: textToSend }]);
+      setReplyTarget(null);
     }
   };
 
@@ -3018,7 +3161,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { 
       <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
         {supabase ? "Supabase realtime" : "Prototype local chat"}
       </p>
-      <div className="mt-2 flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlineCount} players</span></div>
+      <div className="mt-2 flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlinePlayers.length} players</span></div>
       {giftNotice && (
         <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
@@ -3030,32 +3173,26 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { 
       )}
       <div className="mt-6 min-h-72 space-y-3 rounded-2xl bg-[#24170f] p-4 max-h-[500px] overflow-y-auto">
         {messages.map((item, index) => (
-          <div key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
-            <img
-              src={artFor(item.user === player.username ? player.equipped : "Bread Blook")}
-              alt=""
-              className="h-10 w-10 rounded-lg object-contain bg-[#103f75]"
-            />
+          <div id={`chat-message-${String(item.id ?? `local-${item.user}-${index}`)}`} key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
+            <button onClick={() => void openPlayerProfile(item.user)} aria-label={`Open ${item.user}'s profile`} title={`View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#103f75] p-1">
+              {item.equippedBlook || (item.user === player.username && player.equipped) ? <img src={artFor(item.equippedBlook || player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={30} />}
+            </button>
             <div>
               <div className="flex items-center gap-2 font-black">
-                {item.user}
-                {(item.user === player.username ? player.badges : item.badges || []).map((badge) => (
+                <button onClick={() => void openPlayerProfile(item.user)} className="hover:underline">{item.user}</button>
+                {(item.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : item.badges || []).map((badge) => (
                   <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
                     <img
-                      src={
-                        badge === "First 50"
-                          ? "/assets/first-50-badge.svg"
-                          : badge === "Verified"
-                            ? "/assets/verified-badge.svg"
-                            : "/assets/blooktuber-badge.svg"
-                      }
+                      src={badgeIconFor(badge)}
                       alt={badge}
                       className="h-5 w-5 object-contain"
                     />
                   </button>
                 ))}
               </div>
+              {item.replyTo && <button onClick={() => document.getElementById(`chat-message-${String(item.replyTo?.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-1 block max-w-md truncate rounded-md border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-left text-xs text-sky-100">↳ {item.replyTo.user}: {item.replyTo.message}</button>}
               {renderMessageContent(item.text)}
+              {(item.id != null || isGuest) && <button onClick={() => setReplyTarget({ id: item.id ?? `local-${item.user}-${index}`, user: item.user, message: item.text })} className="mt-1 text-xs font-bold text-sky-300 hover:text-white">Reply</button>}
             </div>
           </div>
         ))}
@@ -3075,16 +3212,23 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest }: { 
             />
           </label>
         )}
+        <div className="min-w-0 flex-1">
+        {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {replyTarget.message}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">×</button></div>}
         <input
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           placeholder={isVerified ? "Write a message or upload an image..." : "Write a message..."}
-          className="min-w-0 flex-1 rounded-xl bg-[#24170f] px-4 py-3 text-white outline-none focus:border-[#3d91cd]"
+          className="w-full rounded-xl bg-[#24170f] px-4 py-3 text-white outline-none focus:border-[#3d91cd]"
         />
+        </div>
         <button type="submit" className="rounded-xl bg-[#e9bd67] px-5 py-3 font-black text-[#29170c]">
           Send
         </button>
       </form>
+      <aside aria-label="Online players" className="chat-online-panel fixed bottom-4 right-4 z-40 flex h-[min(22rem,42vh)] w-[min(19rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 text-white shadow-2xl backdrop-blur-md">
+        <header className="flex items-center justify-between border-b border-sky-200/20 px-4 py-3"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-950">{online.equippedBlook ? <img src={artFor(online.equippedBlook)} alt="" className="h-8 w-8 object-contain" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>
+      </aside>
     </div>
   );
 }
@@ -3094,13 +3238,7 @@ function BadgeModal({ badge, close }: { badge: string; close: () => void }) {
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
         <img
-          src={
-            badge === "First 50"
-              ? "/assets/first-50-badge.svg"
-              : badge === "Verified"
-                ? "/assets/verified-badge.svg"
-                : "/assets/blooktuber-badge.svg"
-          }
+          src={badgeIconFor(badge)}
           alt={badge}
           className="mx-auto h-24 w-24 object-contain drop-shadow-md"
         />
@@ -3172,6 +3310,99 @@ function InfoTab() {
     </div>
   );
 }
+
+function RequestsTab({ isGuest }: { isGuest: boolean }) {
+  const [canReview, setCanReview] = useState(false);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [tokens, setTokens] = useState("0");
+  const [search, setSearch] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const loadRequests = async () => {
+    const response = await fetch("/api/requests", { cache: "no-store" });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setMessage(body.error || "Could not load requests.");
+      return;
+    }
+    setCanReview(Boolean(body.canReview));
+    setRequests(Array.isArray(body.requests) ? body.requests : []);
+  };
+
+  useEffect(() => {
+    if (!isGuest) void loadRequests();
+  }, [isGuest]);
+
+  const catalog = [...liveCapsules, ...retiredCapsules].flatMap((capsule) => capsule.pool)
+    .concat(craftRecipes.map((recipe) => ({ name: recipe.name, rarity: craftedRarityFor(recipe.name), weight: 0, art: artFor(recipe.name) })))
+    .filter((reward, index, all) => all.findIndex((candidate) => candidate.name === reward.name) === index)
+    .filter((reward) => reward.name.toLowerCase().includes(search.toLowerCase()));
+
+  const submitRequest = async () => {
+    setBusy(true);
+    setMessage("");
+    const response = await fetch("/api/requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tokens: Number(tokens) || 0,
+        blooks: Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([name, quantity]) => ({ name, quantity })),
+      }),
+    });
+    const body = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) {
+      setMessage(body.error || "Could not submit request.");
+      return;
+    }
+    setMessage("Request sent to reviewers.");
+    setQuantities({});
+    setTokens("0");
+    await loadRequests();
+  };
+
+  const reviewRequest = async (requestId: string, decision: "accept" | "decline") => {
+    setBusy(true);
+    setMessage("");
+    const response = await fetch("/api/requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "review", requestId, decision }),
+    });
+    const body = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) setMessage(body.error || "Could not review request.");
+    else setMessage(decision === "accept" ? "Request accepted and rewards granted." : "Request declined.");
+    await loadRequests();
+  };
+
+  const requestSummary = (request: any) => [
+    ...(request.requested_blooks || []).map((item: { name: string; quantity: number }) => `${item.name} ×${item.quantity}`),
+    Number(request.requested_tokens) > 0 ? `${Number(request.requested_tokens).toLocaleString()} tokens` : "",
+  ].filter(Boolean).join(" · ");
+
+  return <div className="max-w-6xl space-y-6">
+    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Old game transfer</p><h1 className="mt-1 text-4xl font-black">Migration</h1><p className="mt-2 max-w-2xl text-sm text-white/70">Use this page to request your Blooks and tokens from the old game. A reviewer will accept or decline each request; rewards are added only after acceptance. Reviewers unlock request approvals with the admin code in Promo Codes.</p></div><button onClick={() => void loadRequests()} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-bold text-white/75">Refresh</button></header>
+    {message && <p role="status" className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">{message}</p>}
+    {isGuest ? <p className="rounded-xl bg-black/20 p-4 text-sm text-white/65">Sign in to submit reward requests.</p> : <>
+      <section className="rounded-2xl border border-emerald-200/20 bg-[#10251f] p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">New request</h2><p className="mt-1 text-xs text-white/55">Items are only added if a reviewer accepts.</p></div><input value={tokens} onChange={(event) => setTokens(event.target.value)} type="number" min="0" max="100000" aria-label="Requested tokens" className="w-44 rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" placeholder="Tokens" /></div>
+        <div className="mt-4"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Blooks" className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" /></div>
+        <div className="mt-4 grid max-h-[460px] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">{catalog.map((reward) => <div key={reward.name} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-black/20"><img src={reward.art || artFor(reward.name)} alt={reward.name} className="h-full w-full object-contain" /></div>
+          <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{reward.name}</p><p className="text-[10px] font-bold text-amber-200">{reward.rarity}</p><input aria-label={`${reward.name} requested quantity`} type="number" min="0" max="100" value={quantities[reward.name] || 0} onChange={(event) => setQuantities({ ...quantities, [reward.name]: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} className="mt-1 w-full rounded-md border border-white/10 bg-[#10251f] px-2 py-1 text-sm" /></div>
+        </div>)}</div>
+        <button disabled={busy} onClick={() => void submitRequest()} className="mt-4 rounded-xl bg-emerald-300 px-5 py-3 font-black text-emerald-950 disabled:opacity-50">{busy ? "Submitting..." : "Submit request"}</button>
+      </section>
+      {canReview && <section className="rounded-2xl border border-amber-200/20 bg-[#2a2413] p-5 sm:p-6"><div><p className="text-xs font-black uppercase tracking-widest text-amber-200">Reviewer</p><h2 className="mt-1 text-2xl font-black">Pending requests</h2></div>
+        <div className="mt-4 space-y-3">{requests.filter((request) => request.status === "pending").map((request) => <article key={request.id} className="rounded-xl border border-white/10 bg-black/20 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-black">{request.requester_username}</h3><p className="mt-1 text-sm text-white/70">{requestSummary(request)}</p><p className="mt-1 text-[10px] text-white/40">{new Date(request.created_at).toLocaleString()}</p></div><div className="flex gap-2"><button disabled={busy} onClick={() => void reviewRequest(request.id, "decline")} className="rounded-lg border border-rose-300/30 px-3 py-2 text-sm font-bold text-rose-100 disabled:opacity-50">Decline</button><button disabled={busy} onClick={() => void reviewRequest(request.id, "accept")} className="rounded-lg bg-emerald-300 px-3 py-2 text-sm font-black text-emerald-950 disabled:opacity-50">Accept & grant</button></div></div></article>)}{!requests.some((request) => request.status === "pending") && <p className="rounded-xl bg-black/20 p-4 text-sm text-white/55">No pending requests.</p>}</div>
+      </section>}
+      <section className="rounded-2xl border border-white/10 bg-[#10182b] p-5"><h2 className="text-lg font-black">My request history</h2><div className="mt-3 space-y-2">{requests.filter((request) => request.is_mine).map((request) => <div key={request.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-black/20 px-3 py-2"><span className="text-sm text-white/75">{requestSummary(request)}</span><span className={`rounded-full px-2.5 py-1 text-xs font-black ${request.status === "accepted" ? "bg-emerald-300/15 text-emerald-200" : request.status === "declined" ? "bg-rose-300/15 text-rose-200" : "bg-amber-300/15 text-amber-100"}`}>{request.status}</span></div>)}{!requests.some((request) => request.is_mine) && <p className="text-sm text-white/50">No requests yet.</p>}</div></section>
+    </>}
+  </div>;
+}
 function AdminTab({
   player,
   grantReward,
@@ -3202,6 +3433,7 @@ function AdminTab({
   const [giftMaterialAmount, setGiftMaterialAmount] = useState("0");
   const [players, setPlayers] = useState<{ id: string; username: string; is_banned?: boolean; ban_reason?: string | null }[]>([]);
   const [targetId, setTargetId] = useState("");
+  const [targetSearch, setTargetSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/admin").then(async (response) => {
@@ -3210,6 +3442,7 @@ function AdminTab({
       if (Array.isArray(rows)) {
         setPlayers(rows);
         setTargetId((current) => current || rows[0]?.id || "");
+        setTargetSearch((current) => current || rows[0]?.username || "");
       }
     }).catch(() => undefined);
   }, []);
@@ -3243,7 +3476,6 @@ function AdminTab({
     "Star",
     "Worker",
     "Chef",
-    "Surgeon",
     "Actor",
     "Pixel Toast",
     "Pixel Chick",
@@ -3263,6 +3495,7 @@ function AdminTab({
   const filteredBlooks = allBlooks.filter((b) =>
     b.toLowerCase().includes(blookSearch.toLowerCase())
   );
+  const filteredPlayers = players.filter((profile) => profile.username.toLowerCase().includes(targetSearch.trim().toLowerCase()));
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -3274,9 +3507,10 @@ function AdminTab({
         <p className="mt-3 leading-7 text-[#d9f3ff]">
           Select a real player, then grant resources, Blooks, and badges through the server-side admin role.
         </p>
-        <label className="mt-5 block max-w-md text-sm font-bold text-white">Player account
-            <select value={targetId} onChange={(event) => setTargetId(event.target.value)} className="mt-2 w-full rounded-xl border border-[#3d91cd] bg-[#bde8ff] px-3 py-2 text-[#062443]">
-            {players.map((profile) => <option className="text-[#062443]" key={profile.id} value={profile.id}>{profile.username}</option>)}
+        <label className="mt-5 block max-w-md text-sm font-bold text-white">Find player account
+            <input value={targetSearch} onChange={(event) => { const query = event.target.value; setTargetSearch(query); const exact = players.find((profile) => profile.username.toLowerCase() === query.trim().toLowerCase()); setTargetId(exact?.id || ""); }} placeholder="Type a username" className="mt-2 w-full rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" />
+            <select aria-label="Matching player accounts" value={targetId} onChange={(event) => { const id = event.target.value; setTargetId(id); setTargetSearch(players.find((profile) => profile.id === id)?.username || ""); }} className="mt-2 w-full rounded-xl border border-[#3d91cd] bg-[#bde8ff] px-3 py-2 text-[#062443]">
+            {filteredPlayers.map((profile) => <option className="text-[#062443]" key={profile.id} value={profile.id}>{profile.username}</option>)}
           </select>
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -3478,6 +3712,7 @@ function ClanTab({
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [showCreate, setShowCreate] = useState(false);
+  const [createError, setCreateError] = useState("");
   const [clan, setClanState] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number } | null>(null);
   const [filter, setFilter] = useState("");
   const [dbClans, setDbClans] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number }[]>([]);
@@ -3515,7 +3750,12 @@ function ClanTab({
   const clans = allClans.filter((item) => !filter || item.tags.some((tag) => tag.includes(filter.toLowerCase())) || item.name.toLowerCase().includes(filter.toLowerCase()));
 
   const handleCreateClan = async () => {
-    if ((!isGuest && player.tokens < 5000) || !name.trim() || tags.length > 3) return;
+    setCreateError("");
+    if (!name.trim() || tags.length > 3) return;
+    if (!isGuest && player.tokens < 5000) {
+      setCreateError("Creating a clan requires 5,000 tokens.");
+      return;
+    }
     if (isGuest) {
       setClanState({ name, description, tags, members: 1, treasury: 0 });
       setClan(name.slice(0, 5));
@@ -3537,13 +3777,13 @@ function ClanTab({
         loadClans();
         return;
       }
+      const data = await res.json().catch(() => ({}));
+      setCreateError(data.error || "The clan could not be created.");
+      return;
     } catch {
-      // Fall back to local
+      setCreateError("The clan server could not be reached. Try again.");
+      return;
     }
-    savePlayer({ ...player, tokens: player.tokens - 5000 });
-    setClanState({ name, description, tags, members: 1, treasury: 0 });
-    setClan(name.slice(0, 5));
-    setShowCreate(false);
   };
 
   const handleDonate = async () => {
@@ -3576,7 +3816,8 @@ function ClanTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button onClick={() => setShowCreate(true)} className="rounded-xl bg-[#39a8f5] px-4 py-2 font-black text-white">Create Clan</button></div>
+      {createError && <div role="alert" className="fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border border-rose-300/40 bg-[#421f45] px-4 py-3 text-sm font-bold text-rose-100 shadow-2xl"><span>{createError}</span><button onClick={() => setCreateError("")} aria-label="Dismiss clan error">×</button></div>}
+      <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button aria-label="Create a clan" onClick={() => setShowCreate(true)} className="flex shrink-0 items-center gap-2 rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] shadow-lg hover:bg-[#73c8ff]"><Users size={19} />Create Clan</button></div>
       {showCreate && <div className="modal-layer fixed inset-0 flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
       {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={handleDonate} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
       <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => <article key={item.name} className="rounded-2xl border border-[#3d91cd] bg-[#18558f] p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p></article>) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">N/A</p>}</div></div>

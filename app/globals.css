@@ -18,8 +18,16 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  overflow-x: hidden;
   background: var(--breadlet-background);
   color: var(--breadlet-text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3,
+.breadlet-brand {
   font-family: "Luckiest Guy", Impact, sans-serif;
 }
 
@@ -41,17 +49,17 @@ body {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: 0.08;
+  opacity: 0.045;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.8rem;
   padding: 1rem;
   animation: uniform-floaters-drift 28s linear infinite;
 }
 
 .bread-floater {
-  width: 60px;
-  height: 60px;
+  width: 132px;
+  height: 132px;
   object-fit: contain;
   margin: auto;
 }
@@ -90,13 +98,114 @@ body {
 .breadlet-blue-theme header { background-color: rgba(12, 59, 112, 0.95) !important; border-color: rgba(61, 145, 205, 0.55) !important; }
 .workspace-island { backdrop-filter: blur(14px); }
 .workspace-island > div { white-space: nowrap; }
+.profile-dashboard { --profile-green: #45b912; --profile-lime: #54c918; --profile-deep: #103f0d; --profile-panel: #164b10; display: flex; min-height: calc(100vh - 2rem); flex-direction: column; gap: 1.15rem; overflow: hidden; border-radius: 1rem; background-color: var(--profile-green); background-image: linear-gradient(135deg, transparent 0 43%, #ffffff09 43% 57%, transparent 57%), linear-gradient(35deg, transparent 0 45%, #ffffff08 45% 60%, transparent 60%); padding: clamp(1rem, 2.5vw, 2rem); color: #f5fff0; }
+.profile-top-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(270px, .88fr); gap: 1rem; }
+.profile-player-panel,.profile-badges-panel,.profile-stats-panel,.profile-list-panel { border: 4px solid #0b350a; border-radius: 12px; background: var(--profile-deep); box-shadow: 0 7px 0 #0c3909; }
+.profile-player-panel { display: flex; min-height: 195px; align-items: center; gap: 1.25rem; padding: 1rem; }
+.profile-avatar-frame { display: flex; width: clamp(92px, 11vw, 132px); height: clamp(100px, 13vw, 146px); flex: 0 0 auto; align-items: center; justify-content: center; overflow: hidden; border: 3px solid #168f37; border-radius: 15px; background: #12bc4c; }
+.profile-player-copy { min-width: 0; flex: 1; }
+.profile-player-copy h1 { overflow-wrap: anywhere; font-size: clamp(1.5rem, 3vw, 2.35rem); line-height: 1.05; }
+.profile-player-copy p { margin-top: .35rem; color: #c9e8c1; font-size: .8rem; }
+.profile-clan { color: #ffe27a; }
+.profile-subtitle,.profile-section-label { color: #d6efcf; font-size: .73rem; font-weight: 800; text-transform: uppercase; }
+.profile-quick-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .85rem; }
+.profile-quick-actions button,.profile-list-heading button { display: inline-flex; align-items: center; gap: .4rem; border-radius: 7px; background: #16500f; box-shadow: 0 4px 0 #0b350a; padding: .52rem .85rem; color: white; font-size: .8rem; font-weight: 800; }
+.profile-quick-actions button:first-child { background: #f20d25; }
+.profile-quick-actions button:hover,.profile-list-heading button:hover { filter: brightness(1.12); }
+.profile-badges-panel { display: flex; min-height: 195px; flex-direction: column; justify-content: center; padding: 1rem 1.2rem; }
+.profile-badge-row { display: flex; min-height: 88px; flex-wrap: wrap; align-items: center; gap: .45rem; }
+.profile-badge-row button { display: grid; width: 74px; height: 78px; place-items: center; border-radius: 12px; background: #0c350a; }
+.profile-badge-row img { width: 70px; height: 70px; object-fit: contain; }
+.profile-token-rank { color: #bce2b1; font-size: .7rem; }
+.profile-stats-panel { padding: .9rem; }
+.profile-stats-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .9rem; padding: .75rem; }
+.profile-metric { display: flex; min-height: 82px; align-items: center; justify-content: center; gap: .65rem; border-radius: 8px; background: #4bb313; box-shadow: 0 6px 0 #286f10; padding: .65rem; color: white; }
+.profile-metric img { width: 42px; height: 42px; flex: 0 0 auto; object-fit: contain; }
+.profile-metric p { color: #eaffdf; font-size: .75rem; }
+.profile-metric strong { display: block; margin-top: .18rem; font-size: clamp(1.2rem,2vw,1.8rem); font-weight: 950; line-height: 1; }
+.profile-lower-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.profile-list-panel { min-height: 150px; padding: .8rem; }
+.profile-list-heading { display: flex; align-items: center; justify-content: space-between; gap: .6rem; border: 4px solid #0c3809; border-radius: 10px; background: #267a16; padding: .45rem .7rem; }
+.profile-list-heading h2 { font-size: 1.15rem; }
+.profile-list-body { max-height: 300px; overflow-y: auto; padding: .8rem; }
+.profile-friend-row { display: flex; align-items: center; gap: .6rem; border-bottom: 1px solid #ffffff22; padding: .5rem; color: white; }
+.profile-friend-row img { width: 32px; height: 32px; object-fit: contain; }
+.profile-friend-row span { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.profile-friend-row button { border-radius: 6px; background: #287f18; padding: .4rem .65rem; font-size: .75rem; font-weight: 800; }
+.profile-empty { display: block; padding: 1.2rem .5rem; color: #c7e5be; font-size: .8rem; text-align: center; }
+.profile-trade-toast { position: sticky; top: .5rem; z-index: 20; display: flex; justify-content: space-between; border: 2px solid #ffe27a; border-radius: 9px; background: #164b10; padding: .8rem 1rem; font-weight: 800; box-shadow: 0 5px 18px #08200788; }
+.profile-trade-toast span { color: #ffe27a; }
+.profile-trade-row { margin-bottom: .7rem; border-radius: 8px; background: #103b0d; padding: .8rem; font-size: .76rem; }
+.profile-trade-row p { margin-top: .35rem; overflow-wrap: anywhere; color: #d7edcf; }
+.profile-trade-head,.profile-trade-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .45rem; }
+.profile-trade-status { border-radius: 99px; background: #ffffff1c; padding: .2rem .55rem; font-size: .67rem; font-weight: 900; text-transform: uppercase; }
+.status-completed { background: #95ee6833; color: #d9ffd0; }
+.status-pending { background: #ffe47a33; color: #ffe998; }
+.profile-trade-actions { justify-content: flex-start; margin-top: .6rem; }
+.profile-trade-actions button { border-radius: 6px; background: #245f17; padding: .45rem .65rem; color: white; font-size: .7rem; font-weight: 800; }
+.profile-trade-actions .profile-action-primary { background: #8be34c; color: #143c0c; }
+.profile-trade-actions .profile-action-danger { background: #b63831; }
+.profile-alert-inline { margin-top: .5rem; border-radius: 7px; background: #fff2aa; padding: .55rem .7rem; color: #413a16; font-size: .8rem; }
+.profile-popup { width: min(100%, 520px); max-height: 85vh; overflow-y: auto; border: 4px solid #0d3809; border-radius: 12px; background: #164b10; padding: 1rem; color: white; box-shadow: 0 8px 0 #0b350a; }
+.profile-search-row { display: flex; gap: .5rem; margin-top: .8rem; }
+.profile-search-row input { min-width: 0; flex: 1; border: 1px solid #ffffff44; border-radius: 7px; background: #103b0d; padding: .65rem .8rem; color: white; font-family: Arial, sans-serif; }
+.profile-search-row button { border-radius: 7px; background: #4bb313; padding: .65rem .9rem; color: white; font-weight: 800; }
+.trade-chat-message { position: relative; width: fit-content; max-width: 85%; border-radius: 10px 10px 10px 2px; background: #e6f3df; padding: .55rem .7rem; color: #183a13; font-family: Arial, sans-serif; font-size: .86rem; }
+.trade-chat-message p { margin-top: .15rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.trade-chat-message time { display: block; margin-top: .2rem; color: #587051; font-size: .63rem; }
+.trade-chat-mine { margin-left: auto; border-radius: 10px 10px 2px 10px; background: #c8ef9a; }
+@media (max-width: 720px) { .profile-top-grid,.profile-lower-grid { grid-template-columns: 1fr; } .profile-stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .profile-player-panel { align-items: flex-start; } }
+.profile-dashboard { min-height: 100%; }
+.profile-badge-row button { width: 92px; height: 98px; }
+.profile-badge-row img { width: 90px; height: 90px; }
+.workspace-island > div { min-width: 0; white-space: normal; }
+.profile-dashboard { --profile-green: #0c3b70; --profile-lime: #39a8f5; --profile-deep: #072a54; --profile-panel: #103f75; background-color: #0c3b70; background-image: linear-gradient(135deg, transparent 0 43%, #8ed7ff0b 43% 57%, transparent 57%), linear-gradient(35deg, transparent 0 45%, #8ed7ff08 45% 60%, transparent 60%); color: #f2f9ff; }
+.profile-player-panel,.profile-badges-panel,.profile-stats-panel,.profile-list-panel { border-color: #247bc0; background: #103f75; box-shadow: 0 7px 0 #072a54; }
+.profile-player-panel { min-height: 0; }
+.profile-avatar-frame { width: clamp(84px, 9vw, 124px); height: auto; aspect-ratio: 1; border-color: #247bc0; background: #18558f; }
+.profile-avatar-frame img { width: 100%; height: 100%; object-fit: contain; }
+.profile-avatar-frame-small { width: 82px; height: 82px; }
+.profile-player-copy p,.profile-empty,.profile-trade-row p { color: #cdeaff; }
+.profile-subtitle,.profile-section-label { color: #bde8ff; }
+.profile-quick-actions button,.profile-list-heading button { background: #18558f; box-shadow: 0 4px 0 #072a54; }
+.profile-quick-actions button:first-child { background: #d9273b; }
+.profile-badges-panel { min-height: 0; }
+.profile-badge-row button { background: #072a54; }
+.profile-token-rank { color: #9cc8e8; }
+.profile-metric { background: #18558f; box-shadow: 0 6px 0 #072a54; }
+.profile-metric-icon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; color: #bde8ff; }
+.profile-metric-icon img { width: 100%; height: 100%; object-fit: contain; }
+.profile-metric p { color: #cdeaff; }
+.profile-stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 720px) { .profile-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.profile-list-heading { border-color: #0c3b70; background: #0c3b70; }
+.profile-friend-row { border-color: #ffffff22; }
+.profile-friend-row button { background: #247bc0; }
+.profile-trade-toast { border-color: #73c8ff; background: #103f75; box-shadow: 0 5px 18px #03142688; }
+.profile-trade-toast span { color: #bde8ff; }
+.profile-trade-row { background: #0c3b70; }
+.profile-trade-row p { color: #d9f3ff; }
+.status-completed { background: #39a8f533; color: #bde8ff; }
+.status-pending { background: #ffe47a33; color: #ffe998; }
+.profile-trade-actions button { background: #18558f; }
+.profile-trade-actions .profile-action-primary { background: #39a8f5; color: #031426; }
+.profile-alert-inline { border: 1px solid #73c8ff; background: #103f75; color: #d9f3ff; }
+.profile-popup { border-color: #247bc0; background: #103f75; box-shadow: 0 8px 0 #072a54; }
+.profile-search-row input { border-color: #247bc0; background: #0c3b70; }
+.profile-search-row button { background: #39a8f5; color: #031426; }
+.profile-badge-row { min-height: 104px; gap: .2rem; }
+.profile-trade-status.status-declined,.profile-trade-status.status-cancelled { background: #ef444433; color: #ffc1ba; }
+.profile-trade-status.status-completed { background: #f1cd2c33; color: #fff1a6; }
+.profile-trade-status.status-pending { background: #ffffff22; color: #e8f5de; }
+.profile-trade-alert { animation: profile-alert-pop 320ms cubic-bezier(.2,.9,.25,1.25); }
+@keyframes profile-alert-pop { from { transform: translateY(-12px) scale(.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 .wheel-stage { background: #05070b !important; }
 .reward-wheel { overflow: hidden; }
 .wheel-segment { position: absolute; left: 50%; top: 50%; display: flex; width: 50%; height: 3.4rem; transform-origin: 0 50%; align-items: center; gap: 0.25rem; border-left: 1px solid rgba(115, 200, 255, 0.4); padding-left: 0.5rem; color: #fff; font-size: 0.55rem; font-weight: 900; text-transform: uppercase; }
 .wheel-segment img { height: 1.5rem; width: 1.5rem; object-fit: contain; }
 .wheel-segment span { max-width: 4.5rem; line-height: 0.9; }
 .roulette-viewport { --roulette-card-width: 112px; }
-.roulette-belt { position: absolute; inset-block: 0; left: 0; display: flex; width: max-content; align-items: center; gap: 8px; padding-inline: 8px; will-change: transform; transition-property: transform; transition-timing-function: cubic-bezier(0.08, 0.72, 0.12, 1); }
+.roulette-belt { position: absolute; inset-block: 0; left: 0; display: flex; width: max-content; align-items: center; gap: 8px; padding-inline: 8px; will-change: transform; transition-property: transform; transition-timing-function: cubic-bezier(0.02, 0.96, 0.14, 1); }
 .roulette-prize { display: flex; width: var(--roulette-card-width); height: calc(100% - 12px); flex: 0 0 var(--roulette-card-width); flex-direction: column; align-items: center; justify-content: center; gap: 2px; overflow: hidden; border-bottom-width: 3px; border-radius: 8px; padding: 4px; }
 .roulette-pointer { position: absolute; inset-block: 0; left: 50%; z-index: 2; width: 3px; transform: translateX(-50%); background: #facc15; box-shadow: 0 0 18px #facc1599; }
 .roulette-pointer::before, .roulette-pointer::after { position: absolute; left: 50%; width: 0; height: 0; content: ""; transform: translateX(-50%); border-right: 8px solid transparent; border-left: 8px solid transparent; }

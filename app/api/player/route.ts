@@ -13,11 +13,14 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
 
-  const [{ data: profile, error: profileError }, { data: inventory }, { data: mine }, { data: listings }] = await Promise.all([
+  const [{ data: profile, error: profileError }, { data: inventory }, { data: mine }, { data: listings }, capsuleCount, messageCount, tradeCount] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase.from('inventory').select('quantity, shiny, blooks(name)').eq('profile_id', user.id),
     supabase.from('mine_progress').select('*').eq('profile_id', user.id).maybeSingle(),
     supabase.from('marketplace_listings').select('id, price, status, blooks(name), profiles(username)').eq('status', 'active').order('created_at', { ascending: false }),
+    supabase.from('chest_rolls').select('id', { count: 'exact', head: true }).eq('profile_id', user.id),
+    supabase.from('global_chat_messages').select('id', { count: 'exact', head: true }).eq('profile_id', user.id),
+    supabase.from('trades').select('id', { count: 'exact', head: true }).or(`sender_profile_id.eq.${user.id},receiver_profile_id.eq.${user.id}`).eq('status', 'completed'),
   ]);
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
   const { data: equipped } = profile.equipped_blook_id
@@ -37,6 +40,11 @@ export async function GET() {
     ),
     materials: { ...emptyMaterials(), ...(profile.materials || {}) },
     mine,
+    activity: {
+      capsulesOpened: capsuleCount.count || 0,
+      messagesSent: messageCount.count || 0,
+      completedTrades: tradeCount.count || 0,
+    },
     listings: (listings || []).map((listing: any) => ({
       id: listing.id,
       seller: listing.profiles?.username || 'Player',
