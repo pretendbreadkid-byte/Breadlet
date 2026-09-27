@@ -491,6 +491,7 @@ export default function HomePage() {
   const [guestWelcomeOpen, setGuestWelcomeOpen] = useState(false);
   const resetClickCountRef = useRef(0);
   const pendingGuestRef = useRef<Player | null>(null);
+  const playerSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [authFeedback, setAuthFeedback] = useState("");
   const [supabaseClient] = useState(() => createSupabaseClient());
   const [username, setUsername] = useState("");
@@ -645,11 +646,12 @@ export default function HomePage() {
       return;
     }
     if (supabaseClient) {
-      void fetch("/api/player", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player: next }),
-      }).then(async (response) => {
+      playerSaveQueueRef.current = playerSaveQueueRef.current.catch(() => undefined).then(async () => {
+        const response = await fetch("/api/player", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ player: next }),
+        });
         if (!response.ok) {
           const body = await response.json().catch(() => null);
           setNotice(body?.error || "Could not save your player data.");
