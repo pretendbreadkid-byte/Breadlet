@@ -86,6 +86,7 @@ type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 
 const playerKey = "breadlet-player";
 const guestPlayerKey = "breadlet-guest-player";
+const guestSessionPlayerKey = "breadlet-guest-session-player";
 const wheelSpinKey = "breadlet-wheel-spun";
 const firstFiftyKey = "breadlet-first-fifty-count";
 const badgeDescriptions: Record<string, string> = {
@@ -529,11 +530,12 @@ export default function HomePage() {
 
   useEffect(() => {
     const restoreGuest = () => {
-      const savedGuest = window.localStorage.getItem(guestPlayerKey);
+      const persistentGuest = window.localStorage.getItem(guestPlayerKey);
+      const savedGuest = persistentGuest || window.sessionStorage.getItem(guestSessionPlayerKey);
       if (!savedGuest) return false;
       setPlayer(JSON.parse(savedGuest));
       setIsGuest(true);
-      setGuestProgressUnlocked(true);
+      setGuestProgressUnlocked(Boolean(persistentGuest));
       return true;
     };
     if (supabaseClient) {
@@ -637,6 +639,8 @@ export default function HomePage() {
     if (isGuest) {
       if (guestProgressUnlocked) {
         window.localStorage.setItem(guestPlayerKey, JSON.stringify(next));
+      } else {
+        window.sessionStorage.setItem(guestSessionPlayerKey, JSON.stringify(next));
       }
       return;
     }
@@ -758,7 +762,8 @@ export default function HomePage() {
     setNotice("Welcome to Breadlet.");
   };
   const startGuest = () => {
-    const savedGuest = window.localStorage.getItem(guestPlayerKey);
+    const persistentGuest = window.localStorage.getItem(guestPlayerKey);
+    const savedGuest = persistentGuest || window.sessionStorage.getItem(guestSessionPlayerKey);
     const storedPlayer: Player | null = savedGuest ? JSON.parse(savedGuest) : pendingGuestRef.current;
     const guestInventory = storedPlayer ? [...storedPlayer.inventory] : [];
     if (storedPlayer && !storedPlayer.guestStarterRemoved) {
@@ -796,6 +801,8 @@ export default function HomePage() {
     setGuestWelcomeOpen(true);
     if (guestProgressUnlocked) {
       window.localStorage.setItem(guestPlayerKey, JSON.stringify(guestPlayer));
+    } else {
+      window.sessionStorage.setItem(guestSessionPlayerKey, JSON.stringify(guestPlayer));
     }
   };
   const addFriend = async (friendUsername: string) => {
@@ -1132,6 +1139,7 @@ export default function HomePage() {
     if (isGuest && player && !guestProgressUnlocked) {
       pendingGuestRef.current = player;
     }
+    if (isGuest) window.sessionStorage.removeItem(guestSessionPlayerKey);
     setPlayer(null);
     setIsGuest(false);
     setUserMenuOpen(false);
@@ -1349,7 +1357,7 @@ export default function HomePage() {
         {/* Dynamic Page Section */}
         <section className="flex-1 p-6 overflow-y-auto">
           {incomingTradeNotice && <button onClick={() => { setIncomingTradeNotice(""); setTab("profile"); }} className="profile-trade-toast fixed right-5 top-20 z-40 w-[min(24rem,calc(100vw-2rem))]" role="status">{incomingTradeNotice}<span>Open profile</span></button>}
-          {isGuest && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress resets when you leave"}</span><button onClick={leaveSession} className="font-black underline decoration-amber-200/50 underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
+          {isGuest && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline decoration-amber-200/50 underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
               <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
