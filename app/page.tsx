@@ -1187,7 +1187,7 @@ export default function HomePage() {
     setNotice("Request review access enabled.");
   } else {
     setNotice("That promo code is not active.");
-  }
+  };
   const grantReward = async (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => {
     if (!adminUnlocked) return;
     const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId, ...reward }) });
