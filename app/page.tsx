@@ -192,11 +192,35 @@ const artFor = (name: string) =>
     Sandwich: "/assets/sandwich.svg",
     Butterfly: "/assets/butterfly (1).svg",
     Blackbeard: "/assets/captainblackbeard (1).svg",
-    Rock: "/assets/basic rock.svg",
-    Button: placeholderArt("Button"),
-    Pickle: placeholderArt("Pickle"),
-    "The Bomb": placeholderArt("The Bomb"),
+    Rock: "/assets/Lost and found + food pack/rock.svg",
+    Button: "/assets/Lost and found + food pack/button.svg",
+    "Car Keys": "/assets/Lost and found + food pack/car keys .svg",
+    Comb: "/assets/Lost and found + food pack/comb.svg",
+    Hat: "/assets/Lost and found + food pack/hat.svg",
+    Textbook: "/assets/Lost and found + food pack/Textbook.svg",
+    Tablet: "/assets/Lost and found + food pack/tablet.svg",
+    Apple: "/assets/Lost and found + food pack/apple.svg",
+    Fries: "/assets/Lost and found + food pack/fries.svg",
+    Egg: "/assets/Lost and found + food pack/egg.svg",
+    "Candy Corn": "/assets/Lost and found + food pack/candy corn.svg",
+    Caramel: "/assets/Lost and found + food pack/carmel.svg",
+    "Sprinkle Bread": "/assets/Lost and found + food pack/sprinkle bread .svg",
+    "Ice Cream": "/assets/Lost and found + food pack/ice cream .svg",
+    Pickle: "/assets/Lost and found + food pack/pickel frame 1.svg",
+    "The Bomb": "/assets/Lost and found + food pack/bomb.svg",
+    Nunchucks: "/assets/Lost and found + food pack/nunchucks (rplacemnt for sheild..svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
+const pickleFrames = [1, 2, 4, 5, 6, 7, 8, 9, 10].map(
+  (n) => `/assets/Lost and found + food pack/pickel frame ${n}.svg`,
+);
+function PickleFrameSwitcher({ className }: { className: string }) {
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setFrame((f) => (f + 1) % pickleFrames.length), 150);
+    return () => clearInterval(timer);
+  }, []);
+  return <img src={pickleFrames[frame]} alt="Pickle" className={`max-h-full max-w-full object-contain ${className}`} />;
+}
 const rarityBudget: Record<string, number> = {
   Common: 50,
   Uncommon: 25,
@@ -395,7 +419,14 @@ const liveCapsules: Capsule[] = [
     name: "Lost and Found Capsule",
     price: 25,
     art: placeholderArt("Lost and Found Capsule"),
-    pool: rewards([["Button", "Mythic"]]),
+    pool: rewards([
+      ["Car Keys", "Common"],
+      ["Comb", "Common"],
+      ["Hat", "Uncommon"],
+      ["Textbook", "Rare"],
+      ["Tablet", "Legendary"],
+      ["Button", "Mythic"],
+    ]),
   },
   {
     name: "Food Capsule",
@@ -403,14 +434,15 @@ const liveCapsules: Capsule[] = [
     art: placeholderArt("Food Capsule"),
     pool: rewards([
       ["Rock", "Common"],
+      ["Apple", "Common"],
+      ["Fries", "Uncommon"],
+      ["Egg", "Uncommon"],
+      ["Candy Corn", "Rare"],
+      ["Caramel", "Epic"],
+      ["Sprinkle Bread", "Epic"],
+      ["Ice Cream", "Legendary"],
       ["Pickle", "Mythic"],
     ]),
-  },
-  {
-    name: "Weapons Capsule",
-    price: 25,
-    art: placeholderArt("Weapons Capsule"),
-    pool: rewards([["The Bomb", "Uncommon"]]),
   },
   {
     name: "Artifact Capsule",
@@ -444,9 +476,10 @@ const liveCapsules: Capsule[] = [
     art: "/assets/combat-capsule-new.svg",
     pool: rewards([
       ["Olive Grenade", "Common"],
+      ["The Bomb", "Uncommon"],
       ["Golden Grenade", "Rare"],
       ["Shuriken", "Rare"],
-      ["Shield", "Epic"],
+      ["Nunchucks", "Epic"],
       ["Spartan", "Legendary"],
       ["Golden Shuriken", "Mythic"],
     ]),
@@ -2038,6 +2071,23 @@ function rarityFor(name: string) {
   );
 }
 
+function retiredCountdown() {
+  const now = new Date();
+  const windowOpen = isRetiredWindowOpen();
+  const target = new Date(now);
+  if (windowOpen) {
+    target.setHours(RETIRED_RETURN_HOUR + 1, 0, 0, 0);
+  } else {
+    target.setHours(RETIRED_RETURN_HOUR, 0, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+  }
+  const diff = Math.max(0, target.getTime() - now.getTime());
+  const hours = String(Math.floor(diff / 3600000)).padStart(2, "0");
+  const minutes = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
+  const seconds = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
+  return { windowOpen, label: `${hours}:${minutes}:${seconds}` };
+}
+
 function CapsulesTab({
   showRetired,
   setShowRetired,
@@ -2055,18 +2105,22 @@ function CapsulesTab({
   playerTokens: number;
   isGuest: boolean;
 }) {
-  const [retiredWindowOpen, setRetiredWindowOpen] = useState(isRetiredWindowOpen);
+  const [countdown, setCountdown] = useState(retiredCountdown);
   useEffect(() => {
-    const timer = setInterval(() => setRetiredWindowOpen(isRetiredWindowOpen()), 30000);
+    const timer = setInterval(() => setCountdown(retiredCountdown()), 1000);
     return () => clearInterval(timer);
   }, []);
   const capsules = isGuest || showRetired
     ? [...liveCapsules, ...retiredCapsules]
     : liveCapsules;
-  const canOpenRetired = isGuest || retiredWindowOpen;
+  const canOpenRetired = isGuest || countdown.windowOpen;
 
   return (
     <div>
+      <div className={`mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-bold ${countdown.windowOpen ? "border-emerald-300/40 bg-emerald-500/10 text-emerald-100" : "border-[#d49a4a]/35 bg-[#6c4328]/35 text-[#ffe2a0]"}`}>
+        <span>{countdown.windowOpen ? "Legacy packs are open right now!" : "Legacy packs return in"}</span>
+        <span className="font-mono text-lg tracking-widest">{countdown.windowOpen ? `Closes in ${countdown.label}` : countdown.label}</span>
+      </div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-4xl font-black">Capsules</h1>
         <div className="flex flex-wrap gap-3">
@@ -2091,7 +2145,7 @@ function CapsulesTab({
         <div className="mt-5 rounded-xl border border-[#d49a4a]/35 bg-[#6c4328]/35 px-4 py-3 text-sm text-[#ffe2a0]">
           {isGuest
             ? "Guest test mode: retired boxes are openable for free."
-            : retiredWindowOpen
+            : countdown.windowOpen
               ? "Retired boxes are open for the next hour!"
               : "Retired boxes return at 5 PM for one hour."}
         </div>
@@ -2178,6 +2232,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   if (cleanName === "Timeglass") {
     return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{["/assets/Time glass first animation.svg", "/assets/Time glass second animation2.svg", "/assets/Time glass 3rd animation3.svg", "/assets/Time glass final animation.svg"].map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;
+  }
+  if (cleanName === "Pickle") {
+    return <PickleFrameSwitcher className={className} />;
   }
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`}>
