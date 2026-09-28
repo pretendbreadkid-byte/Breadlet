@@ -30,6 +30,8 @@ export async function GET() {
     ? await supabase.from('blooks').select('name').eq('id', profile.equipped_blook_id).maybeSingle()
     : { data: null };
 
+  const inventoryRows = (inventory || []) as unknown as Array<{ quantity: number; shiny: boolean; blooks: { name: string } | null }>;
+
   return NextResponse.json({
     profile: {
       ...profile,
@@ -38,8 +40,8 @@ export async function GET() {
       clan_tag: profile.stats?.clanTag || '',
       wheel_spun: Boolean(profile.stats?.wheelSpun),
     },
-    inventory: (inventory || []).flatMap((entry: { quantity: number; shiny: boolean; blooks: { name: string }[] | null }) =>
-      Array.from({ length: entry.quantity }, () => entry.blooks?.[0]?.name ? `${entry.shiny ? 'Shiny ' : ''}${entry.blooks[0].name}` : null).filter(Boolean),
+    inventory: inventoryRows.flatMap((entry) =>
+      Array.from({ length: entry.quantity }, () => entry.blooks?.name ? `${entry.shiny ? 'Shiny ' : ''}${entry.blooks.name}` : null).filter(Boolean),
     ),
     materials: { ...emptyMaterials(), ...(profile.materials || {}) },
     mine,
