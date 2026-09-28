@@ -87,7 +87,7 @@ type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 const playerKey = "breadlet-player";
 const RETIRED_RETURN_HOUR = 17; // Retired capsules reopen at 5 PM local time for one hour.
 const isRetiredWindowOpen = () => new Date().getHours() === RETIRED_RETURN_HOUR;
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
 const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
