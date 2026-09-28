@@ -635,7 +635,7 @@ export default function HomePage() {
     logo.addEventListener("click", goToProfile);
     return () => logo.removeEventListener("click", goToProfile);
   }, []);
-  const save = (next: Player): Promise<boolean> => {
+  const save = (next: Player, options: { inventory?: boolean } = {}): Promise<boolean> => {
     setPlayer(next);
     if (isGuest) {
       if (guestProgressUnlocked) {
@@ -648,10 +648,11 @@ export default function HomePage() {
     if (supabaseClient) {
       const currentSave = playerSaveQueueRef.current.catch(() => undefined).then(async () => {
         try {
+        const payloadPlayer = options.inventory ? next : (({ inventory: _inventory, ...profile }) => profile)(next);
         const response = await fetch("/api/player", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ player: next }),
+          body: JSON.stringify({ player: payloadPlayer }),
         });
         if (!response.ok) {
           const body = await response.json().catch(() => null);
@@ -909,7 +910,7 @@ export default function HomePage() {
       inventory: [...player.inventory, finalReward.name],
     };
     setReveal({ capsule, reward: finalReward, track, winnerIndex, phase: "charging" });
-    void save(next).then((saved) => {
+    void save(next, { inventory: true }).then((saved) => {
       if (!saved) {
         setReveal(null);
         return;
@@ -954,7 +955,7 @@ export default function HomePage() {
       ...player,
       tokens: isGuest ? player.tokens : player.tokens - cost,
       inventory: [...player.inventory, ...results.map((result) => result.reward.name)],
-    }).then((saved) => {
+    }, { inventory: true }).then((saved) => {
       if (!saved) return;
       setMassOpen(false);
       setMassQuantities({});
@@ -977,7 +978,7 @@ export default function HomePage() {
       tokens: player.tokens + value,
       inventory,
       equipped: player.equipped === name ? inventory[0] : player.equipped,
-    });
+    }, { inventory: true });
     setNotice(`${name} sold for ${value} tokens.`);
   };
   const buyUpgrade = (index: number) => {
@@ -1057,7 +1058,7 @@ export default function HomePage() {
         return;
       }
     }
-    save({ ...player, tokens: isGuest ? player.tokens : player.tokens - listing.price, inventory: [...player.inventory, listing.blook], listings: player.listings.filter((item) => item.id !== listing.id) });
+    save({ ...player, tokens: isGuest ? player.tokens : player.tokens - listing.price, inventory: [...player.inventory, listing.blook], listings: player.listings.filter((item) => item.id !== listing.id) }, { inventory: true });
     setSelectedListing(null);
     setNotice(`${listing.blook} purchased.`);
   };
@@ -1124,7 +1125,7 @@ export default function HomePage() {
           ]),
         ),
       },
-    });
+    }, { inventory: true });
     setNotice(`${name} dismantled into a five-material bundle.`);
   };
   const craft = (name: string) => {
@@ -1150,7 +1151,7 @@ export default function HomePage() {
       setCraftReveal((current) => current ? { ...current, phase: "charging" } : null);
     }, 1400);
     window.setTimeout(() => {
-      void save({ ...next, inventory: [...next.inventory, name] }).then((saved) => {
+      void save({ ...next, inventory: [...next.inventory, name] }, { inventory: true }).then((saved) => {
         if (saved) setCraftReveal({ name, ingredients: recipe.ingredients, phase: "output" });
         else setCraftReveal(null);
       });
@@ -1451,7 +1452,7 @@ export default function HomePage() {
                   inventory: [...player.inventory, ...gift.blooks],
                   badges: Array.from(new Set([...player.badges, ...gift.badges])),
                   materials: Object.fromEntries(materialNames.map((material) => [material, (player.materials[material] || 0) + (gift.materials[material] || 0)])),
-                });
+                }, { inventory: true });
                 const giftText = `${gift.title || "Admin gift"}: ${gift.message || "Gift received"}`;
                 setGiftChatNotice(giftText);
                 setNotice(`${giftText} · gift sent.`);
