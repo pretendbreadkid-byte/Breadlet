@@ -1189,7 +1189,6 @@ export default function HomePage() {
   } else {
     setNotice("That promo code is not active.");
   }
-};
     if (!player) return;
     if (promoCode.trim() === "Breadlet2.0") {
       save({ ...player, tokens: player.tokens + 1000 });
