@@ -1183,32 +1183,11 @@ export default function HomePage() {
       return;
     }
 
-    setAdminUnlocked(true);
     setTab("migration");
     setNotice("Request review access enabled.");
   } else {
     setNotice("That promo code is not active.");
   }
-    if (!player) return;
-    if (promoCode.trim() === "Breadlet2.0") {
-      save({ ...player, tokens: player.tokens + 1000 });
-      setNotice("Promo redeemed: +1,000 tokens.");
-    } else if (promoCode.trim() === "admin1234532!") {
-      const response = await fetch("/api/requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "unlock-reviewer", code: promoCode.trim() }),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setNotice(result.error || "Request reviewer access could not be enabled.");
-        return;
-      }
-      setAdminUnlocked(true);
-      setTab("migration");
-      setNotice("Request review access enabled.");
-    } else setNotice("That promo code is not active.");
-  };
   const grantReward = async (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => {
     if (!adminUnlocked) return;
     const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId, ...reward }) });
