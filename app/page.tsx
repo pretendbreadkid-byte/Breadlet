@@ -1133,7 +1133,63 @@ export default function HomePage() {
     setNotice(`${listing.blook} purchased.`);
   };
   const redeemPromo = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  event.preventDefault();
+  if (!player || isGuest) return;
+
+  const code = promoCode.trim();
+
+  if (code === "Breadlet2.0") {
+    const response = await fetch("/api/promo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setNotice(result.error || "Promo redemption failed.");
+      return;
+    }
+
+    setPlayer((current) =>
+      current
+        ? {
+            ...current,
+            tokens: current.tokens + Number(result.amount || 1000),
+          }
+        : current,
+    );
+
+    setPromoCode("");
+    setNotice("Promo redeemed: +1,000 tokens.");
+  } else if (code === "admin1234532!") {
+    const response = await fetch("/api/requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "unlock-reviewer",
+        code,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      setNotice(
+        result.error ||
+          "Request reviewer access could not be enabled.",
+      );
+      return;
+    }
+
+    setAdminUnlocked(true);
+    setTab("migration");
+    setNotice("Request review access enabled.");
+  } else {
+    setNotice("That promo code is not active.");
+  }
+};
     if (!player) return;
     if (promoCode.trim() === "Breadlet2.0") {
       save({ ...player, tokens: player.tokens + 1000 });
