@@ -417,6 +417,11 @@ textarea {
 .timeglass-frame-2 { animation: timeglass-frame-cycle 4s steps(1) 2s infinite; }
 .timeglass-frame-3 { animation: timeglass-frame-cycle 4s steps(1) 3s infinite; }
 .timeglass-sequence { animation: timeglass-sequence 4s ease-in-out infinite; }
+.maintenance-hammer { animation: maintenance-hammer-swing 1.1s ease-in-out infinite; transform-origin: 70% 25%; }
+@keyframes maintenance-hammer-swing { 0%, 100% { transform: rotate(-22deg); } 50% { transform: rotate(22deg); } }
+/* Placeholder art for items awaiting final assets. */
+img[alt="Button"] { animation: mystical-spin 2.4s linear infinite; }
+@keyframes mystical-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 header > div > div:first-child > span {
   display: block !important;

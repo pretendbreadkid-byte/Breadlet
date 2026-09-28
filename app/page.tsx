@@ -85,6 +85,11 @@ type PublicProfile = {
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 
 const playerKey = "breadlet-player";
+const RETIRED_RETURN_HOUR = 17; // Retired capsules reopen at 5 PM local time for one hour.
+const isRetiredWindowOpen = () => new Date().getHours() === RETIRED_RETURN_HOUR;
+const MAINTENANCE_MODE = true;
+const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
+const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
 const guestSessionPlayerKey = "breadlet-guest-session-player";
 const wheelSpinKey = "breadlet-wheel-spun";
@@ -110,6 +115,9 @@ const badgeIconFor = (badge: string) => ({
   "100K Tokens": "/assets/token-badge-100k.svg",
   "1M Tokens": "/assets/token-badge-1m.svg",
 })[badge] || "/assets/verified-badge.svg";
+// Red box + name placeholder for items awaiting final artwork.
+const placeholderArt = (label: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' rx='16' fill='#b91c1c' stroke='#7f1d1d' stroke-width='8'/><text x='50%' y='50%' fill='#ffffff' font-family='sans-serif' font-size='22' font-weight='700' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`)}`;
 const artFor = (name: string) =>
   ({
     Mars: "/assets/mars.svg",
@@ -184,6 +192,10 @@ const artFor = (name: string) =>
     Sandwich: "/assets/sandwich.svg",
     Butterfly: "/assets/butterfly (1).svg",
     Blackbeard: "/assets/captainblackbeard (1).svg",
+    Rock: "/assets/basic rock.svg",
+    Button: placeholderArt("Button"),
+    Pickle: placeholderArt("Pickle"),
+    "The Bomb": placeholderArt("The Bomb"),
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const rarityBudget: Record<string, number> = {
   Common: 50,
@@ -380,17 +392,25 @@ const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Human Capsule",
+    name: "Lost and Found Capsule",
     price: 25,
-    art: "/assets/human-capsule-new.svg",
+    art: placeholderArt("Lost and Found Capsule"),
+    pool: rewards([["Button", "Mythic"]]),
+  },
+  {
+    name: "Food Capsule",
+    price: 25,
+    art: placeholderArt("Food Capsule"),
     pool: rewards([
-      ["Worker", "Common"],
-      ["Chef", "Uncommon"],
-      ["Doctor", "Rare"],
-      ["Ninja", "Epic"],
-      ["Actor", "Legendary"],
-      ["Caveman", "Mythic"],
+      ["Rock", "Common"],
+      ["Pickle", "Mythic"],
     ]),
+  },
+  {
+    name: "Weapons Capsule",
+    price: 25,
+    art: placeholderArt("Weapons Capsule"),
+    pool: rewards([["The Bomb", "Uncommon"]]),
   },
   {
     name: "Artifact Capsule",
@@ -446,6 +466,20 @@ const liveCapsules: Capsule[] = [
   },
 ];
 const retiredCapsules: Capsule[] = [
+  {
+    name: "Human Capsule",
+    price: 25,
+    art: "/assets/human-capsule-new.svg",
+    retired: true,
+    pool: rewards([
+      ["Worker", "Common"],
+      ["Chef", "Uncommon"],
+      ["Doctor", "Rare"],
+      ["Ninja", "Epic"],
+      ["Actor", "Legendary"],
+      ["Caveman", "Mythic"],
+    ]),
+  },
   {
     name: "Bread Box",
     price: 25,
@@ -528,6 +562,9 @@ export default function HomePage() {
   const [announcement, setAnnouncement] = useState("");
   const [giftChatNotice, setGiftChatNotice] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [maintenanceBypassed, setMaintenanceBypassed] = useState(!MAINTENANCE_MODE);
+  const [maintenanceCodeInput, setMaintenanceCodeInput] = useState("");
+  const [maintenanceError, setMaintenanceError] = useState("");
 
   useEffect(() => {
     const restoreGuest = () => {
@@ -1165,6 +1202,23 @@ export default function HomePage() {
       );
     }
   };
+  useEffect(() => {
+    if (MAINTENANCE_MODE && window.sessionStorage.getItem(MAINTENANCE_BYPASS_KEY) === "1") {
+      setMaintenanceBypassed(true);
+    }
+  }, []);
+  const submitMaintenanceBypass = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (maintenanceCodeInput.trim() === MAINTENANCE_BYPASS_CODE) {
+      window.sessionStorage.setItem(MAINTENANCE_BYPASS_KEY, "1");
+      setMaintenanceBypassed(true);
+      setMaintenanceError("");
+      // Reveals the Admin Panel nav item locally; the /api/admin routes still require a real admin_roles row.
+      setAdminUnlocked(true);
+    } else {
+      setMaintenanceError("Incorrect access code.");
+    }
+  };
   const leaveSession = () => {
     if (isGuest && player && !guestProgressUnlocked) {
       pendingGuestRef.current = player;
@@ -1176,6 +1230,30 @@ export default function HomePage() {
     if (!isGuest) supabaseClient?.auth.signOut();
     window.localStorage.removeItem(playerKey);
   };
+  if (!maintenanceBypassed)
+    return (
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#0b1622] px-5">
+        <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-8 text-center shadow-2xl">
+          <Hammer size={56} className="maintenance-hammer mx-auto text-[#ffe27a]" />
+          <h1 className="mt-4 text-2xl font-black text-[#bde8ff]">Down for Maintenance</h1>
+          <p className="mt-2 text-sm text-[#d9f3ff]">Breadlet is getting hammered on right now. Check back soon!</p>
+          <form onSubmit={submitMaintenanceBypass} className="mt-6 space-y-3">
+            <input
+              type="password"
+              value={maintenanceCodeInput}
+              onChange={(event) => setMaintenanceCodeInput(event.target.value)}
+              placeholder="Admin access code"
+              autoComplete="off"
+              className="w-full rounded-xl border border-[#3d91cd]/50 bg-[#0b2a4d] px-4 py-3 text-sm text-white placeholder:text-[#6ea3ce] focus:outline-none"
+            />
+            {maintenanceError && <p className="text-xs font-bold text-red-300">{maintenanceError}</p>}
+            <button type="submit" className="w-full rounded-2xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426] transition hover:bg-[#73c8ff]">
+              Enter
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   if (!player)
     return (
       <LoginScreen
@@ -1977,9 +2055,15 @@ function CapsulesTab({
   playerTokens: number;
   isGuest: boolean;
 }) {
+  const [retiredWindowOpen, setRetiredWindowOpen] = useState(isRetiredWindowOpen);
+  useEffect(() => {
+    const timer = setInterval(() => setRetiredWindowOpen(isRetiredWindowOpen()), 30000);
+    return () => clearInterval(timer);
+  }, []);
   const capsules = isGuest || showRetired
     ? [...liveCapsules, ...retiredCapsules]
     : liveCapsules;
+  const canOpenRetired = isGuest || retiredWindowOpen;
 
   return (
     <div>
@@ -2005,17 +2089,21 @@ function CapsulesTab({
       </div>
       {showRetired && (
         <div className="mt-5 rounded-xl border border-[#d49a4a]/35 bg-[#6c4328]/35 px-4 py-3 text-sm text-[#ffe2a0]">
-          {isGuest ? "Guest test mode: retired boxes are openable for free." : "Retired boxes are visual-only and can come back at any time."}
+          {isGuest
+            ? "Guest test mode: retired boxes are openable for free."
+            : retiredWindowOpen
+              ? "Retired boxes are open for the next hour!"
+              : "Retired boxes return at 5 PM for one hour."}
         </div>
       )}
       <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {capsules.map((capsule) => (
           <div
             key={capsule.name}
-            onClick={() => (!capsule.retired || isGuest) && openCapsule(capsule)}
+            onClick={() => (!capsule.retired || canOpenRetired) && openCapsule(capsule)}
             className={`group rounded-2xl p-6 transition hover:-translate-y-1 ${
               capsule.retired ? "bg-[#302016] opacity-80" : "border border-[#d49a4a]/25 bg-[#3a2415]"
-            } ${!capsule.retired || isGuest ? "cursor-pointer" : ""}`}
+            } ${!capsule.retired || canOpenRetired ? "cursor-pointer" : ""}`}
           >
             <div className="flex h-64 items-center justify-center">
               <img
@@ -2038,7 +2126,7 @@ function CapsulesTab({
                 i
               </button>
             </div>
-            {(!capsule.retired || isGuest) && (
+            {(!capsule.retired || canOpenRetired) && (
               <>
                 <div className="mt-4 flex items-center justify-between border-y border-white/10 py-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-white/60">{capsule.retired ? "Retired crate · open capsule" : "Open capsule"}</span>
@@ -2054,7 +2142,11 @@ function CapsulesTab({
                 {capsule.note}
               </p>
             )}
-            {capsule.retired && <p className="mt-5 text-center text-xs font-bold uppercase text-[#9cc8e8]">Retired</p>}
+            {capsule.retired && (
+              <p className="mt-5 text-center text-xs font-bold uppercase text-[#9cc8e8]">
+                {canOpenRetired ? "Retired · open now!" : "Retired · returns at 5 PM"}
+              </p>
+            )}
           </div>
         ))}
       </div>
