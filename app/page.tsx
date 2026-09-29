@@ -418,7 +418,7 @@ const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Capsule",
     price: 25,
-    art: "/assets/lost found capsule (1).svg",
+    art: "/assets/Lost and found + food pack/Textbook.svg",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
@@ -431,7 +431,7 @@ const liveCapsules: Capsule[] = [
   {
     name: "Food Capsule",
     price: 25,
-    art: "/assets/food capsule.svg",
+    art: "/assets/Lost and found + food pack/apple.svg",
     pool: rewards([
       ["Rock", "Common"],
       ["Apple", "Common"],
