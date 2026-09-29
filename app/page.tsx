@@ -4111,7 +4111,7 @@ function CraftingTab({
 }
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    </div></div> className="rounded-xl bg-[#24170f]/70 p-4">
+    <div className="rounded-xl bg-[#24170f]/70 p-4">
       <p className="text-xs uppercase tracking-widest text-[#b58d68]">
         {label}
       </p>
