@@ -162,7 +162,7 @@ h3,
 .profile-dashboard { --profile-green: #0c3b70; --profile-lime: #39a8f5; --profile-deep: #072a54; --profile-panel: #103f75; background-color: #0c3b70; background-image: linear-gradient(135deg, transparent 0 43%, #8ed7ff0b 43% 57%, transparent 57%), linear-gradient(35deg, transparent 0 45%, #8ed7ff08 45% 60%, transparent 60%); color: #f2f9ff; }
 .profile-player-panel,.profile-badges-panel,.profile-stats-panel,.profile-list-panel { border-color: #247bc0; background: #103f75; box-shadow: 0 7px 0 #072a54; }
 .profile-player-panel { min-height: 0; }
-.profile-avatar-frame { width: clamp(84px, 9vw, 124px); height: auto; aspect-ratio: 1; border-color: #247bc0; background: #18558f; }
+.profile-avatar-frame { width: clamp(84px, 9vw, 124px); height: auto; aspect-ratio: 1; border: none; background: transparent; }
 .profile-avatar-frame img { width: 100%; height: 100%; object-fit: contain; }
 .profile-avatar-frame-small { width: 82px; height: 82px; }
 .profile-player-copy p,.profile-empty,.profile-trade-row p { color: #cdeaff; }
