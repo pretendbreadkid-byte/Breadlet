@@ -551,7 +551,7 @@ const upgrades = [
 ];
 const mineCapFor = (pickaxe: number) => [500, 1500, 2500, 3500, 4250, 5000][pickaxe] || 5000;
 
-function HomePage() {
+function MainPage() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [guestProgressUnlocked, setGuestProgressUnlocked] = useState(false);
