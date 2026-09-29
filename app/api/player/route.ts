@@ -32,13 +32,16 @@ export async function GET() {
 
   const inventoryRows = (inventory || []) as unknown as Array<{ quantity: number; shiny: boolean; blooks: { name: string } | null }>;
 
+  const wheelSpunAt = profile.stats?.wheelSpunAt;
+  const wheelSpunToday = typeof wheelSpunAt === 'string' && new Date(wheelSpunAt).toDateString() === new Date().toDateString();
+
   return NextResponse.json({
     profile: {
       ...profile,
       equipped_blook_name: equipped?.name || null,
       badges: profile.stats?.badges || [],
       clan_tag: profile.stats?.clanTag || '',
-      wheel_spun: Boolean(profile.stats?.wheelSpun),
+      wheel_spun: Boolean(profile.stats?.wheelSpun) && wheelSpunToday,
     },
     inventory: inventoryRows.flatMap((entry) =>
       Array.from({ length: entry.quantity }, () => entry.blooks?.name ? `${entry.shiny ? 'Shiny ' : ''}${entry.blooks.name}` : null).filter(Boolean),
@@ -88,14 +91,33 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: `These Blooks are missing from the server catalog and were not saved: ${unknownBlooks.join(', ')}. Apply the latest Blook catalog migration, then retry.` }, { status: 409 });
   }
 
+  const { data: currentProfile } = await supabase.from('profiles').select('tokens, stats').eq('id', user.id).single();
+  const previousTokens = Math.max(0, Math.floor(Number(currentProfile?.tokens) || 0));
+  const requestedTokens = Math.max(0, Math.floor(Number(player.tokens) || 0));
+  // Block the "set my tokens to a huge number" exploit: no single save may grant
+  // more than the largest legitimate single reward (the 5,000-token wheel prize).
+  const MAX_TOKEN_GAIN_PER_SAVE = 5000;
+  const tokens = requestedTokens > previousTokens
+    ? Math.min(requestedTokens, previousTokens + MAX_TOKEN_GAIN_PER_SAVE)
+    : requestedTokens;
+
+  const previousStats = (currentProfile?.stats || {}) as Record<string, unknown>;
+  const requestedWheelSpun = Boolean(player.wheelSpun);
+  const wheelSpunToday = typeof previousStats.wheelSpunAt === 'string'
+    && new Date(previousStats.wheelSpunAt as string).toDateString() === new Date().toDateString();
+  // Reset the Daily Crate automatically once the calendar day changes instead of
+  // leaving it permanently marked as opened.
+  const wheelSpunAt = requestedWheelSpun ? new Date().toISOString() : (wheelSpunToday ? previousStats.wheelSpunAt : null);
+
   const profileUpdate = {
     username: String(player.username || '').trim().slice(0, 20),
-    tokens: Math.max(0, Math.floor(Number(player.tokens) || 0)),
+    tokens,
     luck: 0,
     stats: {
       badges: Array.isArray(player.badges) ? player.badges : [],
       clanTag: String(player.clanTag || '').slice(0, 5),
-      wheelSpun: Boolean(player.wheelSpun),
+      wheelSpun: requestedWheelSpun,
+      wheelSpunAt,
     },
     materials: player.materials || emptyMaterials(),
     friends: Array.isArray(player.friends) ? player.friends : [],
