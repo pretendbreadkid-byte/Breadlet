@@ -4109,6 +4109,7 @@ function CraftingTab({
     </div>
   );
 }
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-[#24170f]/70 p-4">
@@ -4119,7 +4120,6 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
 
 export default function Game() {
   return <MainPage />;
