@@ -133,7 +133,7 @@ const artFor = (name: string) =>
     "Burnt Toast": "/assets/Burnt toast.svg",
     Brioche: "/assets/brioche.svg",
     Chef: "/assets/chef (1).svg",
-    Earth: "/assets/earrth.svg",
+    Earth: "/assets/earth-updated.svg",
     Surgeon: "/assets/doctor 2.0.svg",
     Doctor: "/assets/doctor 2.0.svg",
     "Crystal Ball": "/assets/crystal ball 2.0.svg",

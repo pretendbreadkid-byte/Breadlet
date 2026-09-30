@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="184" viewBox="0 0 160 184">
+  <defs>
+    <clipPath id="globe"><rect width="160" height="184" rx="24"/></clipPath>
+  </defs>
+  <g clip-path="url(#globe)" stroke-linejoin="round" stroke-linecap="round">
+    <rect width="160" height="184" fill="#19c5ee"/>
+    <path d="M-8 28C11 18 31 17 53 20l38 1 1 27-9 2-2 13-20-2-22 10-24-6-23-2z" fill="#dce7ec" stroke="#078cf3" stroke-width="6"/>
+    <path d="M-5 31c22-7 39-5 60-6l29 1-1 28-20 1-24 11-23-8-21-1z" fill="#eef4f5"/>
+    <path d="M-10 62c19-1 38 5 52 13l2 18-4 12 12 12-7 26-15 17-18-1-22-12z" fill="#06792c" stroke="#045c2b" stroke-width="5"/>
+    <path d="M-5 66c15 1 30 5 42 12l3 18-7 11 10 13-8 22-12 14-18-3-15-15z" fill="#078d32"/>
+    <path d="M127 20c14 0 29 2 41 8l5 80-13 4-13-14-14-4-14-11-2-9 9-8-9-8 4-25z" fill="#057b2b" stroke="#045d2a" stroke-width="5"/>
+    <path d="M132 24c13 1 25 4 35 8l2 70-9 4-11-12-15-4-11-10-2-6 10-8-10-10 4-28z" fill="#078d32"/>
+    <path d="M85-8c6 20 2 38 4 58l-8 5" fill="none" stroke="#0795fa" stroke-width="7"/>
+    <path d="M162 128c-20 5-34 12-50 18-18 7-30 10-48 13l-11 18 9 13h87l18-13z" fill="#dce7ec" stroke="#078cf3" stroke-width="6"/>
+    <path d="M158 136c-20 5-32 12-47 17-17 6-29 9-45 11l-7 14 7 8h79l17-13z" fill="#eef4f5"/>
+    <path d="M0 164c11 3 19 4 28 2l-2 18H4z" fill="#168a4b" stroke="#087048" stroke-width="3"/>
+    <path d="M93 27c9-3 18-4 28-2l-1 36-8 5 8 8-1 11" fill="none" stroke="#078cf3" stroke-width="7"/>
+    <path d="M-3 57c16 7 29 12 43 13" fill="none" stroke="#078cf3" stroke-width="6"/>
+  </g>
+</svg>
