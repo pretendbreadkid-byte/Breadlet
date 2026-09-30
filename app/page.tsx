@@ -126,7 +126,7 @@ const artFor = (name: string) =>
     Map: "/assets/map (1).svg",
     "Pixel Apple": "/assets/pixel-apple.svg",
     "Pixel Ember": "/assets/pixel-ember.svg",
-    "Pixel Ice Block": "/assets/pixel-ice-block.svg",
+    "Pixel Crystal Ball": "/assets/pixel-crystal-ball.svg",
     "Pixel Glacier": "/assets/pixel-glacier.svg",
     "Lava Slime": "/assets/lava-slime.svg",
     "Olive Grenade": "/assets/grenade.png",
@@ -472,7 +472,7 @@ const liveCapsules: Capsule[] = [
     pool: rewards([
       ["Pixel Apple", "Common"],
       ["Pixel Ember", "Common"],
-      ["Pixel Ice Block", "Uncommon"],
+      ["Pixel Crystal Ball", "Uncommon"],
       ["Pixel Glacier", "Uncommon"],
       ["Pixel Bomb", "Rare"],
       ["Pixel Constellation", "Rare"],

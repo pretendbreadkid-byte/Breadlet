@@ -1,7 +1,7 @@
 insert into public.blooks (name, rarity) values
   ('Pixel Apple', 'Common'),
   ('Pixel Ember', 'Common'),
-  ('Pixel Ice Block', 'Uncommon'),
+  ('Pixel Crystal Ball', 'Uncommon'),
   ('Pixel Glacier', 'Uncommon'),
   ('Pixel Bomb', 'Rare'),
   ('Pixel Constellation', 'Rare'),
@@ -20,7 +20,7 @@ begin
     select * from (values
       ('Pixel Toast', 'Pixel Apple', 'Common'),
       ('Pixel Chick', 'Pixel Ember', 'Common'),
-      ('Pixel Ice Slime', 'Pixel Ice Block', 'Uncommon'),
+      ('Pixel Ice Slime', 'Pixel Crystal Ball', 'Uncommon'),
       ('Pixel Fuego', 'Pixel Bomb', 'Rare'),
       ('Pixel Wizard', 'Pixel Constellation', 'Rare'),
       ('Pixel UFO', 'Pixel Sprinkle Bread', 'Mythic')

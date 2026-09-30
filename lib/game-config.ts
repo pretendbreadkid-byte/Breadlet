@@ -74,7 +74,7 @@ export const CHEST_DEFINITIONS = [
     name: 'Pixel Chest',
     price: 25,
     description: 'Retro favorites and playful sprites.',
-    pool: ['Pixel Apple', 'Pixel Ember', 'Pixel Ice Block', 'Pixel Glacier', 'Pixel Bomb', 'Pixel Constellation', 'Pixel Relic', 'Pixel Sprinkle Bread'],
+    pool: ['Pixel Apple', 'Pixel Ember', 'Pixel Crystal Ball', 'Pixel Glacier', 'Pixel Bomb', 'Pixel Constellation', 'Pixel Relic', 'Pixel Sprinkle Bread'],
     rarity: 'Mythic',
     isRetired: false,
     active: true,
