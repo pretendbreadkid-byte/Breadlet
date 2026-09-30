@@ -50,18 +50,31 @@ export async function POST(request: Request) {
   }
 
   const targetId = String(body.targetId || '');
+  const operation = body.operation === 'remove' ? 'remove' : 'add';
   const tokens = Math.max(0, Math.floor(Number(body.tokens) || 0));
   const blookName = String(body.blookName || '').trim().slice(0, 80);
   const badge = String(body.badge || '').trim().slice(0, 40);
-  if (!targetId || (!tokens && !blookName && !badge)) return NextResponse.json({ error: 'Choose a player and at least one reward.' }, { status: 400 });
-  const { data: target, error: targetError } = await session.supabase.from('profiles').select('tokens, stats').eq('id', targetId).single();
+  const material = String(body.material || '').trim();
+  const materialAmount = Math.max(0, Math.floor(Number(body.materialAmount) || 0));
+  const materialNames = ['Gold', 'Cloth', 'Gem', 'Sugar', 'Flower', 'Metal'];
+  if (!targetId || (!tokens && !blookName && !badge && !(material && materialAmount))) {
+    return NextResponse.json({ error: 'Choose a player and at least one resource.' }, { status: 400 });
+  }
+  if (material && !materialNames.includes(material)) {
+    return NextResponse.json({ error: 'That material is not valid.' }, { status: 400 });
+  }
+  const { data: target, error: targetError } = await session.supabase.from('profiles').select('tokens, stats, materials').eq('id', targetId).single();
   if (targetError || !target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
   if (tokens) {
-    const { error } = await session.supabase.from('profiles').update({ tokens: target.tokens + tokens }).eq('id', targetId);
+    const nextTokens = operation === 'remove' ? Math.max(0, target.tokens - tokens) : target.tokens + tokens;
+    const { error } = await session.supabase.from('profiles').update({ tokens: nextTokens }).eq('id', targetId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
   if (badge) {
-    const badges = Array.from(new Set([...(target.stats?.badges || []), badge]));
+    const currentBadges = Array.isArray(target.stats?.badges) ? target.stats.badges : [];
+    const badges = operation === 'remove'
+      ? currentBadges.filter((currentBadge: string) => currentBadge !== badge)
+      : Array.from(new Set([...currentBadges, badge]));
     const { error } = await session.supabase.from('profiles').update({ stats: { ...(target.stats || {}), badges } }).eq('id', targetId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
@@ -70,12 +83,24 @@ export async function POST(request: Request) {
     if (blookError || !blook) return NextResponse.json({ error: 'That Blook is not in the canonical catalog.' }, { status: 400 });
     const shiny = blookName.startsWith('Shiny ');
     const { data: owned } = await session.supabase.from('inventory').select('id, quantity').eq('profile_id', targetId).eq('blook_id', blook.id).eq('shiny', shiny).maybeSingle();
-    const { error } = owned
-      ? await session.supabase.from('inventory').update({ quantity: owned.quantity + 1 }).eq('id', owned.id)
-      : await session.supabase.from('inventory').insert({ profile_id: targetId, blook_id: blook.id, quantity: 1, shiny });
+    if (operation === 'remove' && !owned) return NextResponse.json({ error: 'That player does not own this Blook.' }, { status: 400 });
+    const { error } = operation === 'remove'
+      ? owned!.quantity > 1
+        ? await session.supabase.from('inventory').update({ quantity: owned!.quantity - 1 }).eq('id', owned!.id)
+        : await session.supabase.from('inventory').delete().eq('id', owned!.id)
+      : owned
+        ? await session.supabase.from('inventory').update({ quantity: owned.quantity + 1 }).eq('id', owned.id)
+        : await session.supabase.from('inventory').insert({ profile_id: targetId, blook_id: blook.id, quantity: 1, shiny });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
-  return NextResponse.json({ ok: true });
+  if (material && materialAmount) {
+    const materials = { ...(target.materials || {}) } as Record<string, number>;
+    const currentAmount = Math.max(0, Math.floor(Number(materials[material]) || 0));
+    materials[material] = operation === 'remove' ? Math.max(0, currentAmount - materialAmount) : currentAmount + materialAmount;
+    const { error } = await session.supabase.from('profiles').update({ materials }).eq('id', targetId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+  return NextResponse.json({ ok: true, operation });
 }
 
 export async function DELETE(request: Request) {

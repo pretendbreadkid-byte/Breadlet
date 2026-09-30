@@ -825,7 +825,7 @@ function MainPage() {
         pendingGuestRef.current = null;
         setIsGuest(false);
         setPlayer(playerFromServer(await response.json()));
-        setNotice("Signed in with Supabase.");
+        setNotice("Signed in.");
       }
       return;
     }
@@ -1181,11 +1181,11 @@ function MainPage() {
       }
     } else setNotice("That promo code is not active.");
   };
-  const grantReward = async (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => {
+  const grantReward = async (targetId: string, reward: { operation?: "add" | "remove"; tokens?: number; blookName?: string; badge?: string; material?: string; materialAmount?: number }) => {
     if (!adminUnlocked) return;
     const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId, ...reward }) });
-    if (!response.ok) return setNotice((await response.json().catch(() => null))?.error || "Admin grant failed.");
-    setNotice("Reward granted.");
+    if (!response.ok) return setNotice((await response.json().catch(() => null))?.error || "Admin resource update failed.");
+    setNotice(reward.operation === "remove" ? "Resource removed." : "Resource added.");
   };
   const moderateAccount = async (action: "ban" | "delete", payload: Record<string, unknown>) => {
     const response = action === "delete"
@@ -1480,7 +1480,7 @@ function MainPage() {
                 onClick={() => setUserMenuOpen((prev) => !prev)}
                 className="flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3d91cd] bg-[#103f75] px-2 py-2 font-black text-[#bde8ff] transition hover:bg-[#18558f] sm:max-w-none sm:gap-2.5 sm:px-3.5"
               >
-                <div className="h-6 w-6 rounded-lg overflow-hidden bg-[#072a54] p-0.5 border border-white/30 flex items-center justify-center">
+                <div className="flex h-6 w-6 items-center justify-center overflow-hidden">
                   {player.equipped ? <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={18} className="text-[#9cc8e8]" />}
                 </div>
                 <span title={player.username} className="min-w-0 max-w-[min(52vw,22rem)] whitespace-normal break-words text-left leading-tight [overflow-wrap:anywhere] sm:max-w-[24rem]">{player.username}</span>
@@ -3226,7 +3226,7 @@ function Leaderboard({ player: _player }: { player: Player }) {
       <div className="mt-6 flex gap-2 rounded-2xl border border-[#247bc0] bg-[#18558f] p-1">{[["tokens", "Tokens"], ["clans", "Clans"]].map(([key, label]) => <button key={key} onClick={() => setView(key as typeof view)} className={`flex-1 rounded-xl px-3 py-3 font-black ${view === key ? "bg-[#bde8ff] text-[#062443]" : "text-[#d9f3ff]"}`}>{label}</button>)}</div>
       {view === "clans" && <p className="mt-3 text-sm text-[#9cc8e8]">Clan rankings will use member contributions and unlocked benefits.</p>}
       <div className="mt-8 grid items-end gap-4 md:grid-cols-3">
-        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={`${row.name}-${index}`} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center rounded-2xl bg-[#0c3b70] p-2">{row.avatar ? <img src={row.avatar} alt={`${row.name} Blook`} className="h-full w-full object-contain" /> : <span className="text-xl font-black text-white/50">{row.name === "N/A" ? "N/A" : row.name.slice(0, 1)}</span>}</div><h2 className="mt-3 font-black">{row.name}</h2><p className="mt-2 font-black text-[#bde8ff]">{row.value === null ? "N/A" : row.value.toLocaleString()}</p></div>)}
+        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={`${row.name}-${index}`} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center">{row.avatar ? <img src={row.avatar} alt={`${row.name} Blook`} className="h-full w-full object-contain" /> : <span className="text-xl font-black text-white/50">{row.name === "N/A" ? "N/A" : row.name.slice(0, 1)}</span>}</div><h2 className="mt-3 font-black">{row.name}</h2><p className="mt-2 font-black text-[#bde8ff]">{row.value === null ? "N/A" : row.value.toLocaleString()}</p></div>)}
       </div>
       <div className="mt-8 max-w-2xl overflow-hidden rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415]">
         <div className="grid grid-cols-[32px_1fr_auto] gap-3 px-5 py-4 text-xs font-bold uppercase tracking-widest text-[#bde8ff]">
@@ -3417,10 +3417,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
 
   return (
     <div className="max-w-3xl rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
-      <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
-        {supabase ? "Supabase realtime" : "Prototype local chat"}
-      </p>
-      <div className="mt-2 flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlinePlayers.length} players</span></div>
+      <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlinePlayers.length} players</span></div>
       {giftNotice && (
         <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
@@ -3674,7 +3671,7 @@ function AdminTab({
   grantGift,
 }: {
   player: Player;
-  grantReward: (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => Promise<void>;
+  grantReward: (targetId: string, reward: { operation?: "add" | "remove"; tokens?: number; blookName?: string; badge?: string; material?: string; materialAmount?: number }) => Promise<void>;
   moderateAccount: (action: "ban" | "delete", payload: Record<string, unknown>) => Promise<boolean>;
   announcement: string;
   setAnnouncement: (value: string) => void;
@@ -3694,6 +3691,8 @@ function AdminTab({
   const [giftBadge, setGiftBadge] = useState("");
   const [giftMaterial, setGiftMaterial] = useState("Gold");
   const [giftMaterialAmount, setGiftMaterialAmount] = useState("0");
+  const [resourceMaterial, setResourceMaterial] = useState("Gold");
+  const [resourceMaterialAmount, setResourceMaterialAmount] = useState("10");
   const [players, setPlayers] = useState<{ id: string; username: string; is_banned?: boolean; ban_reason?: string | null }[]>([]);
   const [targetId, setTargetId] = useState("");
   const [targetSearch, setTargetSearch] = useState("");
@@ -3710,50 +3709,10 @@ function AdminTab({
     }).catch(() => undefined);
   }, []);
 
-  const allBlooks = [
-    "Bread Blook",
-    "Star Ship",
-    "Red Rex",
-    "Consolation",
-    "Pixel UFO",
-    "Golden Shuriken",
-    "Blooket Gods",
-    "Green Astronaut",
-    "Blackbeard",
-    "Butterfly",
-    "Alien",
-    "Golden UFO",
-    "Mr. Receipt",
-    "Mr. Frog",
-    "Holy Bread",
-    "Caveman",
-    "Timeglass",
-    "Aztec Coin",
-    "Eclipse",
-    "Ninja",
-    "Doctor",
-    "Crystal Ball",
-    "Necklace",
-    "Mars",
-    "Earth",
-    "Star",
-    "Worker",
-    "Chef",
-    "Actor",
-    "Pixel Toast",
-    "Pixel Chick",
-    "Pixel Ice Slime",
-    "Pixel Fuego",
-    "Pixel Wizard",
-    "Lava Slime",
-    "Olive Grenade",
-    "Shuriken",
-    "Shield",
-    "Spartan",
-    "Blooket Life",
-    "Fasty Jay",
-    "Waymore",
-  ];
+  const allBlooks = Array.from(new Set(
+    [...liveCapsules, ...retiredCapsules].flatMap((capsule) => capsule.pool.map((reward) => reward.name))
+      .concat(craftRecipes.map((recipe) => recipe.name)),
+  )).sort((left, right) => left.localeCompare(right));
 
   const filteredBlooks = allBlooks.filter((b) =>
     b.toLowerCase().includes(blookSearch.toLowerCase())
@@ -3791,17 +3750,14 @@ function AdminTab({
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
           <h2 className="text-xl font-black text-[#bde8ff] flex items-center gap-2">
-            <img src="/assets/coin.svg" alt="" className="h-6 w-6" /> Token Grants
+            <img src="/assets/coin.svg" alt="" className="h-6 w-6" /> Token Controls
           </h2>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[100, 1000, 10000, 100000].map((amt) => (
-              <button
-                key={amt}
-                onClick={() => grantReward(targetId, { tokens: amt })}
-                className="rounded-2xl border border-[#3d91cd]/50 bg-[#18558f] p-3 text-center font-black text-[#ffe2a0] hover:bg-[#24649c]"
-              >
-                +{amt.toLocaleString()}
-              </button>
+              <div key={amt} className="grid grid-cols-2 overflow-hidden rounded-xl border border-[#3d91cd]/50">
+                <button onClick={() => grantReward(targetId, { operation: "add", tokens: amt })} className="bg-[#18558f] p-3 font-black text-[#ffe2a0] hover:bg-[#24649c]">+{amt.toLocaleString()}</button>
+                <button onClick={() => grantReward(targetId, { operation: "remove", tokens: amt })} className="bg-rose-950/50 p-3 font-black text-rose-100 hover:bg-rose-900">-{amt.toLocaleString()}</button>
+              </div>
             ))}
           </div>
           <div className="mt-4 flex gap-3">
@@ -3813,12 +3769,8 @@ function AdminTab({
               placeholder="Custom token amount"
               className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-4 py-3 text-white outline-none"
             />
-            <button
-              onClick={() => grantReward(targetId, { tokens: Number(tokenAmount) || 0 })}
-              className="rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] hover:bg-[#73c8ff]"
-            >
-              Grant
-            </button>
+            <button onClick={() => grantReward(targetId, { operation: "add", tokens: Number(tokenAmount) || 0 })} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426] hover:bg-[#73c8ff]">Add</button>
+            <button onClick={() => grantReward(targetId, { operation: "remove", tokens: Number(tokenAmount) || 0 })} className="rounded-xl bg-rose-300 px-4 py-3 font-black text-rose-950 hover:bg-rose-200">Remove</button>
           </div>
         </div>
 
@@ -3847,8 +3799,8 @@ function AdminTab({
       <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black text-[#bde8ff]">Grant Blooks</h2>
-            <p className="mt-1 text-sm text-[#9cc8e8]">Click any Blook card to add it directly to inventory.</p>
+            <h2 className="text-2xl font-black text-[#bde8ff]">Blook Controls</h2>
+            <p className="mt-1 text-sm text-[#9cc8e8]">Add or remove one copy from the selected player.</p>
           </div>
           <input
             value={blookSearch}
@@ -3859,17 +3811,13 @@ function AdminTab({
         </div>
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-96 overflow-y-auto pr-1">
           {filteredBlooks.map((name) => (
-            <button
-              key={name}
-              onClick={() => grantReward(targetId, { blookName: name })}
-              className="group flex flex-col items-center justify-between rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-3 text-center transition hover:border-[#39a8f5] hover:bg-[#24649c]"
-            >
-              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0c3b70] p-1">
+            <div key={name} className="group flex flex-col items-center justify-between rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-3 text-center">
+              <div className="flex h-16 w-16 items-center justify-center">
                 <RewardArt name={name} art={artFor(name)} className="h-full w-full object-contain" />
               </div>
               <span className="mt-2 text-xs font-black text-[#bde8ff] truncate w-full">{name}</span>
-              <span className="mt-1 text-[10px] font-bold text-[#e9bd67] bg-[#0c3b70] px-2 py-0.5 rounded-full">+ Grant</span>
-            </button>
+              <div className="mt-2 grid w-full grid-cols-2 gap-1"><button onClick={() => grantReward(targetId, { operation: "add", blookName: name })} className="rounded-md bg-sky-300 py-1 text-[10px] font-black text-sky-950">Add</button><button onClick={() => grantReward(targetId, { operation: "remove", blookName: name })} className="rounded-md bg-rose-300 py-1 text-[10px] font-black text-rose-950">Remove</button></div>
+            </div>
           ))}
         </div>
       </div>
@@ -3891,26 +3839,36 @@ function AdminTab({
 
       {/* Grant Badges */}
       <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
-        <h2 className="text-2xl font-black text-[#bde8ff]">Grant Badges</h2>
-        <p className="mt-1 text-sm text-[#9cc8e8]">Equip target badges to your profile.</p>
+        <h2 className="text-2xl font-black text-[#bde8ff]">Badge Controls</h2>
+        <p className="mt-1 text-sm text-[#9cc8e8]">Add or remove badges from the selected player.</p>
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { name: "First 50", icon: "/assets/first-50-badge.svg", desc: "First 50 pioneers" },
             { name: "Verified", icon: "/assets/verified-badge.svg", desc: "Verified trusted badge (Unlocks Chat Image Upload)" },
             { name: "BlookTuber", icon: "/assets/blooktuber-badge.svg", desc: "Creator badge" },
           ].map((b) => (
-            <button
-              key={b.name}
-              onClick={() => grantReward(targetId, { badge: b.name })}
-              className="flex items-center gap-3 rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-4 text-left transition hover:border-[#39a8f5] hover:bg-[#24649c]"
-            >
+            <div key={b.name} className="flex items-center gap-3 rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-4 text-left">
               <img src={b.icon} alt={b.name} className="h-12 w-12 object-contain" />
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-black text-[#bde8ff]">{b.name}</p>
                 <p className="text-xs text-[#9cc8e8]">{b.desc}</p>
+                <div className="mt-2 flex gap-2"><button onClick={() => grantReward(targetId, { operation: "add", badge: b.name })} className="rounded-md bg-sky-300 px-3 py-1 text-xs font-black text-sky-950">Add</button><button onClick={() => grantReward(targetId, { operation: "remove", badge: b.name })} className="rounded-md bg-rose-300 px-3 py-1 text-xs font-black text-rose-950">Remove</button></div>
               </div>
-            </button>
+            </div>
           ))}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+        <h2 className="text-2xl font-black text-[#bde8ff]">Material Controls</h2>
+        <p className="mt-1 text-sm text-[#9cc8e8]">Add or remove crafting materials from the selected player.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <select value={resourceMaterial} onChange={(event) => setResourceMaterial(event.target.value)} className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-4 py-3 text-white">
+            {materialNames.map((material) => <option key={material}>{material}</option>)}
+          </select>
+          <input value={resourceMaterialAmount} onChange={(event) => setResourceMaterialAmount(event.target.value)} type="number" min="1" className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-4 py-3 text-white" />
+          <button onClick={() => grantReward(targetId, { operation: "add", material: resourceMaterial, materialAmount: Number(resourceMaterialAmount) || 0 })} className="rounded-xl bg-sky-300 px-5 py-3 font-black text-sky-950">Add</button>
+          <button onClick={() => grantReward(targetId, { operation: "remove", material: resourceMaterial, materialAmount: Number(resourceMaterialAmount) || 0 })} className="rounded-xl bg-rose-300 px-5 py-3 font-black text-rose-950">Remove</button>
         </div>
       </div>
 
