@@ -88,7 +88,7 @@ export async function PATCH(request: Request) {
     ? Array.from(inventoryCounts.keys()).filter((displayName) => !blookIds.has(normalizedBlookName(displayName)))
     : [];
   if (unknownBlooks.length) {
-    return NextResponse.json({ error: `These Blooks are missing from the server catalog and were not saved: ${unknownBlooks.join(', ')}. Apply the latest Blook catalog migration, then retry.` }, { status: 409 });
+    return NextResponse.json({ error: `These Breads are missing from the server catalog and were not saved: ${unknownBlooks.join(', ')}. Apply the latest Bread catalog migration, then retry.` }, { status: 409 });
   }
 
   const { data: currentProfile } = await supabase.from('profiles').select('tokens, stats').eq('id', user.id).single();

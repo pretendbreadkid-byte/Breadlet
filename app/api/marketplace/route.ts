@@ -79,11 +79,11 @@ export async function POST(request: Request) {
   if (action === 'create') {
     const blookName = String(body.blook || '').trim();
     const price = Math.max(1, Math.min(100000, Math.floor(Number(body.price) || 10)));
-    if (!blookName) return NextResponse.json({ error: 'Blook is required.' }, { status: 400 });
+    if (!blookName) return NextResponse.json({ error: 'Bread is required.' }, { status: 400 });
 
     const cleanName = blookName.replace(/^Shiny /, '');
     const { data: blookRow } = await supabase.from('blooks').select('id, name').eq('name', cleanName).single();
-    if (!blookRow) return NextResponse.json({ error: 'Blook not found.' }, { status: 404 });
+    if (!blookRow) return NextResponse.json({ error: 'Bread not found.' }, { status: 404 });
 
     const { data: inserted, error: insertError } = await supabase
       .from('marketplace_listings')

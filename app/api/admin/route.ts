@@ -80,10 +80,10 @@ export async function POST(request: Request) {
   }
   if (blookName) {
     const { data: blook, error: blookError } = await session.supabase.from('blooks').select('id').eq('name', blookName.replace(/^Shiny /, '')).single();
-    if (blookError || !blook) return NextResponse.json({ error: 'That Blook is not in the canonical catalog.' }, { status: 400 });
+    if (blookError || !blook) return NextResponse.json({ error: 'That Bread is not in the canonical catalog.' }, { status: 400 });
     const shiny = blookName.startsWith('Shiny ');
     const { data: owned } = await session.supabase.from('inventory').select('id, quantity').eq('profile_id', targetId).eq('blook_id', blook.id).eq('shiny', shiny).maybeSingle();
-    if (operation === 'remove' && !owned) return NextResponse.json({ error: 'That player does not own this Blook.' }, { status: 400 });
+    if (operation === 'remove' && !owned) return NextResponse.json({ error: 'That player does not own this Bread.' }, { status: 400 });
     const { error } = operation === 'remove'
       ? owned!.quantity > 1
         ? await session.supabase.from('inventory').update({ quantity: owned!.quantity - 1 }).eq('id', owned!.id)

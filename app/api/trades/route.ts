@@ -35,15 +35,15 @@ async function validateOffer(admin: ReturnType<typeof createAdminClient> & {}, p
   const { data: profile, error: profileError } = await admin.from('profiles').select('tokens').eq('id', profileId).single();
   if (profileError || !profile) return 'Player profile was not found.';
   if (offer.tokens > profile.tokens) return 'You do not have enough tokens for this offer.';
-  if (offer.blooks.length > 20) return 'You can include at most 20 Blook types in one offer.';
+  if (offer.blooks.length > 20) return 'You can include at most 20 Bread types in one offer.';
   const names = offer.blooks.map((item) => item.name.replace(/^Shiny /, ''));
   const { data: blooks, error: blookError } = names.length
     ? await admin.from('blooks').select('id, name').in('name', names)
     : { data: [], error: null };
-  if (blookError) return 'Could not validate the Blook offer.';
+  if (blookError) return 'Could not validate the Bread offer.';
   const ids = new Map((blooks || []).map((blook) => [blook.name, blook.id]));
   for (const item of offer.blooks) {
-    if (item.quantity < 1 || item.quantity > 100) return 'Blook quantities must be between 1 and 100.';
+    if (item.quantity < 1 || item.quantity > 100) return 'Bread quantities must be between 1 and 100.';
     const blookId = ids.get(item.name.replace(/^Shiny /, ''));
     if (!blookId) return `${item.name} is not tradeable.`;
     const shiny = item.name.startsWith('Shiny ');

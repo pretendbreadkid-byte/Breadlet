@@ -76,23 +76,23 @@ export async function POST(request: Request) {
   const requestedTokens = Math.floor(Number(body.tokens) || 0);
   const inputBlooks = Array.isArray(body.blooks) ? body.blooks : [];
   if (requestedTokens < 0 || requestedTokens > 100000) return NextResponse.json({ error: 'Token requests must be between 0 and 100,000.' }, { status: 400 });
-  if (inputBlooks.length > 20) return NextResponse.json({ error: 'You can request up to 20 different Blooks at once.' }, { status: 400 });
+  if (inputBlooks.length > 20) return NextResponse.json({ error: 'You can request up to 20 different Breads at once.' }, { status: 400 });
   const counts = new Map<string, number>();
   for (const entry of inputBlooks) {
     const name = String(entry?.name || '').trim();
     const quantity = Math.floor(Number(entry?.quantity) || 0);
-    if (!name || quantity < 1 || quantity > 100) return NextResponse.json({ error: 'Each Blook quantity must be from 1 to 100.' }, { status: 400 });
+    if (!name || quantity < 1 || quantity > 100) return NextResponse.json({ error: 'Each Bread quantity must be from 1 to 100.' }, { status: 400 });
     counts.set(name, (counts.get(name) || 0) + quantity);
   }
   const blooks = Array.from(counts, ([name, quantity]) => ({ name, quantity }));
-  if (!requestedTokens && !blooks.length) return NextResponse.json({ error: 'Select at least one Blook or request some tokens.' }, { status: 400 });
-  if (blooks.some((item) => item.quantity > 100)) return NextResponse.json({ error: 'A Blook request cannot exceed 100 copies.' }, { status: 400 });
+  if (!requestedTokens && !blooks.length) return NextResponse.json({ error: 'Select at least one Bread or request some tokens.' }, { status: 400 });
+  if (blooks.some((item) => item.quantity > 100)) return NextResponse.json({ error: 'A Bread request cannot exceed 100 copies.' }, { status: 400 });
   if (blooks.length) {
     const { data: matches, error } = await current.admin.from('blooks').select('name').in('name', blooks.map((item) => item.name));
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     const validNames = new Set((matches || []).map((item) => item.name));
     const invalid = blooks.find((item) => !validNames.has(item.name));
-    if (invalid) return NextResponse.json({ error: `${invalid.name} is not in the Blook catalog.` }, { status: 400 });
+    if (invalid) return NextResponse.json({ error: `${invalid.name} is not in the Bread catalog.` }, { status: 400 });
   }
   const { data, error } = await current.admin.from('reward_requests').insert({
     requester_profile_id: current.userId,
