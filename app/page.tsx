@@ -124,9 +124,9 @@ const artFor = (name: string) =>
     Worker: "/assets/worker.svg",
     "Aztec Coin": "/assets/Aztect Coin 2.0.svg",
     Map: "/assets/map (1).svg",
-    "Pixel Apple": "/assets/Lost and found + food pack/Pixel apple.png",
-    "Pixel Caramel": "/assets/Lost and found + food pack/Pixel carmel.png",
-    "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png",
+    "Pixel Apple": "/assets/Lost and found + food pack/Pixel apple.png?v=2",
+    "Pixel Caramel": "/assets/Lost and found + food pack/Pixel carmel.png?v=2",
+    "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png?v=2",
     "Lava Slime": "/assets/lava-slime.svg",
     "Olive Grenade": "/assets/grenade.png",
     "Golden Grenade": "/assets/golden grenade.png",
@@ -138,10 +138,10 @@ const artFor = (name: string) =>
     Surgeon: "/assets/doctor 2.0.svg",
     Doctor: "/assets/doctor 2.0.svg",
     "Crystal Ball": "/assets/crystal ball 2.0.svg",
-    "Pixel Bomb": "/assets/Lost and found + food pack/Pixel bomb.png",
-    "Pixel Constellation": "/assets/Lost and found + food pack/Pixel constilation.png",
-    "Pixel Aztec Coin": "/assets/Lost and found + food pack/Pixel axtect coin.png",
-    "Pixel Lagoon": "/assets/Lost and found + food pack/Pixel lagon.png",
+    "Pixel Bomb": "/assets/Lost and found + food pack/Pixel bomb.png?v=2",
+    "Pixel Constellation": "/assets/Lost and found + food pack/Pixel constilation.png?v=2",
+    "Pixel Aztec Coin": "/assets/Lost and found + food pack/Pixel axtect coin.png?v=2",
+    "Pixel Lagoon": "/assets/Lost and found + food pack/Pixel lagon.png?v=2",
     "Blooket Life": "/assets/new blooket life.png",
     "Blooket Gods": "/assets/new blooket gods.png",
     Lagoon: "/assets/New Lag0n.png",
@@ -168,7 +168,7 @@ const artFor = (name: string) =>
     "Crimson Octopus": "/assets/crimsonoctopus.svg",
     Caveman: "/assets/caveman.svg",
     Timeglass: "/assets/Time glass final animation.svg",
-    "Pixel Sprinkle Bread": "/assets/Lost and found + food pack/Pixel sprinkle bread frame 1.png",
+    "Pixel Sprinkle Bread": "/assets/Lost and found + food pack/Pixel sprinkle bread frame 1.png?v=2",
     "Star Ship": "/assets/star ship frame 1.svg",
     "Bread Blook": "/assets/new breadblook.png",
     "Golden Shuriken": "/assets/golden-shuriken.svg",
@@ -2356,7 +2356,7 @@ function StarShipFrameSwitcher({ className }: { className: string }) {
   );
 }
 
-const pixelSprinkleFrames = [1, 2, 3].map((frame) => `/assets/Lost and found + food pack/Pixel sprinkle bread frame ${frame}.png`);
+const pixelSprinkleFrames = [1, 2, 3].map((frame) => `/assets/Lost and found + food pack/Pixel sprinkle bread frame ${frame}.png?v=2`);
 function PixelSprinkleFrameSwitcher({ className }: { className: string }) {
   const [frame, setFrame] = useState(0);
   useEffect(() => {
