@@ -2235,10 +2235,9 @@ function CapsulesTab({
         {capsules.map((capsule) => (
           <div
             key={capsule.name}
+            title={capsule.name}
             onClick={() => (!capsule.retired || canOpenRetired) && openCapsule(capsule)}
-            className={`group rounded-2xl p-6 transition hover:-translate-y-1 ${
-              capsule.retired ? "bg-[#302016] opacity-80" : "border border-[#d49a4a]/25 bg-[#3a2415]"
-            } ${!capsule.retired || canOpenRetired ? "cursor-pointer" : ""}`}
+            className={`group relative p-2 transition hover:-translate-y-1 ${capsule.retired ? "opacity-60" : ""} ${!capsule.retired || canOpenRetired ? "cursor-pointer" : ""}`}
           >
             <div className="flex h-64 items-center justify-center">
               <img
@@ -2249,39 +2248,14 @@ function CapsulesTab({
                 }`}
               />
             </div>
-            <div className="mt-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-black">{capsule.name}</h2>
-              </div>
-              <button
-                title="View Blook chances"
-                onClick={(event) => { event.stopPropagation(); showOdds(capsule); }}
-                className="rounded-full px-2 py-1 text-xs font-black text-[#ffe2a0]"
-              >
-                i
-              </button>
-            </div>
-            {(!capsule.retired || canOpenRetired) && (
-              <>
-                <div className="mt-4 flex items-center justify-between border-y border-white/10 py-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-white/60">{capsule.retired ? "Retired crate · open capsule" : "Open capsule"}</span>
-                  <span className="flex items-center gap-2 text-lg font-black text-[#ffe27a]">
-                    <img src="/assets/coin.svg" alt="" className="h-6 w-6 object-contain" />
-                    {isGuest ? "FREE" : capsule.price.toLocaleString()}
-                  </span>
-                </div>
-              </>
-            )}
-            {capsule.note && (
-              <p className="mt-3 text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">
-                {capsule.note}
-              </p>
-            )}
-            {capsule.retired && (
-              <p className="mt-5 text-center text-xs font-bold uppercase text-[#9cc8e8]">
-                {canOpenRetired ? "Retired · open now!" : "Retired · returns at 5 PM"}
-              </p>
-            )}
+            <button
+              title={`View ${capsule.name} chances`}
+              aria-label={`View ${capsule.name} chances`}
+              onClick={(event) => { event.stopPropagation(); showOdds(capsule); }}
+              className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-[#103f75]/90 text-sm font-black text-[#ffe2a0] shadow-lg"
+            >
+              i
+            </button>
           </div>
         ))}
       </div>
@@ -4071,7 +4045,7 @@ function ClanTab({
     <div className="space-y-6">
       {createError && <div role="alert" className="fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border border-rose-300/40 bg-[#421f45] px-4 py-3 text-sm font-bold text-rose-100 shadow-2xl"><span>{createError}</span><button onClick={() => setCreateError("")} aria-label="Dismiss clan error">×</button></div>}
       <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button aria-label="Create a clan" onClick={() => setShowCreate(true)} className="flex shrink-0 items-center gap-2 rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] shadow-lg hover:bg-[#73c8ff]"><Users size={19} />Create Clan</button></div>
-      {showCreate && <div className="modal-layer fixed inset-0 flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
+      {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
       {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={handleDonate} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
       <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => <article key={item.name} className="rounded-2xl border border-[#3d91cd] bg-[#18558f] p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p></article>) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">N/A</p>}</div></div>
     </div>
