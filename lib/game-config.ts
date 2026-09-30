@@ -21,7 +21,7 @@ export const BREADLET_CONFIG = {
 export const CHEST_DEFINITIONS = [
   {
     id: 'space-chest',
-    name: 'Space Chest',
+    name: 'Space Bag',
     price: 25,
     description: 'Cosmic drops from deep space.',
     pool: ['Mars', 'Earth', 'Star', 'Consolation', 'Eclipse', 'Alien', 'Star Ship'],
@@ -31,7 +31,7 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'human-chest',
-    name: 'Human Chest',
+    name: 'Human Bag',
     price: 25,
     description: 'Everyday heroes and legendary labor.',
     pool: ['Worker', 'Chef', 'Surgeon', 'Doctor', 'Ninja', 'Actor', 'Caveman'],
@@ -41,7 +41,7 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'lost-and-found-chest',
-    name: 'Lost and Found Capsule',
+    name: 'Lost and Found Bag',
     price: 25,
     description: 'Someone left these behind.',
     pool: ['Car Keys', 'Comb', 'Hat', 'Textbook', 'Tablet', 'Button'],
@@ -51,7 +51,7 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'food-chest',
-    name: 'Food Capsule',
+    name: 'Food Bag',
     price: 25,
     description: 'Snacks, a mystical pickle, and a rock as a joke.',
     pool: ['Rock', 'Apple', 'Fries', 'Egg', 'Candy Corn', 'Caramel', 'Sprinkle Bread', 'Ice Cream', 'Pickle'],
@@ -61,7 +61,7 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'artifact-chest',
-    name: 'Artifact Chest',
+    name: 'Artifact Bag',
     price: 25,
     description: 'Ancient relics and hidden mysteries.',
     pool: ['Aztec Coin', 'Map', 'Crystal Ball', 'Necklace', 'Stone Tablet', 'Time Glass'],
@@ -71,7 +71,7 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'pixel-chest',
-    name: 'Pixel Chest',
+    name: 'Pixel Bag',
     price: 25,
     description: 'Retro favorites and playful sprites.',
     pool: ['Pixel Apple', 'Pixel Caramel', 'Pixel Crystal Ball', 'Pixel Bomb', 'Pixel Constellation', 'Pixel Aztec Coin', 'Pixel Lagoon', 'Pixel Sprinkle Bread'],
@@ -81,7 +81,7 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'combat-chest',
-    name: 'Combat Chest',
+    name: 'Combat Bag',
     price: 25,
     description: 'Combat gear and tactical power.',
     pool: ['Olive Grenade', 'The Bomb', 'Golden Grenade', 'Shuriken', 'Nunchucks', 'Spartan', 'Golden Shuriken'],
@@ -91,7 +91,7 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'blooktuber-chest',
-    name: 'BlookTuber Chest',
+    name: 'BlookTuber Bag',
     price: 25,
     description: 'Creator-themed collectibles.',
     pool: ['Bread Blook'],
@@ -111,9 +111,9 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'bread-chest',
-    name: 'Bread Chest',
+    name: 'Bread Bag',
     price: 25,
-    description: 'Retired collectible chest.',
+    description: 'Retired collectible bag.',
     pool: ['Bread Blook'],
     rarity: 'Mythic',
     isRetired: true,
@@ -121,7 +121,7 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'remix-chest',
-    name: 'Remix Chest',
+    name: 'Remix Bag',
     price: 25,
     description: 'Retired remix collection.',
     pool: ['Red Rex'],

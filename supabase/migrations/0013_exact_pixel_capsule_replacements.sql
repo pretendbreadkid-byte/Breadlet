@@ -46,7 +46,7 @@ begin
 
       insert into public.notifications (profile_id, type, payload)
       values (owned.profile_id, 'pixel_bread_replacement', jsonb_build_object(
-        'title', 'Pixel Capsule Bread replaced',
+        'title', 'Pixel Bag Bread replaced',
         'message', replacement.old_name || ' was switched to ' || replacement.new_name || '. Your ' || owned.quantity || ' owned ' || case when owned.quantity = 1 then 'copy was' else 'copies were' end || ' transferred.',
         'oldName', replacement.old_name,
         'newName', replacement.new_name,

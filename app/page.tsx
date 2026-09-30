@@ -407,9 +407,9 @@ const emptyMaterials = () =>
   }, {});
 const liveCapsules: Capsule[] = [
   {
-    name: "Space Capsule",
+    name: "Space Bag",
     price: 25,
-    art: "/assets/space-capsule-new.svg",
+    art: "/assets/space bag.svg",
     pool: rewards([
       ["Mars", "Common"],
       ["Earth", "Uncommon"],
@@ -421,9 +421,9 @@ const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Lost and Found Capsule",
+    name: "Lost and Found Bag",
     price: 25,
-    art: "/assets/lost found capsule (1).svg",
+    art: "/assets/lost and found bag.svg",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
@@ -434,9 +434,9 @@ const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Food Capsule",
+    name: "Food Bag",
     price: 25,
-    art: "/assets/food capsule.svg",
+    art: "/assets/food bag.svg",
     pool: rewards([
       ["Rock", "Common"],
       ["Apple", "Common"],
@@ -453,9 +453,9 @@ const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Artifact Capsule",
+    name: "Artifact Bag",
     price: 25,
-    art: "/assets/new new artifact pack.svg",
+    art: "/assets/artifact bag.svg",
     pool: rewards([
       ["Aztec Coin", "Common"],
       ["Map", "Uncommon"],
@@ -466,9 +466,9 @@ const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Pixel Capsule",
+    name: "Pixel Bag",
     price: 25,
-    art: "/assets/pixel capsule extra new.svg",
+    art: "/assets/pixel bag.svg",
     pool: rewards([
       ["Pixel Apple", "Common"],
       ["Pixel Caramel", "Common"],
@@ -481,9 +481,9 @@ const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Combat Capsule",
+    name: "Combat Bag",
     price: 25,
-    art: "/assets/combat-capsule-new.svg",
+    art: "/assets/combat bag.svg",
     pool: rewards([
       ["Olive Grenade", "Common"],
       ["The Bomb", "Uncommon"],
@@ -495,9 +495,9 @@ const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "BlookTuber Capsule",
+    name: "BlookTuber Bag",
     price: 25,
-    art: "/assets/Blooktuber Pack.svg",
+    art: "/assets/blooktuber bag.svg",
     pool: rewards([
       ["Bread Blook", "Mythic"],
       ["Blooket Life", "Uncommon"],
@@ -510,9 +510,9 @@ const liveCapsules: Capsule[] = [
 ];
 const retiredCapsules: Capsule[] = [
   {
-    name: "Human Capsule",
+    name: "Human Bag",
     price: 25,
-    art: "/assets/human-capsule-new.svg",
+    art: "/assets/human bag.svg",
     retired: true,
     pool: rewards([
       ["Worker", "Common"],
@@ -524,9 +524,9 @@ const retiredCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Bread Box",
+    name: "Bread Bag",
     price: 25,
-    art: "/assets/bread-capsule.svg",
+    art: "/assets/Bread bag.svg",
     retired: true,
     pool: rewards([
       ["Sour Dough", "Common"],
@@ -538,9 +538,9 @@ const retiredCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Remix Box",
+    name: "Remix Bag",
     price: 25,
-    art: "/assets/remix-capsule.svg",
+    art: "/assets/remix bag.svg",
     retired: true,
     pool: rewards([
       ["Red Rex", "Transcendent"],
@@ -1007,7 +1007,7 @@ function MainPage() {
   const openCapsule = (capsule: Capsule) => {
     if (!player) return;
     if (!isGuest && player.tokens < capsule.price) {
-      setNotice("You need more tokens for that capsule.");
+      setNotice("You need more tokens for that bag.");
       return;
     }
     const total = capsule.pool.reduce(
@@ -1053,7 +1053,7 @@ function MainPage() {
     );
     const cost = selected.reduce((total, capsule) => total + capsule.price, 0);
     if (!selected.length) {
-      setNotice("Choose at least one capsule to mass open.");
+      setNotice("Choose at least one bag to mass open.");
       return;
     }
     if (!isGuest && player.tokens < cost) {
@@ -1459,7 +1459,7 @@ function MainPage() {
     { id: "wheel", label: "Daily Crate", icon: <Package size={20} strokeWidth={2.2} /> },
     {
       id: "capsules",
-      label: "Capsules",
+      label: "Goodybags",
       icon: <Store size={20} strokeWidth={2.2} />,
     },
     {
@@ -1735,7 +1735,7 @@ function MainPage() {
             <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-300">Guest test session</p>
             <h2 className="mt-2 text-2xl font-black">Everything is open to try</h2>
             <ul className="mt-4 space-y-2 text-sm leading-6 text-emerald-50/80">
-              <li>Crates and every capsule, including retired boxes, are free to open.</li>
+              <li>Crates and every bag, including retired bags, are free to open.</li>
               <li>Crafting is free, and guests start with an empty collection.</li>
               <li>Chat, ranks, clans, and Bazaar are hidden during guest testing.</li>
               <li>Progress is temporary and disappears when you end this session unless you have unlocked browser saving.</li>
@@ -2121,7 +2121,7 @@ function ProfileTab({
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/coin.svg" />
         <ProfileMetric label="Breads Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
-        <ProfileMetric label="Capsules Opened" value={String(profileCapsulesOpened)} icon="/assets/space-capsule-new.svg" />
+        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space bag.svg" />
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
       </div></section>
       {!viewingOther && <div className="profile-lower-grid">
@@ -2275,11 +2275,11 @@ function CapsulesTab({
   return (
     <div>
       <div className={`mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-bold ${countdown.windowOpen ? "border-emerald-300/40 bg-emerald-500/10 text-emerald-100" : "border-[#d49a4a]/35 bg-[#6c4328]/35 text-[#ffe2a0]"}`}>
-        <span>{countdown.windowOpen ? "Legacy packs are open right now!" : "Legacy packs return in"}</span>
+        <span>{countdown.windowOpen ? "Legacy bags are open right now!" : "Legacy bags return in"}</span>
         <span className="font-mono text-lg tracking-widest">{countdown.windowOpen ? `Closes in ${countdown.label}` : countdown.label}</span>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-4xl font-black">Capsules</h1>
+        <h1 className="text-4xl font-black">Goodybags</h1>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={openMass}
@@ -2294,17 +2294,17 @@ function CapsulesTab({
               onChange={(event) => setShowRetired(event.target.checked)}
               className="h-4 w-4 accent-[#e9bd67]"
             />
-            Show retired boxes
+            Show retired bags
           </label>
         </div>
       </div>
       {showRetired && (
         <div className="mt-5 rounded-xl border border-[#d49a4a]/35 bg-[#6c4328]/35 px-4 py-3 text-sm text-[#ffe2a0]">
           {isGuest
-            ? "Guest test mode: retired boxes are openable for free."
+            ? "Guest test mode: retired bags are openable for free."
             : countdown.windowOpen
-              ? "Retired boxes are open for the next hour!"
-              : "Retired boxes return at 5 PM for one hour."}
+              ? "Retired bags are open for the next hour!"
+              : "Retired bags return at 5 PM for one hour."}
         </div>
       )}
       <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -2320,7 +2320,7 @@ function CapsulesTab({
                 src={capsule.art}
                 alt={capsule.name}
                 className={`max-h-full max-w-full object-contain transition duration-300 group-hover:scale-105 ${
-                  capsule.name === "BlookTuber Capsule" ? "rounded-3xl" : ""
+                  capsule.name === "BlookTuber Bag" ? "rounded-3xl" : ""
                 }`}
               />
             </div>
@@ -2438,7 +2438,7 @@ function InventoryTab({
                 onChange={(e) => setShowPacks(e.target.checked)}
                 className="h-4 w-4 accent-[#39a8f5]"
               />
-              Show retired boxes
+              Show retired bags
             </label>
           </div>
         </div>
@@ -3118,7 +3118,7 @@ function OddsModal({
         </div>
         <p className="mt-4 pt-3 border-t border-[#3d91cd]/30 text-xs leading-5 text-[#9cc8e8]">
           Legendary is 0.50% total per pack and Mythic is 0.20% total per pack.
-          Opening a capsule only grants its Bread reward; it never creates tokens.
+          Opening a bag only grants its Bread reward; it never creates tokens.
         </p>
       </div>
     </div>
@@ -3153,7 +3153,7 @@ function MassOpenModal({
         <div className="flex items-start justify-between gap-4 pb-3 border-b border-[#3d91cd]/30">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Batch opening</p>
-            <h2 className="mt-1 text-2xl font-black text-white">Mass open capsules</h2>
+            <h2 className="mt-1 text-2xl font-black text-white">Mass open bags</h2>
           </div>
           <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
         </div>
@@ -3183,10 +3183,10 @@ function MassOpenModal({
           ))}
         </div>
         <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#3d91cd]/30 text-sm font-bold text-white">
-          <span>{count} capsule{count === 1 ? "" : "s"}</span>
+          <span>{count} bag{count === 1 ? "" : "s"}</span>
           <b className="text-lg text-[#ffe2a0]">{isGuest ? "FREE" : `${total.toLocaleString()} tokens`}</b>
         </div>
-        <button onClick={() => open(quantities)} className="mt-4 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Open selected capsules</button>
+        <button onClick={() => open(quantities)} className="mt-4 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Open selected bags</button>
       </div>
     </div>
   );
@@ -3648,7 +3648,7 @@ function InfoTab() {
       <div className="grid gap-4 sm:grid-cols-2">
         {[
           ["Daily Crate", "Open once per day to win tokens, five Gold, or five Gem. The 5,000-token reward has a 1% chance."],
-          ["Capsules", "Buy capsules with tokens. Open a capsule to roll from its listed Bread pool, or use Mass Open for typed quantities."],
+          ["Goodybags", "Buy bags with tokens. Open a bag to roll from its listed Bread pool, or use Mass Open for typed quantities."],
           ["Collection", "Locked Breads stay black silhouettes. Owned Breads can be equipped or sold from their detail view."],
           ["Crafting", "Dismantle extra Breads into five-unit material bundles, then combine ingredients totaling 20 to craft approved Breads."],
           ["Bazaar", "List Breads, browse listings, and open a listing card to buy one."],
