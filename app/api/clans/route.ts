@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createAdminClient } from '../../../lib/supabase/admin';
 import { createClient } from '../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -49,8 +50,56 @@ export async function PATCH(request: Request) {
 
   const body = await request.json();
   const clanId = body.clanId;
+  const action = String(body.action || 'donate');
   const amount = Math.max(1, Math.floor(Number(body.amount) || 100));
   if (!clanId) return NextResponse.json({ error: 'Clan ID is required.' }, { status: 400 });
+
+  if (action === 'join') {
+    const admin = createAdminClient();
+    if (!admin) return NextResponse.json({ error: 'Clan joining is not configured.' }, { status: 503 });
+    const [{ data: membership }, { data: clan, error: clanError }, { data: profile }] = await Promise.all([
+      admin.from('clan_members').select('clan_id').eq('profile_id', user.id).limit(1).maybeSingle(),
+      admin.from('clans').select('id, name, description, tags, treasury, member_count, thumbnail_url').eq('id', clanId).maybeSingle(),
+      admin.from('profiles').select('stats').eq('id', user.id).single(),
+    ]);
+    if (membership) return NextResponse.json({ error: 'You are already in a clan.' }, { status: 400 });
+    if (clanError || !clan) return NextResponse.json({ error: 'Clan not found.' }, { status: 404 });
+    if (clan.member_count >= 25) return NextResponse.json({ error: 'That clan is full.' }, { status: 400 });
+
+    const { data: joined, error: joinError } = await admin.from('clan_members').insert({
+      clan_id: clan.id,
+      profile_id: user.id,
+      role: 'member',
+      token_contributions: 0,
+    }).select('id').single();
+    if (joinError || !joined) return NextResponse.json({ error: joinError?.message || 'Could not join that clan.' }, { status: 400 });
+
+    const { data: updatedClan, error: countError } = await admin.from('clans')
+      .update({ member_count: clan.member_count + 1 })
+      .eq('id', clan.id)
+      .eq('member_count', clan.member_count)
+      .lt('member_count', 25)
+      .select('member_count')
+      .maybeSingle();
+    if (countError || !updatedClan) {
+      await admin.from('clan_members').delete().eq('id', joined.id);
+      return NextResponse.json({ error: 'That clan filled up. Try another clan.' }, { status: 409 });
+    }
+
+    const clanTag = clan.name.slice(0, 5).toUpperCase();
+    const { error: profileError } = await admin.from('profiles').update({
+      stats: { ...(profile?.stats || {}), clanTag },
+    }).eq('id', user.id);
+    if (profileError) {
+      await Promise.all([
+        admin.from('clan_members').delete().eq('id', joined.id),
+        admin.from('clans').update({ member_count: clan.member_count }).eq('id', clan.id).eq('member_count', clan.member_count + 1),
+      ]);
+      return NextResponse.json({ error: profileError.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true, clan: { ...clan, member_count: updatedClan.member_count }, clanTag });
+  }
 
   const [{ data: profile }, { data: clan }] = await Promise.all([
     supabase.from('profiles').select('tokens').eq('id', user.id).single(),

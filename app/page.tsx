@@ -3992,6 +3992,7 @@ function ClanTab({
   const [showCreate, setShowCreate] = useState(false);
   const [createError, setCreateError] = useState("");
   const [clan, setClanState] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number; thumbnailUrl?: string } | null>(null);
+  const [membershipClanId, setMembershipClanId] = useState("");
   const [filter, setFilter] = useState("");
   const [dbClans, setDbClans] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number; thumbnailUrl?: string }[]>([]);
 
@@ -4011,7 +4012,10 @@ function ClanTab({
             thumbnailUrl: c.thumbnail_url || "",
           }));
           setDbClans(list);
-          const myClan = list.find((c: any) => player.clanTag && c.name.toUpperCase().startsWith(player.clanTag));
+          const joinedClanId = String(data.membership?.clan_id || "");
+          setMembershipClanId(joinedClanId);
+          const myClan = list.find((c: any) => c.id === joinedClanId)
+            || list.find((c: any) => player.clanTag && c.name.toUpperCase().startsWith(player.clanTag));
           if (myClan) setClanState(myClan);
         }
       }
@@ -4065,6 +4069,30 @@ function ClanTab({
     }
   };
 
+  const handleJoinClan = async (targetClan: { id?: string; name: string; description: string; tags: string[]; members: number; treasury: number; thumbnailUrl?: string }) => {
+    if (!targetClan.id || membershipClanId) return;
+    setCreateError("");
+    try {
+      const response = await fetch("/api/clans", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "join", clanId: targetClan.id }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setCreateError(result.error || "The clan could not be joined.");
+        return;
+      }
+      const joinedClan = { ...targetClan, members: Number(result.clan?.member_count) || targetClan.members + 1 };
+      setMembershipClanId(targetClan.id);
+      setClanState(joinedClan);
+      setDbClans((current) => current.map((item) => item.id === targetClan.id ? joinedClan : item));
+      setClan(String(result.clanTag || targetClan.name.slice(0, 5)));
+    } catch {
+      setCreateError("The clan server could not be reached. Try again.");
+    }
+  };
+
   const handleDonate = async () => {
     if ((!isGuest && player.tokens < 100) || !clan) return;
     if (isGuest) {
@@ -4099,7 +4127,7 @@ function ClanTab({
       <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button aria-label="Create a clan" onClick={() => setShowCreate(true)} className="flex shrink-0 items-center gap-2 rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] shadow-lg hover:bg-[#73c8ff]"><Users size={19} />Create Clan</button></div>
       {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
       {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={handleDonate} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
-      <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Discover Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => <article key={item.name} className="overflow-hidden rounded-2xl border border-[#3d91cd] bg-[#18558f]">{item.thumbnailUrl && <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="aspect-video w-full object-cover" />}<div className="p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p></div></article>) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">No clans found.</p>}</div></div>
+      <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Discover Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => { const joined = membershipClanId === item.id; const disabled = Boolean(membershipClanId) || item.members >= 25 || !item.id; return <article key={item.name} className="overflow-hidden rounded-2xl border border-[#3d91cd] bg-[#18558f]">{item.thumbnailUrl && <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="aspect-video w-full object-cover" />}<div className="p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p><button disabled={disabled} onClick={() => void handleJoinClan(item)} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-2.5 text-sm font-black text-[#031426] disabled:cursor-not-allowed disabled:bg-[#0c3b70] disabled:text-[#9cc8e8]">{joined ? "Joined" : item.members >= 25 ? "Clan full" : membershipClanId ? "Already in a clan" : "Join clan"}</button></div></article>; }) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">No clans found.</p>}</div></div>
     </div>
   );
 }
