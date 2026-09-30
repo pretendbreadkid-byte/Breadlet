@@ -87,7 +87,6 @@ type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 const playerKey = "breadlet-player";
 const RETIRED_RETURN_HOUR = 17; // Retired capsules reopen at 5 PM local time for one hour.
 const isRetiredWindowOpen = () => new Date().getHours() === RETIRED_RETURN_HOUR;
-const MAINTENANCE_MODE = false;
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
 const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
@@ -200,6 +199,9 @@ const artFor = (name: string) =>
     Textbook: "/assets/Lost and found + food pack/Textbook.svg",
     Tablet: "/assets/Lost and found + food pack/tablet.svg",
     Apple: "/assets/Lost and found + food pack/apple.svg",
+    Avocado: "/assets/avocado.svg",
+    Potato: "/assets/potato.svg",
+    Carrot: "/assets/carrot.svg",
     Fries: "/assets/Lost and found + food pack/fries.svg",
     Egg: "/assets/Lost and found + food pack/egg.svg",
     "Candy Corn": "/assets/Lost and found + food pack/candy corn.svg",
@@ -418,7 +420,7 @@ const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Capsule",
     price: 25,
-    art: "/assets/Lost and found + food pack/Textbook.svg",
+    art: "/assets/lost found capsule (1).svg",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
@@ -431,13 +433,16 @@ const liveCapsules: Capsule[] = [
   {
     name: "Food Capsule",
     price: 25,
-    art: "/assets/Lost and found + food pack/apple.svg",
+    art: "/assets/food capsule.svg",
     pool: rewards([
       ["Rock", "Common"],
       ["Apple", "Common"],
+      ["Potato", "Common"],
       ["Fries", "Uncommon"],
       ["Egg", "Uncommon"],
+      ["Carrot", "Uncommon"],
       ["Candy Corn", "Rare"],
+      ["Avocado", "Rare"],
       ["Caramel", "Epic"],
       ["Sprinkle Bread", "Epic"],
       ["Ice Cream", "Legendary"],
@@ -595,7 +600,8 @@ function MainPage() {
   const [announcement, setAnnouncement] = useState("");
   const [giftChatNotice, setGiftChatNotice] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [maintenanceBypassed, setMaintenanceBypassed] = useState(!MAINTENANCE_MODE);
+  const [maintenanceBypassed, setMaintenanceBypassed] = useState(false);
+  const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
   const [maintenanceCodeInput, setMaintenanceCodeInput] = useState("");
   const [maintenanceError, setMaintenanceError] = useState("");
 
@@ -643,13 +649,14 @@ function MainPage() {
           materials: { ...emptyMaterials(), ...(old.materials || {}) },
           badges: old.badges || [],
           friends: old.friends || [],
+          wheelSpun: Boolean(old.wheelSpun) && window.localStorage.getItem(`${wheelSpinKey}:${old.username}`) === new Date().toDateString(),
         });
         })();
     }
   }, [supabaseClient]);
   useEffect(() => {
     if (!player || isGuest || player.wheelSpun) return;
-    if (window.localStorage.getItem(`${wheelSpinKey}:${player.username}`) === "1") {
+    if (window.localStorage.getItem(`${wheelSpinKey}:${player.username}`) === new Date().toDateString()) {
       setPlayer((current) => current ? { ...current, wheelSpun: true } : current);
     }
   }, [isGuest, player?.username, player?.wheelSpun]);
@@ -947,7 +954,7 @@ function MainPage() {
     const saving = save(nextPlayer);
     return saving.then((saved) => {
       if (!saved) setPlayer((current) => current === nextPlayer ? previousPlayer : current);
-      if (saved && !isGuest) window.localStorage.setItem(`${wheelSpinKey}:${player.username}`, "1");
+      if (saved && !isGuest) window.localStorage.setItem(`${wheelSpinKey}:${player.username}`, new Date().toDateString());
       if (saved && !isGuest) setNotice(`Wheel reward: ${reward.label}.`);
       return saved;
     });
@@ -1133,60 +1140,46 @@ function MainPage() {
     setNotice(`${listing.blook} purchased.`);
   };
   const redeemPromo = async (event: FormEvent<HTMLFormElement>) => {
-  event.preventDefault();
-  if (!player || isGuest) return;
-
-  const code = promoCode.trim();
-
-  if (code === "Breadlet2.0") {
-    const response = await fetch("/api/promo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      setNotice(result.error || "Promo redemption failed.");
-      return;
-    }
-
-    setPlayer((current) =>
-      current
-        ? {
-            ...current,
-            tokens: current.tokens + Number(result.amount || 1000),
-          }
-        : current,
-    );
-
-    setPromoCode("");
-    setNotice("Promo redeemed: +1,000 tokens.");
-  } else if (code === "admin1234532!") {
-    const response = await fetch("/api/requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "unlock-reviewer",
-        code,
-      }),
-    });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      setNotice(
-        result.error ||
-          "Request reviewer access could not be enabled.",
-      );
-      return;
-    }
-
-    setTab("migration");
-    setNotice("Request review access enabled.");
-  } else {
-    setNotice("That promo code is not active.");
+    event.preventDefault();
+    if (!player || isGuest) return;
+    const code = promoCode.trim();
+    if (code === "Breadlet2.0") {
+      const response = await fetch("/api/promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(result.error || "Promo redemption failed.");
+        return;
+      }
+      setPlayer((current) => current ? { ...current, tokens: current.tokens + Number(result.amount || 1000) } : current);
+      setPromoCode("");
+      setNotice("Promo redeemed: +1,000 tokens.");
+    } else if (code === "admin1234532!") {
+      const response = await fetch("/api/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "unlock-reviewer", code }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(result.error || "Request reviewer access could not be enabled.");
+        return;
+      }
+      setAdminUnlocked(true);
+      setTab("migration");
+      setNotice("Request review access enabled.");
+    } else if (code === MAINTENANCE_BYPASS_CODE) {
+      const unlocked = await unlockAdminWithCode(code);
+      if (unlocked) {
+        setTab("admin");
+        setNotice("Admin access enabled.");
+      } else {
+        setNotice("Admin access could not be enabled. Make sure you're logged in and try again.");
+      }
+    } else setNotice("That promo code is not active.");
   };
   const grantReward = async (targetId: string, reward: { tokens?: number; blookName?: string; badge?: string }) => {
     if (!adminUnlocked) return;
@@ -1270,21 +1263,56 @@ function MainPage() {
     }
   };
   useEffect(() => {
-    if (MAINTENANCE_MODE && window.sessionStorage.getItem(MAINTENANCE_BYPASS_KEY) === "1") {
+    if (window.sessionStorage.getItem(MAINTENANCE_BYPASS_KEY) === "1") {
       setMaintenanceBypassed(true);
     }
+    fetch("/api/maintenance")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => { if (data) setMaintenanceModeActive(Boolean(data.maintenanceMode)); })
+      .catch(() => undefined);
   }, []);
-  const submitMaintenanceBypass = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (maintenanceCodeInput.trim() === MAINTENANCE_BYPASS_CODE) {
-      window.sessionStorage.setItem(MAINTENANCE_BYPASS_KEY, "1");
-      setMaintenanceBypassed(true);
-      setMaintenanceError("");
-      // Reveals the Admin Panel nav item locally; the /api/admin routes still require a real admin_roles row.
-      setAdminUnlocked(true);
-    } else {
-      setMaintenanceError("Incorrect access code.");
+  const unlockAdminWithCode = async (code: string) => {
+    try {
+      const response = await fetch("/api/admin/unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      if (response.ok) {
+        setAdminUnlocked(true);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
     }
+  };
+  const submitMaintenanceBypass = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const code = maintenanceCodeInput.trim();
+    if (code !== MAINTENANCE_BYPASS_CODE) {
+      setMaintenanceError("Incorrect access code.");
+      return;
+    }
+    window.sessionStorage.setItem(MAINTENANCE_BYPASS_KEY, "1");
+    setMaintenanceBypassed(true);
+    setMaintenanceError("");
+    // Best-effort: grants real admin_roles access if the user already has a session.
+    void unlockAdminWithCode(code);
+  };
+  const toggleMaintenance = async (next: boolean) => {
+    const response = await fetch("/api/maintenance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maintenanceMode: next }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setNotice(result.error || "Could not update maintenance mode.");
+      return;
+    }
+    setMaintenanceModeActive(next);
+    setNotice(`Maintenance mode ${next ? "enabled" : "disabled"}.`);
   };
   const leaveSession = () => {
     if (isGuest && player && !guestProgressUnlocked) {
@@ -1297,7 +1325,7 @@ function MainPage() {
     if (!isGuest) supabaseClient?.auth.signOut();
     window.localStorage.removeItem(playerKey);
   };
-  if (!maintenanceBypassed)
+  if (maintenanceModeActive && !maintenanceBypassed)
     return (
       <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-[#0b1622] px-5">
         <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-8 text-center shadow-2xl">
@@ -1590,6 +1618,8 @@ function MainPage() {
               announcement={announcement}
               setAnnouncement={setAnnouncement}
               publishAnnouncement={() => setNotice(announcement.trim() ? `Announcement published: ${announcement.trim()}` : "Write an announcement first.")}
+              maintenanceModeActive={maintenanceModeActive}
+              toggleMaintenance={toggleMaintenance}
               grantGift={(gift) => {
                 save({
                   ...player,
@@ -3403,7 +3433,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       <div className="mt-6 min-h-72 space-y-3 rounded-2xl bg-[#24170f] p-4 max-h-[500px] overflow-y-auto">
         {messages.map((item, index) => (
           <div id={`chat-message-${String(item.id ?? `local-${item.user}-${index}`)}`} key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
-            <button onClick={() => void openPlayerProfile(item.user)} aria-label={`Open ${item.user}'s profile`} title={`View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#103f75] p-1">
+            <button onClick={() => void openPlayerProfile(item.user)} aria-label={`Open ${item.user}'s profile`} title={`View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden">
               {item.equippedBlook || (item.user === player.username && player.equipped) ? <img src={artFor(item.equippedBlook || player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={30} />}
             </button>
             <div>
@@ -3455,7 +3485,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         </button>
       </form>
       <aside aria-label="Online players" className={`chat-online-panel fixed right-3 z-40 ${onlinePanelOpen ? "chat-online-panel-open" : ""}`}>
-        {onlinePanelOpen && <div className="chat-online-list mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-sky-950">{online.equippedBlook ? <img src={artFor(online.equippedBlook)} alt="" className="h-8 w-8 object-contain" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
+        {onlinePanelOpen && <div className="chat-online-list mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <img src={artFor(online.equippedBlook)} alt="" className="h-8 w-8 object-contain" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
         <button type="button" aria-expanded={onlinePanelOpen} onClick={() => setOnlinePanelOpen((open) => !open)} className="flex items-center gap-3 rounded-2xl border border-sky-300/45 bg-[#0c2947]/95 px-5 py-3 text-white shadow-xl backdrop-blur-md hover:bg-[#103f75]"><CircleUserRound size={24} fill="currentColor" strokeWidth={1.5} /><span className="text-xl font-black">{onlinePlayers.length} online</span></button>
       </aside>
     </div>
@@ -3639,6 +3669,8 @@ function AdminTab({
   announcement,
   setAnnouncement,
   publishAnnouncement,
+  maintenanceModeActive,
+  toggleMaintenance,
   grantGift,
 }: {
   player: Player;
@@ -3647,6 +3679,8 @@ function AdminTab({
   announcement: string;
   setAnnouncement: (value: string) => void;
   publishAnnouncement: () => void;
+  maintenanceModeActive: boolean;
+  toggleMaintenance: (next: boolean) => Promise<void>;
   grantGift: (gift: { title: string; message: string; tokens: number; materials: Record<string, number>; badges: string[]; blooks: string[] }) => void;
 }) {
   const [tokenAmount, setTokenAmount] = useState("100");
@@ -3837,6 +3871,21 @@ function AdminTab({
               <span className="mt-1 text-[10px] font-bold text-[#e9bd67] bg-[#0c3b70] px-2 py-0.5 rounded-full">+ Grant</span>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Maintenance Mode */}
+      <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+        <h2 className="text-2xl font-black text-[#bde8ff]">Maintenance Mode</h2>
+        <p className="mt-1 text-sm text-[#9cc8e8]">Blocks every player behind the maintenance screen until you turn it back off.</p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${maintenanceModeActive ? "bg-rose-500/20 text-rose-200" : "bg-emerald-500/20 text-emerald-200"}`}>{maintenanceModeActive ? "Maintenance is ON" : "Maintenance is OFF"}</span>
+          <button
+            onClick={() => void toggleMaintenance(!maintenanceModeActive)}
+            className={`rounded-xl px-5 py-3 text-sm font-black transition ${maintenanceModeActive ? "bg-emerald-300 text-emerald-950 hover:bg-emerald-200" : "bg-rose-300 text-rose-950 hover:bg-rose-200"}`}
+          >
+            {maintenanceModeActive ? "Turn maintenance off" : "Turn maintenance on"}
+          </button>
         </div>
       </div>
 
