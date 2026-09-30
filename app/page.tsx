@@ -564,6 +564,7 @@ function MainPage() {
   const resetClickCountRef = useRef(0);
   const pendingGuestRef = useRef<Player | null>(null);
   const playerSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const [authFeedback, setAuthFeedback] = useState("");
   const [supabaseClient] = useState(() => createSupabaseClient());
   const [username, setUsername] = useState("");
@@ -604,6 +605,22 @@ function MainPage() {
   const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
   const [maintenanceCodeInput, setMaintenanceCodeInput] = useState("");
   const [maintenanceError, setMaintenanceError] = useState("");
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!userMenuRef.current?.contains(event.target as Node)) setUserMenuOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setUserMenuOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [userMenuOpen]);
 
   useEffect(() => {
     const restoreGuest = () => {
@@ -1475,7 +1492,7 @@ function MainPage() {
             </div>
 
             {/* Corner Username Dropdown */}
-            <div className="relative pointer-events-auto">
+            <div ref={userMenuRef} className="relative pointer-events-auto">
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
                 className="flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3d91cd] bg-[#103f75] px-2 py-2 font-black text-[#bde8ff] transition hover:bg-[#18558f] sm:max-w-none sm:gap-2.5 sm:px-3.5"
@@ -1488,7 +1505,7 @@ function MainPage() {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-[#3d91cd] bg-[#103f75] p-2 shadow-2xl z-[9999]">
+                <div className="absolute right-0 z-50 mt-2 max-h-[calc(100vh-6rem)] w-56 overflow-y-auto rounded-2xl border border-[#3d91cd] bg-[#103f75] p-2 shadow-2xl">
                   <button
                     onClick={() => {
                       setTab("profile");
@@ -1558,7 +1575,7 @@ function MainPage() {
         </div>
 
         {/* Dynamic Page Section */}
-        <section className="flex-1 p-6 overflow-y-auto">
+        <section className="flex-1 overflow-y-auto px-6 pb-6 pt-24">
           {incomingTradeNotice && <button onClick={() => { setIncomingTradeNotice(""); setTab("profile"); }} className="profile-trade-toast fixed right-5 top-20 z-40 w-[min(24rem,calc(100vw-2rem))]" role="status">{incomingTradeNotice}<span>Open profile</span></button>}
           {isGuest && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline decoration-amber-200/50 underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
