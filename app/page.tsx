@@ -83,6 +83,7 @@ type PublicProfile = {
   clanTag?: string;
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
+type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number } };
 
 const playerKey = "breadlet-player";
 const RETIRED_RETURN_HOUR = 17; // Retired capsules reopen at 5 PM local time for one hour.
@@ -123,9 +124,9 @@ const artFor = (name: string) =>
     Worker: "/assets/worker.svg",
     "Aztec Coin": "/assets/Aztect Coin 2.0.svg",
     Map: "/assets/map (1).svg",
-    "Pixel Toast": "/assets/Pixel bread.png",
-    "Pixel Chick": "/assets/pixel-chick.png",
-    "Pixel Ice Slime": "/assets/pixel ice slime.png",
+    "Pixel Apple": "/assets/Lost and found + food pack/Pixel apple.png",
+    "Pixel Caramel": "/assets/Lost and found + food pack/Pixel carmel.png",
+    "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png",
     "Lava Slime": "/assets/lava-slime.svg",
     "Olive Grenade": "/assets/grenade.png",
     "Golden Grenade": "/assets/golden grenade.png",
@@ -137,8 +138,10 @@ const artFor = (name: string) =>
     Surgeon: "/assets/doctor 2.0.svg",
     Doctor: "/assets/doctor 2.0.svg",
     "Crystal Ball": "/assets/crystal ball 2.0.svg",
-    "Pixel Fuego": "/assets/pixel fuego.png",
-    "Pixel Wizard": "/assets/pixel wizard.png",
+    "Pixel Bomb": "/assets/Lost and found + food pack/Pixel bomb.png",
+    "Pixel Constellation": "/assets/Lost and found + food pack/Pixel constilation.png",
+    "Pixel Aztec Coin": "/assets/Lost and found + food pack/Pixel axtect coin.png",
+    "Pixel Lagoon": "/assets/Lost and found + food pack/Pixel lagon.png",
     "Blooket Life": "/assets/new blooket life.png",
     "Blooket Gods": "/assets/new blooket gods.png",
     Lagoon: "/assets/New Lag0n.png",
@@ -165,7 +168,7 @@ const artFor = (name: string) =>
     "Crimson Octopus": "/assets/crimsonoctopus.svg",
     Caveman: "/assets/caveman.svg",
     Timeglass: "/assets/Time glass final animation.svg",
-    "Pixel UFO": "/assets/pixel planet.png",
+    "Pixel Sprinkle Bread": "/assets/Lost and found + food pack/Pixel sprinkle bread frame 1.png",
     "Star Ship": "/assets/star ship frame 1.svg",
     "Bread Blook": "/assets/new breadblook.png",
     "Golden Shuriken": "/assets/golden-shuriken.svg",
@@ -467,12 +470,14 @@ const liveCapsules: Capsule[] = [
     price: 25,
     art: "/assets/pixel capsule extra new.svg",
     pool: rewards([
-      ["Pixel Toast", "Common"],
-      ["Pixel Chick", "Common"],
-      ["Pixel Ice Slime", "Uncommon"],
-      ["Pixel Fuego", "Rare"],
-      ["Pixel Wizard", "Rare"],
-      ["Pixel UFO", "Mythic"],
+      ["Pixel Apple", "Common"],
+      ["Pixel Caramel", "Common"],
+      ["Pixel Crystal Ball", "Uncommon"],
+      ["Pixel Bomb", "Rare"],
+      ["Pixel Constellation", "Rare"],
+      ["Pixel Aztec Coin", "Epic"],
+      ["Pixel Lagoon", "Legendary"],
+      ["Pixel Sprinkle Bread", "Mythic"],
     ]),
   },
   {
@@ -574,6 +579,7 @@ function MainPage() {
   const [forgotPassword, setForgotPassword] = useState(false);
   const [tab, setTab] = useState<Tab>("wheel");
   const [notice, setNotice] = useState("");
+  const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
   const [incomingTradeNotice, setIncomingTradeNotice] = useState("");
   const [onlineProfileIds, setOnlineProfileIds] = useState<string[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState<{ id: string; username: string; equippedBlook: string }[]>([]);
@@ -605,6 +611,28 @@ function MainPage() {
   const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
   const [maintenanceCodeInput, setMaintenanceCodeInput] = useState("");
   const [maintenanceError, setMaintenanceError] = useState("");
+
+  useEffect(() => {
+    if (!player || isGuest) {
+      setPlayerNotifications([]);
+      return;
+    }
+    fetch("/api/notifications", { cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() : [])
+      .then((rows) => setPlayerNotifications(Array.isArray(rows) ? rows : []))
+      .catch(() => undefined);
+  }, [isGuest, player?.id]);
+
+  const dismissPlayerNotification = async () => {
+    const current = playerNotifications[0];
+    if (!current) return;
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: current.id }),
+    }).catch(() => undefined);
+    setPlayerNotifications((notifications) => notifications.slice(1));
+  };
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -1626,6 +1654,15 @@ function MainPage() {
               </div>
             </div>
           )}
+          {!notice && playerNotifications[0] && (
+            <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+              <div className="w-full max-w-sm rounded-3xl border border-cyan-300/60 bg-[#103f75] p-6 text-center shadow-2xl">
+                <p className="text-xl font-black text-cyan-100">{playerNotifications[0].payload.title || "Bread updated"}</p>
+                <p className="mt-3 text-sm leading-6 text-[#d9f3ff]">{playerNotifications[0].payload.message || "One of your Pixel Breads was replaced."}</p>
+                <button onClick={() => void dismissPlayerNotification()} className="mt-6 w-full rounded-2xl bg-cyan-300 px-4 py-3 font-black text-cyan-950 hover:bg-cyan-200">Got it</button>
+              </div>
+            </div>
+          )}
           {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} />}
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
@@ -2319,6 +2356,16 @@ function StarShipFrameSwitcher({ className }: { className: string }) {
   );
 }
 
+const pixelSprinkleFrames = [1, 2, 3].map((frame) => `/assets/Lost and found + food pack/Pixel sprinkle bread frame ${frame}.png`);
+function PixelSprinkleFrameSwitcher({ className }: { className: string }) {
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setFrame((current) => (current + 1) % pixelSprinkleFrames.length), 220);
+    return () => clearInterval(timer);
+  }, []);
+  return <img src={pixelSprinkleFrames[frame]} alt="Pixel Sprinkle Bread" className={`max-h-full max-w-full object-contain ${className}`} />;
+}
+
 function RewardArt({ name, art, className }: { name: string; art: string; className: string }) {
   const cleanName = name.replace(/^Shiny /, "");
   if (cleanName === "Star Ship") {
@@ -2329,6 +2376,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   if (cleanName === "Pickle") {
     return <PickleFrameSwitcher className={className} />;
+  }
+  if (cleanName === "Pixel Sprinkle Bread") {
+    return <PixelSprinkleFrameSwitcher className={className} />;
   }
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`}>
