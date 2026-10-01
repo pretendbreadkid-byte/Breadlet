@@ -152,7 +152,7 @@ const artFor = (name: string) =>
     Consolation: "/assets/Lost and found + food pack/contilation 2.svg",
     "Laser Blaster": "/assets/contilation.svg",
     "Yellow Platypus": "/assets/yellowplatypus.svg",
-    Eclipse: "/assets/Lost and found + food pack/eclipse 2.svg",
+    Eclipse: "/assets/Lost and found + food pack/fixed ecipse 2.svg",
     Necklace: "/assets/neclase 2.0 .svg",
     Ninja: "/assets/Ninja 2.0.svg",
     Santa: "/assets/santa pixel.png",
@@ -165,6 +165,7 @@ const artFor = (name: string) =>
     "Stone Tablet": "/assets/Stone tablet (1).svg",
     Actor: "/assets/actor.svg",
     Alien: "/assets/Lost and found + food pack/alien 2.svg",
+    "Space Trooper": "/assets/Lost and found + food pack/space troopeer.png",
     "Crimson Octopus": "/assets/crimsonoctopus.svg",
     Caveman: "/assets/caveman.svg",
     Timeglass: "/assets/Time glass final animation.svg",
@@ -283,7 +284,7 @@ const sellValueFor = (rarity: string) =>
   ({
     Common: 5,
     Uncommon: 12,
-    Rare: 30,
+    Rare: 15,
     Epic: 75,
     Legendary: 150,
     Mythic: 300,
@@ -409,11 +410,12 @@ const liveCapsules: Capsule[] = [
   {
     name: "Space Bag",
     price: 25,
-    art: "/assets/space bag.svg",
+    art: "/assets/Lost and found + food pack/fixed space bag (2).svg",
     pool: rewards([
       ["Mars", "Common"],
       ["Earth", "Uncommon"],
       ["Star", "Rare"],
+      ["Space Trooper", "Rare"],
       ["Consolation", "Rare"],
       ["Eclipse", "Epic"],
       ["Alien", "Mythic"],
@@ -2590,6 +2592,11 @@ function BlookDetail({
             value={`${sellValueFor(reward.rarity)} tokens`}
           />
         </div>
+        {reward.name === "Space Trooper" && (
+          <p className="mt-4 rounded-xl border border-[#3d91cd]/40 bg-[#0c3b70]/70 px-3 py-2 text-sm text-[#d9f3ff]">
+            Tidbit: Made with help from Ninja Goat.
+          </p>
+        )}
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button
             disabled={!quantity || equipped}
