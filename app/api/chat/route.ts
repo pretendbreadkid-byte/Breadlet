@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
+import { createAdminClient } from '../../../lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,9 +13,10 @@ export async function GET() {
     console.log('[CHAT_GET] Supabase not configured');
     return NextResponse.json([]);
   }
+  const database = createAdminClient() || supabase;
 
   // Get the chat messages first.
-  let { data, error } = await supabase
+  let { data, error } = await database
     .from('global_chat_messages')
     .select('id, message, created_at, profile_id, reply_to_message_id')
     .is('deleted_at', null)
@@ -35,7 +37,7 @@ export async function GET() {
       error.message
     );
 
-    const plain = await supabase
+    const plain = await database
       .from('global_chat_messages')
       .select('id, message, created_at, profile_id, reply_to_message_id')
       .order('created_at', { ascending: true })
@@ -66,7 +68,7 @@ export async function GET() {
   let profiles: any[] = [];
 
   if (profileIds.length > 0) {
-    const profileResult = await supabase
+    const profileResult = await database
       .from('profiles')
       .select('id, username, tokens, stats, equipped_blook_id')
       .in('id', profileIds);
@@ -95,7 +97,7 @@ export async function GET() {
   let blooks: any[] = [];
 
   if (blookIds.length > 0) {
-    const blookResult = await supabase
+    const blookResult = await database
       .from('blooks')
       .select('id, name')
       .in('id', blookIds);
@@ -124,7 +126,7 @@ export async function GET() {
   let replyRows: any[] = [];
 
   if (replyIds.length > 0) {
-    const replyResult = await supabase
+    const replyResult = await database
       .from('global_chat_messages')
       .select('id, message, profile_id')
       .in('id', replyIds);
@@ -145,7 +147,7 @@ export async function GET() {
   let replyProfiles: any[] = [];
 
   if (replyProfileIds.length > 0) {
-    const replyProfileResult = await supabase
+    const replyProfileResult = await database
       .from('profiles')
       .select('id, username')
       .in('id', replyProfileIds);
@@ -264,6 +266,7 @@ export async function POST(request: Request) {
       { status: 503 }
     );
   }
+  const database = createAdminClient() || supabase;
 
   const {
     data: { user },
@@ -316,7 +319,7 @@ export async function POST(request: Request) {
 
   if (replyToMessageId) {
     const { data: target } =
-      await supabase
+      await database
         .from('global_chat_messages')
         .select(
           'id, message, profile_id'
@@ -338,7 +341,7 @@ export async function POST(request: Request) {
     }
 
     const { data: targetProfile } =
-      await supabase
+      await database
         .from('profiles')
         .select('username')
         .eq(
@@ -362,7 +365,7 @@ export async function POST(request: Request) {
   );
 
   const { data, error } =
-    await supabase
+    await database
       .from('global_chat_messages')
       .insert({
         profile_id: user.id,
@@ -390,7 +393,7 @@ export async function POST(request: Request) {
   }
 
   const { data: profile } =
-    await supabase
+    await database
       .from('profiles')
       .select('username')
       .eq('id', user.id)
