@@ -6,12 +6,12 @@
 
 :root {
   color-scheme: dark;
-  --breadlet-background: #0c3b70;
-  --breadlet-primary: #39a8f5;
-  --breadlet-accent: #73c8ff;
-  --breadlet-panel: #103f75;
-  --breadlet-text: #f3f8ff;
-  --breadlet-gold: #ffd166;
+  --breadlet-background: #5a2608;
+  --breadlet-primary: #f97316;
+  --breadlet-accent: #fdba74;
+  --breadlet-panel: #8a3d0b;
+  --breadlet-text: #fff7ed;
+  --breadlet-gold: #fed7aa;
 }
 
 html,
@@ -554,3 +554,27 @@ section button[class*="h-20"]:hover:not(:disabled) {
   transform: translateY(-4px) scale(1.08);
   box-shadow: 0 10px 22px rgba(233, 189, 103, 0.2);
 }
+
+.breadlet-blue-theme { background: #5a2608 !important; }
+.breadlet-blue-theme [class*="bg-[#0c3b70"],
+.breadlet-blue-theme [class*="bg-[#072a54"],
+.breadlet-blue-theme [class*="bg-[#103f75"],
+.breadlet-blue-theme [class*="bg-[#18558f"],
+.breadlet-blue-theme [class*="bg-[#24170f"],
+.breadlet-blue-theme [class*="bg-[#3a2415"],
+.breadlet-blue-theme [class*="bg-[#302016"] { background-color: #8a3d0b !important; }
+.breadlet-blue-theme [class*="bg-[#39a8f5"],
+.breadlet-blue-theme [class*="bg-[#e9bd67"] { background-color: #f97316 !important; }
+.breadlet-blue-theme [class*="border-[#3d91cd"],
+.breadlet-blue-theme [class*="border-[#247bc0"],
+.breadlet-blue-theme [class*="border-[#8e623c"],
+.breadlet-blue-theme [class*="border-[#d49a4a"] { border-color: #9a3f08 !important; }
+.breadlet-blue-theme [class*="text-[#9cc8e8"],
+.breadlet-blue-theme [class*="text-[#bde8ff"],
+.breadlet-blue-theme [class*="text-[#d9f3ff"],
+.breadlet-blue-theme [class*="text-[#d7b88c"],
+.breadlet-blue-theme [class*="text-[#ffe2a0"],
+.breadlet-blue-theme [class*="text-[#eac477"] { color: #ffedd5 !important; }
+.spooky-smog { position: relative; overflow: visible; }
+.spooky-smog::after { position: absolute; inset: -18px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, #a855f7aa 0 22%, #7e22ce66 42%, transparent 72%); content: ""; filter: blur(10px); animation: spooky-smog-drift 2.8s ease-in-out infinite alternate; }
+@keyframes spooky-smog-drift { from { transform: translate(-8px, 4px) scale(.9); opacity: .55; } to { transform: translate(8px, -5px) scale(1.14); opacity: 1; } }

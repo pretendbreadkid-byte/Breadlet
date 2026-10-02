@@ -34,6 +34,7 @@ type Tab =
   | "market"
   | "chat"
   | "leaderboard"
+  | "event"
   | "migration"
   | "promo"
   | "info"
@@ -70,6 +71,8 @@ type Player = {
   messagesSent?: number;
   completedTrades?: number;
   trainScore?: number;
+  candy?: number;
+  spookyTutorialSeen?: boolean;
 };
 type PublicProfile = {
   id: string;
@@ -94,6 +97,8 @@ const guestPlayerKey = "breadlet-guest-player";
 const guestSessionPlayerKey = "breadlet-guest-session-player";
 const wheelSpinKey = "breadlet-wheel-spun";
 const firstFiftyKey = "breadlet-first-fifty-count";
+const spookyEventStart = new Date("2026-10-02T00:00:00");
+const spookyEventEnd = new Date("2026-10-24T00:00:00");
 const badgeDescriptions: Record<string, string> = {
   "First 50": "Awarded to the first 50 players to join Breadlet.",
   Verified: "A verified badge for trusted, well-known community members.",
@@ -171,6 +176,8 @@ const artFor = (name: string) =>
     Timeglass: "/assets/Time glass final animation.svg",
     "Pixel Sprinkle Bread": "/assets/Lost and found + food pack/Pixel sprinkle bread frame 1.png?v=2",
     "Star Ship": "/assets/star ship frame 1.svg",
+    "Skeleton Pirate": "/assets/Skeleton pirate frame 1.svg",
+    "Festive Skeleton Pirate": "/assets/feative Skeleton pirate .svg",
     "Bread Blook": "/assets/new breadblook.png",
     "Golden Shuriken": "/assets/golden-shuriken.svg",
     "Holy Bread": "/assets/holy bread.svg",
@@ -301,7 +308,7 @@ const materialNames = [
   "Flower",
   "Metal",
 ];
-const dismantleMaterialNames = materialNames;
+const dismantleMaterialNames = materialNames.filter((material) => material !== "Gold" && material !== "Gem");
 const wheelRewards = [
   { label: "250 tokens", type: "tokens", amount: 250, chance: 32.5 },
   { label: "500 tokens", type: "tokens", amount: 500, chance: 25 },
@@ -344,13 +351,15 @@ function playerFromServer(data: any): Player {
     messagesSent: data.activity?.messagesSent || 0,
     completedTrades: data.activity?.completedTrades || 0,
     trainScore: data.mine?.total_tokens_mined || 0,
+    candy: Number(data.profile.stats?.candy) || 0,
+    spookyTutorialSeen: Boolean(data.profile.stats?.spookyTutorialSeen),
   };
 }
 const materialFor = (name: string, rarity: string) =>
   rarity === "Mythic" || rarity === "Transcendent"
-    ? "Gem"
+    ? "Metal"
     : rarity === "Legendary"
-      ? "Gem"
+      ? "Metal"
       : name.toLowerCase().includes("bread") ||
           name.toLowerCase().includes("toast") ||
           name.toLowerCase().includes("dough")
@@ -361,7 +370,7 @@ const materialFor = (name: string, rarity: string) =>
           ? "Metal"
           : name.toLowerCase().includes("crystal") ||
               name.toLowerCase().includes("glass")
-            ? "Gem"
+            ? "Metal"
             : dismantleMaterialNames[name.length % dismantleMaterialNames.length];
 type MaterialBundle = Record<string, number>;
 const bundleEntries = (bundle: MaterialBundle) => Object.entries(bundle);
@@ -583,6 +592,7 @@ function MainPage() {
   const [notice, setNotice] = useState("");
   const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
   const [incomingTradeNotice, setIncomingTradeNotice] = useState("");
+  const [incomingTrade, setIncomingTrade] = useState<{ id: string; username: string } | null>(null);
   const [onlineProfileIds, setOnlineProfileIds] = useState<string[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState<{ id: string; username: string; equippedBlook: string }[]>([]);
   const [presenceReady, setPresenceReady] = useState(false);
@@ -634,6 +644,18 @@ function MainPage() {
       body: JSON.stringify({ id: current.id }),
     }).catch(() => undefined);
     setPlayerNotifications((notifications) => notifications.slice(1));
+  };
+
+  const respondToIncomingTrade = async (action: "confirm" | "decline") => {
+    if (!incomingTrade) return;
+    const response = await fetch("/api/trades", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tradeId: incomingTrade.id, action }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setIncomingTrade(null);
+    setNotice(response.ok ? (action === "confirm" ? "Trade accepted." : "Trade declined.") : (result.error || "Trade action failed."));
   };
 
   useEffect(() => {
@@ -713,9 +735,20 @@ function MainPage() {
   }, [supabaseClient]);
   useEffect(() => {
     if (!supabaseClient || !player?.id || isGuest) return;
+    const showPendingTrade = async () => {
+      const response = await fetch("/api/trades", { cache: "no-store" });
+      if (!response.ok) return;
+      const trades = await response.json().catch(() => []);
+      const pending = Array.isArray(trades)
+        ? trades.find((trade: any) => trade.receiver_profile_id === player.id && trade.status === "pending")
+        : null;
+      if (pending) setIncomingTrade({ id: pending.id, username: pending.sender_username || "A player" });
+    };
+    void showPendingTrade();
     const channel = supabaseClient.channel(`incoming-trade-notification-${player.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "trades", filter: `receiver_profile_id=eq.${player.id}` }, () => {
         setIncomingTradeNotice("You received a trade request.");
+        void showPendingTrade();
       })
       .subscribe();
     return () => { void supabaseClient.removeChannel(channel); };
@@ -996,6 +1029,7 @@ function MainPage() {
       ...player,
       tokens: reward.type === "tokens" ? player.tokens + reward.amount : player.tokens,
       materials: nextMaterials,
+      candy: (player.candy || 0) + 1,
       wheelSpun: !isGuest,
     };
     const saving = save(nextPlayer);
@@ -1032,6 +1066,7 @@ function MainPage() {
       ...player,
       tokens: isGuest ? player.tokens : player.tokens - capsule.price,
       inventory: [...player.inventory, finalReward.name],
+      candy: (player.candy || 0) + 1,
     };
     setReveal({ capsule, reward: finalReward, track, winnerIndex, phase: "charging" });
     void save(next, { inventory: true }).then((saved) => {
@@ -1459,6 +1494,7 @@ function MainPage() {
     );
   const nav: NavItem[] = [
     { id: "wheel", label: "Daily Crate", icon: <Package size={20} strokeWidth={2.2} /> },
+    { id: "event", label: "Contest of Spooky", icon: <Gift size={20} strokeWidth={2.2} /> },
     {
       id: "capsules",
       label: "Goodybags",
@@ -1518,7 +1554,7 @@ function MainPage() {
         <div>
           {/* Logo Header */}
           <div className="flex items-center gap-3 px-1 py-2 cursor-pointer" onClick={() => setTab("wheel")}>
-            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-14 w-14 shrink-0 object-contain" /><div className="min-w-0"><p className="breadlet-brand text-2xl font-black uppercase leading-none text-white">Breadlet</p><p className="mt-1 text-[10px] font-bold tracking-widest text-[#bde8ff]">BRED-lit</p></div></div>
+            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-14 w-14 shrink-0 object-contain" /><div className="min-w-0"><p className="breadlet-brand text-2xl font-black uppercase leading-none text-white">Breadlet</p><p className="mt-1 text-[10px] font-bold tracking-widest text-[#bde8ff]">1.0</p></div></div>
           </div>
 
           {/* Sidebar Nav Buttons */}
@@ -1534,7 +1570,7 @@ function MainPage() {
                 }`}
               >
                 {item.icon}
-                <span className="flex min-w-0 flex-col items-start leading-none"><span>{item.label}</span><span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/45">Beta</span></span>
+                <span className="flex min-w-0 flex-col items-start leading-none"><span>{item.label}</span></span>
               </button>
             ))}
           </nav>
@@ -1646,6 +1682,7 @@ function MainPage() {
         {/* Dynamic Page Section */}
         <section className="flex-1 overflow-y-auto px-6 pb-6 pt-24">
           {incomingTradeNotice && <button onClick={() => { setIncomingTradeNotice(""); setTab("profile"); }} className="profile-trade-toast fixed right-5 top-20 z-40 w-[min(24rem,calc(100vw-2rem))]" role="status">{incomingTradeNotice}<span>Open profile</span></button>}
+          {incomingTrade && <div className="profile-trade-toast fixed bottom-5 right-5 z-50 w-[min(24rem,calc(100vw-2rem))]" role="status"><div><span>{incomingTrade.username}</span> would like to trade with you.</div><div className="mt-3 flex gap-2"><button onClick={() => void respondToIncomingTrade("confirm")} className="rounded-lg bg-[#f97316] px-3 py-2 text-xs font-black text-white">Accept</button><button onClick={() => void respondToIncomingTrade("decline")} className="rounded-lg bg-[#7f1d1d] px-3 py-2 text-xs font-black text-white">Decline</button><button onClick={() => { setIncomingTrade(null); setTab("profile"); }} className="ml-auto rounded-lg border border-white/30 px-3 py-2 text-xs font-black">View</button></div></div>}
           {isGuest && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline decoration-amber-200/50 underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
@@ -1667,6 +1704,7 @@ function MainPage() {
           )}
           {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} />}
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
+          {tab === "event" && <SpookyEventTab player={player} savePlayer={save} />}
           {tab === "capsules" && (
             <CapsulesTab
               showRetired={showRetired}
@@ -1873,10 +1911,10 @@ function LoginScreen({
           className="mx-auto mb-8 h-32 w-80 object-contain"
         />
         <h1 className="text-center text-3xl font-black">
-          {forgotPassword ? "Reset your password" : authMode === "login" ? "Welcome back" : "Start your collection"}
+          {forgotPassword ? "Reset your password" : authMode === "login" ? "Log in" : "Start your collection"}
         </h1>
         <p className="mt-3 text-center text-sm leading-6 text-[#bde8ff]">
-          {forgotPassword ? "Enter your username and we will email a reset link." : authMode === "login" ? "Log in to continue your collection." : "Create your account and enter the game."}
+          {forgotPassword ? "Enter your username and we will email a reset link." : authMode === "login" ? "Enter your collection." : "Create your account and enter the game."}
         </p>
         <label
           className="mt-8 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
@@ -3308,14 +3346,14 @@ function CraftingMachineModal({
 }
 function Leaderboard({ player: _player }: { player: Player }) {
   const [view, setView] = useState<"tokens" | "clans">("tokens");
-  const [data, setData] = useState<{ players: { username: string; tokens: number; equippedBlook?: string }[]; clans: { name: string; treasury: number }[] }>({ players: [], clans: [] });
+  const [data, setData] = useState<{ players: { username: string; tokens: number; equippedBlook?: string }[]; clans: { name: string; treasury: number; thumbnail_url?: string }[] }>({ players: [], clans: [] });
   useEffect(() => {
     fetch("/api/leaderboard", { cache: "no-store" }).then(async (response) => {
       if (response.ok) setData(await response.json());
     }).catch(() => undefined);
   }, []);
   const rows = (view === "clans"
-    ? data.clans.map((clan) => ({ name: clan.name, value: clan.treasury, avatar: "" }))
+    ? data.clans.map((clan) => ({ name: clan.name, value: clan.treasury, avatar: clan.thumbnail_url || "" }))
     : data.players.map((profile) => ({ name: profile.username, value: profile.tokens, avatar: profile.equippedBlook ? artFor(profile.equippedBlook) : "" }))
   ).sort((left, right) => right.value - left.value);
   const podium = [...rows.slice(0, 3), ...Array.from({ length: Math.max(0, 3 - rows.length) }, () => ({ name: "N/A", value: null as number | null, avatar: "" }))];
@@ -3662,6 +3700,61 @@ function InfoTab() {
           ["Chat, Clans, Promo", "Chat is local, clan tags appear on profiles, and promo codes can grant prototype rewards."],
         ].map(([title, body]) => <section key={title} className="rounded-2xl border border-[#247bc0] bg-[#18558f] p-5"><h2 className="text-xl font-black text-[#bde8ff]">{title}</h2><p className="mt-2 text-sm leading-6 text-[#d9f3ff]">{body}</p></section>)}
       </div>
+    </div>
+  );
+}
+
+function SpookyEventTab({ player, savePlayer }: { player: Player; savePlayer: (player: Player) => void }) {
+  const [now, setNow] = useState(() => new Date());
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("breadlet-spooky-tutorial");
+    if (!stored && !player.spookyTutorialSeen) setTutorialOpen(true);
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, [player.spookyTutorialSeen]);
+
+  const finishTutorial = () => {
+    window.localStorage.setItem("breadlet-spooky-tutorial", "seen");
+    setTutorialOpen(false);
+    savePlayer({ ...player, spookyTutorialSeen: true });
+  };
+  const target = now < spookyEventStart ? spookyEventStart : spookyEventEnd;
+  const remaining = Math.max(0, target.getTime() - now.getTime());
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  const minutes = Math.floor((remaining % 3600000) / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  const active = now >= spookyEventStart && now < spookyEventEnd;
+  const frame = [
+    "/assets/Skeleton pirate frame 1.svg",
+    "/assets/Skeleton pirate frame 2.svg",
+    "/assets/Skeleton pirate frm 3.svg",
+    "/assets/Skeleton pirate frm 4.svg",
+    "/assets/Skeleton pirate frm 5.svg",
+    "/assets/Skeleton pirate frm 6.svg",
+    "/assets/Skeleton pirate frm 7.svg",
+    "/assets/Skeleton pirate frm 8.svg",
+    "/assets/Skeleton pirate frm 9.svg",
+    "/assets/Skeleton pirate frm 10.svg",
+  ][Math.floor(now.getTime() / 180) % 10];
+
+  return (
+    <div className="max-w-5xl space-y-6">
+      <section className="rounded-3xl border border-[#9a3f08] bg-[#8a3d0b] p-6 shadow-2xl">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div><p className="text-xs font-black uppercase tracking-[0.3em] text-orange-200">Limited event</p><h1 className="mt-2 text-4xl font-black text-orange-50">Contest of Spooky</h1><p className="mt-3 max-w-2xl text-orange-100/80">Earn Candy from game activities and climb the event leaderboard before the contest closes.</p></div>
+          <div className="flex items-center gap-2 rounded-2xl border border-orange-200/30 bg-black/20 px-4 py-3"><img src="/assets/Candy.svg" alt="Candy" className="h-10 w-10 object-contain" /><span className="text-2xl font-black text-orange-100">{player.candy || 0}</span></div>
+        </div>
+        <div className="mt-6 rounded-2xl bg-black/25 p-4"><p className="text-xs font-black uppercase tracking-widest text-orange-200">{active ? "Ends in" : now < spookyEventStart ? "Starts in" : "Event ended"}</p><p className="mt-1 text-3xl font-black text-orange-50">{days}d {String(hours).padStart(2, "0")}:{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</p><p className="mt-2 text-sm text-orange-100/70">October 2 through October 23.</p></div>
+      </section>
+      <section className="grid gap-4 md:grid-cols-2">
+        <article className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-5"><h2 className="text-xl font-black text-orange-100">How to earn Candy</h2><ul className="mt-3 space-y-2 text-sm text-orange-50/85"><li>Open Goodybags and claim the Daily Crate.</li><li>Complete trades and keep playing during the event.</li><li>Candy is the event resource used for spooky rewards.</li></ul></article>
+        <article className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-5"><h2 className="text-xl font-black text-orange-100">Placement rewards</h2><div className="mt-3 flex items-center gap-4"><div className="spooky-smog grid h-24 w-24 place-items-center rounded-2xl bg-purple-950/70"><img src={frame} alt="Skeleton Pirate animation" className="h-20 w-20 object-contain" /></div><div className="text-sm text-orange-50/85"><p><b className="text-orange-100">Top 20:</b> Skeleton Pirate, Mythic.</p><p className="mt-2"><b className="text-orange-100">Top 3:</b> Festive Skeleton Pirate with purple smog.</p></div></div></article>
+      </section>
+      {tutorialOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><section className="w-full max-w-md rounded-3xl border border-orange-300/50 bg-[#6f2e08] p-6 shadow-2xl"><p className="text-xs font-black uppercase tracking-[0.25em] text-orange-200">Contest of Spooky</p><h2 className="mt-2 text-2xl font-black text-orange-50">{tutorialStep === 0 ? "The contest is live soon" : tutorialStep === 1 ? "Collect Candy" : "Climb the ranks"}</h2><p className="mt-3 leading-6 text-orange-100/80">{tutorialStep === 0 ? "This event runs from October 2 through October 23." : tutorialStep === 1 ? "Open packs, claim your Daily Crate, and complete trades to earn Candy." : "The top 20 receive Skeleton Pirate. The top 3 also receive Festive Skeleton Pirate and its purple smog effect."}</p><div className="mt-6 flex justify-between gap-3">{tutorialStep > 0 ? <button onClick={() => setTutorialStep((step) => step - 1)} className="rounded-xl border border-orange-200/40 px-4 py-3 font-black text-orange-100">Back</button> : <span />}{tutorialStep < 2 ? <button onClick={() => setTutorialStep((step) => step + 1)} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Next</button> : <button onClick={finishTutorial} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Enter event</button>}</div></section></div>}
     </div>
   );
 }
@@ -4178,12 +4271,30 @@ function ClanTab({
     setClanState({ ...clan, treasury: clan.treasury + 100 });
   };
 
+  const handleLeaveClan = async () => {
+    if (!clan?.id || isGuest) return;
+    const response = await fetch("/api/clans", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "leave", clanId: clan.id }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setCreateError(result.error || "The clan could not be left.");
+      return;
+    }
+    setClanState(null);
+    setMembershipClanId("");
+    setClan("");
+    await loadClans();
+  };
+
   return (
     <div className="space-y-6">
       {createError && <div role="alert" className="fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border border-rose-300/40 bg-[#421f45] px-4 py-3 text-sm font-bold text-rose-100 shadow-2xl"><span>{createError}</span><button onClick={() => setCreateError("")} aria-label="Dismiss clan error">×</button></div>}
       <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button aria-label="Create a clan" onClick={() => setShowCreate(true)} className="flex shrink-0 items-center gap-2 rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] shadow-lg hover:bg-[#73c8ff]"><Users size={19} />Create Clan</button></div>
       {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
-      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><button onClick={handleDonate} className="mt-3 rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
+      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><div className="mt-3 flex flex-wrap gap-2"><button onClick={handleDonate} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><button onClick={() => void handleLeaveClan()} className="rounded-xl bg-red-700 px-4 py-3 font-black text-white">Leave clan</button></div><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
       <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Discover Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => { const joined = membershipClanId === item.id; const disabled = Boolean(membershipClanId) || item.members >= 25 || !item.id; return <article key={item.name} className="overflow-hidden rounded-2xl border border-[#3d91cd] bg-[#18558f]">{item.thumbnailUrl && <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="aspect-video w-full object-cover" />}<div className="p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p><button disabled={disabled} onClick={() => void handleJoinClan(item)} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-2.5 text-sm font-black text-[#031426] disabled:cursor-not-allowed disabled:bg-[#0c3b70] disabled:text-[#9cc8e8]">{joined ? "Joined" : item.members >= 25 ? "Clan full" : membershipClanId ? "Already in a clan" : "Join clan"}</button></div></article>; }) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">No clans found.</p>}</div></div>
     </div>
   );

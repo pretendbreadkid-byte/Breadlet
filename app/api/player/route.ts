@@ -118,6 +118,8 @@ export async function PATCH(request: Request) {
       clanTag: String(player.clanTag || '').slice(0, 5),
       wheelSpun: requestedWheelSpun,
       wheelSpunAt,
+      candy: Math.max(0, Math.floor(Number(player.candy) || 0)),
+      spookyTutorialSeen: Boolean(player.spookyTutorialSeen),
     },
     materials: player.materials || emptyMaterials(),
     friends: Array.isArray(player.friends) ? player.friends : [],

@@ -54,6 +54,34 @@ export async function PATCH(request: Request) {
   const amount = Math.max(1, Math.floor(Number(body.amount) || 100));
   if (!clanId) return NextResponse.json({ error: 'Clan ID is required.' }, { status: 400 });
 
+  if (action === 'leave') {
+    const admin = createAdminClient();
+    if (!admin) return NextResponse.json({ error: 'Clan leaving is not configured.' }, { status: 503 });
+    const [{ data: membership }, { data: members }, { data: profile }] = await Promise.all([
+      admin.from('clan_members').select('id, role').eq('profile_id', user.id).eq('clan_id', clanId).maybeSingle(),
+      admin.from('clan_members').select('id, profile_id, role, joined_at').eq('clan_id', clanId).order('joined_at', { ascending: true }),
+      admin.from('profiles').select('stats').eq('id', user.id).single(),
+    ]);
+    if (!membership) return NextResponse.json({ error: 'You are not a member of that clan.' }, { status: 400 });
+    const otherMembers = (members || []).filter((member) => member.profile_id !== user.id);
+    if (membership.role === 'leader' && otherMembers.length) {
+      const nextLeader = otherMembers[0];
+      const { error: promoteError } = await admin.from('clan_members').update({ role: 'leader' }).eq('id', nextLeader.id);
+      if (promoteError) return NextResponse.json({ error: promoteError.message }, { status: 400 });
+      const { error: ownerError } = await admin.from('clans').update({ owner_profile_id: nextLeader.profile_id }).eq('id', clanId);
+      if (ownerError) return NextResponse.json({ error: ownerError.message }, { status: 400 });
+    }
+    const { error: leaveError } = await admin.from('clan_members').delete().eq('id', membership.id);
+    if (leaveError) return NextResponse.json({ error: leaveError.message }, { status: 400 });
+    if (otherMembers.length) {
+      await admin.from('clans').update({ member_count: Math.max(1, (members || []).length - 1) }).eq('id', clanId);
+    } else {
+      await admin.from('clans').delete().eq('id', clanId);
+    }
+    await admin.from('profiles').update({ stats: { ...(profile?.stats || {}), clanTag: '' } }).eq('id', user.id);
+    return NextResponse.json({ ok: true });
+  }
+
   if (action === 'join') {
     const admin = createAdminClient();
     if (!admin) return NextResponse.json({ error: 'Clan joining is not configured.' }, { status: 503 });
