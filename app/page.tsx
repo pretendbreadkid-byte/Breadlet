@@ -2128,6 +2128,7 @@ function ProfileTab({
     const response = await fetch("/api/trades", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tradeId, action }) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) setTradeMessage(result.error || "Trade action failed.");
+    if (response.ok && result.status === "completed") savePlayer({ ...player, candy: (player.candy || 0) + 1 });
     await loadTrades();
   };
 
@@ -2210,9 +2211,13 @@ function TradeChatModal({
   send: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   const otherName = trade.sender_profile_id === playerId ? trade.receiver_username : trade.sender_username;
+  const ownOffer = trade.sender_profile_id === playerId ? trade.sender_offer_json : trade.receiver_offer_json;
+  const otherOffer = trade.sender_profile_id === playerId ? trade.receiver_offer_json : trade.sender_offer_json;
+  const offerCard = (label: string, offer: any, usernameLabel: string) => <div className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-3"><p className="text-xs font-black uppercase tracking-widest text-orange-200">{label}</p><h3 className="mt-1 font-black text-orange-50">{usernameLabel}</h3><p className="mt-2 text-sm text-orange-100">Tokens: {Number(offer?.tokens || 0).toLocaleString()}</p><div className="mt-2 space-y-1">{(offer?.blooks || []).map((item: any) => <div key={item.name} className="flex items-center gap-2 rounded-lg bg-black/20 px-2 py-1 text-xs text-orange-50"><img src={artFor(item.name)} alt="" className="h-8 w-8 object-contain" /><span>{item.name} x{item.quantity}</span></div>)}</div></div>;
   return <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-5 backdrop-blur-sm">
-    <section role="dialog" aria-modal="true" aria-label={`Trade chat with ${otherName}`} className="profile-popup flex max-h-[85vh] flex-col">
+    <section role="dialog" aria-modal="true" aria-label={`Trade chat with ${otherName}`} className="profile-popup flex max-h-[92vh] flex-col">
       <div className="profile-list-heading"><div><p className="profile-section-label">Accepted trade</p><h2>Chat with {otherName}</h2></div><button onClick={close} aria-label="Close trade chat">×</button></div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">{offerCard("Your offer", ownOffer, username)}{offerCard("Their offer", otherOffer, otherName)}</div>
       <div className="trade-chat-messages mt-4 flex-1 space-y-2 overflow-y-auto">{messages.map((item) => <div key={item.id} className={`trade-chat-message ${item.profile_id === playerId ? "trade-chat-mine" : ""}`}><b>{item.username || (item.profile_id === playerId ? username : otherName)}</b><p>{item.message}</p><time>{new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div>)}{!messages.length && <p className="profile-empty">Trade accepted. Say hello!</p>}</div>
       <form onSubmit={send} className="profile-search-row mt-4"><input value={input} maxLength={1000} onChange={(event) => setInput(event.target.value)} placeholder="Message this player" /><button type="submit">Send</button></form>
     </section>
