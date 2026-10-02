@@ -2151,7 +2151,7 @@ function ProfileTab({
       <div className="profile-top-grid">
         <section className="profile-player-panel">
           <div className="profile-avatar-frame">{profileEquipped ? <img src={artFor(profileEquipped)} alt={profileEquipped} /> : <CircleUserRound size={52} />}</div>
-          <div className="profile-player-copy"><span className="profile-subtitle">{viewingOther ? "Player profile · Beta" : "Player profile"}</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
+          <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
             <div className="profile-quick-actions">{viewingOther ? <button onClick={() => { setTradeTarget({ id: viewedProfile!.id, username: viewedProfile!.username }); setTradeTokens("0"); setTradeBlooks({}); }}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Daily Crate</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
           </div>
