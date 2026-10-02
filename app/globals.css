@@ -575,6 +575,10 @@ section button[class*="h-20"]:hover:not(:disabled) {
 .breadlet-blue-theme [class*="text-[#d7b88c"],
 .breadlet-blue-theme [class*="text-[#ffe2a0"],
 .breadlet-blue-theme [class*="text-[#eac477"] { color: #ffedd5 !important; }
+.breadlet-blue-theme > aside { border-right: 8px solid #9a3f08 !important; }
+@media (max-width: 767px) {
+  .breadlet-blue-theme > aside { border-right: 0 !important; border-bottom: 8px solid #9a3f08 !important; }
+}
 .spooky-smog { position: relative; overflow: visible; }
 .spooky-smog::after { position: absolute; inset: -18px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, #a855f7aa 0 22%, #7e22ce66 42%, transparent 72%); content: ""; filter: blur(10px); animation: spooky-smog-drift 2.8s ease-in-out infinite alternate; }
 @keyframes spooky-smog-drift { from { transform: translate(-8px, 4px) scale(.9); opacity: .55; } to { transform: translate(8px, -5px) scale(1.14); opacity: 1; } }

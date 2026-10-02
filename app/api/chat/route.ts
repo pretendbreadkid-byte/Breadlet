@@ -11,7 +11,10 @@ export async function GET() {
 
   if (!supabase) {
     console.log('[CHAT_GET] Supabase not configured');
-    return NextResponse.json([]);
+    return NextResponse.json(
+      { error: 'Supabase is not configured on the server.' },
+      { status: 503 },
+    );
   }
   const database = createAdminClient() || supabase;
 

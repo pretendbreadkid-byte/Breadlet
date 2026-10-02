@@ -434,7 +434,7 @@ const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Bag",
     price: 25,
-    art: "/assets/lost and found bag.svg",
+    art: "/assets/Lost and found + food pack/new lost and found bag .png",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
@@ -479,7 +479,7 @@ const liveCapsules: Capsule[] = [
   {
     name: "Pixel Bag",
     price: 25,
-    art: "/assets/pixel bag.svg",
+    art: "/assets/Lost and found + food pack/new pixel bag.png",
     pool: rewards([
       ["Pixel Apple", "Common"],
       ["Pixel Caramel", "Common"],
@@ -3414,6 +3414,7 @@ function SimplePanel({
 
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
+  const [chatError, setChatError] = useState("");
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
@@ -3430,8 +3431,10 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         console.error('[CLIENT_CHAT] /api/chat error payload:', err);
+        setChatError(err.error || "Chat could not load. Check your connection and Supabase setup.");
         return;
       }
+      setChatError("");
       const rows = await response.json();
       console.log('[CLIENT_CHAT] /api/chat received rows:', rows);
       if (Array.isArray(rows)) {
@@ -3499,6 +3502,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         });
         if (response.ok) {
           const data = await response.json();
+          setChatError("");
           const username = data.user || (Array.isArray(data.profiles) ? data.profiles[0]?.username : data.profiles?.username) || player.username;
           setMessages((current) => {
             if (data.id && current.some((m) => m.id === data.id)) return current;
@@ -3508,9 +3512,13 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
             ];
           });
                   setReplyTarget(null);
+        } else {
+          const result = await response.json().catch(() => ({}));
+          setChatError(result.error || "Your message could not be sent.");
         }
       } catch (err) {
         console.error('[CLIENT_CHAT] Error sending message:', err);
+        setChatError("Could not reach chat. Check your connection and try again.");
       }
     } else {
       setMessages((current) => [...current, { id: `local-${Date.now()}`, user: player.username, equippedBlook: player.equipped, replyTo: reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: textToSend }]);
@@ -3560,6 +3568,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   return (
     <div className="max-w-3xl rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
       <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlinePlayers.length} players</span></div>
+      {chatError && <p role="alert" className="mt-3 rounded-lg border border-orange-300/40 bg-black/20 px-3 py-2 text-sm text-orange-100">{chatError}</p>}
       {giftNotice && (
         <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
