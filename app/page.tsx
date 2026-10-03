@@ -434,7 +434,7 @@ const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Bag",
     price: 25,
-    art: "/assets/Lost and found + food pack/new lost and found bag .png",
+    art: "/assets/lost and found bag right size .png",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
@@ -479,7 +479,8 @@ const liveCapsules: Capsule[] = [
   {
     name: "Pixel Bag",
     price: 25,
-    art: "/assets/Lost and found + food pack/new pixel bag.png",
+    art: "/assets/right sized pixel bag.png",
+    retired: true,
     pool: rewards([
       ["Pixel Apple", "Common"],
       ["Pixel Caramel", "Common"],
@@ -1084,7 +1085,9 @@ function MainPage() {
   };
   const openMassCapsules = (quantities: Record<string, number>) => {
     if (!player) return;
-    const openableCapsules = isGuest ? [...liveCapsules, ...retiredCapsules] : liveCapsules;
+    const openableCapsules = isGuest
+      ? [...liveCapsules, ...retiredCapsules]
+      : liveCapsules.filter((capsule) => !capsule.retired);
     const selected = openableCapsules.flatMap((capsule) =>
       Array.from({ length: quantities[capsule.name] || 0 }, () => capsule),
     );
@@ -1144,7 +1147,7 @@ function MainPage() {
     if (!player) return false;
     const requested = Object.fromEntries(Object.entries(quantities).filter(([, quantity]) => quantity > 0));
     if (!Object.keys(requested).length) {
-      setNotice("Choose at least one extra Bread to sell.");
+      setNotice("Choose at least one extra Breadlet to sell.");
       return false;
     }
     if (isGuest) {
@@ -1158,7 +1161,7 @@ function MainPage() {
       });
       if (!tokensEarned) return false;
       save({ ...player, tokens: player.tokens + tokensEarned, inventory: remaining }, { inventory: true });
-      setNotice(`Breads sold for ${tokensEarned.toLocaleString()} tokens.`);
+      setNotice(`Breadlets sold for ${tokensEarned.toLocaleString()} tokens.`);
       return true;
     }
     const response = await fetch("/api/player/sell", {
@@ -1168,7 +1171,7 @@ function MainPage() {
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setNotice(result.error || "Could not sell those Breads.");
+      setNotice(result.error || "Could not sell those Breadlets.");
       return false;
     }
     const remaining = [...player.inventory];
@@ -1176,7 +1179,7 @@ function MainPage() {
       for (let sold = 0; sold < Number(amount); sold += 1) remaining.splice(remaining.indexOf(name), 1);
     });
     setPlayer({ ...player, tokens: Number(result.tokens), inventory: remaining });
-    setNotice(`Breads sold for ${Number(result.tokensEarned).toLocaleString()} tokens.`);
+    setNotice(`Breadlets sold for ${Number(result.tokensEarned).toLocaleString()} tokens.`);
     return true;
   };
   const buyUpgrade = (index: number) => {
@@ -1554,7 +1557,7 @@ function MainPage() {
         <div>
           {/* Logo Header */}
           <div className="flex items-center gap-3 px-1 py-2 cursor-pointer" onClick={() => setTab("wheel")}>
-            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-14 w-14 shrink-0 object-contain" /><div className="min-w-0"><p className="breadlet-brand text-2xl font-black uppercase leading-none text-white">Breadlet</p><p className="mt-1 text-[10px] font-bold tracking-widest text-[#bde8ff]">1.0</p></div></div>
+            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/New%20new%20logo.png" alt="Breadlet logo" className="h-14 w-14 shrink-0 object-contain" /><div className="min-w-0"><p className="breadlet-brand text-2xl font-black uppercase leading-none text-white">Breadlet</p><p className="mt-1 text-[10px] font-bold tracking-widest text-[#bde8ff]">1.0</p></div></div>
           </div>
 
           {/* Sidebar Nav Buttons */}
@@ -1683,7 +1686,7 @@ function MainPage() {
         <section className="flex-1 overflow-y-auto px-6 pb-6 pt-24">
           {incomingTradeNotice && <button onClick={() => { setIncomingTradeNotice(""); setTab("profile"); }} className="profile-trade-toast fixed right-5 top-20 z-40 w-[min(24rem,calc(100vw-2rem))]" role="status">{incomingTradeNotice}<span>Open profile</span></button>}
           {incomingTrade && <div className="profile-trade-toast fixed bottom-5 right-5 z-50 w-[min(24rem,calc(100vw-2rem))]" role="status"><div><span>{incomingTrade.username}</span> would like to trade with you.</div><div className="mt-3 flex gap-2"><button onClick={() => void respondToIncomingTrade("confirm")} className="rounded-lg bg-[#f97316] px-3 py-2 text-xs font-black text-white">Accept</button><button onClick={() => void respondToIncomingTrade("decline")} className="rounded-lg bg-[#7f1d1d] px-3 py-2 text-xs font-black text-white">Decline</button><button onClick={() => { setIncomingTrade(null); setTab("profile"); }} className="ml-auto rounded-lg border border-white/30 px-3 py-2 text-xs font-black">View</button></div></div>}
-          {isGuest && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/30 bg-amber-200/10 px-4 py-3 text-sm text-amber-100"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline decoration-amber-200/50 underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
+          {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
               <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
@@ -1697,7 +1700,7 @@ function MainPage() {
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
               <div className="w-full max-w-sm rounded-3xl border border-cyan-300/60 bg-[#103f75] p-6 text-center shadow-2xl">
                 <p className="text-xl font-black text-cyan-100">{playerNotifications[0].payload.title || "Bread updated"}</p>
-                <p className="mt-3 text-sm leading-6 text-[#d9f3ff]">{playerNotifications[0].payload.message || "One of your Pixel Breads was replaced."}</p>
+                <p className="mt-3 text-sm leading-6 text-[#d9f3ff]">{playerNotifications[0].payload.message || "One of your Pixel Breadlets was replaced."}</p>
                 <button onClick={() => void dismissPlayerNotification()} className="mt-6 w-full rounded-2xl bg-cyan-300 px-4 py-3 font-black text-cyan-950 hover:bg-cyan-200">Got it</button>
               </div>
             </div>
@@ -1906,7 +1909,7 @@ function LoginScreen({
         className="w-full max-w-md rounded-3xl border border-[#3d91cd] bg-[#103f75] p-8 shadow-2xl"
       >
         <img
-          src="/assets/breadlet-logo.svg"
+          src="/assets/New%20new%20logo.png"
           alt="Breadlet logo"
           className="mx-auto mb-8 h-32 w-80 object-contain"
         />
@@ -2161,8 +2164,8 @@ function ProfileTab({
       </div>
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/coin.svg" />
-        <ProfileMetric label="Breads Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
-        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space bag.svg" />
+        <ProfileMetric label="Breadlets Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
+        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/Lost and found + food pack/fixed space bag (2).svg" />
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
       </div></section>
       {!viewingOther && <div className="profile-lower-grid">
@@ -2312,14 +2315,16 @@ function CapsulesTab({
     const timer = setInterval(() => setCountdown(retiredCountdown()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const capsules = isGuest || showRetired
+  const capsules = isGuest
     ? [...liveCapsules, ...retiredCapsules]
-    : liveCapsules;
+    : showRetired
+      ? [...liveCapsules.filter((capsule) => !capsule.retired), ...liveCapsules.filter((capsule) => capsule.retired), ...retiredCapsules]
+      : liveCapsules.filter((capsule) => !capsule.retired);
   const canOpenRetired = isGuest || countdown.windowOpen;
 
   return (
     <div>
-      <div className={`mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-bold ${countdown.windowOpen ? "border-emerald-300/40 bg-emerald-500/10 text-emerald-100" : "border-[#d49a4a]/35 bg-[#6c4328]/35 text-[#ffe2a0]"}`}>
+      <div className={`legacy-countdown mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold ${countdown.windowOpen ? "legacy-countdown-open" : "legacy-countdown-closed"}`}>
         <span>{countdown.windowOpen ? "Legacy bags are open right now!" : "Legacy bags return in"}</span>
         <span className="font-mono text-lg tracking-widest">{countdown.windowOpen ? `Closes in ${countdown.label}` : countdown.label}</span>
       </div>
@@ -2364,9 +2369,7 @@ function CapsulesTab({
               <img
                 src={capsule.art}
                 alt={capsule.name}
-                className={`max-h-full max-w-full object-contain transition duration-300 group-hover:scale-105 ${
-                  capsule.name === "BlookTuber Bag" ? "rounded-3xl" : ""
-                }`}
+                className={`max-h-full max-w-full object-contain transition duration-300 ${capsule.name === "Space Bag" ? "scale-110 group-hover:scale-110" : "group-hover:scale-105"}`}
               />
             </div>
             <button
@@ -2467,12 +2470,12 @@ function InventoryTab({
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 items-start">
-      {/* Main Breads Grid Area */}
+      {/* Main Breadlets Grid Area */}
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#3d91cd]/30">
           <div>
-            <h1 className="text-4xl font-black text-white tracking-wide">My Breads</h1>
-            <p className="mt-1 text-sm text-[#9cc8e8]">Click any Bread to view details, equip, or sell.</p>
+            <h1 className="text-4xl font-black text-white tracking-wide">My Breadlets</h1>
+            <p className="mt-1 text-sm text-[#9cc8e8]">Click any Breadlet to view details, equip, or sell.</p>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => { setSellQuantities({}); setMassSellOpen(true); }} disabled={!sellableBreads.length} className="rounded-xl bg-rose-300 px-3.5 py-2 text-xs font-black text-rose-950 disabled:cursor-not-allowed disabled:opacity-40">Mass sell</button>
@@ -2551,7 +2554,7 @@ function InventoryTab({
           <section className="rounded-3xl border border-[#d9a9ff]/35 bg-[#27213d]/80 p-5 shadow-md">
             <div className="mb-4 flex items-center justify-between border-b border-[#d9a9ff]/20 pb-2">
               <h2 className="text-xl font-black text-[#ead4ff]">Crafted</h2>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#c9a8e8]">Craft-only Breads</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#c9a8e8]">Craft-only Breadlets</span>
             </div>
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
               {craftRecipes.map((recipe) => {
@@ -2574,7 +2577,7 @@ function InventoryTab({
         </div>
       </div>
 
-      {massSellOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-[#9cc8e8]">Collection</p><h2 className="text-2xl font-black">Mass sell Breads</h2></div><button onClick={() => setMassSellOpen(false)} className="rounded-lg bg-[#18558f] px-3 py-2 font-bold">Close</button></div><p className="mt-2 text-sm text-[#9cc8e8]">Choose extra copies to sell. One copy of every Bread is always kept.</p><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{sellableBreads.map((bread) => <label key={bread.name} className="flex items-center gap-3 rounded-xl bg-[#0c3b70] p-3"><RewardArt name={bread.name} art={artFor(bread.name)} className="h-12 w-12 shrink-0" /><span className="min-w-0 flex-1 truncate font-bold">{bread.name}<small className="ml-2 text-[#9cc8e8]">up to {bread.available}</small></span><input aria-label={`${bread.name} sell quantity`} type="number" min="0" max={bread.available} value={sellQuantities[bread.name] || 0} onChange={(event) => setSellQuantities({ ...sellQuantities, [bread.name]: Math.min(bread.available, Math.max(0, Math.floor(Number(event.target.value) || 0))) })} className="w-20 rounded-lg bg-[#072a54] px-3 py-2 text-white" /></label>)}</div><button disabled={!massSellTotal} onClick={async () => { if (!window.confirm(`Sell the selected Breads for ${massSellTotal.toLocaleString()} tokens?`)) return; if (await massSell(sellQuantities)) setMassSellOpen(false); }} className="mt-4 w-full rounded-xl bg-rose-300 px-4 py-3 font-black text-rose-950 disabled:opacity-40">Sell for {massSellTotal.toLocaleString()} tokens</button></div></div>}
+      {massSellOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-[#9cc8e8]">Collection</p><h2 className="text-2xl font-black">Mass sell Breadlets</h2></div><button onClick={() => setMassSellOpen(false)} className="rounded-lg bg-[#18558f] px-3 py-2 font-bold">Close</button></div><p className="mt-2 text-sm text-[#9cc8e8]">Choose extra copies to sell. One copy of every Breadlet is always kept.</p><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{sellableBreads.map((bread) => <label key={bread.name} className="flex items-center gap-3 rounded-xl bg-[#0c3b70] p-3"><RewardArt name={bread.name} art={artFor(bread.name)} className="h-12 w-12 shrink-0" /><span className="min-w-0 flex-1 truncate font-bold">{bread.name}<small className="ml-2 text-[#9cc8e8]">up to {bread.available}</small></span><input aria-label={`${bread.name} sell quantity`} type="number" min="0" max={bread.available} value={sellQuantities[bread.name] || 0} onChange={(event) => setSellQuantities({ ...sellQuantities, [bread.name]: Math.min(bread.available, Math.max(0, Math.floor(Number(event.target.value) || 0))) })} className="w-20 rounded-lg bg-[#072a54] px-3 py-2 text-white" /></label>)}</div><button disabled={!massSellTotal} onClick={async () => { if (!window.confirm(`Sell the selected Breadlets for ${massSellTotal.toLocaleString()} tokens?`)) return; if (await massSell(sellQuantities)) setMassSellOpen(false); }} className="mt-4 w-full rounded-xl bg-rose-300 px-4 py-3 font-black text-rose-950 disabled:opacity-40">Sell for {massSellTotal.toLocaleString()} tokens</button></div></div>}
 
       {/* Selected Bread Detail Modal */}
       {selected && (
@@ -2962,7 +2965,7 @@ function Bazaar({
         <button onClick={() => setView("mine")} className={`flex-1 rounded-xl px-4 py-3 font-bold ${view === "mine" ? "bg-[#e9bd67] text-[#29170c]" : "text-[#d7b88c]"}`}>My listings</button>
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breads" className="min-w-[220px] flex-1 rounded-xl bg-[#3a2415] px-4 py-3 text-white" />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breadlets" className="min-w-[220px] flex-1 rounded-xl bg-[#3a2415] px-4 py-3 text-white" />
         <select value={rarity} onChange={(event) => setRarity(event.target.value)} className="rounded-xl bg-[#3a2415] px-4 py-3 text-white">
           <option>All rarities</option>
           {[
@@ -3188,7 +3191,9 @@ function MassOpenModal({
   open: (quantities: Record<string, number>) => void;
   isGuest: boolean;
 }) {
-  const availableCapsules = isGuest ? [...liveCapsules, ...retiredCapsules] : liveCapsules;
+  const availableCapsules = isGuest
+    ? [...liveCapsules, ...retiredCapsules]
+    : liveCapsules.filter((capsule) => !capsule.retired);
   const total = availableCapsules.reduce(
     (sum, capsule) => sum + (quantities[capsule.name] || 0) * capsule.price,
     0,
@@ -3259,7 +3264,7 @@ function MassResultsModal({
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col text-center">
         <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Opening complete</p>
-        <h2 className="mt-1 text-3xl font-black text-white">Your Breads</h2>
+        <h2 className="mt-1 text-3xl font-black text-white">Your Breadlets</h2>
         <div className="mt-5 grid max-h-[60vh] gap-3 overflow-y-auto sm:grid-cols-2 pr-1">
           {groupedResults.map((result) => (
             <div key={`${result.reward.name}-${result.reward.rarity}`} className="relative flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/30">
@@ -3702,15 +3707,15 @@ function InfoTab() {
       <div className="rounded-3xl border border-[#73c8ff]/45 bg-[#bde8ff] p-7 text-[#062443]">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-[#17659c]">Breadlet guide</p>
         <h1 className="mt-2 text-4xl font-black">How to play</h1>
-        <p className="mt-3 max-w-2xl leading-7">Build your collection, earn tokens, trade Breads, and turn materials into special craft-only Breads.</p>
+        <p className="mt-3 max-w-2xl leading-7">Build your collection, earn tokens, trade Breadlets, and turn materials into special craft-only Breadlets.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {[
           ["Daily Crate", "Open once per day to win tokens, five Gold, or five Gem. The 5,000-token reward has a 1% chance."],
           ["Goodybags", "Buy bags with tokens. Open a bag to roll from its listed Bread pool, or use Mass Open for typed quantities."],
-          ["Collection", "Locked Breads stay black silhouettes. Owned Breads can be equipped or sold from their detail view."],
-          ["Crafting", "Dismantle extra Breads into five-unit material bundles, then combine ingredients totaling 20 to craft approved Breads."],
-          ["Bazaar", "List Breads, browse listings, and open a listing card to buy one."],
+          ["Collection", "Locked Breadlets stay black silhouettes. Owned Breadlets can be equipped or sold from their detail view."],
+          ["Crafting", "Dismantle extra Breadlets into five-unit material bundles, then combine ingredients totaling 20 to craft approved Breadlets."],
+          ["Bazaar", "List Breadlets, browse listings, and open a listing card to buy one."],
           ["Chat, Clans, Promo", "Chat is local, clan tags appear on profiles, and promo codes can grant prototype rewards."],
         ].map(([title, body]) => <section key={title} className="rounded-2xl border border-[#247bc0] bg-[#18558f] p-5"><h2 className="text-xl font-black text-[#bde8ff]">{title}</h2><p className="mt-2 text-sm leading-6 text-[#d9f3ff]">{body}</p></section>)}
       </div>
@@ -3846,12 +3851,12 @@ function RequestsTab({ isGuest }: { isGuest: boolean }) {
   ].filter(Boolean).join(" · ");
 
   return <div className="max-w-6xl space-y-6">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Old game transfer</p><h1 className="mt-1 text-4xl font-black">Migration</h1><p className="mt-2 max-w-2xl text-sm text-white/70">Use this page to request your Breads and tokens from the old game. A reviewer will accept or decline each request; rewards are added only after acceptance. Reviewers unlock request approvals with the admin code in Promo Codes.</p></div><button onClick={() => void loadRequests()} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-bold text-white/75">Refresh</button></header>
+    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Old game transfer</p><h1 className="mt-1 text-4xl font-black">Migration</h1><p className="mt-2 max-w-2xl text-sm text-white/70">Use this page to request your Breadlets and tokens from the old game. A reviewer will accept or decline each request; rewards are added only after acceptance. Reviewers unlock request approvals with the admin code in Promo Codes.</p></div><button onClick={() => void loadRequests()} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-bold text-white/75">Refresh</button></header>
     {message && <p role="status" className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">{message}</p>}
     {isGuest ? <p className="rounded-xl bg-black/20 p-4 text-sm text-white/65">Sign in to submit reward requests.</p> : <>
       <section className="rounded-2xl border border-emerald-200/20 bg-[#10251f] p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">New request</h2><p className="mt-1 text-xs text-white/55">Items are only added if a reviewer accepts.</p></div><input value={tokens} onChange={(event) => setTokens(event.target.value)} type="number" min="0" max="100000" aria-label="Requested tokens" className="w-44 rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" placeholder="Tokens" /></div>
-        <div className="mt-4"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breads" className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" /></div>
+        <div className="mt-4"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breadlets" className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" /></div>
         <div className="mt-4 grid max-h-[460px] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">{catalog.map((reward) => <div key={reward.name} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-black/20"><img src={reward.art || artFor(reward.name)} alt={reward.name} className="h-full w-full object-contain" /></div>
           <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{reward.name}</p><p className="text-[10px] font-bold text-amber-200">{reward.rarity}</p><input aria-label={`${reward.name} requested quantity`} type="number" min="0" max="100" value={quantities[reward.name] || 0} onChange={(event) => setQuantities({ ...quantities, [reward.name]: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} className="mt-1 w-full rounded-md border border-white/10 bg-[#10251f] px-2 py-1 text-sm" /></div>
@@ -3933,7 +3938,7 @@ function AdminTab({
         </p>
         <h1 className="mt-2 text-4xl font-black text-white">Admin Panel</h1>
         <p className="mt-3 leading-7 text-[#d9f3ff]">
-          Select a real player, then manage resources, Breads, and badges through the server-side admin role.
+          Select a real player, then manage resources, Breadlets, and badges through the server-side admin role.
         </p>
         <label className="mt-5 block max-w-md text-sm font-bold text-white">Find player account
             <input value={targetSearch} onChange={(event) => { const query = event.target.value; setTargetSearch(query); const exact = players.find((profile) => profile.username.toLowerCase() === query.trim().toLowerCase()); setTargetId(exact?.id || ""); }} placeholder="Type a username" className="mt-2 w-full rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" />
@@ -4357,10 +4362,10 @@ function CraftingTab({
               </button>
             ))}
           </div>
-          {!unique.length && <p className="mt-6 text-center text-sm text-[#b58d68]">No Breads found.</p>}
+          {!unique.length && <p className="mt-6 text-center text-sm text-[#b58d68]">No Breadlets found.</p>}
         </div>
         <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Breads</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Breadlets</h2>
           <div className="mt-5 space-y-3">
             {craftRecipes.map((recipe) => { const enough = isGuest || bundleEntries(recipe.ingredients).every(([material, amount]) => (player.materials[material] || 0) >= amount); return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className="craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left"><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{isGuest ? "Free to craft" : enough ? "Ready to craft" : "20 total materials"}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>→</span></button>; })}
           </div>

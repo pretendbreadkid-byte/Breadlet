@@ -23,7 +23,7 @@ export async function GET() {
     .from('global_chat_messages')
     .select('id, message, created_at, profile_id, reply_to_message_id')
     .is('deleted_at', null)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(100);
 
   console.log(
@@ -43,7 +43,7 @@ export async function GET() {
     const plain = await database
       .from('global_chat_messages')
       .select('id, message, created_at, profile_id, reply_to_message_id')
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(100);
 
     if (plain.error) {
@@ -57,7 +57,7 @@ export async function GET() {
     data = plain.data;
   }
 
-  const messages = data || [];
+  const messages = [...(data || [])].reverse();
 
   // Get profile information for the people who sent messages.
   const profileIds = Array.from(
