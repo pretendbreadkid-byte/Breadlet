@@ -644,6 +644,108 @@ main.breadlet-blue-theme > aside { background-color: #ED7117 !important; }
 .material-tile:hover { border-color: #CC5500; background: #E77D22 !important; }
 .craft-process { border: 2px solid #CC5500; background: #ED7117 !important; color: #FFFFFF !important; }
 .craft-process:hover { border-color: #CC5500; background: #E77D22 !important; }
+main.breadlet-blue-theme > aside.breadlet-sidebar {
+  background-color: #27251F !important;
+  border-right: 8px solid #13120F !important;
+  padding-left: 0;
+  padding-right: 12px;
+}
+.breadlet-sidebar .sidebar-brand {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 8px 12px;
+  background: transparent;
+  box-shadow: none;
+}
+.breadlet-sidebar .sidebar-wordmark {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 92px;
+  overflow: hidden;
+}
+.breadlet-sidebar .sidebar-wordmark img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 118%;
+  height: auto;
+  max-width: none;
+  transform: translate(-50%, -50%);
+}
+main.breadlet-blue-theme > aside.breadlet-sidebar nav button {
+  min-height: 48px;
+  border-radius: 0 8px 8px 0;
+  padding-left: 20px;
+  background: transparent !important;
+  box-shadow: none;
+  font-size: 16px;
+  transform: none;
+  filter: none;
+}
+main.breadlet-blue-theme > aside.breadlet-sidebar nav button:hover {
+  background: #13120F !important;
+}
+main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"] {
+  border: 2px solid #13120F !important;
+  border-left: 0 !important;
+  background: #FFFFFF !important;
+  color: #ED7117 !important;
+}
+main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"] * {
+  color: #ED7117 !important;
+}
+.breadlet-sidebar > div:last-child { margin-left: 12px; }
+.breadlet-blue-theme .workspace-island {
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.workspace-island > div { flex-direction: column; align-items: flex-end; gap: 8px; }
+.workspace-island .workspace-account { order: 0; }
+.workspace-island .workspace-tokens {
+  order: 1;
+  border: 2px solid #13120F;
+  border-radius: 8px;
+  background: #27251F;
+  padding: 10px 16px;
+  font-size: 16px;
+}
+.breadlet-blue-theme .workspace-account-button,
+.breadlet-blue-theme .workspace-account-menu,
+.breadlet-blue-theme button.sidebar-dark-action {
+  border-color: #13120F !important;
+  background-color: #27251F !important;
+  color: #FFFFFF !important;
+}
+.workspace-island .workspace-account-button { border-radius: 8px; padding: 12px 16px; font-size: 16px; }
+.workspace-island .workspace-account-button:hover { transform: none; }
+.breadlet-blue-theme button.sidebar-dark-action:hover { background-color: #13120F !important; }
+.breadlet-blue-theme .game-workspace.chat-workspace { display: flex; min-height: 0; flex-direction: column; overflow: hidden; }
+.global-chat > div:first-child { flex-shrink: 0; }
+.global-chat .chat-message-list { overflow-wrap: anywhere; }
+.global-chat .chat-online-panel { bottom: 6rem; }
+@media (max-width: 767px) {
+  main.breadlet-blue-theme > aside.breadlet-sidebar {
+    border-right: 0 !important;
+    border-bottom: 8px solid #13120F !important;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .breadlet-sidebar .sidebar-brand { width: 120px; flex-shrink: 0; padding: 0; }
+  .breadlet-sidebar .sidebar-wordmark { height: 40px; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav button { min-height: 42px; font-size: 12px; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav button > span > span { font-size: inherit; }
+  .breadlet-blue-theme .game-workspace { padding-top: 8.5rem; }
+  .workspace-island .workspace-account-button { padding: 8px 10px; font-size: 12px; }
+  .workspace-island .workspace-tokens { padding: 8px 10px; font-size: 12px; }
+  .breadlet-blue-theme .game-workspace.chat-workspace { height: calc(100svh - 120px); flex: none; }
+  .global-chat h1 { font-size: 28px; }
+}
 .spooky-smog { position: relative; overflow: visible; }
 .spooky-smog::after { position: absolute; inset: -18px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, #a855f7aa 0 22%, #7e22ce66 42%, transparent 72%); content: ""; filter: blur(10px); animation: spooky-smog-drift 2.8s ease-in-out infinite alternate; }
 @keyframes spooky-smog-drift { from { transform: translate(-8px, 4px) scale(.9); opacity: .55; } to { transform: translate(8px, -5px) scale(1.14); opacity: 1; } }

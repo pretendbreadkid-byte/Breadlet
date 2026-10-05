@@ -1553,19 +1553,20 @@ function MainPage() {
       </div>
 
       {/* Left Blooket-style Persistent Sidebar */}
-      <aside className="w-full md:w-52 md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-3 flex flex-col justify-between z-20 shadow-xl">
+      <aside className="breadlet-sidebar w-full md:w-60 md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-3 flex flex-col justify-between z-20 shadow-xl">
         <div>
           {/* Logo Header */}
-          <div className="flex items-center gap-3 px-1 py-2 cursor-pointer" onClick={() => setTab("wheel")}>
-            <div className="flex w-full items-center gap-2 border-b border-[#3d91cd]/40 pb-3"><img src="/assets/New%20new%20logo.png" alt="Breadlet logo" className="h-14 w-14 shrink-0 object-contain" /><div className="min-w-0"><p className="breadlet-brand text-2xl font-black uppercase leading-none text-white">Breadlet</p><p className="mt-1 text-[10px] font-bold tracking-widest text-[#bde8ff]">1.0</p></div></div>
-          </div>
+          <button type="button" className="sidebar-brand" aria-label="Open my profile" onClick={() => { setViewedProfile(null); setTab("profile"); }}>
+            <span className="sidebar-wordmark"><img src="/assets/Breadlet%20name%20logo.png" alt="Breadlet" /></span>
+          </button>
 
           {/* Sidebar Nav Buttons */}
-          <nav className="mt-6 space-y-1.5">
+          <nav className="mt-2 space-y-1.5">
             {visibleNav.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setTab(item.id)}
+                aria-current={tab === item.id ? "page" : undefined}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 font-extrabold text-sm transition ${
                   tab === item.id
                     ? "bg-[#39a8f5] text-white shadow-md"
@@ -1594,16 +1595,16 @@ function MainPage() {
         <div className="workspace-island pointer-events-none fixed right-3 top-3 z-30 flex w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] px-2 py-2 shadow-xl sm:right-5 sm:top-5 sm:gap-3 sm:px-3">
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             {/* Tokens Balance Counter */}
-            <div className="flex items-center gap-1.5 px-1 font-black text-[#ffe2a0] text-xs">
+            <div className="workspace-tokens flex items-center gap-1.5 px-1 font-black text-[#ffe2a0] text-xs">
               <img src="/assets/coin.svg" alt="Tokens" className="h-5 w-5" />
               <span className="text-sm">{player.tokens.toLocaleString()}</span>
             </div>
 
             {/* Corner Username Dropdown */}
-            <div ref={userMenuRef} className="relative pointer-events-auto">
+            <div ref={userMenuRef} className="workspace-account relative pointer-events-auto">
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
-                className="flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3d91cd] bg-[#103f75] px-2 py-2 font-black text-[#bde8ff] transition hover:bg-[#18558f] sm:max-w-none sm:gap-2.5 sm:px-3.5"
+                className="workspace-account-button flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3d91cd] bg-[#103f75] px-2 py-2 font-black text-[#bde8ff] transition hover:bg-[#18558f] sm:max-w-none sm:gap-2.5 sm:px-3.5"
               >
                 <div className="flex h-6 w-6 items-center justify-center overflow-hidden">
                   {player.equipped ? <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={18} className="text-[#9cc8e8]" />}
@@ -1613,7 +1614,7 @@ function MainPage() {
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 z-50 mt-2 max-h-[calc(100vh-6rem)] w-56 overflow-y-auto rounded-2xl border border-[#3d91cd] bg-[#103f75] p-2 shadow-2xl">
+                <div className="workspace-account-menu absolute right-0 z-50 mt-2 max-h-[calc(100vh-6rem)] w-56 overflow-y-auto rounded-2xl border border-[#3d91cd] bg-[#103f75] p-2 shadow-2xl">
                   <button
                     onClick={() => {
                       setTab("profile");
@@ -1683,7 +1684,7 @@ function MainPage() {
         </div>
 
         {/* Dynamic Page Section */}
-        <section className="flex-1 overflow-y-auto px-6 pb-6 pt-24">
+        <section className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
           {incomingTradeNotice && <button onClick={() => { setIncomingTradeNotice(""); setTab("profile"); }} className="profile-trade-toast fixed right-5 top-20 z-40 w-[min(24rem,calc(100vw-2rem))]" role="status">{incomingTradeNotice}<span>Open profile</span></button>}
           {incomingTrade && <div className="profile-trade-toast fixed bottom-5 right-5 z-50 w-[min(24rem,calc(100vw-2rem))]" role="status"><div><span>{incomingTrade.username}</span> would like to trade with you.</div><div className="mt-3 flex gap-2"><button onClick={() => void respondToIncomingTrade("confirm")} className="rounded-lg bg-[#f97316] px-3 py-2 text-xs font-black text-white">Accept</button><button onClick={() => void respondToIncomingTrade("decline")} className="rounded-lg bg-[#7f1d1d] px-3 py-2 text-xs font-black text-white">Decline</button><button onClick={() => { setIncomingTrade(null); setTab("profile"); }} className="ml-auto rounded-lg border border-white/30 px-3 py-2 text-xs font-black">View</button></div></div>}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
@@ -2815,7 +2816,11 @@ function WheelTab({
           <div className={`crate-display ${phase === "spinning" ? "crate-opening" : charging ? "reveal-crate-charge" : ""}`}>
             <img src="/assets/crate%20(1).svg" alt="Daily reward crate" className="h-40 w-40 object-contain drop-shadow-2xl sm:h-48 sm:w-48" />
           </div>
-          <div ref={viewportRef} className={`roulette-viewport relative mt-2 h-28 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-36 ${charging ? "roulette-charge" : phase === "result" ? "roulette-win-flash" : ""}`}>
+          {phase === "spinning" && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
+            <section role="dialog" aria-modal="true" aria-labelledby="crate-opening-title" className="w-full max-w-6xl rounded-2xl border border-[#CC5500] bg-[#10182b] p-4 text-center sm:p-7">
+              <img src="/assets/crate%20(1).svg" alt="" className={`mx-auto h-20 w-20 object-contain ${charging ? "reveal-crate-charge" : "reveal-crate-rattle"}`} />
+              <h2 id="crate-opening-title" className="mt-3 text-2xl font-bold">Opening Daily Crate</h2>
+          <div ref={viewportRef} className={`roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44 ${charging ? "roulette-charge" : ""}`}>
             <div className="roulette-pointer" />
             {phase === "spinning" && <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: "6.9s" }}>
               {track.map((reward, index) => {
@@ -2830,7 +2835,10 @@ function WheelTab({
             </div>}
             {charging && <div className="absolute inset-0 flex items-center justify-center bg-[#090e1b]/90"><span className="reveal-scanline" /><span className="relative z-10 text-sm font-black uppercase tracking-[0.28em] text-sky-100">Crate charging...</span></div>}
           </div>
-          <button onClick={spinNow} disabled={phase === "spinning" || (player.wheelSpun && !isGuest)} className="mt-4 rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
+              <p role="status" className="mt-5 text-sm font-bold">{charging ? "Crate is powering up..." : "Your reward is on the way..."}</p>
+            </section>
+          </div>}
+          <button onClick={spinNow} disabled={phase === "spinning" || (player.wheelSpun && !isGuest)} className="sidebar-dark-action mt-4 rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
             {player.wheelSpun && !isGuest ? "Crate already opened today" : phase === "spinning" ? "Opening crate..." : isGuest ? "Open free crate" : "Open daily crate"}
           </button>
           {result && phase === "result" && (
@@ -2842,7 +2850,7 @@ function WheelTab({
                 <p className="text-[10px] font-black uppercase tracking-widest text-white/50">You won · {wheelRarityFor(result)}</p>
                 <h2 id="crate-result-title" className="mt-2 text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} tokens` : `${result.amount} ${result.material}`}</h2>
               </div>
-              <button onClick={() => setResult(null)} className="relative z-10 mt-6 w-full rounded-xl bg-sky-400 px-5 py-3 font-black text-slate-950 hover:bg-sky-300">Collect reward</button>
+              <button onClick={() => { setResult(null); setPhase("ready"); }} className="relative z-10 mt-6 w-full rounded-xl bg-sky-400 px-5 py-3 font-black text-slate-950 hover:bg-sky-300">Collect reward</button>
               </div>
             </div>
           )}
@@ -3571,7 +3579,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   };
 
   return (
-    <div className="max-w-3xl rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-6">
+    <div className="global-chat flex h-full min-h-0 w-full flex-col">
       <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlinePlayers.length} players</span></div>
       {chatError && <p role="alert" className="mt-3 rounded-lg border border-orange-300/40 bg-black/20 px-3 py-2 text-sm text-orange-100">{chatError}</p>}
       {giftNotice && (
@@ -3583,14 +3591,14 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           </div>
         </div>
       )}
-      <div className="mt-6 min-h-72 space-y-3 rounded-2xl bg-[#24170f] p-4 max-h-[500px] overflow-y-auto">
+      <div className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         {messages.map((item, index) => (
           <div id={`chat-message-${String(item.id ?? `local-${item.user}-${index}`)}`} key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
             <button onClick={() => void openPlayerProfile(item.user)} aria-label={`Open ${item.user}'s profile`} title={`View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden">
               {item.equippedBlook || (item.user === player.username && player.equipped) ? <img src={artFor(item.equippedBlook || player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={30} />}
             </button>
-            <div>
-              <div className="flex items-center gap-2 font-black">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 font-black">
                 <button onClick={() => void openPlayerProfile(item.user)} className="hover:underline">{item.user}</button>
                 {(item.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : item.badges || []).map((badge) => (
                   <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
@@ -3609,7 +3617,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           </div>
         ))}
       </div>
-      <form onSubmit={send} className="mt-4 flex items-center gap-3">
+      <form onSubmit={send} className="mt-4 flex shrink-0 items-center gap-3">
         {isVerified && (
           <label
             title="Upload image (Verified Badge Feature)"
@@ -4313,7 +4321,7 @@ function ClanTab({
       {createError && <div role="alert" className="fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border border-rose-300/40 bg-[#421f45] px-4 py-3 text-sm font-bold text-rose-100 shadow-2xl"><span>{createError}</span><button onClick={() => setCreateError("")} aria-label="Dismiss clan error">×</button></div>}
       <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button aria-label="Create a clan" onClick={() => setShowCreate(true)} className="flex shrink-0 items-center gap-2 rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] shadow-lg hover:bg-[#73c8ff]"><Users size={19} />Create Clan</button></div>
       {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
-      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><div className="mt-3 flex flex-wrap gap-2"><button onClick={handleDonate} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><button onClick={() => void handleLeaveClan()} className="rounded-xl bg-red-700 px-4 py-3 font-black text-white">Leave clan</button></div><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
+      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><div className="mt-3 flex flex-wrap gap-2"><button onClick={handleDonate} className="sidebar-dark-action rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><button onClick={() => void handleLeaveClan()} className="rounded-xl bg-red-700 px-4 py-3 font-black text-white">Leave clan</button></div><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
       <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Discover Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => { const joined = membershipClanId === item.id; const disabled = Boolean(membershipClanId) || item.members >= 25 || !item.id; return <article key={item.name} className="overflow-hidden rounded-2xl border border-[#3d91cd] bg-[#18558f]">{item.thumbnailUrl && <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="aspect-video w-full object-cover" />}<div className="p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p><button disabled={disabled} onClick={() => void handleJoinClan(item)} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-2.5 text-sm font-black text-[#031426] disabled:cursor-not-allowed disabled:bg-[#0c3b70] disabled:text-[#9cc8e8]">{joined ? "Joined" : item.members >= 25 ? "Clan full" : membershipClanId ? "Already in a clan" : "Join clan"}</button></div></article>; }) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">No clans found.</p>}</div></div>
     </div>
   );
