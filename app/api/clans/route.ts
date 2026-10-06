@@ -129,20 +129,10 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, clan: { ...clan, member_count: updatedClan.member_count }, clanTag });
   }
 
-  const [{ data: profile }, { data: clan }] = await Promise.all([
-    supabase.from('profiles').select('tokens').eq('id', user.id).single(),
-    supabase.from('clans').select('id, treasury').eq('id', clanId).single(),
-  ]);
-
-  if (!profile || profile.tokens < amount) {
-    return NextResponse.json({ error: 'Insufficient tokens.' }, { status: 400 });
-  }
-  if (!clan) return NextResponse.json({ error: 'Clan not found.' }, { status: 404 });
-
-  await Promise.all([
-    supabase.from('profiles').update({ tokens: profile.tokens - amount }).eq('id', user.id),
-    supabase.from('clans').update({ treasury: (clan.treasury || 0) + amount }).eq('id', clanId),
-  ]);
-
-  return NextResponse.json({ ok: true, treasury: (clan.treasury || 0) + amount });
+  if (action !== 'donate') return NextResponse.json({ error: 'Invalid clan action.' }, { status: 400 });
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ error: 'Clan donations are not configured.' }, { status: 503 });
+  const { data: treasury, error } = await admin.rpc('secure_clan_donation', { p_profile_id: user.id, p_clan_id: clanId, p_amount: amount });
+  if (error) return NextResponse.json({ error: error.code === 'PGRST202' ? 'Apply migration 0015_secure_gameplay.sql to enable protected clan donations.' : error.message }, { status: 409 });
+  return NextResponse.json({ ok: true, treasury });
 }

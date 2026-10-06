@@ -43,63 +43,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error: redemptionError } = await admin
-      .from("promo_redemptions")
-      .insert({
-        profile_id: user.id,
-        promo_code: code,
-      });
-
-    if (redemptionError) {
-      if (redemptionError.code === "23505") {
-        return NextResponse.json(
-          { error: "You already redeemed this promo code." },
-          { status: 400 },
-        );
-      }
-
-      return NextResponse.json(
-        { error: redemptionError.message },
-        { status: 500 },
-      );
-    }
-
-    const { data: profile, error: profileError } = await admin
-      .from("profiles")
-      .select("tokens")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      await admin
-        .from("promo_redemptions")
-        .delete()
-        .eq("profile_id", user.id)
-        .eq("promo_code", code);
-
-      return NextResponse.json(
-        { error: profileError.message },
-        { status: 500 },
-      );
-    }
-
-    const { error: updateError } = await admin
-      .from("profiles")
-      .update({ tokens: (profile.tokens || 0) + 1000 })
-      .eq("id", user.id);
-
-    if (updateError) {
-      await admin
-        .from("promo_redemptions")
-        .delete()
-        .eq("profile_id", user.id)
-        .eq("promo_code", code);
-
-      return NextResponse.json(
-        { error: updateError.message },
-        { status: 500 },
-      );
-    }
+    const { error } = await admin.rpc("secure_builtin_promo", { p_profile_id: user.id });
+    if (error) return NextResponse.json({ error: error.code === "PGRST202" ? "Apply migration 0015_secure_gameplay.sql to enable protected promo rewards." : error.message }, { status: 409 });
 
     return NextResponse.json({
       ok: true,

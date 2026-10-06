@@ -628,7 +628,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
 .breadlet-blue-theme .reveal-crate-charge { filter: drop-shadow(0 0 18px #CC5500) !important; }
 main.breadlet-blue-theme > aside { background-color: #ED7117 !important; }
 .breadlet-blue-theme,
-.breadlet-blue-theme * { color: #FFFFFF !important; }
+main.breadlet-blue-theme.breadlet-blue-theme * { color: #FFFFFF !important; }
 .breadlet-blue-theme input,
 .breadlet-blue-theme select,
 .breadlet-blue-theme textarea { color: #FFFFFF !important; }
@@ -747,5 +747,14 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   .global-chat h1 { font-size: 28px; }
 }
 .spooky-smog { position: relative; overflow: visible; }
+.bitcoin-art { overflow: visible; isolation: isolate; }
+.bitcoin-popout { position: absolute; top: 12%; left: 50%; width: 24%; height: 24%; object-fit: contain; pointer-events: none; opacity: 0; animation: bitcoin-coins 1.8s ease-out infinite; animation-delay: var(--coin-delay); }
+@keyframes bitcoin-coins {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(.35) rotate(0deg); }
+  15% { opacity: 1; }
+  65% { opacity: 1; transform: translate(calc(-50% + var(--coin-direction) * 220%), -180%) scale(.9) rotate(calc(var(--coin-direction) * 160deg)); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--coin-direction) * 300%), -100%) scale(.65) rotate(calc(var(--coin-direction) * 250deg)); }
+}
+@media (prefers-reduced-motion: reduce) { .bitcoin-popout { animation: none; opacity: 0; } }
 .spooky-smog::after { position: absolute; inset: -18px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, #a855f7aa 0 22%, #7e22ce66 42%, transparent 72%); content: ""; filter: blur(10px); animation: spooky-smog-drift 2.8s ease-in-out infinite alternate; }
 @keyframes spooky-smog-drift { from { transform: translate(-8px, 4px) scale(.9); opacity: .55; } to { transform: translate(8px, -5px) scale(1.14); opacity: 1; } }

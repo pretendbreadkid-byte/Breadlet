@@ -1,7 +1,9 @@
 "use client";
 
+import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, liveCapsules, materialNames, retiredCapsules, sellValueFor, wheelRewards } from "../lib/gameplay-catalog";
+import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createClient as createSupabaseClient } from "../lib/supabase/client";
+import { createClient as createSupabaseClient, fetchGameplayApi, fetchTradeApi } from "../lib/supabase/client";
 import {
   Backpack,
   CircleUserRound,
@@ -41,15 +43,8 @@ type Tab =
   | "clan"
   | "crafting"
   | "admin";
-type Reward = { name: string; rarity: string; weight: number; art?: string };
-type Capsule = {
-  name: string;
-  price: number;
-  art: string;
-  pool: Reward[];
-  retired?: boolean;
-  note?: string;
-};
+
+
 type Listing = { id: number | string; seller: string; blook: string; price: number };
 type Player = {
   id?: string;
@@ -90,7 +85,7 @@ type PlayerNotification = { id: string; type: string; payload: { title?: string;
 
 const playerKey = "breadlet-player";
 const RETIRED_RETURN_HOUR = 17; // Retired capsules reopen at 5 PM local time for one hour.
-const isRetiredWindowOpen = () => new Date().getHours() === RETIRED_RETURN_HOUR;
+const isRetiredWindowOpen = () => new Date().getUTCHours() === RETIRED_RETURN_HOUR;
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
 const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
@@ -171,6 +166,12 @@ const artFor = (name: string) =>
     Actor: "/assets/actor.svg",
     Alien: "/assets/Lost and found + food pack/alien 2.svg",
     "Space Trooper": "/assets/Lost and found + food pack/space troopeer.png",
+    Wheel: "/assets/wheel.svg",
+    Letter: "/assets/letter.svg",
+    Gears: "/assets/gears.svg",
+    "Da Vinci's Ornithopter": "/assets/DaVinci'sOrnothopter (1).svg",
+    "Leonardo da Vinci": "/assets/leonardo da vici.svg",
+    Bitcoin: "/assets/bitcoin.svg",
     "Crimson Octopus": "/assets/crimsonoctopus.svg",
     Caveman: "/assets/caveman.svg",
     Timeglass: "/assets/Time glass final animation.svg",
@@ -234,35 +235,9 @@ function PickleFrameSwitcher({ className }: { className: string }) {
   }, []);
   return <img src={pickleFrames[frame]} alt="Pickle" className={`max-h-full max-w-full object-contain ${className}`} />;
 }
-const rarityBudget: Record<string, number> = {
-  Common: 50,
-  Uncommon: 25,
-  Rare: 15,
-  Epic: 9.3,
-  Legendary: 0.5,
-  Mythic: 0.2,
-  Unique: 0.2,
-  Transcendent: 0.025,
-};
-const rewards = (
-  items: [string, string][],
-  artNames: Record<string, string> = {},
-) =>
-  items.map(([name, rarity]) => ({
-    name,
-    rarity,
-    weight: rarityBudget[rarity] || 0.1,
-    art: artNames[name] || artFor(name),
-  }));
-const chanceFor = (capsule: Capsule, reward: Reward) => {
-  const total = capsule.pool.reduce(
-    (sum, item) => sum + (rarityBudget[item.rarity] || 0.1),
-    0,
-  );
-  const sameRarity =
-    capsule.pool.filter((item) => item.rarity === reward.rarity).length || 1;
-  return ((rarityBudget[reward.rarity] || 0.1) / sameRarity / total) * 100;
-};
+
+
+
 const rarityClassFor = (rarity: string) =>
   rarity === "Unique"
     ? "rarity-unique"
@@ -287,39 +262,12 @@ const rewardEffectClassFor = (name: string, rarity: string) => {
   if (cleanName === "Star Ship") return "";
   return `${rarityClassFor(rarity)} ${cleanName === "Bread Blook" ? "rainbow-blook" : ""} ${cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""} ${cleanName === "Crimson Octopus" ? "crimson-octopus-glow" : ""}`;
 };
-const sellValueFor = (rarity: string) =>
-  ({
-    Common: 5,
-    Uncommon: 12,
-    Rare: 15,
-    Epic: 75,
-    Legendary: 150,
-    Mythic: 300,
-    Unique: 500,
-    Transcendent: 1000,
-  })[rarity] || 5;
+
 const shinyEligibleNames = new Set<string>();
 const shinyNameFor = (name: string) => name;
-const materialNames = [
-  "Gold",
-  "Cloth",
-  "Gem",
-  "Sugar",
-  "Flower",
-  "Metal",
-];
-const dismantleMaterialNames = materialNames.filter((material) => material !== "Gold" && material !== "Gem");
-const wheelRewards = [
-  { label: "250 tokens", type: "tokens", amount: 250, chance: 32.5 },
-  { label: "500 tokens", type: "tokens", amount: 500, chance: 25 },
-  { label: "1,000 tokens", type: "tokens", amount: 1000, chance: 18 },
-  { label: "2,000 tokens", type: "tokens", amount: 2000, chance: 10 },
-  { label: "3,000 tokens", type: "tokens", amount: 3000, chance: 5 },
-  { label: "4,000 tokens", type: "tokens", amount: 4000, chance: 3.5 },
-  { label: "5,000 tokens", type: "tokens", amount: 5000, chance: 1 },
-  { label: "5 Gold", type: "material", material: "Gold", amount: 5, chance: 2.5 },
-  { label: "5 Gem", type: "material", material: "Gem", amount: 5, chance: 2.5 },
-] as const;
+
+
+
 const wheelRarityFor = (reward: (typeof wheelRewards)[number]) => {
   if (reward.type === "material") return reward.material === "Gem" ? "Legendary" : "Epic";
   if (reward.amount >= 5000) return "Mythic";
@@ -355,52 +303,13 @@ function playerFromServer(data: any): Player {
     spookyTutorialSeen: Boolean(data.profile.stats?.spookyTutorialSeen),
   };
 }
-const materialFor = (name: string, rarity: string) =>
-  rarity === "Mythic" || rarity === "Transcendent"
-    ? "Metal"
-    : rarity === "Legendary"
-      ? "Metal"
-      : name.toLowerCase().includes("bread") ||
-          name.toLowerCase().includes("toast") ||
-          name.toLowerCase().includes("dough")
-        ? "Sugar"
-        : name.toLowerCase().includes("grenade") ||
-            name.toLowerCase().includes("shuriken") ||
-            name.toLowerCase().includes("blaster")
-          ? "Metal"
-          : name.toLowerCase().includes("crystal") ||
-              name.toLowerCase().includes("glass")
-            ? "Metal"
-            : dismantleMaterialNames[name.length % dismantleMaterialNames.length];
-type MaterialBundle = Record<string, number>;
+
+
 const bundleEntries = (bundle: MaterialBundle) => Object.entries(bundle);
-const dismantleBundleFor = (name: string, rarity: string): MaterialBundle => {
-  const primary = materialFor(name, rarity);
-  const primaryIndex = dismantleMaterialNames.indexOf(primary);
-  const secondary = dismantleMaterialNames[(primaryIndex + name.length + rarity.length) % dismantleMaterialNames.length];
-  return {
-    [primary]: 3,
-    [secondary === primary ? dismantleMaterialNames[(primaryIndex + 1) % dismantleMaterialNames.length] : secondary]: 2,
-  };
-};
-const craftRecipes: { name: string; ingredients: MaterialBundle }[] = [
-  { name: "Lion", ingredients: { Flower: 12, Sugar: 8 } },
-  { name: "Yeti", ingredients: { Metal: 12, Cloth: 8 } },
-  { name: "Sandwich", ingredients: { Cloth: 12, Flower: 8 } },
-  { name: "Butterfly", ingredients: { Sugar: 12, Flower: 8 } },
-  { name: "Blackbeard", ingredients: { Metal: 12, Cloth: 8 } },
-  { name: "Sugar Glider", ingredients: { Sugar: 12, Cloth: 8 } },
-  { name: "Tyrannosaurus Rex", ingredients: { Metal: 12, Flower: 8 } },
-  { name: "Megalodon", ingredients: { Sugar: 12, Metal: 8 } },
-  { name: "Megabot", ingredients: { Metal: 12, Flower: 8 } },
-  { name: "King", ingredients: { Flower: 12, Cloth: 8 } },
-  { name: "Phantom King", ingredients: { Gold: 10, Gem: 10 } },
-  { name: "Rainbow Astro", ingredients: { Gold: 10, Gem: 10 } },
-];
-const craftRecipeFor = (name: string) =>
-  craftRecipes.find((recipe) => recipe.name === name);
-const craftedRarityFor = (name: string) =>
-  name === "Rainbow Astro" || name === "Phantom King" ? "Mythic" : "Legendary";
+
+
+
+
 const materialArtFor = (material: string) =>
   ({
     Gold: "/assets/gold.svg",
@@ -415,155 +324,8 @@ const emptyMaterials = () =>
     all[material] = 0;
     return all;
   }, {});
-const liveCapsules: Capsule[] = [
-  {
-    name: "Space Bag",
-    price: 25,
-    art: "/assets/Lost and found + food pack/fixed space bag (2).svg",
-    pool: rewards([
-      ["Mars", "Common"],
-      ["Earth", "Uncommon"],
-      ["Star", "Rare"],
-      ["Space Trooper", "Rare"],
-      ["Consolation", "Rare"],
-      ["Eclipse", "Epic"],
-      ["Alien", "Mythic"],
-      ["Star Ship", "Transcendent"],
-    ]),
-  },
-  {
-    name: "Lost and Found Bag",
-    price: 25,
-    art: "/assets/lost and found bag right size .png",
-    pool: rewards([
-      ["Car Keys", "Common"],
-      ["Comb", "Common"],
-      ["Hat", "Uncommon"],
-      ["Textbook", "Rare"],
-      ["Tablet", "Legendary"],
-      ["Button", "Mythic"],
-    ]),
-  },
-  {
-    name: "Food Bag",
-    price: 25,
-    art: "/assets/food bag.svg",
-    pool: rewards([
-      ["Rock", "Common"],
-      ["Apple", "Common"],
-      ["Potato", "Common"],
-      ["Fries", "Uncommon"],
-      ["Egg", "Uncommon"],
-      ["Carrot", "Uncommon"],
-      ["Candy Corn", "Rare"],
-      ["Avocado", "Rare"],
-      ["Caramel", "Epic"],
-      ["Sprinkle Bread", "Epic"],
-      ["Ice Cream", "Legendary"],
-      ["Pickle", "Mythic"],
-    ]),
-  },
-  {
-    name: "Artifact Bag",
-    price: 25,
-    art: "/assets/artifact bag.svg",
-    pool: rewards([
-      ["Aztec Coin", "Common"],
-      ["Map", "Uncommon"],
-      ["Crystal Ball", "Rare"],
-      ["Necklace", "Epic"],
-      ["Stone Tablet", "Legendary"],
-      ["Timeglass", "Mythic"],
-    ]),
-  },
-  {
-    name: "Pixel Bag",
-    price: 25,
-    art: "/assets/right sized pixel bag.png",
-    retired: true,
-    pool: rewards([
-      ["Pixel Apple", "Common"],
-      ["Pixel Caramel", "Common"],
-      ["Pixel Crystal Ball", "Uncommon"],
-      ["Pixel Bomb", "Rare"],
-      ["Pixel Constellation", "Rare"],
-      ["Pixel Aztec Coin", "Epic"],
-      ["Pixel Lagoon", "Legendary"],
-      ["Pixel Sprinkle Bread", "Mythic"],
-    ]),
-  },
-  {
-    name: "Combat Bag",
-    price: 25,
-    art: "/assets/combat bag.svg",
-    pool: rewards([
-      ["Olive Grenade", "Common"],
-      ["The Bomb", "Uncommon"],
-      ["Golden Grenade", "Rare"],
-      ["Shuriken", "Rare"],
-      ["Nunchucks", "Epic"],
-      ["Spartan", "Legendary"],
-      ["Golden Shuriken", "Mythic"],
-    ]),
-  },
-  {
-    name: "BlookTuber Bag",
-    price: 25,
-    art: "/assets/blooktuber bag.svg",
-    pool: rewards([
-      ["Bread Blook", "Mythic"],
-      ["Blooket Life", "Uncommon"],
-      ["Blooket Gods", "Rare"],
-      ["Fasty Jay", "Epic"],
-      ["Lagoon", "Rare"],
-      ["Waymore", "Epic"],
-    ]),
-  },
-];
-const retiredCapsules: Capsule[] = [
-  {
-    name: "Human Bag",
-    price: 25,
-    art: "/assets/human bag.svg",
-    retired: true,
-    pool: rewards([
-      ["Worker", "Common"],
-      ["Chef", "Uncommon"],
-      ["Doctor", "Rare"],
-      ["Ninja", "Epic"],
-      ["Actor", "Legendary"],
-      ["Caveman", "Mythic"],
-    ]),
-  },
-  {
-    name: "Bread Bag",
-    price: 25,
-    art: "/assets/Bread bag.svg",
-    retired: true,
-    pool: rewards([
-      ["Sour Dough", "Common"],
-      ["Burnt Toast", "Common"],
-      ["Brioche", "Common"],
-      ["Donut", "Uncommon"],
-      ["Cinnamon Roll", "Uncommon"],
-      ["Holy Bread", "Mythic"],
-    ]),
-  },
-  {
-    name: "Remix Bag",
-    price: 25,
-    art: "/assets/remix bag.svg",
-    retired: true,
-    pool: rewards([
-      ["Red Rex", "Transcendent"],
-      ["Albino Crow", "Uncommon"],
-      ["Mr. Frog", "Uncommon"],
-      ["Crimson Octopus", "Mythic"],
-      ["Lava Slime", "Rare"],
-      ["Burnt Toast", "Common"],
-    ]),
-  },
-];
+
+
 const upgrades = [
   { name: "Basic Rock", art: "/assets/basic-rock.svg", cost: 0 },
   { name: "Topaz Pick", art: "/assets/topaz-rock.svg", cost: 250 },
@@ -581,6 +343,7 @@ function MainPage() {
   const resetClickCountRef = useRef(0);
   const pendingGuestRef = useRef<Player | null>(null);
   const playerSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const gameplayBusyRef = useRef(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [authFeedback, setAuthFeedback] = useState("");
   const [supabaseClient] = useState(() => createSupabaseClient());
@@ -649,7 +412,7 @@ function MainPage() {
 
   const respondToIncomingTrade = async (action: "confirm" | "decline") => {
     if (!incomingTrade) return;
-    const response = await fetch("/api/trades", {
+    const response = await fetchTradeApi({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tradeId: incomingTrade.id, action }),
@@ -725,19 +488,13 @@ function MainPage() {
     }
   }, [supabaseClient]);
   useEffect(() => {
-    if (!player || isGuest || player.wheelSpun) return;
-    if (window.localStorage.getItem(`${wheelSpinKey}:${player.username}`) === new Date().toDateString()) {
-      setPlayer((current) => current ? { ...current, wheelSpun: true } : current);
-    }
-  }, [isGuest, player?.username, player?.wheelSpun]);
-  useEffect(() => {
     if (!supabaseClient) return;
     fetch("/api/admin").then((response) => setAdminUnlocked(response.ok)).catch(() => setAdminUnlocked(false));
   }, [supabaseClient]);
   useEffect(() => {
     if (!supabaseClient || !player?.id || isGuest) return;
     const showPendingTrade = async () => {
-      const response = await fetch("/api/trades", { cache: "no-store" });
+      const response = await fetchTradeApi({ cache: "no-store" });
       if (!response.ok) return;
       const trades = await response.json().catch(() => []);
       const pending = Array.isArray(trades)
@@ -806,7 +563,7 @@ function MainPage() {
     if (supabaseClient) {
       const currentSave = playerSaveQueueRef.current.catch(() => undefined).then(async () => {
         try {
-        const payloadPlayer = options.inventory ? next : (({ inventory: _inventory, ...profile }) => profile)(next);
+        const payloadPlayer = { equipped: next.equipped };
         const response = await fetch("/api/player", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -817,6 +574,8 @@ function MainPage() {
           setNotice(body?.error || "Could not save your player data.");
           return false;
         }
+        const savedPlayer = await response.json();
+        setPlayer(playerFromServer(savedPlayer));
         return true;
         } catch {
           setNotice("Could not reach the save service. Your latest changes are still on screen; retry before refreshing.");
@@ -828,6 +587,29 @@ function MainPage() {
     }
     window.localStorage.setItem(playerKey, JSON.stringify(next));
     return Promise.resolve(true);
+  };
+  const playAction = async (action: Record<string, unknown>) => {
+    if (gameplayBusyRef.current) {
+      setNotice("Your previous action is still processing.");
+      return null;
+    }
+    gameplayBusyRef.current = true;
+    try {
+      await playerSaveQueueRef.current;
+      const response = await fetchGameplayApi({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(action) });
+      const result = await response.json();
+      if (!response.ok) {
+        setNotice(result.error || "Gameplay action failed.");
+        return null;
+      }
+      setPlayer(playerFromServer(result.player));
+      return result as { results: { capsule: string; reward: Reward }[]; crateReward?: (typeof wheelRewards)[number]; tokensEarned: number };
+    } catch {
+      setNotice("Could not reach the gameplay server. Refresh before retrying.");
+      return null;
+    } finally {
+      gameplayBusyRef.current = false;
+    }
   };
   const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1015,17 +797,15 @@ function MainPage() {
     setViewedProfile(profile);
     setTab("profile");
   };
-  const spinWheel = (reward: (typeof wheelRewards)[number]): Promise<boolean> => {
-    if (!player) return Promise.resolve(false);
-    if (player.wheelSpun && !isGuest) {
-      setNotice("You already spun today's wheel.");
-      return Promise.resolve(false);
-    }
+  const spinWheel = async (): Promise<(typeof wheelRewards)[number] | null> => {
+    if (!player) return null;
+    if (!isGuest) return (await playAction({ action: "crate" }))?.crateReward || null;
+    let roll = Math.random() * wheelRewards.reduce((total, entry) => total + entry.chance, 0);
+    const reward = wheelRewards.find((entry) => { roll -= entry.chance; return roll < 0; }) || wheelRewards[0];
     const nextMaterials = { ...player.materials };
     if (reward.type === "material" && reward.material) {
       nextMaterials[reward.material] = (nextMaterials[reward.material] || 0) + reward.amount;
     }
-    const previousPlayer = player;
     const nextPlayer = {
       ...player,
       tokens: reward.type === "tokens" ? player.tokens + reward.amount : player.tokens,
@@ -1033,16 +813,22 @@ function MainPage() {
       candy: (player.candy || 0) + 1,
       wheelSpun: !isGuest,
     };
-    const saving = save(nextPlayer);
-    return saving.then((saved) => {
-      if (!saved) setPlayer((current) => current === nextPlayer ? previousPlayer : current);
-      if (saved && !isGuest) window.localStorage.setItem(`${wheelSpinKey}:${player.username}`, new Date().toDateString());
-      if (saved && !isGuest) setNotice(`Wheel reward: ${reward.label}.`);
-      return saved;
-    });
+    await save(nextPlayer);
+    return reward;
   };
-  const openCapsule = (capsule: Capsule) => {
+  const openCapsule = async (capsule: Capsule) => {
     if (!player) return;
+    if (!isGuest) {
+      const result = await playAction({ action: "open", quantities: { [capsule.name]: 1 } });
+      const reward = result?.results[0]?.reward;
+      if (!reward) return;
+      const winnerIndex = 54;
+      const track = Array.from({ length: 62 }, (_, index) => index === winnerIndex ? reward : capsule.pool[Math.floor(Math.random() * capsule.pool.length)]);
+      setReveal({ capsule, reward, track, winnerIndex, phase: "charging" });
+      window.setTimeout(() => setReveal((current) => current ? { ...current, phase: "spinning" } : null), 950);
+      window.setTimeout(() => setReveal((current) => current ? { ...current, phase: "result" } : null), 8000);
+      return;
+    }
     if (!isGuest && player.tokens < capsule.price) {
       setNotice("You need more tokens for that bag.");
       return;
@@ -1083,8 +869,17 @@ function MainPage() {
       }, 8000);
     });
   };
-  const openMassCapsules = (quantities: Record<string, number>) => {
+  const openMassCapsules = async (quantities: Record<string, number>) => {
     if (!player) return;
+    if (!isGuest) {
+      const selected = Object.fromEntries(Object.entries(quantities).filter(([, quantity]) => quantity > 0));
+      const result = await playAction({ action: "open", quantities: selected });
+      if (!result) return;
+      setMassOpen(false);
+      setMassQuantities({});
+      setMassResults(result.results);
+      return;
+    }
     const openableCapsules = isGuest
       ? [...liveCapsules, ...retiredCapsules]
       : liveCapsules.filter((capsule) => !capsule.retired);
@@ -1132,6 +927,10 @@ function MainPage() {
   };
   const sell = (name: string) => {
     if (!player || player.inventory.length <= 1) return;
+    if (!isGuest) {
+      void massSell({ [name]: 1 });
+      return;
+    }
     const index = player.inventory.indexOf(name);
     const inventory = player.inventory.filter((_, itemIndex) => itemIndex !== index);
     const value = sellValueFor(rarityFor(name));
@@ -1150,6 +949,12 @@ function MainPage() {
       setNotice("Choose at least one extra Breadlet to sell.");
       return false;
     }
+    if (!isGuest) {
+      const result = await playAction({ action: "sell", quantities: requested });
+      if (!result) return false;
+      setNotice(`Breadlets sold for ${result.tokensEarned.toLocaleString()} tokens.`);
+      return true;
+    }
     if (isGuest) {
       const remaining = [...player.inventory];
       let tokensEarned = 0;
@@ -1164,23 +969,7 @@ function MainPage() {
       setNotice(`Breadlets sold for ${tokensEarned.toLocaleString()} tokens.`);
       return true;
     }
-    const response = await fetch("/api/player/sell", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ quantities: requested }),
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setNotice(result.error || "Could not sell those Breadlets.");
-      return false;
-    }
-    const remaining = [...player.inventory];
-    Object.entries(result.sold || {}).forEach(([name, amount]) => {
-      for (let sold = 0; sold < Number(amount); sold += 1) remaining.splice(remaining.indexOf(name), 1);
-    });
-    setPlayer({ ...player, tokens: Number(result.tokens), inventory: remaining });
-    setNotice(`Breadlets sold for ${Number(result.tokensEarned).toLocaleString()} tokens.`);
-    return true;
+    return false;
   };
   const buyUpgrade = (index: number) => {
     if (!player || index <= player.pickaxe) return;
@@ -1214,7 +1003,7 @@ function MainPage() {
         const nextPlayer = {
           ...player,
           inventory,
-          equipped: player.equipped === blook ? inventory[0] || "Bread Blook" : player.equipped,
+          equipped: player.equipped === blook ? "" : player.equipped,
         };
         const listRes = await fetch("/api/marketplace");
         if (listRes.ok) {
@@ -1225,6 +1014,8 @@ function MainPage() {
         setNotice(`${blook} listed in the Bazaar.`);
         return;
       }
+      setNotice((await res.json().catch(() => ({}))).error || "Could not create the listing.");
+      return;
     }
     const listing = { id: Date.now(), seller: player.username, blook, price };
     save({ ...player, listings: [...player.listings, listing] });
@@ -1236,7 +1027,7 @@ function MainPage() {
       setNotice("You need more tokens for this listing.");
       return;
     }
-    if (supabaseClient && !isGuest && typeof listing.id === "string") {
+    if (supabaseClient && !isGuest) {
       const res = await fetch("/api/marketplace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1258,6 +1049,8 @@ function MainPage() {
         setNotice(`${listing.blook} purchased.`);
         return;
       }
+      setNotice((await res.json().catch(() => ({}))).error || "Could not buy this listing.");
+      return;
     }
     save({ ...player, tokens: isGuest ? player.tokens : player.tokens - listing.price, inventory: [...player.inventory, listing.blook], listings: player.listings.filter((item) => item.id !== listing.id) }, { inventory: true });
     setSelectedListing(null);
@@ -1305,7 +1098,7 @@ function MainPage() {
       }
     } else setNotice("That promo code is not active.");
   };
-  const grantReward = async (targetId: string, reward: { operation?: "add" | "remove"; tokens?: number; blookName?: string; badge?: string; material?: string; materialAmount?: number }) => {
+  const grantReward = async (targetId: string, reward: { operation?: "add" | "remove"; tokens?: number; candy?: number; blookName?: string; badge?: string; material?: string; materialAmount?: number }) => {
     if (!adminUnlocked) return;
     const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId, ...reward }) });
     if (!response.ok) return setNotice((await response.json().catch(() => null))?.error || "Admin resource update failed.");
@@ -1326,8 +1119,12 @@ function MainPage() {
     }
     return true;
   };
-  const salvage = (name: string) => {
+  const salvage = async (name: string) => {
     if (!player || player.inventory.length <= 1) return;
+    if (!isGuest) {
+      if (await playAction({ action: "dismantle", name })) setNotice(`${name} dismantled into a five-material bundle.`);
+      return;
+    }
     const index = player.inventory.indexOf(name);
     const inventory = player.inventory.filter(
       (_, itemIndex) => itemIndex !== index,
@@ -1349,9 +1146,17 @@ function MainPage() {
     }, { inventory: true });
     setNotice(`${name} dismantled into a five-material bundle.`);
   };
-  const craft = (name: string) => {
+  const craft = async (name: string) => {
     const recipe = craftRecipeFor(name);
     if (!player || !recipe) return;
+    if (!isGuest) {
+      const result = await playAction({ action: "craft", name });
+      if (!result) return;
+      setCraftReveal({ name, ingredients: recipe.ingredients, phase: "processing" });
+      window.setTimeout(() => setCraftReveal((current) => current ? { ...current, phase: "charging" } : null), 1400);
+      window.setTimeout(() => setCraftReveal((current) => current ? { ...current, phase: "output" } : null), 2700);
+      return;
+    }
     const missing = isGuest ? undefined : bundleEntries(recipe.ingredients).find(
       ([material, amount]) => (player.materials[material] || 0) < amount,
     );
@@ -2043,7 +1848,7 @@ function ProfileTab({
 
   const loadTrades = useCallback(async () => {
     if (isGuest) return;
-    const response = await fetch("/api/trades", { cache: "no-store" });
+    const response = await fetchTradeApi({ cache: "no-store" });
     if (response.ok) setTrades(await response.json());
   }, [isGuest]);
 
@@ -2110,7 +1915,7 @@ function ProfileTab({
       tokens: Math.max(0, Math.floor(Number(tradeTokens) || 0)),
       blooks: Object.entries(tradeBlooks).filter(([, quantity]) => quantity > 0).map(([name, quantity]) => ({ name, quantity })),
     };
-    const response = await fetch("/api/trades", {
+    const response = await fetchTradeApi({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(tradeTarget.tradeId
@@ -2129,10 +1934,13 @@ function ProfileTab({
   };
 
   const respondToTrade = async (tradeId: string, action: string) => {
-    const response = await fetch("/api/trades", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tradeId, action }) });
+    const response = await fetchTradeApi({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tradeId, action }) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) setTradeMessage(result.error || "Trade action failed.");
-    if (response.ok && result.status === "completed") savePlayer({ ...player, candy: (player.candy || 0) + 1 });
+    if (response.ok && result.status === "completed") {
+      const refreshed = await fetch("/api/player", { cache: "no-store" });
+      if (refreshed.ok) savePlayer(playerFromServer(await refreshed.json()));
+    }
     await loadTrades();
   };
 
@@ -2166,7 +1974,7 @@ function ProfileTab({
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/coin.svg" />
         <ProfileMetric label="Breadlets Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
-        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/Lost and found + food pack/fixed space bag (2).svg" />
+        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space bag updated again.svg" />
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
       </div></section>
       {!viewingOther && <div className="profile-lower-grid">
@@ -2282,10 +2090,10 @@ function retiredCountdown() {
   const windowOpen = isRetiredWindowOpen();
   const target = new Date(now);
   if (windowOpen) {
-    target.setHours(RETIRED_RETURN_HOUR + 1, 0, 0, 0);
+    target.setUTCHours(RETIRED_RETURN_HOUR + 1, 0, 0, 0);
   } else {
-    target.setHours(RETIRED_RETURN_HOUR, 0, 0, 0);
-    if (target <= now) target.setDate(target.getDate() + 1);
+    target.setUTCHours(RETIRED_RETURN_HOUR, 0, 0, 0);
+    if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
   }
   const diff = Math.max(0, target.getTime() - now.getTime());
   const hours = String(Math.floor(diff / 3600000)).padStart(2, "0");
@@ -2355,7 +2163,7 @@ function CapsulesTab({
             ? "Guest test mode: retired bags are openable for free."
             : countdown.windowOpen
               ? "Retired bags are open for the next hour!"
-              : "Retired bags return at 5 PM for one hour."}
+              : "Retired bags return at 17:00 UTC for one hour."}
         </div>
       )}
       <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -2417,6 +2225,12 @@ function PixelSprinkleFrameSwitcher({ className }: { className: string }) {
 
 function RewardArt({ name, art, className }: { name: string; art: string; className: string }) {
   const cleanName = name.replace(/^Shiny /, "");
+  if (cleanName === "Bitcoin") {
+    return <span className={`bitcoin-art relative inline-flex items-center justify-center ${className}`}>
+      <img src={art} alt={name} className="max-h-full max-w-full object-contain" />
+      {[-1, -0.5, 0.5, 1].map((direction, index) => <img key={direction} src="/assets/bitcoin pop out.svg" alt="" aria-hidden="true" className="bitcoin-popout" style={{ "--coin-direction": direction, "--coin-delay": `${index * 0.35}s` } as React.CSSProperties} />)}
+    </span>;
+  }
   if (cleanName === "Star Ship") {
     return <StarShipFrameSwitcher className={className} />;
   }
@@ -2743,7 +2557,7 @@ function WheelTab({
   isGuest,
 }: {
   player: Player;
-  spin: (reward: (typeof wheelRewards)[number]) => Promise<boolean>;
+  spin: () => Promise<(typeof wheelRewards)[number] | null>;
   isGuest: boolean;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -2757,24 +2571,23 @@ function WheelTab({
   );
   const [beltOffset, setBeltOffset] = useState(0);
   const winnerIndex = 54;
-  const performSpin = () => {
+  const performSpin = async () => {
     if (phase === "spinning" || (player.wheelSpun && !isGuest)) return;
     setCharging(true);
     setResult(null);
     setBeltOffset(0);
-    const totalChance = wheelRewards.reduce((sum, item) => sum + item.chance, 0);
-    const roll = Math.random() * totalChance;
-    let cursor = 0;
-    const reward = wheelRewards.find((item) => {
-      cursor += item.chance;
-      return roll < cursor;
-    }) || wheelRewards[0];
+    setPhase("spinning");
+    const reward = await spin();
+    if (!reward) {
+      setCharging(false);
+      setPhase("ready");
+      return;
+    }
     setTrack(Array.from({ length: 62 }, (_, index) =>
       index === winnerIndex
         ? reward
         : wheelRewards[Math.floor(Math.random() * wheelRewards.length)],
     ));
-    setPhase("spinning");
     window.setTimeout(() => {
       setCharging(false);
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
@@ -2783,16 +2596,8 @@ function WheelTab({
       }));
     }, 850);
     window.setTimeout(() => {
-      void spin(reward).then((saved) => {
-        if (saved) {
-          setResult(reward);
-          setPhase("result");
-        } else {
-          setResult(null);
-          setPhase("ready");
-          setBeltOffset(0);
-        }
-      });
+      setResult(reward);
+      setPhase("result");
     }, 7900);
   };
   const spinNow = () => {
@@ -3086,7 +2891,7 @@ function RevealModal({
           <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: reveal.phase === "result" ? "0ms" : "6.9s" }}>
             {reveal.track.map((reward, index) => (
               <div key={`${index}-${reward.name}`} className={`roulette-prize ${rarityTileClass(reward.rarity)}`}>
-                <img src={reward.art || artFor(reward.name)} alt="" className="h-16 w-16 object-contain sm:h-20 sm:w-20" />
+                <RewardArt name={reward.name} art={reward.art || artFor(reward.name)} className="h-16 w-16 shrink-0 sm:h-20 sm:w-20" />
                 <span className="max-w-full truncate text-[10px] font-black sm:text-xs">{reward.name}</span>
                 <span className="text-[9px] font-bold opacity-70">{reward.rarity}</span>
               </div>
@@ -3735,6 +3540,40 @@ function SpookyEventTab({ player, savePlayer }: { player: Player; savePlayer: (p
   const [now, setNow] = useState(() => new Date());
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const [standings, setStandings] = useState<{ id: string; username: string; candy: number; equippedBlook?: string }[]>([]);
+  const [rankingsError, setRankingsError] = useState("");
+  const [rankingsLoading, setRankingsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!player.id) {
+      setRankingsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const loadRankings = async () => {
+      try {
+        const response = await fetch("/api/leaderboard", { cache: "no-store" });
+        const body = await response.json();
+        if (cancelled) return;
+        if (!response.ok) {
+          setRankingsError(body.error || "Could not load event rankings.");
+          return;
+        }
+        const rows = Array.isArray(body.players) ? body.players : [];
+        setStandings(rows.sort((left: { candy: number; username: string; id: string }, right: { candy: number; username: string; id: string }) =>
+          right.candy - left.candy || left.username.localeCompare(right.username) || left.id.localeCompare(right.id),
+        ));
+        setRankingsError("");
+      } catch {
+        if (!cancelled) setRankingsError("Could not reach event rankings. Retrying shortly.");
+      } finally {
+        if (!cancelled) setRankingsLoading(false);
+      }
+    };
+    void loadRankings();
+    const timer = window.setInterval(() => void loadRankings(), 15000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [player.id]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("breadlet-spooky-tutorial");
@@ -3780,6 +3619,25 @@ function SpookyEventTab({ player, savePlayer }: { player: Player; savePlayer: (p
       <section className="grid gap-4 md:grid-cols-2">
         <article className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-5"><h2 className="text-xl font-black text-orange-100">How to earn Candy</h2><ul className="mt-3 space-y-2 text-sm text-orange-50/85"><li>Open Goodybags and claim the Daily Crate.</li><li>Complete trades and keep playing during the event.</li><li>Candy is the event resource used for spooky rewards.</li></ul></article>
         <article className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-5"><h2 className="text-xl font-black text-orange-100">Placement rewards</h2><div className="mt-3 flex items-center gap-4"><div className="spooky-smog grid h-24 w-24 place-items-center rounded-2xl bg-purple-950/70"><img src={frame} alt="Skeleton Pirate animation" className="h-20 w-20 object-contain" /></div><div className="text-sm text-orange-50/85"><p><b className="text-orange-100">Top 20:</b> Skeleton Pirate, Mythic.</p><p className="mt-2"><b className="text-orange-100">Top 3:</b> Festive Skeleton Pirate with purple smog.</p></div></div></article>
+      </section>
+      <section aria-label="Contest of Spooky leaderboard" className="border-t-2 border-[#CC5500] pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-bold">Candy Leaderboard</h2>
+          {standings.some((entry) => entry.id === player.id) && <p className="text-sm font-bold">Your place: #{standings.findIndex((entry) => entry.id === player.id) + 1}</p>}
+        </div>
+        {rankingsError && <p role="alert" className="mt-3 text-sm">{rankingsError}</p>}
+        {!player.id ? <p className="mt-4 text-sm">Sign in to view event rankings.</p> : rankingsLoading ? <p role="status" className="mt-4">Loading rankings...</p> : standings.length ? (
+          <div className="mt-4 max-h-[32rem] overflow-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="sticky top-0 bg-[#27251f]"><tr><th scope="col" className="px-3 py-3">Place</th><th scope="col" className="px-3 py-3">Player</th><th scope="col" className="px-3 py-3 text-right">Candy</th></tr></thead>
+              <tbody>{standings.map((entry, index) => <tr key={entry.id} aria-current={entry.id === player.id ? "true" : undefined} className={`border-b border-[#CC5500] ${entry.id === player.id ? "bg-[#CC5500]" : ""}`}>
+                <td className="px-3 py-3 font-bold">#{index + 1}</td>
+                <td className="px-3 py-3"><div className="flex items-center gap-2">{entry.equippedBlook && <img src={artFor(entry.equippedBlook)} alt="" className="h-8 w-8 shrink-0 object-contain" />}<span className="break-all font-bold">{entry.username}</span>{index < 20 && <span className="whitespace-nowrap text-xs">{index < 3 ? "Top 3" : "Top 20"}</span>}</div></td>
+                <td className="px-3 py-3 text-right font-bold">{entry.candy.toLocaleString()}</td>
+              </tr>)}</tbody>
+            </table>
+          </div>
+        ) : !rankingsError && <p className="mt-4 text-sm">No event rankings yet.</p>}
       </section>
       {tutorialOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><section className="w-full max-w-md rounded-3xl border border-orange-300/50 bg-[#6f2e08] p-6 shadow-2xl"><p className="text-xs font-black uppercase tracking-[0.25em] text-orange-200">Contest of Spooky</p><h2 className="mt-2 text-2xl font-black text-orange-50">{tutorialStep === 0 ? "The contest is live soon" : tutorialStep === 1 ? "Collect Candy" : "Climb the ranks"}</h2><p className="mt-3 leading-6 text-orange-100/80">{tutorialStep === 0 ? "This event runs from October 2 through October 23." : tutorialStep === 1 ? "Open packs, claim your Daily Crate, and complete trades to earn Candy." : "The top 20 receive Skeleton Pirate. The top 3 also receive Festive Skeleton Pirate and its purple smog effect."}</p><div className="mt-6 flex justify-between gap-3">{tutorialStep > 0 ? <button onClick={() => setTutorialStep((step) => step - 1)} className="rounded-xl border border-orange-200/40 px-4 py-3 font-black text-orange-100">Back</button> : <span />}{tutorialStep < 2 ? <button onClick={() => setTutorialStep((step) => step + 1)} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Next</button> : <button onClick={finishTutorial} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Enter event</button>}</div></section></div>}
     </div>
@@ -3890,7 +3748,7 @@ function AdminTab({
   grantGift,
 }: {
   player: Player;
-  grantReward: (targetId: string, reward: { operation?: "add" | "remove"; tokens?: number; blookName?: string; badge?: string; material?: string; materialAmount?: number }) => Promise<void>;
+  grantReward: (targetId: string, reward: { operation?: "add" | "remove"; tokens?: number; candy?: number; blookName?: string; badge?: string; material?: string; materialAmount?: number }) => Promise<void>;
   moderateAccount: (action: "ban" | "delete", payload: Record<string, unknown>) => Promise<boolean>;
   announcement: string;
   setAnnouncement: (value: string) => void;
@@ -3900,6 +3758,7 @@ function AdminTab({
   grantGift: (gift: { title: string; message: string; tokens: number; materials: Record<string, number>; badges: string[]; blooks: string[] }) => void;
 }) {
   const [tokenAmount, setTokenAmount] = useState("100");
+  const [candyAmount, setCandyAmount] = useState("10");
   const [blookSearch, setBlookSearch] = useState("");
   const [banReason, setBanReason] = useState("");
   const [banDuration, setBanDuration] = useState("24");
@@ -3966,6 +3825,16 @@ function AdminTab({
       </div>
 
       {/* Quick Grants & Exact Token Grant */}
+      <section className="border-y-2 border-[#CC5500] py-5">
+        <h2 className="flex items-center gap-2 text-xl font-bold"><img src="/assets/Candy.svg" alt="" className="h-8 w-8 object-contain" />Contest of Spooky Candy</h2>
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="min-w-0 text-sm font-bold">Candy amount
+            <input aria-label="Candy amount" value={candyAmount} onChange={(event) => setCandyAmount(event.target.value)} type="number" min="1" max="1000000" step="1" className="mt-2 block w-40 rounded-lg border border-[#CC5500] bg-[#ED7117] px-3 py-3" />
+          </label>
+          <button disabled={!targetId || !Number.isSafeInteger(Number(candyAmount)) || Number(candyAmount) < 1 || Number(candyAmount) > 1000000} onClick={() => void grantReward(targetId, { operation: "add", candy: Number(candyAmount) })} className="sidebar-dark-action rounded-lg px-4 py-3 font-bold disabled:opacity-40">Add Candy</button>
+          <button disabled={!targetId || !Number.isSafeInteger(Number(candyAmount)) || Number(candyAmount) < 1 || Number(candyAmount) > 1000000} onClick={() => void grantReward(targetId, { operation: "remove", candy: Number(candyAmount) })} className="sidebar-dark-action rounded-lg px-4 py-3 font-bold disabled:opacity-40">Remove Candy</button>
+        </div>
+      </section>
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
           <h2 className="text-xl font-black text-[#bde8ff] flex items-center gap-2">
@@ -4290,12 +4159,14 @@ function ClanTab({
           loadClans();
           return;
         }
+        setCreateError((await res.json().catch(() => ({}))).error || "Donation failed.");
+        return;
       } catch {
-        // Fall back to local
+        setCreateError("Could not reach the clan server.");
+        return;
       }
     }
-    savePlayer({ ...player, tokens: player.tokens - 100 });
-    setClanState({ ...clan, treasury: clan.treasury + 100 });
+    setCreateError("Your clan could not be loaded. Refresh and retry.");
   };
 
   const handleLeaveClan = async () => {

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const sessionClient = await createClient();
   if (!sessionClient) return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
@@ -10,7 +12,7 @@ export async function GET() {
   const supabase = createAdminClient();
   if (!supabase) return NextResponse.json({ error: 'Leaderboard requires server configuration.' }, { status: 503 });
   const [{ data: profiles, error: profileError }, { data: clans }] = await Promise.all([
-    supabase.from('profiles').select('id, username, tokens, equipped_blook_id'),
+    supabase.from('profiles').select('id, username, tokens, equipped_blook_id, stats'),
     supabase.from('clans').select('id, name, treasury, member_count, thumbnail_url').order('treasury', { ascending: false }),
   ]);
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
@@ -23,6 +25,7 @@ export async function GET() {
     id: profile.id,
     username: profile.username,
     tokens: profile.tokens,
+    candy: Math.max(0, Math.floor(Number(profile.stats?.candy) || 0)),
     equippedBlook: equippedById.get(profile.equipped_blook_id) || '',
   }));
   return NextResponse.json({ players, clans: clans || [] });

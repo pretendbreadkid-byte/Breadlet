@@ -13,11 +13,8 @@ async function session() {
 }
 
 async function hasReviewerAccess(admin: NonNullable<ReturnType<typeof createAdminClient>>, userId: string) {
-  const [{ data: profile }, { data: role }] = await Promise.all([
-    admin.from('profiles').select('stats').eq('id', userId).maybeSingle(),
-    admin.from('admin_roles').select('role').eq('profile_id', userId).in('role', ['owner', 'admin']).limit(1).maybeSingle(),
-  ]);
-  return Boolean(profile?.stats?.can_review_requests || role);
+  const { data: role } = await admin.from('admin_roles').select('role').eq('profile_id', userId).in('role', ['owner', 'admin']).limit(1).maybeSingle();
+  return Boolean(role);
 }
 
 export async function GET() {
@@ -48,19 +45,12 @@ export async function POST(request: Request) {
   const action = String(body.action || 'submit');
 
   if (action === 'unlock-reviewer') {
-    const expectedCode = process.env.BREADLET_REQUEST_REVIEW_CODE || 'admin1234532!';
-    if (!expectedCode || String(body.code || '') !== expectedCode) {
-      return NextResponse.json({ error: 'Admin code is incorrect.' }, { status: 403 });
-    }
-    const { data: profile, error } = await current.admin.from('profiles').select('stats').eq('id', current.userId).single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    const stats = { ...(profile.stats || {}), can_review_requests: true };
-    const { error: updateError } = await current.admin.from('profiles').update({ stats }).eq('id', current.userId);
-    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    if (!await hasReviewerAccess(current.admin, current.userId)) return NextResponse.json({ error: 'Administrator access is required to review rewards.' }, { status: 403 });
     return NextResponse.json({ ok: true, canReview: true });
   }
 
   if (action === 'review') {
+    if (!await hasReviewerAccess(current.admin, current.userId)) return NextResponse.json({ error: 'Administrator access is required to review rewards.' }, { status: 403 });
     const requestId = String(body.requestId || '');
     const decision = String(body.decision || '');
     if (!requestId || !['accept', 'decline'].includes(decision)) return NextResponse.json({ error: 'Choose a valid request and decision.' }, { status: 400 });

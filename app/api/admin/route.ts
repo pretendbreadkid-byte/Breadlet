@@ -52,12 +52,16 @@ export async function POST(request: Request) {
   const targetId = String(body.targetId || '');
   const operation = body.operation === 'remove' ? 'remove' : 'add';
   const tokens = Math.max(0, Math.floor(Number(body.tokens) || 0));
+  const candy = Number(body.candy || 0);
+  if (!Number.isSafeInteger(candy) || candy < 0 || candy > 1000000) {
+    return NextResponse.json({ error: 'Candy amount must be a whole number between 0 and 1,000,000.' }, { status: 400 });
+  }
   const blookName = String(body.blookName || '').trim().slice(0, 80);
   const badge = String(body.badge || '').trim().slice(0, 40);
   const material = String(body.material || '').trim();
   const materialAmount = Math.max(0, Math.floor(Number(body.materialAmount) || 0));
   const materialNames = ['Gold', 'Cloth', 'Gem', 'Sugar', 'Flower', 'Metal'];
-  if (!targetId || (!tokens && !blookName && !badge && !(material && materialAmount))) {
+  if (!targetId || (!tokens && !candy && !blookName && !badge && !(material && materialAmount))) {
     return NextResponse.json({ error: 'Choose a player and at least one resource.' }, { status: 400 });
   }
   if (material && !materialNames.includes(material)) {
@@ -70,12 +74,17 @@ export async function POST(request: Request) {
     const { error } = await session.supabase.from('profiles').update({ tokens: nextTokens }).eq('id', targetId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
-  if (badge) {
+  if (badge || candy) {
     const currentBadges = Array.isArray(target.stats?.badges) ? target.stats.badges : [];
-    const badges = operation === 'remove'
+    const stats = { ...(target.stats || {}) };
+    if (badge) stats.badges = operation === 'remove'
       ? currentBadges.filter((currentBadge: string) => currentBadge !== badge)
       : Array.from(new Set([...currentBadges, badge]));
-    const { error } = await session.supabase.from('profiles').update({ stats: { ...(target.stats || {}), badges } }).eq('id', targetId);
+    if (candy) {
+      const balance = Math.max(0, Math.floor(Number(stats.candy) || 0));
+      stats.candy = operation === 'remove' ? Math.max(0, balance - candy) : balance + candy;
+    }
+    const { error } = await session.supabase.from('profiles').update({ stats }).eq('id', targetId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
   if (blookName) {

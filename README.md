@@ -45,7 +45,13 @@ The current server-backed slice includes Supabase Auth, profile bootstrap, RLS, 
 
 ## Production security boundary
 
-Valuable actions still need to move behind server-side transactional functions before launch: chest rolls, mining, daily rewards, spins, gifts, trades, marketplace settlement, crafting, and admin actions. The schema and RLS are the foundation, but the client must not be trusted to submit token balances or inventory results.
+Apply `supabase/migrations/0015_secure_gameplay.sql` in the Supabase SQL Editor after the earlier migrations before using this release. It adds the Inventions catalog, protected gameplay transactions, marketplace escrow, atomic donations/promo rewards, and direct-write restrictions. Uninstalled protections fail closed with a setup error rather than trusting browser rewards.
+
+Configure `SUPABASE_SERVICE_ROLE_KEY` on the server only; never expose it through a `NEXT_PUBLIC_` variable. Signed-in pack and crate rewards are generated server-side, with row locks, revision checks, ownership validation, and UTC daily limits. Ordinary profile saves cannot change tokens, Candy, materials, badges, or inventory. Guest mode remains browser-local and does not affect rankings.
+
+Admin and reward-review access require existing `admin_roles` entries. Publicly shipped codes no longer grant privileges. Audit existing admin roles and old balances separately; these protections do not automatically revoke previously granted roles or reverse past exploitation.
+
+Run `npm test` for reward-planning, privilege, and isolated PostgreSQL transaction regression checks, followed by `npm run build`. These checks do not access or modify the live database. This is economy hardening, not a guarantee against all cheating or automation.
 
 ## Next steps
 

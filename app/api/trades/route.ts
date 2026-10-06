@@ -20,11 +20,13 @@ const parseOffer = (value: unknown): TradeOffer => {
   return { tokens, blooks };
 };
 
-async function auth() {
+async function auth(request: Request) {
   const sessionClient = await createClient();
   if (!sessionClient) return { response: NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 }) };
-  const { data: { user } } = await sessionClient.auth.getUser();
-  if (!user) return { response: NextResponse.json({ error: 'Sign in to trade.' }, { status: 401 }) };
+  const authorization = request.headers.get('authorization');
+  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined;
+  const { data: { user } } = await sessionClient.auth.getUser(token);
+  if (!user) return { response: NextResponse.json({ error: 'Your login session has expired or could not be verified. Log out and sign in again to trade.' }, { status: 401 }) };
   const admin = createAdminClient();
   if (!admin) return { response: NextResponse.json({ error: 'Server trading is not configured.' }, { status: 503 }) };
   return { admin, userId: user.id };
@@ -54,8 +56,8 @@ async function validateOffer(admin: ReturnType<typeof createAdminClient> & {}, p
   return null;
 }
 
-export async function GET() {
-  const session = await auth();
+export async function GET(request: Request) {
+  const session = await auth(request);
   if ('response' in session) return session.response;
   const { data: trades, error } = await session.admin.from('trades').select('*')
     .or(`sender_profile_id.eq.${session.userId},receiver_profile_id.eq.${session.userId}`)
@@ -74,7 +76,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
+  const session = await auth(request);
   if ('response' in session) return session.response;
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || '');
@@ -128,5 +130,9 @@ export async function POST(request: Request) {
     p_offer: offer,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (data?.status === 'completed') {
+    const { error: candyError } = await session.admin.rpc('award_trade_candy', { p_trade_id: tradeId });
+    if (candyError) console.error('Trade Candy award failed:', candyError.code);
+  }
   return NextResponse.json(data);
 }

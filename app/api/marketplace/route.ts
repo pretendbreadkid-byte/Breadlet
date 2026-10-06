@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
+import { createAdminClient } from '../../../lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,14 +10,14 @@ export async function GET() {
 
   const { data: listings, error } = await supabase
     .from('marketplace_listings')
-    .select('id, price, status, profile_id, blook_id, blooks(name), profiles(username)')
+    .select('id, price, status, profile_id, blook_id, shiny, blooks(name), profiles(username)')
     .eq('status', 'active')
     .order('created_at', { ascending: false });
 
   if (error) {
     const fallback = await supabase
       .from('marketplace_listings')
-      .select('id, price, status, profile_id, blook_id')
+      .select('id, price, status, profile_id, blook_id, shiny')
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
@@ -37,7 +38,7 @@ export async function GET() {
       id: listing.id,
       seller: pMap.get(listing.profile_id) || 'Player',
       sellerId: listing.profile_id,
-      blook: bMap.get(listing.blook_id) || 'Bread Blook',
+      blook: `${listing.shiny ? 'Shiny ' : ''}${bMap.get(listing.blook_id) || 'Bread Blook'}`,
       price: listing.price,
     }));
     return NextResponse.json(formatted);
@@ -59,7 +60,7 @@ export async function GET() {
       id: listing.id,
       seller: profile?.username || pMap.get(listing.profile_id) || 'Player',
       sellerId: listing.profile_id,
-      blook: blook?.name || bMap.get(listing.blook_id) || 'Bread Blook',
+      blook: `${listing.shiny ? 'Shiny ' : ''}${blook?.name || bMap.get(listing.blook_id) || 'Bread Blook'}`,
       price: listing.price,
     };
   });
@@ -73,65 +74,16 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
 
-  const body = await request.json();
+  const body = await request.json().catch(() => ({}));
   const action = body.action || 'create';
-
-  if (action === 'create') {
-    const blookName = String(body.blook || '').trim();
-    const price = Math.max(1, Math.min(100000, Math.floor(Number(body.price) || 10)));
-    if (!blookName) return NextResponse.json({ error: 'Bread is required.' }, { status: 400 });
-
-    const cleanName = blookName.replace(/^Shiny /, '');
-    const { data: blookRow } = await supabase.from('blooks').select('id, name').eq('name', cleanName).single();
-    if (!blookRow) return NextResponse.json({ error: 'Bread not found.' }, { status: 404 });
-
-    const { data: inserted, error: insertError } = await supabase
-      .from('marketplace_listings')
-      .insert({
-        profile_id: user.id,
-        blook_id: blookRow.id,
-        quantity: 1,
-        price,
-        status: 'active',
-      })
-      .select('id, price, status, profile_id, blook_id')
-      .single();
-
-    if (insertError) return NextResponse.json({ error: insertError.message }, { status: 400 });
-    return NextResponse.json({ ok: true, listing: inserted }, { status: 201 });
-  }
-
-  if (action === 'buy') {
-    const listingId = body.listingId;
-    if (!listingId) return NextResponse.json({ error: 'Listing ID is required.' }, { status: 400 });
-
-    const { data: listing, error: listingErr } = await supabase
-      .from('marketplace_listings')
-      .select('id, price, status, profile_id, blook_id, blooks(name)')
-      .eq('id', listingId)
-      .eq('status', 'active')
-      .single();
-
-    if (listingErr || !listing) return NextResponse.json({ error: 'Listing is no longer active.' }, { status: 404 });
-
-    const [{ data: buyerProfile }, { data: sellerProfile }] = await Promise.all([
-      supabase.from('profiles').select('tokens').eq('id', user.id).single(),
-      supabase.from('profiles').select('tokens').eq('id', listing.profile_id).single(),
-    ]);
-
-    if (!buyerProfile || buyerProfile.tokens < listing.price) {
-      return NextResponse.json({ error: 'Insufficient tokens.' }, { status: 400 });
-    }
-
-    await Promise.all([
-      supabase.from('profiles').update({ tokens: buyerProfile.tokens - listing.price }).eq('id', user.id),
-      sellerProfile ? supabase.from('profiles').update({ tokens: sellerProfile.tokens + listing.price }).eq('id', listing.profile_id) : Promise.resolve(),
-      supabase.from('marketplace_listings').update({ status: 'sold', sold_at: new Date().toISOString() }).eq('id', listingId),
-      supabase.from('inventory').insert({ profile_id: user.id, blook_id: listing.blook_id, quantity: 1 }),
-    ]);
-
-    return NextResponse.json({ ok: true });
-  }
-
-  return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
+  if (action !== 'create' && action !== 'buy') return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
+  const price = Number(body.price || 0);
+  if (action === 'create' && (!Number.isSafeInteger(price) || price < 1 || price > 100000)) return NextResponse.json({ error: 'Invalid listing price.' }, { status: 400 });
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ error: 'Marketplace server is not configured.' }, { status: 503 });
+  const { data, error } = await admin.rpc('secure_marketplace_action', {
+    p_profile_id: user.id, p_action: action, p_blook_name: String(body.blook || ''), p_price: price, p_listing_id: body.listingId || null,
+  });
+  if (error) return NextResponse.json({ error: error.code === 'PGRST202' ? 'Apply migration 0015_secure_gameplay.sql to enable protected marketplace actions.' : error.message }, { status: 409 });
+  return NextResponse.json(data, { status: action === 'create' ? 201 : 200 });
 }

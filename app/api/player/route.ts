@@ -8,10 +8,12 @@ function emptyMaterials() {
   return Object.fromEntries(materialNames.map((name) => [name, 0]));
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
   if (!supabase) return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
-  const { data: { user } } = await supabase.auth.getUser();
+  const authorization = request.headers.get('authorization');
+  const token = authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined;
+  const { data: { user } } = await supabase.auth.getUser(token);
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   const inventoryAdmin = createAdminClient();
   if (!inventoryAdmin) return NextResponse.json({ error: 'Server inventory saving is not configured.' }, { status: 503 });
@@ -33,7 +35,7 @@ export async function GET() {
   const inventoryRows = (inventory || []) as unknown as Array<{ quantity: number; shiny: boolean; blooks: { name: string } | null }>;
 
   const wheelSpunAt = profile.stats?.wheelSpunAt;
-  const wheelSpunToday = typeof wheelSpunAt === 'string' && new Date(wheelSpunAt).toDateString() === new Date().toDateString();
+  const wheelSpunToday = typeof wheelSpunAt === 'string' && wheelSpunAt.slice(0, 10) === new Date().toISOString().slice(0, 10);
 
   return NextResponse.json({
     profile: {
@@ -49,7 +51,7 @@ export async function GET() {
     materials: { ...emptyMaterials(), ...(profile.materials || {}) },
     mine,
     activity: {
-      capsulesOpened: capsuleCount.count || 0,
+      capsulesOpened: (capsuleCount.count || 0) + (Number(profile.stats?.capsulesOpened) || 0),
       messagesSent: messageCount.count || 0,
       completedTrades: tradeCount.count || 0,
     },
@@ -70,104 +72,28 @@ export async function PATCH(request: Request) {
   const inventoryAdmin = createAdminClient();
   if (!inventoryAdmin) return NextResponse.json({ error: 'Server inventory saving is not configured.' }, { status: 503 });
 
-  const body = await request.json();
+  const body = await request.json().catch(() => ({}));
   const player = body.player || {};
-  const hasInventoryPayload = Array.isArray(player.inventory);
-  const inventoryNames = hasInventoryPayload ? player.inventory.map(String) : [];
-  const inventoryCounts = new Map<string, number>();
-  inventoryNames.forEach((name: string) => inventoryCounts.set(name, (inventoryCounts.get(name) || 0) + 1));
-
-  const { data: blooks, error: blooksError } = await inventoryAdmin.from('blooks').select('id, name');
-  if (blooksError) return NextResponse.json({ error: blooksError.message }, { status: 500 });
-  const blookIds = new Map((blooks || []).map((blook: { id: string; name: string }) => [blook.name, blook.id]));
-  const normalizedBlookName = (displayName: string) => {
-    const name = displayName.replace(/^Shiny /, '');
-    return name === 'Surgeon' ? 'Doctor' : name;
-  };
-  const unknownBlooks = hasInventoryPayload
-    ? Array.from(inventoryCounts.keys()).filter((displayName) => !blookIds.has(normalizedBlookName(displayName)))
-    : [];
-  if (unknownBlooks.length) {
-    return NextResponse.json({ error: `These Breads are missing from the server catalog and were not saved: ${unknownBlooks.join(', ')}. Apply the latest Bread catalog migration, then retry.` }, { status: 409 });
+  if (!player || typeof player !== 'object' || Array.isArray(player)) return NextResponse.json({ error: 'Invalid player update.' }, { status: 400 });
+  const protectedFields = ['tokens', 'inventory', 'materials', 'badges', 'candy', 'wheelSpun', 'mined', 'pickaxe', 'listings', 'account_status', 'stats'];
+  if (protectedFields.some((field) => field in player) || body.candyEarned != null) {
+    return NextResponse.json({ error: 'Economy changes must use verified gameplay actions.' }, { status: 403 });
   }
-
-  const { data: currentProfile } = await supabase.from('profiles').select('tokens, stats').eq('id', user.id).single();
-  const previousTokens = Math.max(0, Math.floor(Number(currentProfile?.tokens) || 0));
-  const requestedTokens = Math.max(0, Math.floor(Number(player.tokens) || 0));
-  // Block the "set my tokens to a huge number" exploit: no single save may grant
-  // more than the largest legitimate single reward (the 5,000-token wheel prize).
-  const MAX_TOKEN_GAIN_PER_SAVE = 5000;
-  const tokens = requestedTokens > previousTokens
-    ? Math.min(requestedTokens, previousTokens + MAX_TOKEN_GAIN_PER_SAVE)
-    : requestedTokens;
-
-  const previousStats = (currentProfile?.stats || {}) as Record<string, unknown>;
-  const requestedWheelSpun = Boolean(player.wheelSpun);
-  const wheelSpunToday = typeof previousStats.wheelSpunAt === 'string'
-    && new Date(previousStats.wheelSpunAt as string).toDateString() === new Date().toDateString();
-  // Reset the Daily Crate automatically once the calendar day changes instead of
-  // leaving it permanently marked as opened.
-  const wheelSpunAt = requestedWheelSpun ? new Date().toISOString() : (wheelSpunToday ? previousStats.wheelSpunAt : null);
-
-  const profileUpdate = {
-    username: String(player.username || '').trim().slice(0, 20),
-    tokens,
-    luck: 0,
-    stats: {
-      badges: Array.isArray(player.badges) ? player.badges : [],
-      clanTag: String(player.clanTag || '').slice(0, 5),
-      wheelSpun: requestedWheelSpun,
-      wheelSpunAt,
-      candy: Math.max(0, Math.floor(Number(player.candy) || 0)),
-      spookyTutorialSeen: Boolean(player.spookyTutorialSeen),
-    },
-    materials: player.materials || emptyMaterials(),
-    friends: Array.isArray(player.friends) ? player.friends : [],
-    equipped_blook_id: blookIds.get(String(player.equipped || '').replace(/^Shiny /, '')) || null,
-    account_status: 'active',
-  };
-  if (profileUpdate.username.length < 3) return NextResponse.json({ error: 'Username must be 3-20 characters.' }, { status: 400 });
-
-  const { error: profileError } = await supabase.from('profiles').update(profileUpdate).eq('id', user.id);
-  if (profileError) return NextResponse.json({ error: profileError.message }, { status: 400 });
-
-  if (hasInventoryPayload) {
-    const inventoryRows = Array.from(inventoryCounts.entries()).flatMap(([displayName, quantity]) => {
-      const shiny = displayName.startsWith('Shiny ');
-      const name = normalizedBlookName(displayName);
-      const blookId = blookIds.get(name);
-      return blookId ? [{ profile_id: user.id, blook_id: blookId, quantity, shiny }] : [];
-    });
-    const { error: deleteError } = await inventoryAdmin.from('inventory').delete().eq('profile_id', user.id);
-    if (deleteError) return NextResponse.json({ error: `Inventory could not be replaced: ${deleteError.message}` }, { status: 400 });
-    if (inventoryRows.length) {
-      const { error: upsertError } = await inventoryAdmin.from('inventory').upsert(inventoryRows, { onConflict: 'profile_id,blook_id,shiny' });
-      if (upsertError) return NextResponse.json({ error: `Inventory was not saved: ${upsertError.message}` }, { status: 400 });
-    }
+  const { data: profile, error: readError } = await inventoryAdmin.from('profiles').select('id, stats, is_banned, account_status').eq('id', user.id).single();
+  if (readError || !profile) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+  if (profile.is_banned || profile.account_status !== 'active') return NextResponse.json({ error: 'This account cannot play.' }, { status: 403 });
+  let equippedId: string | null = null;
+  if (player.equipped) {
+    const name = String(player.equipped).replace(/^Shiny /, '');
+    const { data: blook } = await inventoryAdmin.from('blooks').select('id').eq('name', name).maybeSingle();
+    if (!blook) return NextResponse.json({ error: 'Unknown Breadlet.' }, { status: 400 });
+    const { data: owned } = await inventoryAdmin.from('inventory').select('quantity').eq('profile_id', user.id).eq('blook_id', blook.id).gt('quantity', 0).limit(1).maybeSingle();
+    if (!owned) return NextResponse.json({ error: 'You do not own that Breadlet.' }, { status: 403 });
+    equippedId = blook.id;
   }
-
-  await supabase.from('marketplace_listings').delete().eq('profile_id', user.id);
-  const listingRows = Array.isArray(player.listings)
-    ? player.listings.filter((listing: any) => listing.seller === profileUpdate.username).flatMap((listing: any) => {
-      const blookId = blookIds.get(String(listing.blook).replace(/^Shiny /, ''));
-      return blookId ? [{ profile_id: user.id, blook_id: blookId, quantity: 1, price: Math.max(0, Math.floor(Number(listing.price) || 0)), status: 'active' }] : [];
-    })
-    : [];
-  if (listingRows.length) {
-    const { error: listingError } = await supabase.from('marketplace_listings').insert(listingRows);
-    if (listingError) return NextResponse.json({ error: listingError.message }, { status: 400 });
-  }
-
-  const mine = player.mined == null && player.pickaxe == null ? null : {
-    current_earnings_today: Math.max(0, Math.floor(Number(player.mined) || 0)),
-    pickaxe_level: Math.max(0, Math.min(5, Math.floor(Number(player.pickaxe) || 0))),
-    updated_at: new Date().toISOString(),
-  };
-  if (mine) {
-    const { error: mineError } = await supabase.from('mine_progress').upsert({ profile_id: user.id, ...mine }, { onConflict: 'profile_id' });
-    if (mineError) return NextResponse.json({ error: mineError.message }, { status: 400 });
-  }
-  return GET();
+  const { error } = await inventoryAdmin.from('profiles').update({ equipped_blook_id: equippedId }).eq('id', user.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return GET(request);
 }
 
 export async function POST(request: Request) {
@@ -178,16 +104,18 @@ export async function POST(request: Request) {
   const body = await request.json();
   const username = String(body.username || user.user_metadata?.username || user.email?.split('@')[0] || 'BreadletPlayer').trim().slice(0, 20);
 
-  const { error } = await supabase.from('profiles').upsert({
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ error: 'Player setup is not configured.' }, { status: 503 });
+  const { error } = await admin.from('profiles').upsert({
     id: user.id,
     username,
-    tokens: Math.max(0, Math.min(2500, Number(body.tokens) || 250)),
+    tokens: 250,
     luck: 0,
     stats: { wheelSpun: false },
-    materials: { ...emptyMaterials(), ...(body.materials || {}) },
+    materials: emptyMaterials(),
     account_status: 'active',
   }, { onConflict: 'id', ignoreDuplicates: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  return GET();
+  return GET(request);
 }
