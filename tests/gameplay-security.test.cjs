@@ -28,6 +28,7 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   const snapshot = { tokens: 1000, materials: { Metal: 12, Cloth: 8 }, inventory: { Gears: { quantity: 3, rarity: 'Rare' } }, wheelSpun: false };
   const inventions = catalog.liveCapsules.find((pack) => pack.name === 'Inventions Bag');
   assert.equal(inventions.pool.find((reward) => reward.name === 'Bitcoin').rarity, 'Mythic');
+  assert.equal(inventions.pool.find((reward) => reward.name === "Leonardo da Vinci's Tank").rarity, 'Epic');
   for (const pack of [...catalog.liveCapsules, ...catalog.retiredCapsules]) {
     assert.ok(Math.abs(pack.pool.reduce((sum, reward) => sum + catalog.chanceFor(pack, reward), 0) - 100) < 1e-8);
   }
@@ -110,6 +111,11 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     `);
     const migration = fs.readFileSync('supabase/migrations/0015_secure_gameplay.sql', 'utf8');
     await database.exec(migration);
+    const tankMigration = fs.readFileSync('supabase/migrations/0016_inventions_tank.sql', 'utf8');
+    await database.exec(tankMigration);
+    const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
+    assert.equal(tank.rarity, 'Epic');
+    assert.equal(tank.artwork_key, "DaVinci'sOrnothopter2.svg");
     const buyer = '00000000-0000-0000-0000-000000000001';
     const seller = '00000000-0000-0000-0000-000000000002';
     await database.query('insert into profiles(id,tokens) values($1,1000),($2,1000)', [buyer, seller]);
@@ -149,6 +155,7 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const legacy = (await database.query("insert into marketplace_listings(profile_id,blook_id,quantity,price,status) values($1,$2,1,100,'active') returning id", [seller, bitcoin])).rows[0].id;
     await assert.rejects(() => database.query("select secure_marketplace_action($1,'buy','',0,$2)", [buyer, legacy]), /seller no longer owns/i);
     await database.exec(migration);
+    await database.exec(tankMigration);
   } finally {
     await database.close();
   }

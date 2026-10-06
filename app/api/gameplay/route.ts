@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const ids = new Map((catalog || []).map((entry) => [entry.name, entry.id]));
     const deltas = Object.entries(plan.inventoryDelta).map(([name, quantity]) => {
       const id = ids.get(name.replace(/^Shiny /, ''));
-      if (!id) throw new Error(`${name} is missing from the server catalog. Apply migration 0015_secure_gameplay.sql.`);
+      if (!id) throw new Error(`${name} is missing from the server catalog. Apply the latest catalog migration.`);
       return { blook_id: id, quantity, shiny: name.startsWith('Shiny ') };
     });
     const { error } = await admin.rpc('apply_gameplay_action', {

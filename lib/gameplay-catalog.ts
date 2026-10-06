@@ -136,6 +136,7 @@ export const liveCapsules: Capsule[] = [
       ["Letter", "Uncommon"],
       ["Gears", "Rare"],
       ["Da Vinci's Ornithopter", "Epic"],
+      ["Leonardo da Vinci's Tank", "Epic"],
       ["Leonardo da Vinci", "Legendary"],
       ["Bitcoin", "Mythic"],
     ]),

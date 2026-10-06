@@ -758,3 +758,30 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
 @media (prefers-reduced-motion: reduce) { .bitcoin-popout { animation: none; opacity: 0; } }
 .spooky-smog::after { position: absolute; inset: -18px; z-index: -1; border-radius: 50%; background: radial-gradient(circle, #a855f7aa 0 22%, #7e22ce66 42%, transparent 72%); content: ""; filter: blur(10px); animation: spooky-smog-drift 2.8s ease-in-out infinite alternate; }
 @keyframes spooky-smog-drift { from { transform: translate(-8px, 4px) scale(.9); opacity: .55; } to { transform: translate(8px, -5px) scale(1.14); opacity: 1; } }
+
+.game-tour { position: fixed; inset: 0; z-index: 15000; display: flex; align-items: center; justify-content: center; padding: 16px; color: #FFFFFF; }
+.game-tour * { color: #FFFFFF; }
+.game-tour-backdrop { position: absolute; inset: 0; background: #13120FCC; }
+.game-tour-spotlight { position: fixed; border: 3px solid #ED7117; border-radius: 8px; box-shadow: 0 0 0 9999px #13120FCC, 0 0 20px #ED711780; pointer-events: none; }
+.game-tour-dialog { position: relative; z-index: 1; width: min(100%, 560px); max-height: calc(100svh - 32px); overflow-y: auto; border: 2px solid #CC5500; border-radius: 8px; background: #27251F; padding: 24px; box-shadow: 0 16px 64px #00000066; }
+.game-tour-dialog h2 { margin: 0; min-width: 0; font-family: "DynaPuff", sans-serif; font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
+.game-tour-progress { height: 4px; margin: -24px -24px 20px; background: #13120F; }
+.game-tour-progress > span { display: block; height: 100%; background: #ED7117; }
+.game-tour-icon { display: grid; width: 44px; height: 44px; flex-shrink: 0; place-items: center; border: 1px solid #ED7117; border-radius: 8px; background: #CC5500; }
+.game-tour-dots { display: flex; gap: 5px; }
+.game-tour-dots > span { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: #FFFFFF55; }
+.game-tour-dots > .current { width: 22px; border-radius: 4px; background: #ED7117; }
+.game-tour-dialog button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; border-radius: 6px; padding: 8px 12px; font-weight: 700; transform: none; filter: none; box-shadow: none; }
+.game-tour-dialog .game-tour-close { width: 36px; min-height: 36px; padding: 4px; }
+.game-tour-next { border: 1px solid #CC5500; background: #ED7117; }
+.game-tour-back { border: 1px solid #CC5500; background: #13120F; }
+.game-tour-skip { background: transparent; font-size: 12px; }
+.game-tour-dialog button:hover { background-color: #CC5500; }
+.game-tour-dialog button:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 3px; }
+@media (max-width: 767px) {
+  .game-tour { align-items: flex-end; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+  .game-tour-dialog { max-height: calc(100svh - 170px); padding: 20px; }
+  .game-tour-dialog h2 { font-size: 20px; }
+  .game-tour-progress { margin: -20px -20px 16px; }
+  body.game-tour-active .workspace-island { visibility: hidden; }
+}

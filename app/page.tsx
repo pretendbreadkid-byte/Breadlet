@@ -2,6 +2,7 @@
 
 import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, liveCapsules, materialNames, retiredCapsules, sellValueFor, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
+import { GameTour } from "./components/game-tour";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchTradeApi } from "../lib/supabase/client";
 import {
@@ -170,6 +171,7 @@ const artFor = (name: string) =>
     Letter: "/assets/letter.svg",
     Gears: "/assets/gears.svg",
     "Da Vinci's Ornithopter": "/assets/DaVinci'sOrnothopter (1).svg",
+    "Leonardo da Vinci's Tank": "/assets/DaVinci'sOrnothopter2.svg",
     "Leonardo da Vinci": "/assets/leonardo da vici.svg",
     Bitcoin: "/assets/bitcoin.svg",
     "Crimson Octopus": "/assets/crimsonoctopus.svg",
@@ -340,6 +342,7 @@ function MainPage() {
   const [isGuest, setIsGuest] = useState(false);
   const [guestProgressUnlocked, setGuestProgressUnlocked] = useState(false);
   const [guestWelcomeOpen, setGuestWelcomeOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const resetClickCountRef = useRef(0);
   const pendingGuestRef = useRef<Player | null>(null);
   const playerSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -688,7 +691,9 @@ function MainPage() {
         pendingGuestRef.current = null;
         setIsGuest(false);
         setPlayer(playerFromServer(await response.json()));
-        setNotice("Signed in.");
+        setViewedProfile(null);
+        setNotice("");
+        setTourOpen(true);
       }
       return;
     }
@@ -711,7 +716,9 @@ function MainPage() {
       wheelSpun: false,
     });
     setIsGuest(false);
-    setNotice("Welcome to Breadlet.");
+    setViewedProfile(null);
+    setNotice("");
+    setTourOpen(true);
   };
   const startGuest = () => {
     const persistentGuest = window.localStorage.getItem(guestPlayerKey);
@@ -1361,7 +1368,7 @@ function MainPage() {
       <aside className="breadlet-sidebar w-full md:w-60 md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-3 flex flex-col justify-between z-20 shadow-xl">
         <div>
           {/* Logo Header */}
-          <button type="button" className="sidebar-brand" aria-label="Open my profile" onClick={() => { setViewedProfile(null); setTab("profile"); }}>
+          <button type="button" className="sidebar-brand" data-tour-target="profile" aria-label="Open my profile" onClick={() => { setViewedProfile(null); setTab("profile"); }}>
             <span className="sidebar-wordmark"><img src="/assets/Breadlet%20name%20logo.png" alt="Breadlet" /></span>
           </button>
 
@@ -1370,6 +1377,7 @@ function MainPage() {
             {visibleNav.map((item) => (
               <button
                 key={item.id}
+                data-tour-target={item.id}
                 onClick={() => setTab(item.id)}
                 aria-current={tab === item.id ? "page" : undefined}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 font-extrabold text-sm transition ${
@@ -1473,6 +1481,7 @@ function MainPage() {
                     </button>
                   )}
                   <hr className="my-1 border-[#3d91cd]/40" />
+                  {!isGuest && <button onClick={() => { setViewedProfile(null); setUserMenuOpen(false); setTourOpen(true); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><HelpCircle size={18} />Take a tour</button>}
                   <button
                     onClick={() => {
                       leaveSession();
@@ -1578,6 +1587,7 @@ function MainPage() {
           )}
         </section>
       </div>
+      {tourOpen && <GameTour onSelect={setTab} onClose={() => { setTourOpen(false); setViewedProfile(null); setTab("profile"); }} />}
       {guestWelcomeOpen && (
         <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-emerald-300/40 bg-[#10251f] p-6 text-white shadow-2xl">
