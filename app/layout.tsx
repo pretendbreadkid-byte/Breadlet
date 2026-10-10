@@ -4,7 +4,11 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Breadlet',
   description: 'Breadlet collectible game architecture and landing foundation',
-  icons: { icon: '/assets/breadlet-logo.svg' },
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
