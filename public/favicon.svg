@@ -1,31 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Breadlet favicon">
   <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#2f1b18"/>
-      <stop offset="100%" stop-color="#120d0c"/>
-    </linearGradient>
-    <linearGradient id="bread" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#f7d77a"/>
-      <stop offset="100%" stop-color="#e7a84b"/>
-    </linearGradient>
-    <linearGradient id="crust" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#d48d2b"/>
-      <stop offset="100%" stop-color="#b7681e"/>
-    </linearGradient>
+    <pattern id="checker" x="0" y="0" width="64" height="64" patternUnits="userSpaceOnUse">
+      <rect width="64" height="64" fill="#E38A2C"/>
+      <rect x="0" y="0" width="32" height="32" fill="#F1A43C"/>
+      <rect x="32" y="32" width="32" height="32" fill="#F1A43C"/>
+    </pattern>
   </defs>
 
-  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="90" fill="#E38A2C"/>
+  <rect x="22" y="22" width="468" height="468" rx="72" fill="url(#checker)"/>
+  <rect x="22" y="22" width="468" height="468" rx="72" fill="none" stroke="#7A3E14" stroke-width="14"/>
 
-  <path d="M120 306c0-79 61-146 146-146s146 67 146 146v14c0 39-31 70-70 70H190c-39 0-70-31-70-70v-14Z" fill="url(#bread)"/>
-  <path d="M171 234c22-43 60-67 109-67 48 0 87 23 108 67-27-20-52-29-87-29-41 0-78 14-130 29Z" fill="url(#crust)" opacity="0.75"/>
-  <path d="M188 270c18-17 39-25 69-25 34 0 58 9 78 25-10 16-28 26-52 26h-46c-24 0-41-10-49-26Z" fill="#f9e7a6" opacity="0.78"/>
-
-  <path d="M186 148c12-28 34-49 68-63 12 24 6 53-15 78-6 7-15 12-29 15 3-12 8-22 19-30-11 0-26 7-43 22Z" fill="#d5a844" opacity="0.82"/>
-  <path d="M318 145c17 7 31 21 39 39 9 18 11 38 5 57-21-14-34-31-41-55-4-13-5-29-3-41Z" fill="#d7ba67" opacity="0.8"/>
-
-  <circle cx="208" cy="223" r="10" fill="#7f3d14" opacity="0.75"/>
-  <circle cx="277" cy="210" r="10" fill="#7f3d14" opacity="0.75"/>
-  <circle cx="323" cy="247" r="10" fill="#7f3d14" opacity="0.75"/>
-  <circle cx="205" cy="256" r="9" fill="#7f3d14" opacity="0.7"/>
-  <circle cx="292" cy="273" r="9" fill="#7f3d14" opacity="0.7"/>
+  <path d="M171 112h94c76 0 134 45 134 111 0 44-22 76-58 93 36 17 58 47 58 96 0 77-60 125-147 125h-81V112Zm58 52v96h31c41 0 66-21 66-48 0-31-25-48-67-48h-30Zm0 148v107h43c44 0 70-22 70-54 0-35-26-53-73-53h-40Z" fill="#8C4315" stroke="#6E2D0E" stroke-width="12" stroke-linejoin="round"/>
+  <circle cx="272" cy="194" r="20" fill="#F4B13A"/>
+  <circle cx="264" cy="310" r="20" fill="#F4B13A"/>
 </svg>
