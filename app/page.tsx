@@ -2142,7 +2142,7 @@ function CapsulesTab({
         <img src="/assets/teds-shop-logo.svg" alt="" />
       </div>
       <img className="teds-shopkeeper" src="/assets/ted-shopkeeper.svg" alt="" aria-hidden="true" />
-      <header className="market-stock-header">
+      <div className="market-stock-header">
         <span>Stock</span>
         <button
           type="button"
@@ -2155,7 +2155,7 @@ function CapsulesTab({
         <span className="market-stock-refresh">Refreshes in {refreshLabel}</span>
         <span className="market-stock-tokens">{playerTokens.toLocaleString()} tokens</span>
         <button className="market-stock-mass-open" onClick={openMass} type="button">Mass open</button>
-      </header>
+      </div>
       <div
         ref={stockListRef}
         id="market-stock-list"
@@ -2205,14 +2205,8 @@ function CapsulesTab({
       </div>
       <div
         ref={stockScrollbarRef}
-        className="market-stock-scrollbar"
-        role="scrollbar"
-        aria-label="Goodybag stock list"
-        aria-controls="market-stock-list"
-        aria-orientation="vertical"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(stockScrollPercent)}
+        className="market-stock-scroll-window"
+        aria-label="Drag to scroll through the Goodybag stock"
         tabIndex={0}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
@@ -2232,8 +2226,12 @@ function CapsulesTab({
           event.preventDefault();
         }}
       >
-        <img src="/assets/stock-scroll-wheel.svg" alt="" aria-hidden="true" />
-        <span className="market-stock-scroll-thumb" style={{ top: `${9 + stockScrollPercent * 0.82}%` }} />
+        <img
+          src="/assets/stock-scroll-wheel.svg"
+          alt=""
+          aria-hidden="true"
+          style={{ transform: `translateY(${-stockScrollPercent * 0.45}%)` }}
+        />
       </div>
       {showStockOdds && (
         <div className="market-stock-odds-backdrop" role="presentation" onClick={() => setShowStockOdds(false)}>
