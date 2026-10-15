@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   title: 'Breadlet',
   description: 'Breadlet collectible game architecture and landing foundation',
   icons: {
-    icon: '/thisisthfavicon.png',
-    shortcut: '/thisisthfavicon.png',
-    apple: '/thisisthfavicon.png',
+    icon: '/assets/Thisisthefavicon.png',
+    shortcut: '/assets/Thisisthefavicon.png',
+    apple: '/assets/Thisisthefavicon.png',
   },
 };
 

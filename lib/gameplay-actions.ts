@@ -1,5 +1,4 @@
 import { chanceFor, craftRecipeFor, dismantleBundleFor, liveCapsules, retiredCapsules, sellValueFor, wheelRewards } from './gameplay-catalog';
-import { isMarketPackInStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 
 export type GameplaySnapshot = {
@@ -40,7 +39,7 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
     const selected = quantities.map(([name, value]) => {
       const capsule = [...liveCapsules, ...retiredCapsules].find((entry) => entry.name === name);
       if (!capsule) throw new Error('Unknown Goodybag.');
-      if (!isMarketPackInStock(name, now)) throw new Error(`${name} is out of stock. Check back after the next hourly refresh.`);
+      if (capsule.retired && now.getUTCHours() !== 17) throw new Error('Legacy Goodybags are only open from 17:00 to 18:00 UTC.');
       return { capsule, quantity: integer(value, 500) };
     });
     const count = selected.reduce((total, entry) => total + entry.quantity, 0);
