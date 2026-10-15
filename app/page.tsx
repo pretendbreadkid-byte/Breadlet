@@ -2111,6 +2111,9 @@ function CapsulesTab({
 }) {
   const [now, setNow] = useState(() => new Date());
   const [showStockOdds, setShowStockOdds] = useState(false);
+  const [stockScrollPercent, setStockScrollPercent] = useState(0);
+  const stockListRef = useRef<HTMLDivElement>(null);
+  const stockScrollbarRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
@@ -2123,69 +2126,110 @@ function CapsulesTab({
   const refreshAt = nextMarketRefreshAt(now);
   const timeToRefresh = Math.max(0, refreshAt.getTime() - now.getTime());
   const refreshLabel = `${String(Math.floor(timeToRefresh / 3600000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 3600000) / 60000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 60000) / 1000)).padStart(2, "0")}`;
+  const moveStockScrollToPointer = (clientY: number) => {
+    const list = stockListRef.current;
+    const scrollbar = stockScrollbarRef.current;
+    if (!list || !scrollbar || list.scrollHeight <= list.clientHeight) return;
+    const bounds = scrollbar.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (clientY - bounds.top) / bounds.height));
+    list.scrollTop = percent * (list.scrollHeight - list.clientHeight);
+  };
 
   return (
     <div className="teds-shop-stage">
       <img className="teds-shop-art" src="/assets/teds-shop.svg" alt="" aria-hidden="true" />
-      <div className="teds-shop-actions">
-        <p>{playerTokens.toLocaleString()} tokens</p>
-        <p>Refreshes in <span>{refreshLabel}</span></p>
-        <button onClick={openMass} type="button">Mass open</button>
-      </div>
-      <div className="market-stock-wheel">
-        <img className="market-stock-scroll-art" src="/assets/stock-scroll-wheel.svg" alt="" aria-hidden="true" />
-        <div className="market-stock-content">
-          <header className="market-stock-header">
-            <span>Stock</span>
-            <button
-              type="button"
-              onClick={() => setShowStockOdds((visible) => !visible)}
-              aria-label="Show chances for each pack to be in stock"
-              aria-expanded={showStockOdds}
+      <header className="market-stock-header">
+        <span>Stock</span>
+        <button
+          type="button"
+          onClick={() => setShowStockOdds((visible) => !visible)}
+          aria-label="Show chances for each pack to be in stock"
+          aria-expanded={showStockOdds}
+        >
+          <Info size={18} />
+        </button>
+        <span className="market-stock-refresh">Refreshes in {refreshLabel}</span>
+        <span className="market-stock-tokens">{playerTokens.toLocaleString()} tokens</span>
+        <button className="market-stock-mass-open" onClick={openMass} type="button">Mass open</button>
+      </header>
+      <div
+        ref={stockListRef}
+        id="market-stock-list"
+        className="market-stock-list"
+        onScroll={(event) => {
+          const list = event.currentTarget;
+          const maxScroll = list.scrollHeight - list.clientHeight;
+          setStockScrollPercent(maxScroll > 0 ? (list.scrollTop / maxScroll) * 100 : 0);
+        }}
+      >
+        {capsules.map(({ stock, capsule }) => {
+          const inStock = isMarketPackInStock(stock.name, now);
+          return (
+            <article
+              key={capsule.name}
+              className={`market-stock-item ${inStock ? "is-available" : "is-sold-out"}`}
             >
-              <Info size={18} />
-            </button>
-          </header>
-          <div className="market-stock-list">
-            {capsules.map(({ stock, capsule }) => {
-              const inStock = isMarketPackInStock(stock.name, now);
-              return (
-                <div
-                  key={capsule.name}
-                  className={`market-stock-item ${inStock ? "is-available" : "is-sold-out"}`}
-                >
-                  <button
-                    type="button"
-                    disabled={!inStock}
-                    aria-label={`${capsule.name}: ${inStock ? "in stock" : "sold out"}${inStock ? `, ${capsule.price} tokens` : ""}`}
-                    onClick={() => { if (isMarketPackInStock(capsule.name)) openCapsule(capsule); }}
-                    className="market-stock-open"
-                  >
-                    <span className="market-stock-art">
-                      <img src={inStock ? capsule.art : stock.soldOutArt || capsule.art} alt="" />
-                      {!inStock && !stock.soldOutArt && <span>Sold out</span>}
-                    </span>
-                    <span className="market-stock-copy">
-                      <span className="market-stock-name">{capsule.name.replace(/ Bag$/, "")}</span>
-                      <span className={`market-stock-status ${inStock ? "is-available" : ""}`}>
-                        {inStock ? `${isGuest ? "FREE" : `${capsule.price} tokens`} · In stock` : "Sold out"}
-                      </span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    title={`View ${capsule.name} reward chances`}
-                    aria-label={`View ${capsule.name} reward chances`}
-                    onClick={() => showOdds(capsule)}
-                    className="market-stock-pack-odds"
-                  >
-                    <Percent size={13} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+              <button
+                type="button"
+                disabled={!inStock}
+                aria-label={`${capsule.name}: ${inStock ? "in stock" : "sold out"}${inStock ? `, ${capsule.price} tokens` : ""}`}
+                onClick={() => { if (isMarketPackInStock(capsule.name)) openCapsule(capsule); }}
+                className="market-stock-open"
+              >
+                <img
+                  className="market-stock-pack-art"
+                  src={inStock ? capsule.art : stock.soldOutArt || capsule.art}
+                  alt={`${capsule.name}${inStock ? "" : " - sold out"}`}
+                />
+                {!inStock && !stock.soldOutArt && <span className="market-stock-fallback">Sold out</span>}
+                <span className="market-stock-status">
+                  {inStock ? `${isGuest ? "FREE" : `${capsule.price} tokens`}` : "Sold out"}
+                </span>
+              </button>
+              <button
+                type="button"
+                title={`View ${capsule.name} reward chances`}
+                aria-label={`View ${capsule.name} reward chances`}
+                onClick={() => showOdds(capsule)}
+                className="market-stock-pack-odds"
+              >
+                <Percent size={13} />
+              </button>
+            </article>
+          );
+        })}
+      </div>
+      <div
+        ref={stockScrollbarRef}
+        className="market-stock-scrollbar"
+        role="scrollbar"
+        aria-label="Goodybag stock list"
+        aria-controls="market-stock-list"
+        aria-orientation="vertical"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(stockScrollPercent)}
+        tabIndex={0}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          moveStockScrollToPointer(event.clientY);
+        }}
+        onPointerMove={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) moveStockScrollToPointer(event.clientY);
+        }}
+        onKeyDown={(event) => {
+          const list = stockListRef.current;
+          if (!list) return;
+          if (event.key === "ArrowDown" || event.key === "PageDown") list.scrollTop += list.clientHeight * (event.key === "PageDown" ? 0.8 : 0.15);
+          else if (event.key === "ArrowUp" || event.key === "PageUp") list.scrollTop -= list.clientHeight * (event.key === "PageUp" ? 0.8 : 0.15);
+          else if (event.key === "Home") list.scrollTop = 0;
+          else if (event.key === "End") list.scrollTop = list.scrollHeight;
+          else return;
+          event.preventDefault();
+        }}
+      >
+        <img src="/assets/stock-scroll-wheel.svg" alt="" aria-hidden="true" />
+        <span className="market-stock-scroll-thumb" style={{ top: `${stockScrollPercent}%` }} />
       </div>
       {showStockOdds && (
         <div className="market-stock-odds-backdrop" role="presentation" onClick={() => setShowStockOdds(false)}>
