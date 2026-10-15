@@ -2137,11 +2137,7 @@ function CapsulesTab({
 
   return (
     <div className="teds-shop-stage">
-      <div className="teds-shop-wall" aria-hidden="true" />
-      <div className="teds-shop-sign" aria-hidden="true">
-        <img src="/assets/teds-shop-logo.svg" alt="" />
-      </div>
-      <img className="teds-shopkeeper" src="/assets/ted-shopkeeper.svg" alt="" aria-hidden="true" />
+      <img className="teds-shop-art" src="/assets/teds-shop.svg" alt="" aria-hidden="true" />
       <header className="market-stock-header">
         <span>Stock</span>
         <button
@@ -2233,7 +2229,7 @@ function CapsulesTab({
         }}
       >
         <img src="/assets/stock-scroll-wheel.svg" alt="" aria-hidden="true" />
-        <span className="market-stock-scroll-thumb" style={{ top: `${9 + stockScrollPercent * 0.82}%` }} />
+        <span className="market-stock-scroll-thumb" style={{ top: `${stockScrollPercent}%` }} />
       </div>
       {showStockOdds && (
         <div className="market-stock-odds-backdrop" role="presentation" onClick={() => setShowStockOdds(false)}>
