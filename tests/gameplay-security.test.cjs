@@ -21,7 +21,11 @@ function loadModule(file, dependencies = {}) {
 }
 
 const catalog = loadModule('lib/gameplay-catalog.ts');
-const { planGameplay } = loadModule('lib/gameplay-actions.ts', { './gameplay-catalog': catalog });
+const marketStock = loadModule('lib/market-stock.ts');
+const { planGameplay } = loadModule('lib/gameplay-actions.ts', {
+  './gameplay-catalog': catalog,
+  './market-stock': marketStock,
+});
 
 test('server-generated rewards reject forged results and invalid gameplay requests', () => {
   const now = new Date('2026-10-05T17:30:00Z');
@@ -40,7 +44,19 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   for (const quantity of [0, -1, 1.5, 501, Infinity]) {
     assert.throws(() => planGameplay({ action: 'open', quantities: { 'Inventions Bag': quantity } }, snapshot, () => 0, now));
   }
-  assert.throws(() => planGameplay({ action: 'open', quantities: { 'Pixel Bag': 1 } }, snapshot, () => 0, new Date('2026-10-05T16:00:00Z')));
+  const stockRefresh = new Date('2026-10-05T16:00:00Z');
+  const unavailablePack = marketStock.marketPackStock.find((pack) => !marketStock.isMarketPackInStock(pack.name, stockRefresh));
+  assert.ok(unavailablePack);
+  assert.throws(() => planGameplay({ action: 'open', quantities: { [unavailablePack.name]: 1 } }, snapshot, () => 0, stockRefresh), /out of stock/);
+  assert.equal(marketStock.marketPackStock.length, 11);
+  assert.equal(
+    marketStock.marketPackStock.map(({ chance }) => chance).join(','),
+    '1,0.61,0.61,0.25,0.25,0.2,0.05,0.05,0.005,0.005,0.005',
+  );
+  for (const pack of marketStock.marketPackStock) {
+    assert.equal(marketStock.isMarketPackInStock(pack.name, stockRefresh), marketStock.isMarketPackInStock(pack.name, new Date('2026-10-05T16:59:59Z')));
+    assert.ok(marketStock.nextMarketRefreshAt(stockRefresh) > stockRefresh);
+  }
   assert.throws(() => planGameplay({ action: 'crate' }, { ...snapshot, wheelSpun: true }, () => 0, now));
   assert.equal(planGameplay({ action: 'crate', reward: { amount: 999999 } }, snapshot, () => 0, now).tokenDelta, 250);
   assert.equal(planGameplay({ action: 'sell', quantities: { Gears: 2 } }, snapshot, () => 0, now).tokensEarned, 30);

@@ -2,6 +2,7 @@
 
 import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, liveCapsules, materialNames, retiredCapsules, sellValueFor, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
+import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchTradeApi } from "../lib/supabase/client";
@@ -27,6 +28,7 @@ import {
   CirclePlay,
   Package,
   Gift,
+  Info,
 } from "lucide-react";
 
 type Tab =
@@ -85,8 +87,6 @@ type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number } };
 
 const playerKey = "breadlet-player";
-const RETIRED_RETURN_HOUR = 17; // Retired capsules reopen at 5 PM local time for one hour.
-const isRetiredWindowOpen = () => new Date().getUTCHours() === RETIRED_RETURN_HOUR;
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
 const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
@@ -825,6 +825,10 @@ function MainPage() {
   };
   const openCapsule = async (capsule: Capsule) => {
     if (!player) return;
+    if (!isMarketPackInStock(capsule.name)) {
+      setNotice(`${capsule.name} is out of stock. Check back after the next hourly refresh.`);
+      return;
+    }
     if (!isGuest) {
       const result = await playAction({ action: "open", quantities: { [capsule.name]: 1 } });
       const reward = result?.results[0]?.reward;
@@ -887,9 +891,8 @@ function MainPage() {
       setMassResults(result.results);
       return;
     }
-    const openableCapsules = isGuest
-      ? [...liveCapsules, ...retiredCapsules]
-      : liveCapsules.filter((capsule) => !capsule.retired);
+    const openableCapsules = [...liveCapsules, ...retiredCapsules]
+      .filter((capsule) => isMarketPackInStock(capsule.name));
     const selected = openableCapsules.flatMap((capsule) =>
       Array.from({ length: quantities[capsule.name] || 0 }, () => capsule),
     );
@@ -1498,7 +1501,7 @@ function MainPage() {
         </div>
 
         {/* Dynamic Page Section */}
-        <section className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
+        <section className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""} ${tab === "capsules" ? "goodybags-workspace" : ""}`}>
           {incomingTradeNotice && <button onClick={() => { setIncomingTradeNotice(""); setTab("profile"); }} className="profile-trade-toast fixed right-5 top-20 z-40 w-[min(24rem,calc(100vw-2rem))]" role="status">{incomingTradeNotice}<span>Open profile</span></button>}
           {incomingTrade && <div className="profile-trade-toast fixed bottom-5 right-5 z-50 w-[min(24rem,calc(100vw-2rem))]" role="status"><div><span>{incomingTrade.username}</span> would like to trade with you.</div><div className="mt-3 flex gap-2"><button onClick={() => void respondToIncomingTrade("confirm")} className="rounded-lg bg-[#f97316] px-3 py-2 text-xs font-black text-white">Accept</button><button onClick={() => void respondToIncomingTrade("decline")} className="rounded-lg bg-[#7f1d1d] px-3 py-2 text-xs font-black text-white">Decline</button><button onClick={() => { setIncomingTrade(null); setTab("profile"); }} className="ml-auto rounded-lg border border-white/30 px-3 py-2 text-xs font-black">View</button></div></div>}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
@@ -1525,8 +1528,6 @@ function MainPage() {
           {tab === "event" && <SpookyEventTab player={player} savePlayer={save} />}
           {tab === "capsules" && (
             <CapsulesTab
-              showRetired={showRetired}
-              setShowRetired={setShowRetired}
               openCapsule={(capsule) => setCapsuleToConfirm(capsule)}
               showOdds={setOddsCapsule}
               openMass={() => setMassOpen(true)}
@@ -1594,7 +1595,7 @@ function MainPage() {
             <p className="text-xs font-black uppercase tracking-[0.24em] text-emerald-300">Guest test session</p>
             <h2 className="mt-2 text-2xl font-black">Everything is open to try</h2>
             <ul className="mt-4 space-y-2 text-sm leading-6 text-emerald-50/80">
-              <li>Crates and every bag, including retired bags, are free to open.</li>
+              <li>Crates and any bag that is in stock, including retired bags, are free to open.</li>
               <li>Crafting is free, and guests start with an empty collection.</li>
               <li>Chat, ranks, clans, and Bazaar are hidden during guest testing.</li>
               <li>Progress is temporary and disappears when you end this session unless you have unlocked browser saving.</li>
@@ -2095,113 +2096,122 @@ function rarityFor(name: string) {
   );
 }
 
-function retiredCountdown() {
-  const now = new Date();
-  const windowOpen = isRetiredWindowOpen();
-  const target = new Date(now);
-  if (windowOpen) {
-    target.setUTCHours(RETIRED_RETURN_HOUR + 1, 0, 0, 0);
-  } else {
-    target.setUTCHours(RETIRED_RETURN_HOUR, 0, 0, 0);
-    if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
-  }
-  const diff = Math.max(0, target.getTime() - now.getTime());
-  const hours = String(Math.floor(diff / 3600000)).padStart(2, "0");
-  const minutes = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
-  const seconds = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
-  return { windowOpen, label: `${hours}:${minutes}:${seconds}` };
-}
-
 function CapsulesTab({
-  showRetired,
-  setShowRetired,
   openCapsule,
   showOdds,
   openMass,
   playerTokens,
   isGuest,
 }: {
-  showRetired: boolean;
-  setShowRetired: (value: boolean) => void;
   openCapsule: (capsule: Capsule) => void;
   showOdds: (capsule: Capsule) => void;
   openMass: () => void;
   playerTokens: number;
   isGuest: boolean;
 }) {
-  const [countdown, setCountdown] = useState(retiredCountdown);
+  const [now, setNow] = useState(() => new Date());
+  const [showStockOdds, setShowStockOdds] = useState(false);
   useEffect(() => {
-    const timer = setInterval(() => setCountdown(retiredCountdown()), 1000);
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const capsules = isGuest
-    ? [...liveCapsules, ...retiredCapsules]
-    : showRetired
-      ? [...liveCapsules.filter((capsule) => !capsule.retired), ...liveCapsules.filter((capsule) => capsule.retired), ...retiredCapsules]
-      : liveCapsules.filter((capsule) => !capsule.retired);
-  const canOpenRetired = isGuest || countdown.windowOpen;
+  const allCapsules = [...liveCapsules, ...retiredCapsules];
+  const capsules = marketPackStock.flatMap((stock) => {
+    const capsule = allCapsules.find((entry) => entry.name === stock.name);
+    return capsule ? [{ stock, capsule }] : [];
+  });
+  const refreshAt = nextMarketRefreshAt(now);
+  const timeToRefresh = Math.max(0, refreshAt.getTime() - now.getTime());
+  const refreshLabel = `${String(Math.floor(timeToRefresh / 3600000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 3600000) / 60000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 60000) / 1000)).padStart(2, "0")}`;
 
   return (
-    <div>
-      <div className={`legacy-countdown mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold ${countdown.windowOpen ? "legacy-countdown-open" : "legacy-countdown-closed"}`}>
-        <span>{countdown.windowOpen ? "Legacy bags are open right now!" : "Legacy bags return in"}</span>
-        <span className="font-mono text-lg tracking-widest">{countdown.windowOpen ? `Closes in ${countdown.label}` : countdown.label}</span>
+    <div className="teds-shop-stage">
+      <img className="teds-shop-art" src="/assets/teds-shop.svg" alt="" aria-hidden="true" />
+      <div className="teds-shop-actions">
+        <p>{playerTokens.toLocaleString()} tokens</p>
+        <p>Refreshes in <span>{refreshLabel}</span></p>
+        <button onClick={openMass} type="button">Mass open</button>
       </div>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-4xl font-black">Goodybags</h1>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={openMass}
-            className="rounded-xl bg-[#e9bd67] px-4 py-3 text-sm font-black text-[#29170c]"
-          >
-            Mass open
-          </button>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-[#3a2415] px-4 py-3 text-sm font-bold">
-            <input
-              type="checkbox"
-              checked={showRetired}
-              onChange={(event) => setShowRetired(event.target.checked)}
-              className="h-4 w-4 accent-[#e9bd67]"
-            />
-            Show retired bags
-          </label>
+      <div className="market-stock-wheel">
+        <img className="market-stock-scroll-art" src="/assets/stock-scroll-wheel.svg" alt="" aria-hidden="true" />
+        <div className="market-stock-content">
+          <header className="market-stock-header">
+            <span>Stock</span>
+            <button
+              type="button"
+              onClick={() => setShowStockOdds((visible) => !visible)}
+              aria-label="Show chances for each pack to be in stock"
+              aria-expanded={showStockOdds}
+            >
+              <Info size={18} />
+            </button>
+          </header>
+          <div className="market-stock-list">
+            {capsules.map(({ stock, capsule }) => {
+              const inStock = isMarketPackInStock(stock.name, now);
+              return (
+                <div
+                  key={capsule.name}
+                  className={`market-stock-item ${inStock ? "is-available" : "is-sold-out"}`}
+                >
+                  <button
+                    type="button"
+                    disabled={!inStock}
+                    aria-label={`${capsule.name}: ${inStock ? "in stock" : "sold out"}${inStock ? `, ${capsule.price} tokens` : ""}`}
+                    onClick={() => { if (isMarketPackInStock(capsule.name)) openCapsule(capsule); }}
+                    className="market-stock-open"
+                  >
+                    <span className="market-stock-art">
+                      <img src={inStock ? capsule.art : stock.soldOutArt || capsule.art} alt="" />
+                      {!inStock && !stock.soldOutArt && <span>Sold out</span>}
+                    </span>
+                    <span className="market-stock-copy">
+                      <span className="market-stock-name">{capsule.name.replace(/ Bag$/, "")}</span>
+                      <span className={`market-stock-status ${inStock ? "is-available" : ""}`}>
+                        {inStock ? `${isGuest ? "FREE" : `${capsule.price} tokens`} · In stock` : "Sold out"}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    title={`View ${capsule.name} reward chances`}
+                    aria-label={`View ${capsule.name} reward chances`}
+                    onClick={() => showOdds(capsule)}
+                    className="market-stock-pack-odds"
+                  >
+                    <Percent size={13} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
-      {showRetired && (
-        <div className="mt-5 rounded-xl border border-[#d49a4a]/35 bg-[#6c4328]/35 px-4 py-3 text-sm text-[#ffe2a0]">
-          {isGuest
-            ? "Guest test mode: retired bags are openable for free."
-            : countdown.windowOpen
-              ? "Retired bags are open for the next hour!"
-              : "Retired bags return at 17:00 UTC for one hour."}
+      {showStockOdds && (
+        <div className="market-stock-odds-backdrop" role="presentation" onClick={() => setShowStockOdds(false)}>
+          <section
+            className="market-stock-odds"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="market-stock-odds-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <p>Hourly stock chances</p>
+                <h2 id="market-stock-odds-title">Chance to be in stock</h2>
+              </div>
+              <button type="button" onClick={() => setShowStockOdds(false)} aria-label="Close stock chances">×</button>
+            </header>
+            <ul>
+              {marketPackStock.map((stock) => (
+                <li key={stock.name}><span>{stock.name}</span><b>{stock.chance < 0.01 ? "0.5%" : `${stock.chance * 100}%`}</b></li>
+              ))}
+            </ul>
+            <p className="market-stock-odds-note">Stock changes every hour on the UTC hour.</p>
+          </section>
         </div>
       )}
-      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {capsules.map((capsule) => (
-          <div
-            key={capsule.name}
-            title={capsule.name}
-            onClick={() => (!capsule.retired || canOpenRetired) && openCapsule(capsule)}
-            className={`group relative p-2 transition hover:-translate-y-1 ${capsule.retired ? "opacity-60" : ""} ${!capsule.retired || canOpenRetired ? "cursor-pointer" : ""}`}
-          >
-            <div className="flex h-64 items-center justify-center">
-              <img
-                src={capsule.art}
-                alt={capsule.name}
-                className={`max-h-full max-w-full object-contain transition duration-300 ${capsule.name === "Space Bag" ? "scale-110 group-hover:scale-110" : "group-hover:scale-105"}`}
-              />
-            </div>
-            <button
-              title={`View ${capsule.name} chances`}
-              aria-label={`View ${capsule.name} chances`}
-              onClick={(event) => { event.stopPropagation(); showOdds(capsule); }}
-              className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-[#103f75]/90 text-sm font-black text-[#ffe2a0] shadow-lg"
-            >
-              i
-            </button>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -3014,9 +3024,13 @@ function MassOpenModal({
   open: (quantities: Record<string, number>) => void;
   isGuest: boolean;
 }) {
-  const availableCapsules = isGuest
-    ? [...liveCapsules, ...retiredCapsules]
-    : liveCapsules.filter((capsule) => !capsule.retired);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const availableCapsules = [...liveCapsules, ...retiredCapsules]
+    .filter((capsule) => isMarketPackInStock(capsule.name, now));
   const total = availableCapsules.reduce(
     (sum, capsule) => sum + (quantities[capsule.name] || 0) * capsule.price,
     0,
@@ -3243,6 +3257,7 @@ function SimplePanel({
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
+  const messageListRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
@@ -3250,6 +3265,11 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   const [onlinePanelOpen, setOnlinePanelOpen] = useState(false);
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
   const isVerified = player.badges?.includes("Verified");
+
+  useEffect(() => {
+    const messageList = messageListRef.current;
+    if (messageList) messageList.scrollTop = messageList.scrollHeight;
+  }, [messages]);
 
   const loadMessages = useCallback(async () => {
     try {
@@ -3406,7 +3426,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           </div>
         </div>
       )}
-      <div className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
+      <div ref={messageListRef} className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         {messages.map((item, index) => (
           <div id={`chat-message-${String(item.id ?? `local-${item.user}-${index}`)}`} key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
             <button onClick={() => void openPlayerProfile(item.user)} aria-label={`Open ${item.user}'s profile`} title={`View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden">
@@ -3535,7 +3555,7 @@ function InfoTab() {
       <div className="grid gap-4 sm:grid-cols-2">
         {[
           ["Daily Crate", "Open once per day to win tokens, five Gold, or five Gem. The 5,000-token reward has a 1% chance."],
-          ["Goodybags", "Buy bags with tokens. Open a bag to roll from its listed Bread pool, or use Mass Open for typed quantities."],
+          ["Goodybags", "Ted's Shop refreshes pack stock every hour. Check the stock chances with the info button, then open available bags or use Mass Open."],
           ["Collection", "Locked Breadlets stay black silhouettes. Owned Breadlets can be equipped or sold from their detail view."],
           ["Crafting", "Dismantle extra Breadlets into five-unit material bundles, then combine ingredients totaling 20 to craft approved Breadlets."],
           ["Bazaar", "List Breadlets, browse listings, and open a listing card to buy one."],
