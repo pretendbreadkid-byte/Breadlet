@@ -741,7 +741,7 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   min-height: 0;
   flex: 1;
   overflow: hidden;
-  background: transparent;
+  background: #fff;
 }
 .teds-shop-art {
   position: absolute;
@@ -751,115 +751,124 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   object-fit: fill;
   pointer-events: none;
 }
-.market-stock-header {
+.teds-shop-actions {
   position: absolute;
-  top: 25%;
-  left: 12%;
+  top: 29%;
+  right: 11%;
   z-index: 2;
-  display: flex;
-  width: 72%;
-  min-height: 8%;
-  align-items: center;
-  justify-content: flex-start;
-  gap: .55rem;
-  border: 2px solid #713909;
-  border-radius: .65rem .65rem 0 0;
+  display: grid;
+  gap: .45rem;
+  min-width: 180px;
+  border: 2px solid #9c5519;
+  border-radius: .65rem;
   background: #a75d1c;
-  padding: .35rem .65rem;
-  color: #fff2cd;
-  font-size: clamp(.8rem, 1.25vw, 1.1rem);
-  font-weight: 1000;
+  padding: .65rem .8rem;
+  color: #fff3d4;
+  font-size: .75rem;
+  font-weight: 800;
   text-shadow: 0 1px 2px #5d2f0f;
+}
+.teds-shop-actions p { margin: 0; }
+.teds-shop-actions button {
+  border: 1px solid #7e4110;
+  border-radius: .4rem;
+  background: #f4c45e;
+  padding: .4rem .55rem;
+  color: #4b260c;
+  font-weight: 900;
+  text-shadow: none;
+}
+.teds-shop-actions button:hover { background: #ffdc82; }
+.market-stock-wheel {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  z-index: 1;
+  width: clamp(205px, 22vw, 265px);
+  height: 68%;
+  max-height: 460px;
+  transform: translateX(-50%);
+}
+.market-stock-scroll-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+.market-stock-content {
+  position: absolute;
+  inset: 0 7%;
+  display: flex;
+  flex-direction: column;
+  padding-top: 1%;
+}
+.market-stock-header {
+  display: flex;
+  min-height: 18%;
+  flex: 0 0 18%;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  color: #fff2cd;
+  font-size: clamp(.95rem, 1.4vw, 1.2rem);
+  font-weight: 1000;
+  text-shadow: 0 2px 3px #4b260c;
 }
 .market-stock-header button {
   display: grid;
-  width: 1.45rem;
-  height: 1.45rem;
-  flex: 0 0 1.45rem;
+  width: 1.55rem;
+  height: 1.55rem;
   place-items: center;
   border: 1px solid #ffe4a2;
   border-radius: 50%;
   background: #713909;
   color: #fff2cd;
 }
-.market-stock-refresh {
-  margin-left: auto;
-  font-size: clamp(.55rem, .85vw, .72rem);
-  font-weight: 800;
-}
-.market-stock-tokens {
-  font-size: clamp(.55rem, .85vw, .72rem);
-  font-weight: 800;
-}
-.market-stock-header .market-stock-mass-open {
-  width: auto;
-  height: auto;
-  flex: 0 0 auto;
-  border: 1px solid #7e4110;
-  border-radius: .4rem;
-  background: #f4c45e;
-  padding: .3rem .5rem;
-  color: #4b260c;
-  font-size: .67rem;
-  font-weight: 900;
-  text-shadow: none;
-}
-.market-stock-header .market-stock-mass-open:hover { background: #ffdc82; }
 .market-stock-list {
-  position: absolute;
-  top: 33%;
-  bottom: 3%;
-  left: 12%;
-  z-index: 1;
-  display: grid;
-  width: 70%;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: minmax(145px, 34vh);
-  align-content: start;
-  gap: .65rem .5rem;
+  min-height: 0;
+  flex: 1;
   overflow-y: auto;
-  padding: .3rem .5rem 1rem;
-  scrollbar-width: none;
+  padding: .05rem .3rem 3rem;
+  scrollbar-color: #f2c35b #703b14;
+  scrollbar-width: thin;
 }
-.market-stock-list::-webkit-scrollbar { display: none; }
+.market-stock-list::-webkit-scrollbar { width: 8px; }
+.market-stock-list::-webkit-scrollbar-track { border-radius: 8px; background: #703b14; }
+.market-stock-list::-webkit-scrollbar-thumb { border: 1px solid #703b14; border-radius: 8px; background: #f2c35b; }
 .market-stock-item {
-  position: relative;
   display: flex;
   width: 100%;
-  min-width: 0;
-  min-height: 0;
+  min-height: 52px;
   align-items: center;
-  justify-content: center;
+  gap: .4rem;
   border: 0;
+  border-bottom: 1px solid #6f3a1490;
   background: transparent;
-  padding: .1rem;
+  padding: .2rem .1rem;
+  color: #fff3d4;
+  text-align: left;
+  text-shadow: 0 1px 2px #4b260c;
 }
 .market-stock-open {
-  position: relative;
-  display: grid;
+  display: flex;
   min-width: 0;
   flex: 1;
-  justify-items: center;
+  align-items: center;
+  gap: .4rem;
   border: 0;
   background: transparent;
   padding: 0;
-  color: #fff3d4;
-  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  text-shadow: inherit;
 }
 .market-stock-open:disabled { cursor: not-allowed; }
-.market-stock-open:not(:disabled):hover .market-stock-pack-art { transform: translateY(-3px) scale(1.04); }
-.market-stock-item.is-sold-out .market-stock-open { cursor: not-allowed; }
-.market-stock-pack-art {
-  display: block;
-  width: 100%;
-  height: clamp(115px, 31vh, 185px);
-  object-fit: contain;
-  transition: transform 150ms ease;
-}
+.market-stock-open:not(:disabled) { cursor: pointer; }
+.market-stock-item.is-available:hover { background: #ffdb8238; }
+.market-stock-item.is-sold-out { cursor: not-allowed; }
 .market-stock-pack-odds {
-  position: absolute;
-  top: .25rem;
-  right: .25rem;
   display: grid;
   width: 1.3rem;
   height: 1.3rem;
@@ -871,57 +880,33 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   padding: 0;
   color: #fff2cd;
   cursor: pointer;
-  opacity: .92;
 }
-.market-stock-status {
-  max-width: 100%;
-  overflow: hidden;
-  border-radius: .35rem;
-  background: #713909e8;
-  padding: .15rem .35rem;
-  color: #dcffbc;
-  font-size: clamp(.53rem, .7vw, .65rem);
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.market-stock-art {
+  position: relative;
+  display: grid;
+  width: 2.65rem;
+  height: 2.8rem;
+  flex: 0 0 2.65rem;
+  place-items: center;
 }
-.market-stock-item.is-sold-out .market-stock-status { background: #791313e8; color: #fff; }
-.market-stock-fallback {
+.market-stock-art img { width: 100%; height: 100%; object-fit: contain; }
+.market-stock-item.is-sold-out .market-stock-art img { filter: grayscale(.6); }
+.market-stock-art > span {
   position: absolute;
-  bottom: 1.5rem;
-  border-radius: .3rem;
+  inset: auto 0 0;
+  border-radius: 2px;
   background: #791313e8;
-  padding: .18rem .35rem;
   color: #fff;
-  font-size: .58rem;
+  font-size: .45rem;
   font-weight: 1000;
+  line-height: 1.2;
+  text-align: center;
   text-transform: uppercase;
 }
-.market-stock-scrollbar {
-  position: absolute;
-  top: 32%;
-  right: 12%;
-  bottom: 4%;
-  z-index: 2;
-  width: clamp(54px, 8vw, 82px);
-  touch-action: none;
-  cursor: ns-resize;
-  user-select: none;
-}
-.market-stock-scrollbar > img { display: block; width: 100%; height: 100%; pointer-events: none; }
-.market-stock-scroll-thumb {
-  position: absolute;
-  left: 25%;
-  display: block;
-  width: 50%;
-  height: 18%;
-  transform: translateY(-50%);
-  border: 2px solid #ffe4a2;
-  border-radius: .55rem;
-  background: #f4c45ecc;
-  box-shadow: 0 1px 5px #4b260c;
-  pointer-events: none;
-}
+.market-stock-copy { display: grid; min-width: 0; flex: 1; gap: .1rem; }
+.market-stock-name { overflow: hidden; font-size: clamp(.59rem, .8vw, .72rem); font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.market-stock-status { color: #ffc9a5; font-size: .58rem; font-weight: 800; }
+.market-stock-status.is-available { color: #d8ffb4; }
 .market-stock-odds-backdrop {
   position: absolute;
   inset: 0;
@@ -965,18 +950,14 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   .workspace-island .workspace-tokens { padding: 8px 10px; font-size: 12px; }
   .breadlet-blue-theme .game-workspace.chat-workspace { height: calc(100svh - 120px); flex: none; }
   .breadlet-blue-theme .game-workspace.goodybags-workspace { height: calc(100svh - 120px); flex: none; padding: 8.5rem .4rem .4rem !important; }
-  .market-stock-header { top: 25%; left: 10%; width: 74%; gap: .25rem; padding: .25rem .35rem; font-size: .76rem; }
-  .market-stock-header button { width: 1.25rem; height: 1.25rem; flex-basis: 1.25rem; }
-  .market-stock-refresh { font-size: .48rem; }
-  .market-stock-tokens { display: none; }
-  .market-stock-header .market-stock-mass-open { padding: .25rem .3rem; font-size: .55rem; }
-  .market-stock-list { top: 33%; bottom: 5%; left: 8%; width: 73%; grid-auto-rows: minmax(92px, 16vh); gap: .15rem; padding: .15rem .1rem .5rem; }
-  .market-stock-pack-art { height: clamp(72px, 14vh, 112px); }
-  .market-stock-pack-odds { top: .1rem; right: .1rem; width: 1.05rem; height: 1.05rem; }
-  .market-stock-status { padding: .12rem .2rem; font-size: .46rem; }
-  .market-stock-fallback { bottom: 1.2rem; font-size: .47rem; }
-  .market-stock-scrollbar { top: 32%; right: 10%; bottom: 7%; width: clamp(34px, 10vw, 54px); }
-  .market-stock-scroll-thumb { height: 18%; border-width: 1px; }
+  .teds-shop-actions { top: auto; right: 50%; bottom: 3%; min-width: 0; grid-template-columns: auto auto; align-items: center; gap: .25rem .5rem; padding: .35rem .55rem; transform: translateX(50%); font-size: .6rem; }
+  .teds-shop-actions button { grid-column: 1 / -1; padding: .24rem .4rem; }
+  .market-stock-wheel { top: 24%; width: min(205px, 52vw); height: 63%; }
+  .market-stock-header { min-height: 17%; flex-basis: 17%; }
+  .market-stock-item { min-height: 48px; }
+  .market-stock-art { width: 2.3rem; height: 2.45rem; flex-basis: 2.3rem; }
+  .market-stock-name { font-size: .58rem; }
+  .market-stock-status { font-size: .51rem; }
   .global-chat h1 { font-size: 28px; }
 }
 .spooky-smog { position: relative; overflow: visible; }
