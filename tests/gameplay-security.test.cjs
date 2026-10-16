@@ -55,8 +55,34 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(marketStock.marketPackStock.length, 11);
   assert.equal(
     marketStock.marketPackStock.map(({ chance }) => chance).join(','),
-    '0.45,1,0.61,0.25,0.25,0.2,0.05,0.05,0.005,0.005,0.005',
+    '0.45,1,0.8,0.5,0.25,0.2,0.05,0.05,0.005,0.005,0.005',
   );
+  let verifiedSparseHour = false;
+  for (let hour = 0; hour < 168; hour += 1) {
+    const date = new Date(Date.UTC(2026, 9, 5 + Math.floor(hour / 24), hour % 24));
+    const hourKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}-${String(date.getUTCHours()).padStart(2, '0')}`;
+    const hash = (packName) => {
+      let value = 2166136261;
+      for (const character of `${hourKey}:${packName}`) {
+        value ^= character.charCodeAt(0);
+        value = Math.imul(value, 16777619);
+      }
+      return (value >>> 0) / 0x100000000;
+    };
+    const rawInStock = marketStock.marketPackStock.filter(({ name, chance }) => hash(name) < chance);
+    const finalStock = marketStock.marketStockFor(date);
+    assert.ok(Object.values(finalStock).filter(Boolean).length >= 4);
+    if (rawInStock.length < 4) {
+      const forcedInStock = [...marketStock.marketPackStock]
+        .sort((left, right) => right.chance - left.chance)
+        .filter(({ name }) => !rawInStock.some((pack) => pack.name === name))
+        .slice(0, 4 - rawInStock.length)
+        .map(({ name }) => name);
+      assert.ok(forcedInStock.every((name) => finalStock[name]));
+      verifiedSparseHour = true;
+    }
+  }
+  assert.ok(verifiedSparseHour, 'tested at least one hour where fallback stock was needed');
   assert.throws(() => planGameplay({ action: 'crate' }, { ...snapshot, wheelSpun: true }, () => 0, now));
   assert.equal(planGameplay({ action: 'crate', reward: { amount: 999999 } }, snapshot, () => 0, now).tokenDelta, 250);
   assert.equal(planGameplay({ action: 'sell', quantities: { Gears: 2 } }, snapshot, () => 0, now).tokensEarned, 30);

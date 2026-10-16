@@ -594,133 +594,78 @@ section button[class*="h-20"]:hover:not(:disabled) {
 .legacy-countdown-open { background: #ED7117; }
 .legacy-countdown-closed { background: #E77D22; }
 .goodybags-page { min-width: 0; }
+.teds-shop-layout {
+  position: relative;
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding-bottom: 1rem;
+}
 .teds-shelf-scene {
   position: relative;
-  min-height: 620px;
-  height: min(78vh, 820px);
-  overflow: hidden;
-  border-radius: 20px;
-  background: #704016;
+  width: min(100%, 860px);
+  aspect-ratio: 229.7087 / 335.41889;
+  margin: 0 auto;
+  background: url("/assets/Shelf%20but%20longer.svg") center / 100% 100% no-repeat;
 }
 .teds-shelf-items {
   position: absolute;
-  inset: 0 205px 0 0;
-  background: url("/assets/Shelf%20but%20longer.svg") center / 100% 100% no-repeat;
+  inset: 0;
 }
 .teds-shelf-content {
   position: absolute;
   inset: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: 25.3% 23.5% 21% 20.6%;
-  padding: 0 2%;
+  grid-template-rows: 25% 23% 22% 21%;
 }
 .teds-shelf-item {
   position: relative;
   min-width: 0;
   min-height: 0;
-  margin: 0 8px;
+  margin: 0 5%;
 }
 .teds-pack-open {
   position: absolute;
   inset: 0;
+  width: 100%;
+  padding: 0;
   background: transparent;
   border: 0;
   color: #fff2d8;
 }
-.teds-pack-open:disabled { cursor: not-allowed; }
 .teds-pack-art {
   position: absolute;
   bottom: 0;
   left: 50%;
-  width: 84%;
-  height: calc(100% - 44px);
+  width: 90%;
+  height: 88%;
   object-fit: contain;
   object-position: bottom center;
   filter: drop-shadow(0 5px 3px #321b0c99);
   transform: translateX(-50%);
-  transition: filter 150ms ease, width 150ms ease;
+  transition: filter 150ms ease, transform 150ms ease;
 }
-.teds-pack-open:not(:disabled):hover .teds-pack-art { width: 90%; }
+.teds-pack-open:hover .teds-pack-art { transform: translate(-50%, -4px) scale(1.04); }
 .teds-shelf-item.is-sold-out .teds-pack-art { filter: grayscale(.85) brightness(.58) drop-shadow(0 5px 3px #321b0c99); }
-.teds-pack-status {
-  position: absolute;
-  top: 5px;
-  left: 50%;
-  z-index: 1;
-  max-width: calc(100% - 38px);
-  overflow: hidden;
-  border-radius: 999px;
-  background: #3b281b;
-  padding: 3px 9px;
-  color: #e7c8a2;
-  font-size: clamp(8px, .72vw, 11px);
-  font-weight: 900;
-  transform: translateX(-50%);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.teds-pack-status.in-stock { background: #315d31; color: #e7ffd6; }
-.teds-pack-reward-odds {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: grid;
-  width: 26px;
-  height: 26px;
-  place-items: center;
-  border-radius: 999px;
-  background: #103f75;
-  color: #ffe2a0;
-  font-weight: 900;
-}
-.teds-pack-stock-chance {
-  position: absolute;
-  top: 25px;
-  left: 50%;
-  z-index: 1;
-  color: #ffe2a0;
-  font-size: clamp(7px, .65vw, 10px);
-  font-weight: 800;
-  text-shadow: 0 1px 2px #281408;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
 .teds-shopkeeper {
   position: absolute;
-  right: 8px;
-  bottom: 0;
-  width: 205px;
-  height: 80%;
+  right: 0;
+  bottom: 6%;
+  width: 10%;
+  height: 42%;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
 }
-.teds-stock-chances {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid #e7c386;
-  border-radius: 999px;
-  background: #3b281b;
-  padding: 8px 12px;
-  color: #ffe2a0;
-  font-size: 12px;
-  font-weight: 900;
+@media (max-width: 980px) {
+  .teds-shopkeeper { display: none; }
 }
 @media (max-width: 760px) {
-  .teds-shelf-scene { min-height: 620px; height: 76vh; }
-  .teds-shelf-items { inset: 0 112px 0 0; }
-  .teds-shelf-content { padding-inline: 1%; }
-  .teds-shelf-item { margin-inline: 2px; }
-  .teds-pack-art { width: 92%; }
-  .teds-shopkeeper { right: -6px; width: 110px; height: 56%; }
-  .teds-stock-chances { top: auto; bottom: 8px; right: 8px; padding: 6px 8px; }
-  .teds-pack-reward-odds { top: 4px; right: 4px; }
-  .teds-pack-stock-chance { font-size: 7px; }
+  .teds-shop-layout { padding-bottom: 0; }
+  .teds-shelf-scene { width: 100%; }
+  .teds-shelf-content { padding-inline: 4%; }
+  .teds-shelf-item { margin-inline: 1%; }
+  .teds-pack-art { width: 96%; height: 86%; }
 }
 .guest-mode-banner { border: 1px solid #CC5500; background: #ED7117; color: #3B1F0E; }
 .guest-mode-banner button { color: #3B1F0E; }

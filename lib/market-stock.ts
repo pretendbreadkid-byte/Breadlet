@@ -6,8 +6,8 @@ export type MarketPackStock = {
 export const marketPackStock: MarketPackStock[] = [
   { name: "Inventions Bag", chance: 0.45 },
   { name: "Space Bag", chance: 1 },
-  { name: "Food Bag", chance: 0.61 },
-  { name: "Lost and Found Bag", chance: 0.25 },
+  { name: "Food Bag", chance: 0.8 },
+  { name: "Lost and Found Bag", chance: 0.5 },
   { name: "Artifact Bag", chance: 0.25 },
   { name: "Combat Bag", chance: 0.2 },
   { name: "BlookTuber Bag", chance: 0.05 },
@@ -29,13 +29,27 @@ const hourlyRollFor = (hour: string, packName: string) => {
 const utcHourKey = (date: Date) =>
   `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}-${String(date.getUTCHours()).padStart(2, "0")}`;
 
-export const marketStockFor = (date = new Date()) =>
-  Object.fromEntries(
+export const marketStockFor = (date = new Date()) => {
+  const hour = utcHourKey(date);
+  const stock = Object.fromEntries(
     marketPackStock.map(({ name, chance }) => [
       name,
-      hourlyRollFor(utcHourKey(date), name) < chance,
+      hourlyRollFor(hour, name) < chance,
     ]),
   ) as Record<string, boolean>;
+  const availableCount = Object.values(stock).filter(Boolean).length;
+
+  if (availableCount < 4) {
+    const fallbackPacks = [...marketPackStock]
+      .sort((left, right) => right.chance - left.chance)
+      .filter(({ name }) => !stock[name]);
+    for (const { name } of fallbackPacks.slice(0, 4 - availableCount)) {
+      stock[name] = true;
+    }
+  }
+
+  return stock;
+};
 
 export const isMarketPackInStock = (name: string, date = new Date()) =>
   marketStockFor(date)[name] === true;

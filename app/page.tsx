@@ -1406,7 +1406,7 @@ function MainPage() {
       </aside>
 
       {/* Main Workspace Column */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen md:h-screen md:min-h-0 md:overflow-y-auto">
         {/* Top Header Bar */}
         <div className="workspace-island pointer-events-none fixed right-3 top-3 z-30 flex w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] px-2 py-2 shadow-xl sm:right-5 sm:top-5 sm:gap-3 sm:px-3">
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
@@ -2111,6 +2111,7 @@ function CapsulesTab({
   isGuest: boolean;
 }) {
   const [now, setNow] = useState(() => new Date());
+  const [selectedCapsule, setSelectedCapsule] = useState<Capsule | null>(null);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
@@ -2138,48 +2139,100 @@ function CapsulesTab({
           </button>
         </div>
       </div>
-      <section className="teds-shelf-scene" aria-label="Ted's Shop Goodybag shelves">
-        <div className="teds-shelf-items">
-          <div className="teds-shelf-content">
-            {capsules.map((capsule) => {
-              const inStock = isMarketPackInStock(capsule.name, now);
-              const chance = stockOdds.get(capsule.name) ?? 0;
-              return (
-                <article key={capsule.name} className={`teds-shelf-item ${inStock ? "" : "is-sold-out"}`}>
-                  <button
-                    type="button"
-                    disabled={!inStock}
-                    onClick={() => openCapsule(capsule)}
-                    className="teds-pack-open"
-                    aria-label={`${capsule.name}: ${inStock ? "in stock" : "sold out"}`}
-                  >
-                    <img
-                      src={capsule.art}
-                      alt={capsule.name}
-                      className="teds-pack-art"
-                    />
-                    <span className={`teds-pack-status ${inStock ? "in-stock" : ""}`}>
-                      {inStock ? `${isGuest ? "FREE" : `${capsule.price} tokens`} · In stock` : "Sold out"}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    title={`View ${capsule.name} reward chances`}
-                    aria-label={`View ${capsule.name} reward chances`}
-                    onClick={() => showOdds(capsule)}
-                    className="teds-pack-reward-odds"
-                  >
-                    i
-                  </button>
-                  <span className="teds-pack-stock-chance">{chance < 0.01 ? "0.5%" : `${chance * 100}%`} stock chance</span>
-                </article>
-              );
-            })}
+      <div className="teds-shop-layout">
+        <section className="teds-shelf-scene" aria-label="Ted's Shop Goodybag shelves">
+          <div className="teds-shelf-items">
+            <div className="teds-shelf-content">
+              {capsules.map((capsule) => {
+                const inStock = isMarketPackInStock(capsule.name, now);
+                return (
+                  <article key={capsule.name} className={`teds-shelf-item ${inStock ? "" : "is-sold-out"}`}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCapsule(capsule)}
+                      className="teds-pack-open"
+                      aria-label={`View ${capsule.name}`}
+                    >
+                      <img src={capsule.art} alt={capsule.name} className="teds-pack-art" />
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </section>
         <img className="teds-shopkeeper" src="/assets/ted-shopkeeper.svg" alt="" aria-hidden="true" />
-        <button type="button" className="teds-stock-chances" onClick={showStockOdds}>
-          <Info size={16} /> Stock chances
+      </div>
+      {selectedCapsule && (
+        <PackDetailsModal
+          capsule={selectedCapsule}
+          inStock={isMarketPackInStock(selectedCapsule.name, now)}
+          stockChance={stockOdds.get(selectedCapsule.name) ?? 0}
+          isGuest={isGuest}
+          close={() => setSelectedCapsule(null)}
+          showStockOdds={showStockOdds}
+          showRewardOdds={() => showOdds(selectedCapsule)}
+          open={() => {
+            const capsule = selectedCapsule;
+            setSelectedCapsule(null);
+            openCapsule(capsule);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function PackDetailsModal({
+  capsule,
+  inStock,
+  stockChance,
+  isGuest,
+  close,
+  showStockOdds,
+  showRewardOdds,
+  open,
+}: {
+  capsule: Capsule;
+  inStock: boolean;
+  stockChance: number;
+  isGuest: boolean;
+  close: () => void;
+  showStockOdds: () => void;
+  showRewardOdds: () => void;
+  open: () => void;
+}) {
+  return (
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+      <section className="w-full max-w-sm rounded-3xl border border-[#d49a4a] bg-[#3a2415] p-6 text-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="pack-details-heading">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-[#e9bd67]">Ted&apos;s Shop</p>
+            <h2 id="pack-details-heading" className="mt-1 text-2xl font-black">{capsule.name}</h2>
+          </div>
+          <button type="button" onClick={close} aria-label="Close Goodybag details" className="rounded-lg bg-[#6c4328] px-3 py-1 font-black">×</button>
+        </div>
+        <img src={capsule.art} alt="" className={`mx-auto my-5 h-40 w-40 object-contain ${inStock ? "" : "grayscale brightness-75"}`} />
+        <div className="space-y-3 rounded-xl bg-[#24170f] p-4 text-sm">
+          <p className="flex items-center justify-between gap-3">
+            <span>Stock</span><b className={inStock ? "text-green-300" : "text-red-300"}>{inStock ? "In stock" : "Sold out"}</b>
+          </p>
+          <p className="flex items-center justify-between gap-3">
+            <span>Price</span><b>{isGuest ? "Free" : `${capsule.price} tokens`}</b>
+          </p>
+          <p className="flex items-center justify-between gap-3">
+            <span>Chance to be in stock</span>
+            <span className="flex items-center gap-2">
+              <b>{Number((stockChance * 100).toFixed(2))}%</b>
+              <button type="button" onClick={showStockOdds} title="Show all stock chances" aria-label="Show all stock chances" className="grid h-6 w-6 place-items-center rounded-full bg-[#103f75] text-xs font-black text-[#ffe2a0]">
+                <Info size={14} />
+              </button>
+            </span>
+          </p>
+        </div>
+        <button type="button" onClick={showRewardOdds} className="mt-4 w-full rounded-xl border border-[#d49a4a]/60 px-4 py-2.5 text-sm font-bold text-[#ffe2a0]">View reward chances</button>
+        <button type="button" disabled={!inStock} onClick={open} className="mt-3 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] disabled:cursor-not-allowed disabled:opacity-50">
+          {inStock ? (isGuest ? "Open for free" : `Open for ${capsule.price} tokens`) : "Currently sold out"}
         </button>
       </section>
     </div>
