@@ -2,6 +2,7 @@
 
 import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, liveCapsules, materialNames, retiredCapsules, sellValueFor, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
+import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchTradeApi } from "../lib/supabase/client";
@@ -27,6 +28,7 @@ import {
   CirclePlay,
   Package,
   Gift,
+  Info,
 } from "lucide-react";
 
 type Tab =
@@ -85,8 +87,6 @@ type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number } };
 
 const playerKey = "breadlet-player";
-const RETIRED_RETURN_HOUR = 17; // Retired capsules reopen at 5 PM local time for one hour.
-const isRetiredWindowOpen = () => new Date().getUTCHours() === RETIRED_RETURN_HOUR;
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
 const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
@@ -380,6 +380,7 @@ function MainPage() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [massOpen, setMassOpen] = useState(false);
   const [massQuantities, setMassQuantities] = useState<Record<string, number>>({});
+  const [stockOddsOpen, setStockOddsOpen] = useState(false);
   const [massResults, setMassResults] = useState<{ capsule: string; reward: Reward }[]>([]);
   const [pendingDismantle, setPendingDismantle] = useState<string | null>(null);
   const [craftReveal, setCraftReveal] = useState<{ name: string; ingredients: MaterialBundle; phase: "processing" | "charging" | "output" } | null>(null);
@@ -825,6 +826,10 @@ function MainPage() {
   };
   const openCapsule = async (capsule: Capsule) => {
     if (!player) return;
+    if (!isMarketPackInStock(capsule.name)) {
+      setNotice(`${capsule.name} is out of stock. Check back after the next hourly refresh.`);
+      return;
+    }
     if (!isGuest) {
       const result = await playAction({ action: "open", quantities: { [capsule.name]: 1 } });
       const reward = result?.results[0]?.reward;
@@ -887,9 +892,8 @@ function MainPage() {
       setMassResults(result.results);
       return;
     }
-    const openableCapsules = isGuest
-      ? [...liveCapsules, ...retiredCapsules]
-      : liveCapsules.filter((capsule) => !capsule.retired);
+    const openableCapsules = [...liveCapsules, ...retiredCapsules]
+      .filter((capsule) => isMarketPackInStock(capsule.name));
     const selected = openableCapsules.flatMap((capsule) =>
       Array.from({ length: quantities[capsule.name] || 0 }, () => capsule),
     );
@@ -1530,7 +1534,7 @@ function MainPage() {
               openCapsule={(capsule) => setCapsuleToConfirm(capsule)}
               showOdds={setOddsCapsule}
               openMass={() => setMassOpen(true)}
-              playerTokens={player.tokens}
+              showStockOdds={() => setStockOddsOpen(true)}
               isGuest={isGuest}
             />
           )}
@@ -1618,6 +1622,7 @@ function MainPage() {
       {oddsCapsule && (
         <OddsModal capsule={oddsCapsule} close={() => setOddsCapsule(null)} />
       )}
+      {stockOddsOpen && <StockOddsModal close={() => setStockOddsOpen(false)} />}
       {massOpen && (
         <MassOpenModal
           quantities={massQuantities}
@@ -1627,6 +1632,7 @@ function MainPage() {
           close={() => setMassOpen(false)}
           open={openMassCapsules}
           isGuest={isGuest}
+          showRetired={showRetired}
         />
       )}
       {massResults.length > 0 && (
@@ -2095,30 +2101,13 @@ function rarityFor(name: string) {
   );
 }
 
-function retiredCountdown() {
-  const now = new Date();
-  const windowOpen = isRetiredWindowOpen();
-  const target = new Date(now);
-  if (windowOpen) {
-    target.setUTCHours(RETIRED_RETURN_HOUR + 1, 0, 0, 0);
-  } else {
-    target.setUTCHours(RETIRED_RETURN_HOUR, 0, 0, 0);
-    if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
-  }
-  const diff = Math.max(0, target.getTime() - now.getTime());
-  const hours = String(Math.floor(diff / 3600000)).padStart(2, "0");
-  const minutes = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
-  const seconds = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
-  return { windowOpen, label: `${hours}:${minutes}:${seconds}` };
-}
-
 function CapsulesTab({
   showRetired,
   setShowRetired,
   openCapsule,
   showOdds,
   openMass,
-  playerTokens,
+  showStockOdds,
   isGuest,
 }: {
   showRetired: boolean;
@@ -2126,29 +2115,28 @@ function CapsulesTab({
   openCapsule: (capsule: Capsule) => void;
   showOdds: (capsule: Capsule) => void;
   openMass: () => void;
-  playerTokens: number;
+  showStockOdds: () => void;
   isGuest: boolean;
 }) {
-  const [countdown, setCountdown] = useState(retiredCountdown);
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const timer = setInterval(() => setCountdown(retiredCountdown()), 1000);
-    return () => clearInterval(timer);
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
   }, []);
-  const capsules = isGuest
-    ? [...liveCapsules, ...retiredCapsules]
-    : showRetired
-      ? [...liveCapsules.filter((capsule) => !capsule.retired), ...liveCapsules.filter((capsule) => capsule.retired), ...retiredCapsules]
-      : liveCapsules.filter((capsule) => !capsule.retired);
-  const canOpenRetired = isGuest || countdown.windowOpen;
+  const allCapsules = [...liveCapsules, ...retiredCapsules];
+  const capsules = allCapsules.filter((capsule) => isGuest || showRetired || !capsule.retired);
+  const timeToRefresh = Math.max(0, nextMarketRefreshAt(now).getTime() - now.getTime());
+  const refreshLabel = `${String(Math.floor(timeToRefresh / 3600000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 3600000) / 60000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 60000) / 1000)).padStart(2, "0")}`;
+  const stockOdds = new Map(marketPackStock.map(({ name, chance }) => [name, chance]));
 
   return (
-    <div>
-      <div className={`legacy-countdown mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold ${countdown.windowOpen ? "legacy-countdown-open" : "legacy-countdown-closed"}`}>
-        <span>{countdown.windowOpen ? "Legacy bags are open right now!" : "Legacy bags return in"}</span>
-        <span className="font-mono text-lg tracking-widest">{countdown.windowOpen ? `Closes in ${countdown.label}` : countdown.label}</span>
+    <div className="goodybags-page">
+      <div className="legacy-countdown mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold">
+        <span>Shop stock refreshes in</span>
+        <span className="font-mono text-lg tracking-widest">{refreshLabel}</span>
       </div>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-4xl font-black">Goodybags</h1>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <h1 className="text-4xl font-black">Ted&apos;s Shop</h1>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={openMass}
@@ -2167,41 +2155,74 @@ function CapsulesTab({
           </label>
         </div>
       </div>
-      {showRetired && (
-        <div className="mt-5 rounded-xl border border-[#d49a4a]/35 bg-[#6c4328]/35 px-4 py-3 text-sm text-[#ffe2a0]">
-          {isGuest
-            ? "Guest test mode: retired bags are openable for free."
-            : countdown.windowOpen
-              ? "Retired bags are open for the next hour!"
-              : "Retired bags return at 17:00 UTC for one hour."}
-        </div>
-      )}
-      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {capsules.map((capsule) => (
-          <div
-            key={capsule.name}
-            title={capsule.name}
-            onClick={() => (!capsule.retired || canOpenRetired) && openCapsule(capsule)}
-            className={`group relative p-2 transition hover:-translate-y-1 ${capsule.retired ? "opacity-60" : ""} ${!capsule.retired || canOpenRetired ? "cursor-pointer" : ""}`}
-          >
-            <div className="flex h-64 items-center justify-center">
-              <img
-                src={capsule.art}
-                alt={capsule.name}
-                className={`max-h-full max-w-full object-contain transition duration-300 ${capsule.name === "Space Bag" ? "scale-110 group-hover:scale-110" : "group-hover:scale-105"}`}
-              />
-            </div>
-            <button
-              title={`View ${capsule.name} chances`}
-              aria-label={`View ${capsule.name} chances`}
-              onClick={(event) => { event.stopPropagation(); showOdds(capsule); }}
-              className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-[#103f75]/90 text-sm font-black text-[#ffe2a0] shadow-lg"
-            >
-              i
-            </button>
+      <section className="teds-shelf-scene" aria-label="Ted's Shop Goodybag shelves">
+        <div className="teds-shelf-items">
+          <div className="teds-shelf-content">
+            {capsules.map((capsule) => {
+              const inStock = isMarketPackInStock(capsule.name, now);
+              const chance = stockOdds.get(capsule.name) ?? 0;
+              return (
+                <article key={capsule.name} className={`teds-shelf-item ${inStock ? "" : "is-sold-out"}`}>
+                  <button
+                    type="button"
+                    disabled={!inStock}
+                    onClick={() => openCapsule(capsule)}
+                    className="teds-pack-open"
+                    aria-label={`${capsule.name}: ${inStock ? "in stock" : "sold out"}`}
+                  >
+                    <img
+                      src={capsule.art}
+                      alt={capsule.name}
+                      className="teds-pack-art"
+                    />
+                    <span className={`teds-pack-status ${inStock ? "in-stock" : ""}`}>
+                      {inStock ? `${isGuest ? "FREE" : `${capsule.price} tokens`} · In stock` : "Sold out"}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    title={`View ${capsule.name} reward chances`}
+                    aria-label={`View ${capsule.name} reward chances`}
+                    onClick={() => showOdds(capsule)}
+                    className="teds-pack-reward-odds"
+                  >
+                    i
+                  </button>
+                  <span className="teds-pack-stock-chance">{chance < 0.01 ? "0.5%" : `${chance * 100}%`} stock chance</span>
+                </article>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        </div>
+        <img className="teds-shopkeeper" src="/assets/ted-shopkeeper.svg" alt="" aria-hidden="true" />
+        <button type="button" className="teds-stock-chances" onClick={showStockOdds}>
+          <Info size={16} /> Stock chances
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function StockOddsModal({ close }: { close: () => void }) {
+  return (
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <section className="w-full max-w-md rounded-3xl border border-[#d49a4a] bg-[#3a2415] p-6 text-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="stock-odds-heading">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-[#e9bd67]">Hourly stock</p>
+            <h2 id="stock-odds-heading" className="mt-1 text-2xl font-black">Chance to be in stock</h2>
+          </div>
+          <button type="button" onClick={close} aria-label="Close stock chances" className="rounded-lg bg-[#6c4328] px-3 py-1 font-black">×</button>
+        </div>
+        <div className="mt-5 grid gap-2">
+          {marketPackStock.map(({ name, chance }) => (
+            <div key={name} className="flex items-center justify-between rounded-lg bg-[#24170f] px-3 py-2 text-sm">
+              <span>{name}</span><b className="text-[#ffe2a0]">{chance < 0.01 ? "0.5%" : `${chance * 100}%`}</b>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-[#d7b88c]">Stock rolls again every hour on the UTC hour.</p>
+      </section>
     </div>
   );
 }
@@ -3007,16 +3028,17 @@ function MassOpenModal({
   close,
   open,
   isGuest,
+  showRetired,
 }: {
   quantities: Record<string, number>;
   setQuantity: (name: string, quantity: number) => void;
   close: () => void;
   open: (quantities: Record<string, number>) => void;
   isGuest: boolean;
+  showRetired: boolean;
 }) {
-  const availableCapsules = isGuest
-    ? [...liveCapsules, ...retiredCapsules]
-    : liveCapsules.filter((capsule) => !capsule.retired);
+  const availableCapsules = [...liveCapsules, ...retiredCapsules]
+    .filter((capsule) => (isGuest || showRetired || !capsule.retired) && isMarketPackInStock(capsule.name));
   const total = availableCapsules.reduce(
     (sum, capsule) => sum + (quantities[capsule.name] || 0) * capsule.price,
     0,
@@ -3036,6 +3058,7 @@ function MassOpenModal({
           <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
         </div>
         <div className="mt-4 space-y-3 overflow-y-auto pr-1 flex-1">
+          {!availableCapsules.length && <p className="rounded-xl bg-[#0c3b70] p-4 text-center text-sm text-[#bde8ff]">No bags are currently in stock.</p>}
           {availableCapsules.map((capsule) => (
             <div key={capsule.name} className="flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/20">
               <img src={capsule.art} alt={capsule.name} className="h-12 w-12 object-contain" />
