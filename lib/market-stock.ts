@@ -4,8 +4,8 @@ export type MarketPackStock = {
 };
 
 export const marketPackStock: MarketPackStock[] = [
-  { name: "Inventions Bag", chance: 1 },
-  { name: "Space Bag", chance: 0.61 },
+  { name: "Inventions Bag", chance: 0.45 },
+  { name: "Space Bag", chance: 1 },
   { name: "Food Bag", chance: 0.61 },
   { name: "Lost and Found Bag", chance: 0.25 },
   { name: "Artifact Bag", chance: 0.25 },

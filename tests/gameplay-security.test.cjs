@@ -28,11 +28,15 @@ const { planGameplay } = loadModule('lib/gameplay-actions.ts', {
 });
 
 test('server-generated rewards reject forged results and invalid gameplay requests', () => {
-  const now = new Date('2026-10-05T17:30:00Z');
+  const now = new Date('2026-10-05T01:30:00Z');
   const snapshot = { tokens: 1000, materials: { Metal: 12, Cloth: 8 }, inventory: { Gears: { quantity: 3, rarity: 'Rare' } }, wheelSpun: false };
   const inventions = catalog.liveCapsules.find((pack) => pack.name === 'Inventions Bag');
   assert.equal(inventions.pool.find((reward) => reward.name === 'Bitcoin').rarity, 'Mythic');
   assert.equal(inventions.pool.find((reward) => reward.name === "Leonardo da Vinci's Tank").rarity, 'Epic');
+  const space = catalog.liveCapsules.find((pack) => pack.name === 'Space Bag');
+  assert.equal(space.pool.find((reward) => reward.name === 'Sun').rarity, 'Rare');
+  assert.equal(space.pool.find((reward) => reward.name === 'Sun').art, '/assets/sun.svg');
+  assert.equal(space.pool.find((reward) => reward.name === 'Eclipse').art, '/assets/solar%20ecplise%20but%20good.svg');
   for (const pack of [...catalog.liveCapsules, ...catalog.retiredCapsules]) {
     assert.ok(Math.abs(pack.pool.reduce((sum, reward) => sum + catalog.chanceFor(pack, reward), 0) - 100) < 1e-8);
   }
@@ -51,7 +55,7 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(marketStock.marketPackStock.length, 11);
   assert.equal(
     marketStock.marketPackStock.map(({ chance }) => chance).join(','),
-    '1,0.61,0.61,0.25,0.25,0.2,0.05,0.05,0.005,0.005,0.005',
+    '0.45,1,0.61,0.25,0.25,0.2,0.05,0.05,0.005,0.005,0.005',
   );
   assert.throws(() => planGameplay({ action: 'crate' }, { ...snapshot, wheelSpun: true }, () => 0, now));
   assert.equal(planGameplay({ action: 'crate', reward: { amount: 999999 } }, snapshot, () => 0, now).tokenDelta, 250);
@@ -63,7 +67,7 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   }
   assert.throws(() => planGameplay({ action: 'craft', name: 'Rainbow Astro' }, snapshot, () => 0, now));
   assert.equal(planGameplay({ action: 'craft', name: 'Yeti' }, snapshot, () => 0, now).inventoryDelta.Yeti, 1);
-  assert.equal(planGameplay({ action: 'open', quantities: { 'Inventions Bag': 2 } }, snapshot, () => 0, new Date('2026-10-25T17:30:00Z')).candyDelta, 0);
+  assert.equal(planGameplay({ action: 'open', quantities: { 'Inventions Bag': 2 } }, snapshot, () => 0, new Date('2026-10-25T01:30:00Z')).candyDelta, 0);
 });
 
 test('known access codes cannot create admin or reviewer privileges, and saves reject economy fields', async () => {

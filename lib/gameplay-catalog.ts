@@ -151,10 +151,14 @@ export const liveCapsules: Capsule[] = [
       ["Star", "Rare"],
       ["Space Trooper", "Rare"],
       ["Consolation", "Rare"],
+      ["Sun", "Rare"],
       ["Eclipse", "Epic"],
       ["Alien", "Mythic"],
       ["Star Ship", "Transcendent"],
-    ]),
+    ], {
+      Sun: "/assets/sun.svg",
+      Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
+    }),
   },
   {
     name: "Lost and Found Bag",

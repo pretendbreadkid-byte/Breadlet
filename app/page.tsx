@@ -153,7 +153,8 @@ const artFor = (name: string) =>
     Consolation: "/assets/Lost and found + food pack/contilation 2.svg",
     "Laser Blaster": "/assets/contilation.svg",
     "Yellow Platypus": "/assets/yellowplatypus.svg",
-    Eclipse: "/assets/Lost and found + food pack/fixed ecipse 2.svg",
+    Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
+    Sun: "/assets/sun.svg",
     Necklace: "/assets/neclase 2.0 .svg",
     Ninja: "/assets/Ninja 2.0.svg",
     Santa: "/assets/santa pixel.png",
@@ -366,7 +367,6 @@ function MainPage() {
   const [viewedProfile, setViewedProfile] = useState<PublicProfile | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
-  const [showRetired, setShowRetired] = useState(false);
   const [capsuleToConfirm, setCapsuleToConfirm] = useState<Capsule | null>(null);
   const [reveal, setReveal] = useState<{
     capsule: Capsule;
@@ -756,7 +756,6 @@ function MainPage() {
     setPlayer(guestPlayer);
     pendingGuestRef.current = null;
     setTab("wheel");
-    setShowRetired(true);
     setNotice("");
     setGuestWelcomeOpen(true);
     if (guestProgressUnlocked) {
@@ -1529,8 +1528,6 @@ function MainPage() {
           {tab === "event" && <SpookyEventTab player={player} savePlayer={save} />}
           {tab === "capsules" && (
             <CapsulesTab
-              showRetired={showRetired}
-              setShowRetired={setShowRetired}
               openCapsule={(capsule) => setCapsuleToConfirm(capsule)}
               showOdds={setOddsCapsule}
               openMass={() => setMassOpen(true)}
@@ -1632,7 +1629,6 @@ function MainPage() {
           close={() => setMassOpen(false)}
           open={openMassCapsules}
           isGuest={isGuest}
-          showRetired={showRetired}
         />
       )}
       {massResults.length > 0 && (
@@ -2102,16 +2098,12 @@ function rarityFor(name: string) {
 }
 
 function CapsulesTab({
-  showRetired,
-  setShowRetired,
   openCapsule,
   showOdds,
   openMass,
   showStockOdds,
   isGuest,
 }: {
-  showRetired: boolean;
-  setShowRetired: (value: boolean) => void;
   openCapsule: (capsule: Capsule) => void;
   showOdds: (capsule: Capsule) => void;
   openMass: () => void;
@@ -2124,7 +2116,7 @@ function CapsulesTab({
     return () => window.clearInterval(timer);
   }, []);
   const allCapsules = [...liveCapsules, ...retiredCapsules];
-  const capsules = allCapsules.filter((capsule) => isGuest || showRetired || !capsule.retired);
+  const capsules = allCapsules;
   const timeToRefresh = Math.max(0, nextMarketRefreshAt(now).getTime() - now.getTime());
   const refreshLabel = `${String(Math.floor(timeToRefresh / 3600000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 3600000) / 60000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 60000) / 1000)).padStart(2, "0")}`;
   const stockOdds = new Map(marketPackStock.map(({ name, chance }) => [name, chance]));
@@ -2144,15 +2136,6 @@ function CapsulesTab({
           >
             Mass open
           </button>
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-[#3a2415] px-4 py-3 text-sm font-bold">
-            <input
-              type="checkbox"
-              checked={showRetired}
-              onChange={(event) => setShowRetired(event.target.checked)}
-              className="h-4 w-4 accent-[#e9bd67]"
-            />
-            Show retired bags
-          </label>
         </div>
       </div>
       <section className="teds-shelf-scene" aria-label="Ted's Shop Goodybag shelves">
@@ -3028,17 +3011,15 @@ function MassOpenModal({
   close,
   open,
   isGuest,
-  showRetired,
 }: {
   quantities: Record<string, number>;
   setQuantity: (name: string, quantity: number) => void;
   close: () => void;
   open: (quantities: Record<string, number>) => void;
   isGuest: boolean;
-  showRetired: boolean;
 }) {
   const availableCapsules = [...liveCapsules, ...retiredCapsules]
-    .filter((capsule) => (isGuest || showRetired || !capsule.retired) && isMarketPackInStock(capsule.name));
+    .filter((capsule) => isMarketPackInStock(capsule.name));
   const total = availableCapsules.reduce(
     (sum, capsule) => sum + (quantities[capsule.name] || 0) * capsule.price,
     0,
