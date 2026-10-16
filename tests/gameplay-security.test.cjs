@@ -37,7 +37,13 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').rarity, 'Rare');
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').art, '/assets/sun.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Eclipse').art, '/assets/solar%20ecplise%20but%20good.svg');
-  for (const pack of [...catalog.liveCapsules, ...catalog.retiredCapsules]) {
+  const bread = catalog.liveCapsules.find((pack) => pack.name === 'Bread Bag');
+  assert.equal(bread.pool.map((reward) => reward.name).join(','),
+    'Sour Dough,Toaster,Croissant,Cinnamon Roll,Robo Bread,Slime Bread,Gold Bread,Holy Bread');
+  assert.equal(bread.pool.find((reward) => reward.name === 'Holy Bread').art, '/assets/holy-bread-refreshed.svg');
+  for (const reward of bread.pool) assert.ok(fs.existsSync(`public/${reward.art.slice(1)}`), `${reward.name} artwork exists`);
+  assert.ok(!catalog.liveCapsules.some((pack) => ['Human Bag', 'Pixel Bag', 'Remix Bag'].includes(pack.name)));
+  for (const pack of [...catalog.liveCapsules, ...catalog.legacyCapsules]) {
     assert.ok(Math.abs(pack.pool.reduce((sum, reward) => sum + catalog.chanceFor(pack, reward), 0) - 100) < 1e-8);
   }
   const opening = planGameplay({ action: 'open', quantities: { 'Inventions Bag': 1 }, reward: 'Bitcoin', tokens: 999999 }, snapshot, () => 0, now);
@@ -45,6 +51,10 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(opening.tokenDelta, -25);
   assert.equal(opening.candyDelta, 1);
   assert.throws(() => planGameplay({ action: 'open', quantities: { 'Inventions Bag': 1 } }, { ...snapshot, tokens: 0 }, () => 0, now));
+  for (const name of ['Human Bag', 'Pixel Bag', 'Remix Bag']) {
+    assert.throws(() => planGameplay({ action: 'open', quantities: { [name]: 1 } }, snapshot, () => 0, now), /Unknown Goodybag/);
+    assert.equal(marketStock.isMarketPackInStock(name, now), false);
+  }
   for (const quantity of [0, -1, 1.5, 501, Infinity]) {
     assert.throws(() => planGameplay({ action: 'open', quantities: { 'Inventions Bag': quantity } }, snapshot, () => 0, now));
   }
@@ -52,10 +62,10 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   const unavailablePack = marketStock.marketPackStock.find((pack) => !marketStock.isMarketPackInStock(pack.name, stockRefresh));
   assert.ok(unavailablePack);
   assert.throws(() => planGameplay({ action: 'open', quantities: { [unavailablePack.name]: 1 } }, snapshot, () => 0, stockRefresh), /out of stock/);
-  assert.equal(marketStock.marketPackStock.length, 11);
+  assert.equal(marketStock.marketPackStock.length, 8);
   assert.equal(
     marketStock.marketPackStock.map(({ chance }) => chance).join(','),
-    '0.45,1,0.8,0.5,0.25,0.2,0.05,0.05,0.005,0.005,0.005',
+    '0.45,1,0.8,0.5,0.25,0.2,0.05,0.4',
   );
   let verifiedSparseHour = false;
   for (let hour = 0; hour < 168; hour += 1) {
@@ -139,9 +149,10 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
       create role anon; create role authenticated; create role service_role;
       create schema auth;
       create function auth.role() returns text language sql as $$ select current_setting('request.jwt.claim.role',true) $$;
-      create table blooks(id uuid primary key default gen_random_uuid(), name text unique not null, rarity text not null, artwork_key text);
+      create table blooks(id uuid primary key default gen_random_uuid(), name text unique not null, rarity text not null, artwork_key text, retired boolean not null default false);
+      create table chests(id uuid primary key default gen_random_uuid(), name text unique not null, price integer not null, description text, pool jsonb not null default '[]', rarity text, is_retired boolean not null default false, active boolean not null default true);
       create table profiles(id uuid primary key, tokens integer not null default 0 check(tokens>=0), stats jsonb not null default '{}', materials jsonb not null default '{}', is_banned boolean default false, account_status text default 'active', equipped_blook_id uuid);
-      create table inventory(id uuid primary key default gen_random_uuid(), profile_id uuid references profiles(id), blook_id uuid references blooks(id), quantity integer not null check(quantity>=0), shiny boolean default false, unique(profile_id,blook_id,shiny));
+      create table inventory(id uuid primary key default gen_random_uuid(), profile_id uuid references profiles(id), blook_id uuid references blooks(id), quantity integer not null check(quantity>=0), shiny boolean default false, retired boolean not null default false, unique(profile_id,blook_id,shiny));
       create table marketplace_listings(id uuid primary key default gen_random_uuid(), profile_id uuid references profiles(id), blook_id uuid references blooks(id), quantity integer, price integer, status text, sold_at timestamptz);
       create table mine_progress(id uuid primary key default gen_random_uuid(), profile_id uuid);
       create table clans(id uuid primary key default gen_random_uuid(), treasury integer default 0);
@@ -155,12 +166,45 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     await database.exec(migration);
     const tankMigration = fs.readFileSync('supabase/migrations/0016_inventions_tank.sql', 'utf8');
     await database.exec(tankMigration);
+    await database.query("insert into chests(name,price) values ('Human Bag',25),('Pixel Bag',25),('Remix Bag',25)");
+    const breadMigration = fs.readFileSync('supabase/migrations/0018_refreshed_bread_bag.sql', 'utf8');
+    await database.exec(breadMigration);
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
     assert.equal(tank.artwork_key, "DaVinci'sOrnothopter2.svg");
+    const sun = (await database.query("select rarity, artwork_key from blooks where name = 'Sun'")).rows[0];
+    assert.equal(sun.rarity, 'Rare');
+    assert.equal(sun.artwork_key, 'sun.svg');
+    const breadBag = (await database.query("select active, is_retired, pool from chests where name = 'Bread Bag'")).rows[0];
+    assert.equal(breadBag.active, true);
+    assert.equal(breadBag.is_retired, false);
+    assert.equal(breadBag.pool.length, 8);
+    assert.equal((await database.query("select count(*)::integer as total from chests where active and name in ('Human Bag','Pixel Bag','Remix Bag')")).rows[0].total, 0);
+    await database.query("insert into blooks(name,rarity) values ('Burnt Toast','Common'),('Brioche','Common'),('Donut','Uncommon') on conflict(name) do nothing");
     const buyer = '00000000-0000-0000-0000-000000000001';
     const seller = '00000000-0000-0000-0000-000000000002';
     await database.query('insert into profiles(id,tokens) values($1,1000),($2,1000)', [buyer, seller]);
+    const legacyBreadIds = (await database.query("select name,id from blooks where name in ('Burnt Toast','Brioche','Donut')")).rows;
+    const legacyBread = Object.fromEntries(legacyBreadIds.map(({ name, id }) => [name, id]));
+    const toasterId = (await database.query("select id from blooks where name='Toaster'")).rows[0].id;
+    const croissantId = (await database.query("select id from blooks where name='Croissant'")).rows[0].id;
+    const cinnamonRollId = (await database.query("select id from blooks where name='Cinnamon Roll'")).rows[0].id;
+    await database.query(
+      'insert into inventory(profile_id,blook_id,quantity,shiny) values($1,$2,3,false),($1,$3,2,false),($1,$4,4,false),($1,$2,1,true),($1,$5,1,false)',
+      [buyer, legacyBread['Burnt Toast'], legacyBread.Brioche, legacyBread.Donut, cinnamonRollId],
+    );
+    await database.query('update profiles set equipped_blook_id=$2 where id=$1', [buyer, legacyBread.Brioche]);
+    await database.query("insert into marketplace_listings(profile_id,blook_id,quantity,price,status) values($1,$2,1,50,'active')", [buyer, legacyBread['Burnt Toast']]);
+    const breadReplacementMigration = fs.readFileSync('supabase/migrations/0019_replace_legacy_bread_inventory.sql', 'utf8');
+    await database.exec(breadReplacementMigration);
+    await database.exec(breadReplacementMigration);
+    assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=false', [buyer, toasterId])).rows[0].quantity, 3);
+    assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=true', [buyer, toasterId])).rows[0].quantity, 1);
+    assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=false', [buyer, croissantId])).rows[0].quantity, 2);
+    assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=false', [buyer, cinnamonRollId])).rows[0].quantity, 5);
+    assert.equal((await database.query('select equipped_blook_id from profiles where id=$1', [buyer])).rows[0].equipped_blook_id, croissantId);
+    assert.equal((await database.query("select blook_id from marketplace_listings where profile_id=$1 and status='active'", [buyer])).rows[0].blook_id, toasterId);
+    assert.equal((await database.query('select count(*)::integer as total from inventory where profile_id=$1 and blook_id=any($2::uuid[])', [buyer, legacyBreadIds.map(({ id }) => id)])).rows[0].total, 0);
     const wheel = (await database.query("select id from blooks where name='Wheel'")).rows[0].id;
     const bitcoin = (await database.query("select id from blooks where name='Bitcoin'")).rows[0].id;
     await database.query('insert into inventory(profile_id,blook_id,quantity) values($1,$2,5),($3,$4,1)', [buyer, wheel, seller, bitcoin]);

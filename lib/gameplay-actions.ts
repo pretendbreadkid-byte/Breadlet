@@ -1,4 +1,4 @@
-import { chanceFor, craftRecipeFor, dismantleBundleFor, liveCapsules, retiredCapsules, sellValueFor, wheelRewards } from './gameplay-catalog';
+import { chanceFor, craftRecipeFor, dismantleBundleFor, liveCapsules, sellValueFor, wheelRewards } from './gameplay-catalog';
 import { isMarketPackInStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 
@@ -36,9 +36,9 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
   if (action === 'open') {
     if (!body.quantities || typeof body.quantities !== 'object' || Array.isArray(body.quantities)) throw new Error('Choose a Goodybag.');
     const quantities = Object.entries(body.quantities as Record<string, unknown>);
-    if (!quantities.length || quantities.length > liveCapsules.length + retiredCapsules.length) throw new Error('Invalid Goodybag selection.');
+    if (!quantities.length || quantities.length > liveCapsules.length) throw new Error('Invalid Goodybag selection.');
     const selected = quantities.map(([name, value]) => {
-      const capsule = [...liveCapsules, ...retiredCapsules].find((entry) => entry.name === name);
+      const capsule = liveCapsules.find((entry) => entry.name === name);
       if (!capsule) throw new Error('Unknown Goodybag.');
       if (!isMarketPackInStock(name, now)) throw new Error(`${name} is out of stock. Check back after the next hourly refresh.`);
       return { capsule, quantity: integer(value, 500) };

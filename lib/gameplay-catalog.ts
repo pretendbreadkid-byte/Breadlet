@@ -206,22 +206,6 @@ export const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "Pixel Bag",
-    price: 25,
-    art: "/assets/right sized pixel bag.png",
-    retired: true,
-    pool: rewards([
-      ["Pixel Apple", "Common"],
-      ["Pixel Caramel", "Common"],
-      ["Pixel Crystal Ball", "Uncommon"],
-      ["Pixel Bomb", "Rare"],
-      ["Pixel Constellation", "Rare"],
-      ["Pixel Aztec Coin", "Epic"],
-      ["Pixel Lagoon", "Legendary"],
-      ["Pixel Sprinkle Bread", "Mythic"],
-    ]),
-  },
-  {
     name: "Combat Bag",
     price: 25,
     art: "/assets/combat bag.svg",
@@ -248,9 +232,63 @@ export const liveCapsules: Capsule[] = [
       ["Waymore", "Epic"],
     ]),
   },
+  {
+    name: "Bread Bag",
+    price: 25,
+    art: "/assets/refreshed-bread-bag.svg",
+    pool: rewards([
+      ["Sour Dough", "Common"],
+      ["Toaster", "Common"],
+      ["Croissant", "Common"],
+      ["Cinnamon Roll", "Uncommon"],
+      ["Robo Bread", "Rare"],
+      ["Slime Bread", "Rare"],
+      ["Gold Bread", "Legendary"],
+      ["Holy Bread", "Mythic"],
+    ], {
+      "Sour Dough": "/assets/sour-dough-refreshed.svg",
+      Toaster: "/assets/toaster-bread.svg",
+      Croissant: "/assets/croissant.svg",
+      "Cinnamon Roll": "/assets/cinnamon-roll-refreshed.svg",
+      "Robo Bread": "/assets/robo-bread.svg",
+      "Slime Bread": "/assets/slime-bread.svg",
+      "Gold Bread": "/assets/gold-bread-refreshed.svg",
+      "Holy Bread": "/assets/holy-bread-refreshed.svg",
+    }),
+  },
 ];
 
-export const retiredCapsules: Capsule[] = [
+export const legacyCapsules: Capsule[] = [
+  {
+    name: "Legacy Bread Bag",
+    price: 25,
+    art: "/assets/Bread bag.svg",
+    retired: true,
+    pool: rewards([
+      ["Sour Dough", "Common"],
+      ["Burnt Toast", "Common"],
+      ["Brioche", "Common"],
+      ["Donut", "Uncommon"],
+      ["Cinnamon Roll", "Uncommon"],
+      ["Holy Bread", "Mythic"],
+    ]),
+  },
+  {
+    name: "Pixel Bag",
+    price: 25,
+    art: "/assets/right sized pixel bag.png",
+    retired: true,
+    pool: rewards([
+      ["Pixel Apple", "Common"],
+      ["Pixel Caramel", "Common"],
+      ["Pixel Crystal Ball", "Uncommon"],
+      ["Pixel Bomb", "Rare"],
+      ["Pixel Constellation", "Rare"],
+      ["Pixel Aztec Coin", "Epic"],
+      ["Pixel Lagoon", "Legendary"],
+      ["Pixel Sprinkle Bread", "Mythic"],
+    ]),
+  },
   {
     name: "Human Bag",
     price: 25,
@@ -263,20 +301,6 @@ export const retiredCapsules: Capsule[] = [
       ["Ninja", "Epic"],
       ["Actor", "Legendary"],
       ["Caveman", "Mythic"],
-    ]),
-  },
-  {
-    name: "Bread Bag",
-    price: 25,
-    art: "/assets/Bread bag.svg",
-    retired: true,
-    pool: rewards([
-      ["Sour Dough", "Common"],
-      ["Burnt Toast", "Common"],
-      ["Brioche", "Common"],
-      ["Donut", "Uncommon"],
-      ["Cinnamon Roll", "Uncommon"],
-      ["Holy Bread", "Mythic"],
     ]),
   },
   {

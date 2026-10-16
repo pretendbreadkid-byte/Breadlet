@@ -1,6 +1,6 @@
 "use client";
 
-import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, liveCapsules, materialNames, retiredCapsules, sellValueFor, wheelRewards } from "../lib/gameplay-catalog";
+import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, sellValueFor, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -132,7 +132,7 @@ const artFor = (name: string) =>
     Ted: "/assets/ted-shopkeeper.svg",
     "Olive Grenade": "/assets/grenade.png",
     "Golden Grenade": "/assets/golden grenade.png",
-    "Sour Dough": "/assets/Bread.svg",
+    "Sour Dough": "/assets/sour-dough-refreshed.svg",
     "Burnt Toast": "/assets/Burnt toast.svg",
     Brioche: "/assets/brioche.svg",
     Chef: "/assets/chef (1).svg",
@@ -164,7 +164,7 @@ const artFor = (name: string) =>
     Shield: "/assets/sheild (1).svg",
     Spartan: "/assets/spartin  (1).svg",
     Solider: "/assets/solider.svg",
-    "Gold Bread": "/assets/golden loaf.svg",
+    "Gold Bread": "/assets/gold-bread-refreshed.svg",
     "Stone Tablet": "/assets/Stone tablet (1).svg",
     Actor: "/assets/actor.svg",
     Alien: "/assets/Lost and found + food pack/alien 2.svg",
@@ -185,13 +185,17 @@ const artFor = (name: string) =>
     "Festive Skeleton Pirate": "/assets/feative Skeleton pirate .svg",
     "Bread Blook": "/assets/new breadblook.png",
     "Golden Shuriken": "/assets/golden-shuriken.svg",
-    "Holy Bread": "/assets/holy bread.svg",
+    "Holy Bread": "/assets/holy-bread-refreshed.svg",
     "Red Rex": "/assets/red-rex.svg",
     "Golden UFO": "/assets/golden tim the alien.png",
     "Mr. Receipt": "/assets/mr-receipt.svg",
     "Mr. Frog": "/assets/Mr.frog.svg",
     Donut: "/assets/bagel.svg",
-    "Cinnamon Roll": "/assets/cinimmon role.svg",
+    "Cinnamon Roll": "/assets/cinnamon-roll-refreshed.svg",
+    Croissant: "/assets/croissant.svg",
+    "Robo Bread": "/assets/robo-bread.svg",
+    "Slime Bread": "/assets/slime-bread.svg",
+    Toaster: "/assets/toaster-bread.svg",
     "Green Astronaut": "/assets/new the green astronaut.png",
     Astronaut: "/assets/new the green astronaut.png",
     "Rainbow Astro": "/assets/rainbowastronaut.svg",
@@ -913,7 +917,7 @@ function MainPage() {
       setMassResults(result.results);
       return;
     }
-    const openableCapsules = [...liveCapsules, ...retiredCapsules]
+    const openableCapsules = liveCapsules
       .filter((capsule) => isMarketPackInStock(capsule.name));
     const selected = openableCapsules.flatMap((capsule) =>
       Array.from({ length: quantities[capsule.name] || 0 }, () => capsule),
@@ -2115,7 +2119,7 @@ function rarityFor(name: string) {
   const craftedRarity = craftedRarityFor(baseName);
   if (craftRecipes.some((recipe) => recipe.name === baseName)) return craftedRarity;
   return (
-    [...liveCapsules, ...retiredCapsules]
+    [...liveCapsules, ...legacyCapsules]
       .flatMap((capsule) => capsule.pool)
       .find((reward) => reward.name === baseName)?.rarity || "Common"
   );
@@ -2186,7 +2190,7 @@ function CapsulesTab({
       tedClaimBusy.current = false;
     });
   };
-  const allCapsules = [...liveCapsules, ...retiredCapsules];
+  const allCapsules = liveCapsules;
   const capsules = allCapsules;
   const timeToRefresh = Math.max(0, nextMarketRefreshAt(now).getTime() - now.getTime());
   const refreshLabel = `${String(Math.floor(timeToRefresh / 3600000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 3600000) / 60000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 60000) / 1000)).padStart(2, "0")}`;
@@ -2416,7 +2420,6 @@ function InventoryTab({
   massSell: (quantities: Record<string, number>) => Promise<boolean>;
 }) {
   const [selected, setSelected] = useState<Reward | null>(null);
-  const [showPacks, setShowPacks] = useState(true);
   const [massSellOpen, setMassSellOpen] = useState(false);
   const [sellQuantities, setSellQuantities] = useState<Record<string, number>>({});
 
@@ -2425,12 +2428,18 @@ function InventoryTab({
   const tedReward: Reward = { name: "Ted", rarity: "Unique", weight: 0, art: artFor("Ted") };
   const tedQuantity = owned(tedReward.name);
 
-  const catalog = [...liveCapsules, ...retiredCapsules].map((capsule) => {
+  const catalog = liveCapsules.map((capsule) => {
     const shinyRewards = capsule.pool
       .filter((reward) => shinyEligibleNames.has(reward.name))
       .map((reward) => ({ ...reward, name: `Shiny ${reward.name}` }));
     return { ...capsule, pool: [...capsule.pool, ...shinyRewards] };
   });
+  const assignedNames = new Set([
+    ...catalog.flatMap((capsule) => capsule.pool.map((reward) => reward.name)),
+    ...craftRecipes.map((recipe) => recipe.name),
+    tedReward.name,
+  ]);
+  const otherItems = Array.from(new Set(player.inventory)).filter((name) => !assignedNames.has(name));
   const sellableBreads = Array.from(new Set(player.inventory)).map((name) => ({
     name,
     available: Math.max(0, owned(name) - 1),
@@ -2448,15 +2457,6 @@ function InventoryTab({
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => { setSellQuantities({}); setMassSellOpen(true); }} disabled={!sellableBreads.length} className="rounded-xl bg-rose-300 px-3.5 py-2 text-xs font-black text-rose-950 disabled:cursor-not-allowed disabled:opacity-40">Mass sell</button>
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-[#103f75] px-3.5 py-2 text-xs font-bold text-[#bde8ff] border border-[#3d91cd]/40">
-              <input
-                type="checkbox"
-                checked={showPacks}
-                onChange={(e) => setShowPacks(e.target.checked)}
-                className="h-4 w-4 accent-[#39a8f5]"
-              />
-              Show retired bags
-            </label>
           </div>
         </div>
 
@@ -2520,6 +2520,32 @@ function InventoryTab({
               </div>
             </section>
           ))}
+          {otherItems.length > 0 && <section className="rounded-3xl border border-[#d49a4a]/35 bg-[#3a2415]/80 p-5 shadow-md">
+            <div className="mb-4 flex items-center justify-between border-b border-[#d49a4a]/20 pb-2">
+              <h2 className="text-xl font-black text-[#ffe2a0]">Other</h2>
+              <span className="text-xs font-bold uppercase tracking-widest text-[#d7b88c]">Owned Breadlets outside current bags</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+              {otherItems.map((name) => {
+                const reward: Reward = { name, rarity: rarityFor(name), weight: 0, art: artFor(name) };
+                const quantity = owned(name);
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    title={`${name} · ${reward.rarity} (x${quantity})`}
+                    onClick={() => setSelected(reward)}
+                    className="relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-black/25 p-2 transition hover:-translate-y-1"
+                  >
+                    <RewardArt name={name} art={reward.art || artFor(name)} className={`h-full w-full ${rewardEffectClassFor(name, reward.rarity)}`} />
+                    <span className="absolute bottom-1 left-1 rounded-md bg-[#e9bd67] px-1.5 py-0.5 text-[9px] font-black text-[#29170c]">{reward.rarity}</span>
+                    <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{quantity}</span>
+                    {player.equipped === name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </section>}
           <section className="rounded-3xl border border-fuchsia-400/35 bg-[#27213d]/80 p-5 shadow-md">
             <div className="mb-4 flex items-center justify-between border-b border-fuchsia-300/20 pb-2">
               <h2 className="text-xl font-black text-fuchsia-200">Secrets</h2>
@@ -3184,7 +3210,7 @@ function MassOpenModal({
   open: (quantities: Record<string, number>) => void;
   isGuest: boolean;
 }) {
-  const availableCapsules = [...liveCapsules, ...retiredCapsules]
+  const availableCapsules = liveCapsules
     .filter((capsule) => isMarketPackInStock(capsule.name));
   const total = availableCapsules.reduce(
     (sum, capsule) => sum + (quantities[capsule.name] || 0) * capsule.price,
@@ -3848,7 +3874,7 @@ function RequestsTab({ isGuest }: { isGuest: boolean }) {
     if (!isGuest) void loadRequests();
   }, [isGuest]);
 
-  const catalog = [...liveCapsules, ...retiredCapsules].flatMap((capsule) => capsule.pool)
+  const catalog = [...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool)
     .concat(craftRecipes.map((recipe) => ({ name: recipe.name, rarity: craftedRarityFor(recipe.name), weight: 0, art: artFor(recipe.name) })))
     .filter((reward, index, all) => all.findIndex((candidate) => candidate.name === reward.name) === index)
     .filter((reward) => reward.name.toLowerCase().includes(search.toLowerCase()));
@@ -3968,7 +3994,7 @@ function AdminTab({
   }, []);
 
   const allBlooks = Array.from(new Set(
-    [...liveCapsules, ...retiredCapsules].flatMap((capsule) => capsule.pool.map((reward) => reward.name))
+    [...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool.map((reward) => reward.name))
       .concat(craftRecipes.map((recipe) => recipe.name)),
   )).sort((left, right) => left.localeCompare(right));
 

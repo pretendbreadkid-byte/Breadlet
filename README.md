@@ -49,6 +49,10 @@ Apply `supabase/migrations/0015_secure_gameplay.sql` in the Supabase SQL Editor 
 
 Apply `supabase/migrations/0017_ted_secret.sql` as well to enable the signed-in Ted secret click counter and grant Ted as a Unique inventory item. Without it, the secret claim endpoint cannot save the reward.
 
+Apply `supabase/migrations/0018_refreshed_bread_bag.sql` to register the refreshed Bread Bag rewards and artwork, update Sun and Eclipse artwork, and retire the Human, Pixel, and Remix packs in the database catalog.
+
+Apply `supabase/migrations/0019_replace_legacy_bread_inventory.sql` after migration 0018 to exchange owned Burnt Toast, Brioche, and Donut Bread Bag items for Toaster, Croissant, and Cinnamon Roll at the same rarity. Active marketplace listings for those items are converted too.
+
 Configure `SUPABASE_SERVICE_ROLE_KEY` on the server only; never expose it through a `NEXT_PUBLIC_` variable. Signed-in pack and crate rewards are generated server-side, with row locks, revision checks, ownership validation, and UTC daily limits. Ordinary profile saves cannot change tokens, Candy, materials, badges, or inventory. Guest mode remains browser-local and does not affect rankings.
 
 Admin and reward-review access require existing `admin_roles` entries. Publicly shipped codes no longer grant privileges. Audit existing admin roles and old balances separately; these protections do not automatically revoke previously granted roles or reverse past exploitation.
