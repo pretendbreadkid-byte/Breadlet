@@ -34,3 +34,4 @@ async function fetchSessionApi(url: string, init: RequestInit = {}) {
 
 export const fetchTradeApi = (init: RequestInit = {}) => fetchSessionApi('/api/trades', init);
 export const fetchGameplayApi = (init: RequestInit = {}) => fetchSessionApi('/api/gameplay', init);
+export const fetchSecretApi = (init: RequestInit = {}) => fetchSessionApi('/api/secrets/ted', init);

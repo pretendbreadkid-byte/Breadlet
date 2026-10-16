@@ -5,7 +5,7 @@ import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createClient as createSupabaseClient, fetchGameplayApi, fetchTradeApi } from "../lib/supabase/client";
+import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
 import {
   Backpack,
   CircleUserRound,
@@ -129,6 +129,7 @@ const artFor = (name: string) =>
     "Pixel Caramel": "/assets/Lost and found + food pack/Pixel carmel.png?v=2",
     "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png?v=2",
     "Lava Slime": "/assets/lava-slime.svg",
+    Ted: "/assets/ted-shopkeeper.svg",
     "Olive Grenade": "/assets/grenade.png",
     "Golden Grenade": "/assets/golden grenade.png",
     "Sour Dough": "/assets/Bread.svg",
@@ -613,6 +614,27 @@ function MainPage() {
       return null;
     } finally {
       gameplayBusyRef.current = false;
+    }
+  };
+  const claimTedSecret = async (): Promise<{ triggered: boolean; claimed: boolean } | null> => {
+    if (!player) return null;
+    try {
+      if (isGuest) {
+        if (player.inventory.includes("Ted")) return { triggered: true, claimed: false };
+        const saved = await save({ ...player, inventory: [...player.inventory, "Ted"] }, { inventory: true });
+        return saved ? { triggered: true, claimed: true } : null;
+      }
+      const response = await fetchSecretApi({ method: "POST" });
+      const result = await response.json();
+      if (!response.ok) {
+        setNotice(result.error || "Could not claim Ted.");
+        return null;
+      }
+      if (result.claimed && result.player) setPlayer(playerFromServer(result.player));
+      return { triggered: Boolean(result.triggered), claimed: Boolean(result.claimed) };
+    } catch {
+      setNotice("Could not claim Ted. Please try again.");
+      return null;
     }
   };
   const login = async (event: FormEvent<HTMLFormElement>) => {
@@ -1533,6 +1555,7 @@ function MainPage() {
               openMass={() => setMassOpen(true)}
               showStockOdds={() => setStockOddsOpen(true)}
               isGuest={isGuest}
+              claimTed={claimTedSecret}
             />
           )}
           {tab === "inventory" && (
@@ -2088,6 +2111,7 @@ function TradeOfferModal({
 
 function rarityFor(name: string) {
   const baseName = name.replace(/^Shiny /, "");
+  if (baseName === "Ted") return "Unique";
   const craftedRarity = craftedRarityFor(baseName);
   if (craftRecipes.some((recipe) => recipe.name === baseName)) return craftedRarity;
   return (
@@ -2103,19 +2127,65 @@ function CapsulesTab({
   openMass,
   showStockOdds,
   isGuest,
+  claimTed,
 }: {
   openCapsule: (capsule: Capsule) => void;
   showOdds: (capsule: Capsule) => void;
   openMass: () => void;
   showStockOdds: () => void;
   isGuest: boolean;
+  claimTed: () => Promise<{ triggered: boolean; claimed: boolean } | null>;
 }) {
   const [now, setNow] = useState(() => new Date());
   const [selectedCapsule, setSelectedCapsule] = useState<Capsule | null>(null);
+  const [tedVisible, setTedVisible] = useState(false);
+  const [tedCongrats, setTedCongrats] = useState(false);
+  const shopClickCount = useRef(0);
+  const shopClickTimer = useRef<number | null>(null);
+  const tedPopupTimer = useRef<number | null>(null);
+  const tedClaimBusy = useRef(false);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      if (shopClickTimer.current) window.clearTimeout(shopClickTimer.current);
+      if (tedPopupTimer.current) window.clearTimeout(tedPopupTimer.current);
+    };
   }, []);
+  const showTedSecret = (claimed: boolean) => {
+    setTedVisible(true);
+    if (claimed) setTedCongrats(true);
+    if (tedPopupTimer.current) window.clearTimeout(tedPopupTimer.current);
+    tedPopupTimer.current = window.setTimeout(() => {
+      setTedVisible(false);
+      tedPopupTimer.current = null;
+    }, 5000);
+  };
+  const clickShopHeading = () => {
+    if (!isGuest) {
+      void claimTed().then((result) => {
+        if (result?.triggered) showTedSecret(result.claimed);
+      });
+      return;
+    }
+    if (tedClaimBusy.current) return;
+    shopClickCount.current += 1;
+    if (shopClickTimer.current) window.clearTimeout(shopClickTimer.current);
+    shopClickTimer.current = window.setTimeout(() => {
+      shopClickCount.current = 0;
+      shopClickTimer.current = null;
+    }, 2500);
+    if (shopClickCount.current < 3) return;
+    shopClickCount.current = 0;
+    if (shopClickTimer.current) window.clearTimeout(shopClickTimer.current);
+    shopClickTimer.current = null;
+    tedClaimBusy.current = true;
+    void claimTed().then((result) => {
+      if (result?.triggered) showTedSecret(result.claimed);
+    }).finally(() => {
+      tedClaimBusy.current = false;
+    });
+  };
   const allCapsules = [...liveCapsules, ...retiredCapsules];
   const capsules = allCapsules;
   const timeToRefresh = Math.max(0, nextMarketRefreshAt(now).getTime() - now.getTime());
@@ -2129,7 +2199,11 @@ function CapsulesTab({
         <span className="font-mono text-lg tracking-widest">{refreshLabel}</span>
       </div>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-4xl font-black">Ted&apos;s Shop</h1>
+        <h1 className="text-4xl font-black">
+          <button type="button" onClick={clickShopHeading} className="cursor-pointer bg-transparent p-0 text-inherit" title="Ted's Shop">
+            Ted&apos;s Shop
+          </button>
+        </h1>
         <div className="flex flex-wrap gap-3">
           <button
             onClick={openMass}
@@ -2161,8 +2235,19 @@ function CapsulesTab({
             </div>
           </div>
         </section>
-        <img className="teds-shopkeeper" src="/assets/ted-shopkeeper.svg" alt="" aria-hidden="true" />
       </div>
+      {tedVisible && <div className="ted-secret-appearance" aria-hidden="true"><img src="/assets/ted-shopkeeper.svg" alt="" /></div>}
+      {tedCongrats && (
+        <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+          <section className="w-full max-w-sm rounded-3xl border border-fuchsia-400/60 bg-[#3a2415] p-6 text-center text-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="ted-secret-heading">
+            <img src="/assets/ted-shopkeeper.svg" alt="Ted" className="mx-auto h-36 w-36 object-contain" />
+            <p className="mt-2 text-xs font-black uppercase tracking-widest text-fuchsia-300">Secret found</p>
+            <h2 id="ted-secret-heading" className="mt-1 text-2xl font-black">Congrats!</h2>
+            <p className="mt-2 text-sm text-white/80">You found Ted! Unique Ted has been added to your inventory.</p>
+            <button type="button" onClick={() => setTedCongrats(false)} className="mt-5 w-full rounded-xl bg-fuchsia-300 px-4 py-3 font-black text-fuchsia-950">Awesome!</button>
+          </section>
+        </div>
+      )}
       {selectedCapsule && (
         <PackDetailsModal
           capsule={selectedCapsule}
