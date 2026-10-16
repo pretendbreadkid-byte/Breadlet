@@ -43,6 +43,19 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(bread.pool.find((reward) => reward.name === 'Holy Bread').art, '/assets/holy-bread-refreshed.svg');
   for (const reward of bread.pool) assert.ok(fs.existsSync(`public/${reward.art.slice(1)}`), `${reward.name} artwork exists`);
   assert.ok(!catalog.liveCapsules.some((pack) => ['Human Bag', 'Pixel Bag', 'Remix Bag'].includes(pack.name)));
+  const lostAndFound = catalog.liveCapsules.find((pack) => pack.name === 'Lost and Found Bag');
+  const combat = catalog.liveCapsules.find((pack) => pack.name === 'Combat Bag');
+  assert.equal(lostAndFound.pool.find((reward) => reward.name === 'Wallet').rarity, 'Uncommon');
+  assert.equal(combat.pool.find((reward) => reward.name === 'Sword').rarity, 'Rare');
+  for (const [name, art] of [
+    ['Wallet', '/assets/wallet.svg'],
+    ['Sword', '/assets/sword.svg'],
+    ['Rock', '/assets/rock-refreshed.svg'],
+    ['Candy Corn', '/assets/candy-corn-refreshed.svg'],
+    ["Ted's Shop wordmark", '/assets/ted-shop-wordmark.svg'],
+  ]) {
+    assert.ok(fs.existsSync(`public${art}`), `${name} artwork exists`);
+  }
   for (const pack of [...catalog.liveCapsules, ...catalog.legacyCapsules]) {
     assert.ok(Math.abs(pack.pool.reduce((sum, reward) => sum + catalog.chanceFor(pack, reward), 0) - 100) < 1e-8);
   }
@@ -166,9 +179,14 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     await database.exec(migration);
     const tankMigration = fs.readFileSync('supabase/migrations/0016_inventions_tank.sql', 'utf8');
     await database.exec(tankMigration);
-    await database.query("insert into chests(name,price) values ('Human Bag',25),('Pixel Bag',25),('Remix Bag',25)");
+    await database.query("insert into chests(name,price,pool) values ('Human Bag',25,'[]'),('Pixel Bag',25,'[]'),('Remix Bag',25,'[]'),('Lost and Found Bag',25,'[\"Car Keys\"]'),('Combat Bag',25,'[\"Olive Grenade\"]')");
     const breadMigration = fs.readFileSync('supabase/migrations/0018_refreshed_bread_bag.sql', 'utf8');
     await database.exec(breadMigration);
+    const breadReplacementMigration = fs.readFileSync('supabase/migrations/0019_replace_legacy_bread_inventory.sql', 'utf8');
+    await database.exec(breadReplacementMigration);
+    const extraBlooksMigration = fs.readFileSync('supabase/migrations/0020_add_lost_found_and_combat_blooks.sql', 'utf8');
+    await database.exec(extraBlooksMigration);
+    await database.exec(extraBlooksMigration);
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
     assert.equal(tank.artwork_key, "DaVinci'sOrnothopter2.svg");
@@ -179,6 +197,17 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     assert.equal(breadBag.active, true);
     assert.equal(breadBag.is_retired, false);
     assert.equal(breadBag.pool.length, 8);
+    assert.deepEqual(
+      (await database.query("select pool from chests where name='Lost and Found Bag'")).rows[0].pool,
+      ['Car Keys', 'Wallet'],
+    );
+    assert.deepEqual(
+      (await database.query("select pool from chests where name='Combat Bag'")).rows[0].pool,
+      ['Olive Grenade', 'Sword'],
+    );
+    const newRewardArt = (await database.query("select name, artwork_key from blooks where name in ('Wallet','Sword','Rock','Candy Corn') order by name")).rows;
+    assert.equal(newRewardArt.map(({ name, artwork_key }) => `${name}:${artwork_key}`).join(','),
+      'Candy Corn:candy-corn-refreshed.svg,Rock:rock-refreshed.svg,Sword:sword.svg,Wallet:wallet.svg');
     assert.equal((await database.query("select count(*)::integer as total from chests where active and name in ('Human Bag','Pixel Bag','Remix Bag')")).rows[0].total, 0);
     await database.query("insert into blooks(name,rarity) values ('Burnt Toast','Common'),('Brioche','Common'),('Donut','Uncommon') on conflict(name) do nothing");
     const buyer = '00000000-0000-0000-0000-000000000001';
@@ -195,9 +224,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     );
     await database.query('update profiles set equipped_blook_id=$2 where id=$1', [buyer, legacyBread.Brioche]);
     await database.query("insert into marketplace_listings(profile_id,blook_id,quantity,price,status) values($1,$2,1,50,'active')", [buyer, legacyBread['Burnt Toast']]);
-    const breadReplacementMigration = fs.readFileSync('supabase/migrations/0019_replace_legacy_bread_inventory.sql', 'utf8');
-    await database.exec(breadReplacementMigration);
-    await database.exec(breadReplacementMigration);
+    const extraBreadReplacementMigration = fs.readFileSync('supabase/migrations/0019_replace_legacy_bread_inventory.sql', 'utf8');
+    await database.exec(extraBreadReplacementMigration);
+    await database.exec(extraBreadReplacementMigration);
     assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=false', [buyer, toasterId])).rows[0].quantity, 3);
     assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=true', [buyer, toasterId])).rows[0].quantity, 1);
     assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=false', [buyer, croissantId])).rows[0].quantity, 2);

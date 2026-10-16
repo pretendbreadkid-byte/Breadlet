@@ -17,7 +17,6 @@ import {
   Percent,
   ShoppingBag,
   Store,
-  Trophy,
   Users,
   ChevronDown,
   Image as ImageIcon,
@@ -38,7 +37,6 @@ type Tab =
   | "wheel"
   | "market"
   | "chat"
-  | "leaderboard"
   | "event"
   | "migration"
   | "promo"
@@ -125,6 +123,7 @@ const artFor = (name: string) =>
     Worker: "/assets/worker.svg",
     "Aztec Coin": "/assets/Aztect Coin 2.0.svg",
     Map: "/assets/map (1).svg",
+    Wallet: "/assets/wallet.svg",
     "Pixel Apple": "/assets/Lost and found + food pack/Pixel apple.png?v=2",
     "Pixel Caramel": "/assets/Lost and found + food pack/Pixel carmel.png?v=2",
     "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png?v=2",
@@ -165,6 +164,7 @@ const artFor = (name: string) =>
     Spartan: "/assets/spartin  (1).svg",
     Solider: "/assets/solider.svg",
     "Gold Bread": "/assets/gold-bread-refreshed.svg",
+    Sword: "/assets/sword.svg",
     "Stone Tablet": "/assets/Stone tablet (1).svg",
     Actor: "/assets/actor.svg",
     Alien: "/assets/Lost and found + food pack/alien 2.svg",
@@ -211,7 +211,7 @@ const artFor = (name: string) =>
     Sandwich: "/assets/sandwich.svg",
     Butterfly: "/assets/butterfly (1).svg",
     Blackbeard: "/assets/captainblackbeard (1).svg",
-    Rock: "/assets/Lost and found + food pack/rock.svg",
+    Rock: "/assets/rock-refreshed.svg",
     Button: "/assets/Lost and found + food pack/button.svg",
     "Car Keys": "/assets/Lost and found + food pack/car keys .svg",
     Comb: "/assets/Lost and found + food pack/comb.svg",
@@ -224,7 +224,7 @@ const artFor = (name: string) =>
     Carrot: "/assets/carrot.svg",
     Fries: "/assets/Lost and found + food pack/fries.svg",
     Egg: "/assets/Lost and found + food pack/egg.svg",
-    "Candy Corn": "/assets/Lost and found + food pack/candy corn.svg",
+    "Candy Corn": "/assets/candy-corn-refreshed.svg",
     Caramel: "/assets/Lost and found + food pack/carmel.svg",
     "Sprinkle Bread": "/assets/Lost and found + food pack/sprinkle bread .svg",
     "Ice Cream": "/assets/Lost and found + food pack/ice cream .svg",
@@ -1365,14 +1365,9 @@ function MainPage() {
       label: "Chat",
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
-    {
-      id: "leaderboard",
-      label: "Ranks",
-      icon: <Trophy size={20} strokeWidth={2.2} />,
-    },
   ];
   const visibleNav = isGuest
-    ? nav.filter((item) => !["clan", "market", "chat", "leaderboard", "migration"].includes(item.id))
+    ? nav.filter((item) => !["clan", "market", "chat", "migration"].includes(item.id))
     : nav;
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
@@ -1398,7 +1393,7 @@ function MainPage() {
         <div>
           {/* Logo Header */}
           <button type="button" className="sidebar-brand" data-tour-target="profile" aria-label="Open my profile" onClick={() => { setViewedProfile(null); setTab("profile"); }}>
-            <span className="sidebar-wordmark"><img src="/assets/Breadlet%20name%20logo.png" alt="Breadlet" /></span>
+            <span className="sidebar-wordmark"><img src="/assets/Nw%20name%20lgo.png" alt="Breadlet" /></span>
           </button>
 
           {/* Sidebar Nav Buttons */}
@@ -1575,7 +1570,6 @@ function MainPage() {
             />
           )}
           {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
-          {tab === "leaderboard" && <Leaderboard player={player} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (
             <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} craft={craft} isGuest={isGuest} />
@@ -1624,7 +1618,7 @@ function MainPage() {
             <ul className="mt-4 space-y-2 text-sm leading-6 text-emerald-50/80">
               <li>Crates and every bag, including retired bags, are free to open.</li>
               <li>Crafting is free, and guests start with an empty collection.</li>
-              <li>Chat, ranks, clans, and Bazaar are hidden during guest testing.</li>
+              <li>Chat, clans, and Bazaar are hidden during guest testing.</li>
               <li>Progress is temporary and disappears when you end this session unless you have unlocked browser saving.</li>
             </ul>
             <button onClick={() => setGuestWelcomeOpen(false)} className="mt-6 w-full rounded-xl bg-emerald-300 px-4 py-3 font-black text-emerald-950 hover:bg-emerald-200">Start testing</button>
@@ -2202,13 +2196,12 @@ function CapsulesTab({
         <span>Shop stock refreshes in</span>
         <span className="font-mono text-lg tracking-widest">{refreshLabel}</span>
       </div>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-4xl font-black">
-          <button type="button" onClick={clickShopHeading} className="cursor-pointer bg-transparent p-0 text-inherit" title="Ted's Shop">
-            Ted&apos;s Shop
-          </button>
-        </h1>
-        <div className="flex flex-wrap gap-3">
+      <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <span />
+        <button type="button" onClick={clickShopHeading} className="mx-auto flex justify-center bg-transparent p-0" title="Ted's Shop">
+          <img src="/assets/ted-shop-wordmark.svg" alt="Ted's Shop" className="h-12 w-64 object-contain sm:h-14 sm:w-80" />
+        </button>
+        <div className="flex justify-end">
           <button
             onClick={openMass}
             className="rounded-xl bg-[#e9bd67] px-4 py-3 text-sm font-black text-[#29170c]"
@@ -3373,46 +3366,6 @@ function CraftingMachineModal({
     </div>
   );
 }
-function Leaderboard({ player: _player }: { player: Player }) {
-  const [view, setView] = useState<"tokens" | "clans">("tokens");
-  const [data, setData] = useState<{ players: { username: string; tokens: number; equippedBlook?: string }[]; clans: { name: string; treasury: number; thumbnail_url?: string }[] }>({ players: [], clans: [] });
-  useEffect(() => {
-    fetch("/api/leaderboard", { cache: "no-store" }).then(async (response) => {
-      if (response.ok) setData(await response.json());
-    }).catch(() => undefined);
-  }, []);
-  const rows = (view === "clans"
-    ? data.clans.map((clan) => ({ name: clan.name, value: clan.treasury, avatar: clan.thumbnail_url || "" }))
-    : data.players.map((profile) => ({ name: profile.username, value: profile.tokens, avatar: profile.equippedBlook ? artFor(profile.equippedBlook) : "" }))
-  ).sort((left, right) => right.value - left.value);
-  const podium = [...rows.slice(0, 3), ...Array.from({ length: Math.max(0, 3 - rows.length) }, () => ({ name: "N/A", value: null as number | null, avatar: "" }))];
-  return (
-    <div>
-      <h1 className="text-4xl font-black">Leaderboard</h1>
-      <div className="mt-6 flex gap-2 rounded-2xl border border-[#247bc0] bg-[#18558f] p-1">{[["tokens", "Tokens"], ["clans", "Clans"]].map(([key, label]) => <button key={key} onClick={() => setView(key as typeof view)} className={`flex-1 rounded-xl px-3 py-3 font-black ${view === key ? "bg-[#bde8ff] text-[#062443]" : "text-[#d9f3ff]"}`}>{label}</button>)}</div>
-      {view === "clans" && <p className="mt-3 text-sm text-[#9cc8e8]">Clan rankings will use member contributions and unlocked benefits.</p>}
-      <div className="mt-8 grid items-end gap-4 md:grid-cols-3">
-        {[podium[1], podium[0], podium[2]].map((row, index) => <div key={`${row.name}-${index}`} className={`rounded-2xl border border-[#73c8ff]/45 bg-[#18558f] p-5 text-center ${index === 1 ? "md:-translate-y-5" : ""}`}><p className="text-3xl font-black text-[#bde8ff]">{index === 1 ? "1" : index === 0 ? "2" : "3"}</p><div className="mx-auto mt-3 flex h-24 w-24 items-center justify-center">{row.avatar ? <img src={row.avatar} alt={`${row.name} Bread`} className="h-full w-full object-contain" /> : <span className="text-xl font-black text-white/50">{row.name === "N/A" ? "N/A" : row.name.slice(0, 1)}</span>}</div><h2 className="mt-3 font-black">{row.name}</h2><p className="mt-2 font-black text-[#bde8ff]">{row.value === null ? "N/A" : row.value.toLocaleString()}</p></div>)}
-      </div>
-      <div className="mt-8 max-w-2xl overflow-hidden rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415]">
-        <div className="grid grid-cols-[32px_1fr_auto] gap-3 px-5 py-4 text-xs font-bold uppercase tracking-widest text-[#bde8ff]">
-          <span>{view === "clans" ? "Clan" : "Player"}</span>
-          <span>{view === "clans" ? "Treasury" : "Tokens"}</span>
-        </div>
-        {rows.length ? rows.map((row, index) => (
-            <div
-              key={`${row.name}-${index}`}
-              className="grid grid-cols-[32px_1fr_auto] items-center gap-3 border-t border-[#247bc0]/25 px-5 py-3 text-sm"
-            >
-              {row.avatar ? <img src={row.avatar} alt={`${row.name} Blook`} className="h-8 w-8 object-contain" /> : <span className="grid h-8 w-8 place-items-center rounded bg-[#18558f] font-black text-[#bde8ff]">{row.name.slice(0, 1)}</span>}
-              <span className="min-w-0 truncate"><b className="mr-3 text-[#bde8ff]">#{index + 1}</b>{row.name}</span>
-              <span className="font-bold text-[#bde8ff]">{row.value.toLocaleString()}</span>
-            </div>
-          )) : <p className="px-5 py-8 text-center text-[#d9f3ff]">N/A</p>}
-      </div>
-    </div>
-  );
-}
 function SimplePanel({
   title,
   body,
@@ -3746,40 +3699,6 @@ function SpookyEventTab({ player, savePlayer }: { player: Player; savePlayer: (p
   const [now, setNow] = useState(() => new Date());
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
-  const [standings, setStandings] = useState<{ id: string; username: string; candy: number; equippedBlook?: string }[]>([]);
-  const [rankingsError, setRankingsError] = useState("");
-  const [rankingsLoading, setRankingsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!player.id) {
-      setRankingsLoading(false);
-      return;
-    }
-    let cancelled = false;
-    const loadRankings = async () => {
-      try {
-        const response = await fetch("/api/leaderboard", { cache: "no-store" });
-        const body = await response.json();
-        if (cancelled) return;
-        if (!response.ok) {
-          setRankingsError(body.error || "Could not load event rankings.");
-          return;
-        }
-        const rows = Array.isArray(body.players) ? body.players : [];
-        setStandings(rows.sort((left: { candy: number; username: string; id: string }, right: { candy: number; username: string; id: string }) =>
-          right.candy - left.candy || left.username.localeCompare(right.username) || left.id.localeCompare(right.id),
-        ));
-        setRankingsError("");
-      } catch {
-        if (!cancelled) setRankingsError("Could not reach event rankings. Retrying shortly.");
-      } finally {
-        if (!cancelled) setRankingsLoading(false);
-      }
-    };
-    void loadRankings();
-    const timer = window.setInterval(() => void loadRankings(), 15000);
-    return () => { cancelled = true; window.clearInterval(timer); };
-  }, [player.id]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("breadlet-spooky-tutorial");
@@ -3817,35 +3736,15 @@ function SpookyEventTab({ player, savePlayer }: { player: Player; savePlayer: (p
     <div className="max-w-5xl space-y-6">
       <section className="rounded-3xl border border-[#9a3f08] bg-[#8a3d0b] p-6 shadow-2xl">
         <div className="flex flex-wrap items-start justify-between gap-5">
-          <div><p className="text-xs font-black uppercase tracking-[0.3em] text-orange-200">Limited event</p><h1 className="mt-2 text-4xl font-black text-orange-50">Contest of Spooky</h1><p className="mt-3 max-w-2xl text-orange-100/80">Earn Candy from game activities and climb the event leaderboard before the contest closes.</p></div>
+          <div><p className="text-xs font-black uppercase tracking-[0.3em] text-orange-200">Limited event</p><h1 className="mt-2 text-4xl font-black text-orange-50">Contest of Spooky</h1><p className="mt-3 max-w-2xl text-orange-100/80">Earn Candy from game activities before the contest closes.</p></div>
           <div className="flex items-center gap-2 rounded-2xl border border-orange-200/30 bg-black/20 px-4 py-3"><img src="/assets/Candy.svg" alt="Candy" className="h-10 w-10 object-contain" /><span className="text-2xl font-black text-orange-100">{player.candy || 0}</span></div>
         </div>
         <div className="mt-6 rounded-2xl bg-black/25 p-4"><p className="text-xs font-black uppercase tracking-widest text-orange-200">{active ? "Ends in" : now < spookyEventStart ? "Starts in" : "Event ended"}</p><p className="mt-1 text-3xl font-black text-orange-50">{days}d {String(hours).padStart(2, "0")}:{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</p><p className="mt-2 text-sm text-orange-100/70">October 2 through October 23.</p></div>
       </section>
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4">
         <article className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-5"><h2 className="text-xl font-black text-orange-100">How to earn Candy</h2><ul className="mt-3 space-y-2 text-sm text-orange-50/85"><li>Open Goodybags and claim the Daily Crate.</li><li>Complete trades and keep playing during the event.</li><li>Candy is the event resource used for spooky rewards.</li></ul></article>
-        <article className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-5"><h2 className="text-xl font-black text-orange-100">Placement rewards</h2><div className="mt-3 flex items-center gap-4"><div className="spooky-smog grid h-24 w-24 place-items-center rounded-2xl bg-purple-950/70"><img src={frame} alt="Skeleton Pirate animation" className="h-20 w-20 object-contain" /></div><div className="text-sm text-orange-50/85"><p><b className="text-orange-100">Top 20:</b> Skeleton Pirate, Mythic.</p><p className="mt-2"><b className="text-orange-100">Top 3:</b> Festive Skeleton Pirate with purple smog.</p></div></div></article>
       </section>
-      <section aria-label="Contest of Spooky leaderboard" className="border-t-2 border-[#CC5500] pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-bold">Candy Leaderboard</h2>
-          {standings.some((entry) => entry.id === player.id) && <p className="text-sm font-bold">Your place: #{standings.findIndex((entry) => entry.id === player.id) + 1}</p>}
-        </div>
-        {rankingsError && <p role="alert" className="mt-3 text-sm">{rankingsError}</p>}
-        {!player.id ? <p className="mt-4 text-sm">Sign in to view event rankings.</p> : rankingsLoading ? <p role="status" className="mt-4">Loading rankings...</p> : standings.length ? (
-          <div className="mt-4 max-h-[32rem] overflow-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-[#27251f]"><tr><th scope="col" className="px-3 py-3">Place</th><th scope="col" className="px-3 py-3">Player</th><th scope="col" className="px-3 py-3 text-right">Candy</th></tr></thead>
-              <tbody>{standings.map((entry, index) => <tr key={entry.id} aria-current={entry.id === player.id ? "true" : undefined} className={`border-b border-[#CC5500] ${entry.id === player.id ? "bg-[#CC5500]" : ""}`}>
-                <td className="px-3 py-3 font-bold">#{index + 1}</td>
-                <td className="px-3 py-3"><div className="flex items-center gap-2">{entry.equippedBlook && <img src={artFor(entry.equippedBlook)} alt="" className="h-8 w-8 shrink-0 object-contain" />}<span className="break-all font-bold">{entry.username}</span>{index < 20 && <span className="whitespace-nowrap text-xs">{index < 3 ? "Top 3" : "Top 20"}</span>}</div></td>
-                <td className="px-3 py-3 text-right font-bold">{entry.candy.toLocaleString()}</td>
-              </tr>)}</tbody>
-            </table>
-          </div>
-        ) : !rankingsError && <p className="mt-4 text-sm">No event rankings yet.</p>}
-      </section>
-      {tutorialOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><section className="w-full max-w-md rounded-3xl border border-orange-300/50 bg-[#6f2e08] p-6 shadow-2xl"><p className="text-xs font-black uppercase tracking-[0.25em] text-orange-200">Contest of Spooky</p><h2 className="mt-2 text-2xl font-black text-orange-50">{tutorialStep === 0 ? "The contest is live soon" : tutorialStep === 1 ? "Collect Candy" : "Climb the ranks"}</h2><p className="mt-3 leading-6 text-orange-100/80">{tutorialStep === 0 ? "This event runs from October 2 through October 23." : tutorialStep === 1 ? "Open packs, claim your Daily Crate, and complete trades to earn Candy." : "The top 20 receive Skeleton Pirate. The top 3 also receive Festive Skeleton Pirate and its purple smog effect."}</p><div className="mt-6 flex justify-between gap-3">{tutorialStep > 0 ? <button onClick={() => setTutorialStep((step) => step - 1)} className="rounded-xl border border-orange-200/40 px-4 py-3 font-black text-orange-100">Back</button> : <span />}{tutorialStep < 2 ? <button onClick={() => setTutorialStep((step) => step + 1)} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Next</button> : <button onClick={finishTutorial} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Enter event</button>}</div></section></div>}
+      {tutorialOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><section className="w-full max-w-md rounded-3xl border border-orange-300/50 bg-[#6f2e08] p-6 shadow-2xl"><p className="text-xs font-black uppercase tracking-[0.25em] text-orange-200">Contest of Spooky</p><h2 className="mt-2 text-2xl font-black text-orange-50">{tutorialStep === 0 ? "The contest is live soon" : tutorialStep === 1 ? "Collect Candy" : "Enjoy the event"}</h2><p className="mt-3 leading-6 text-orange-100/80">{tutorialStep === 0 ? "This event runs from October 2 through October 23." : tutorialStep === 1 ? "Open packs, claim your Daily Crate, and complete trades to earn Candy." : "Keep playing during the event to collect Candy."}</p><div className="mt-6 flex justify-between gap-3">{tutorialStep > 0 ? <button onClick={() => setTutorialStep((step) => step - 1)} className="rounded-xl border border-orange-200/40 px-4 py-3 font-black text-orange-100">Back</button> : <span />}{tutorialStep < 2 ? <button onClick={() => setTutorialStep((step) => step + 1)} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Next</button> : <button onClick={finishTutorial} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Enter event</button>}</div></section></div>}
     </div>
   );
 }

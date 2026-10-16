@@ -53,7 +53,9 @@ Apply `supabase/migrations/0018_refreshed_bread_bag.sql` to register the refresh
 
 Apply `supabase/migrations/0019_replace_legacy_bread_inventory.sql` after migration 0018 to exchange owned Burnt Toast, Brioche, and Donut Bread Bag items for Toaster, Croissant, and Cinnamon Roll at the same rarity. Active marketplace listings for those items are converted too.
 
-Configure `SUPABASE_SERVICE_ROLE_KEY` on the server only; never expose it through a `NEXT_PUBLIC_` variable. Signed-in pack and crate rewards are generated server-side, with row locks, revision checks, ownership validation, and UTC daily limits. Ordinary profile saves cannot change tokens, Candy, materials, badges, or inventory. Guest mode remains browser-local and does not affect rankings.
+Apply `supabase/migrations/0020_add_lost_found_and_combat_blooks.sql` after the Bread Bag migrations to add Wallet and Sword to their reward pools and update the supplied Rock and Candy Corn artwork.
+
+Configure `SUPABASE_SERVICE_ROLE_KEY` on the server only; never expose it through a `NEXT_PUBLIC_` variable. Signed-in pack and crate rewards are generated server-side, with row locks, revision checks, ownership validation, and UTC daily limits. Ordinary profile saves cannot change tokens, Candy, materials, badges, or inventory. Guest mode remains browser-local.
 
 Admin and reward-review access require existing `admin_roles` entries. Publicly shipped codes no longer grant privileges. Audit existing admin roles and old balances separately; these protections do not automatically revoke previously granted roles or reverse past exploitation.
 

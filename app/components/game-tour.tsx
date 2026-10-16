@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, Backpack, CircleUserRound, Gift, Hammer, Hand, MessageCircle, Package, ShoppingBag, Store, Trophy, Users, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Backpack, CircleUserRound, Gift, Hammer, Hand, MessageCircle, Package, ShoppingBag, Store, Users, X } from "lucide-react";
 
-export type TourTab = "profile" | "wheel" | "capsules" | "inventory" | "crafting" | "clan" | "market" | "chat" | "leaderboard" | "event";
+export type TourTab = "profile" | "wheel" | "capsules" | "inventory" | "crafting" | "clan" | "market" | "chat" | "event";
 
 const steps: { title: string; description: string; tab: TourTab; target?: TourTab; icon: typeof Hand }[] = [
   { title: "Welcome to Breadlet!", description: "Take a quick tour of your profile, Goodybags, collection, and the rest of Breadlet. You can skip at any time.", tab: "profile", icon: Hand },
@@ -16,8 +16,7 @@ const steps: { title: string; description: string; tab: TourTab; target?: TourTa
   { title: "Clans", description: "Find a clan to join or create your own. Donate tokens to its treasury and work together. You can leave a clan from its panel.", tab: "clan", target: "clan", icon: Users },
   { title: "Bazaar", description: "Browse player listings, buy Breadlets, or offer an owned Breadlet for sale. A listed item is reserved until it sells, so it cannot be spent twice.", tab: "market", target: "market", icon: ShoppingBag },
   { title: "Global Chat", description: "Talk to other players, reply to messages, and click a username to view their profile. The online-player control shows who is currently around.", tab: "chat", target: "chat", icon: MessageCircle },
-  { title: "Ranks", description: "Compare token balances and clan treasuries on the leaderboards. Clan images and equipped Breadlets appear alongside the rankings.", tab: "leaderboard", target: "leaderboard", icon: Trophy },
-  { title: "Contest of Spooky", description: "During the event, earn Candy by opening bags, claiming your Daily Crate, and completing trades. Check your Candy place here: the top 20 earn Skeleton Pirate, and the top 3 also earn Festive Skeleton Pirate.", tab: "event", target: "event", icon: Gift },
+  { title: "Contest of Spooky", description: "During the event, earn Candy by opening bags, claiming your Daily Crate, and completing trades.", tab: "event", target: "event", icon: Gift },
 ];
 
 export function GameTour({ onSelect, onClose }: { onSelect: (tab: TourTab) => void; onClose: () => void }) {

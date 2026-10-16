@@ -167,6 +167,7 @@ export const liveCapsules: Capsule[] = [
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
+      ["Wallet", "Uncommon"],
       ["Hat", "Uncommon"],
       ["Textbook", "Rare"],
       ["Tablet", "Legendary"],
@@ -213,6 +214,7 @@ export const liveCapsules: Capsule[] = [
       ["Olive Grenade", "Common"],
       ["The Bomb", "Uncommon"],
       ["Golden Grenade", "Rare"],
+      ["Sword", "Rare"],
       ["Shuriken", "Rare"],
       ["Nunchucks", "Epic"],
       ["Spartan", "Legendary"],

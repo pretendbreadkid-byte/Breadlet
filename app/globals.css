@@ -622,7 +622,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
   position: relative;
   min-width: 0;
   min-height: 0;
-  margin: 0 5%;
+  margin: 0 1%;
 }
 .teds-pack-open {
   position: absolute;
@@ -635,17 +635,17 @@ section button[class*="h-20"]:hover:not(:disabled) {
 }
 .teds-pack-art {
   position: absolute;
-  bottom: 8%;
+  bottom: 12%;
   left: 50%;
-  width: 67.5%;
+  width: 78%;
   height: 66%;
   object-fit: contain;
   object-position: bottom center;
   filter: drop-shadow(0 5px 3px #321b0c99);
-  transform: translate(-50%, -4%);
+  transform: translate(-50%, -7%);
   transition: filter 150ms ease, transform 150ms ease;
 }
-.teds-pack-open:hover .teds-pack-art { transform: translate(-50%, -7%) scale(1.04); }
+.teds-pack-open:hover .teds-pack-art { transform: translate(-50%, -10%) scale(1.04); }
 .teds-shelf-item.is-sold-out .teds-pack-art { filter: grayscale(.85) brightness(.58) drop-shadow(0 5px 3px #321b0c99); }
 .ted-secret-appearance {
   position: fixed;
@@ -667,7 +667,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
   .teds-shelf-scene { width: 100%; }
   .teds-shelf-content { padding-inline: 4%; }
   .teds-shelf-item { margin-inline: 1%; }
-  .teds-pack-art { width: 72%; height: 64.5%; }
+  .teds-pack-art { width: 84%; height: 64.5%; }
 }
 .guest-mode-banner { border: 1px solid #CC5500; background: #ED7117; color: #3B1F0E; }
 .guest-mode-banner button { color: #3B1F0E; }
