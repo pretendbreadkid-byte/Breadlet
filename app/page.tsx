@@ -2422,6 +2422,8 @@ function InventoryTab({
 
   const owned = (name: string) =>
     player.inventory.filter((item) => item === name).length;
+  const tedReward: Reward = { name: "Ted", rarity: "Unique", weight: 0, art: artFor("Ted") };
+  const tedQuantity = owned(tedReward.name);
 
   const catalog = [...liveCapsules, ...retiredCapsules].map((capsule) => {
     const shinyRewards = capsule.pool
@@ -2518,6 +2520,32 @@ function InventoryTab({
               </div>
             </section>
           ))}
+          <section className="rounded-3xl border border-fuchsia-400/35 bg-[#27213d]/80 p-5 shadow-md">
+            <div className="mb-4 flex items-center justify-between border-b border-fuchsia-300/20 pb-2">
+              <h2 className="text-xl font-black text-fuchsia-200">Secrets</h2>
+              <span className="text-xs font-bold uppercase tracking-widest text-fuchsia-200/70">Hidden Breadlets</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+              <button
+                type="button"
+                title={tedQuantity ? `Ted · Unique (x${tedQuantity})` : "Ted · Unique (Secret)"}
+                onClick={() => tedQuantity && setSelected(tedReward)}
+                className={`relative flex aspect-square flex-col items-center justify-center rounded-2xl p-2 transition ${tedQuantity ? "bg-fuchsia-950/40 hover:-translate-y-1" : "cursor-not-allowed bg-black/40 opacity-60"}`}
+              >
+                {tedQuantity ? (
+                  <RewardArt name={tedReward.name} art={tedReward.art || artFor(tedReward.name)} className={`h-full w-full ${rewardEffectClassFor(tedReward.name, tedReward.rarity)}`} />
+                ) : (
+                  <div className="relative flex h-full w-full items-center justify-center">
+                    <span className="h-full w-full rounded-xl bg-black/80" />
+                    <Lock size={16} className="absolute text-white/80" />
+                  </div>
+                )}
+                <span className="absolute bottom-1 left-1 rounded-md bg-fuchsia-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">Unique</span>
+                {tedQuantity > 0 && <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{tedQuantity}</span>}
+                {player.equipped === tedReward.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
+              </button>
+            </div>
+          </section>
           <section className="rounded-3xl border border-[#d9a9ff]/35 bg-[#27213d]/80 p-5 shadow-md">
             <div className="mb-4 flex items-center justify-between border-b border-[#d9a9ff]/20 pb-2">
               <h2 className="text-xl font-black text-[#ead4ff]">Crafted</h2>

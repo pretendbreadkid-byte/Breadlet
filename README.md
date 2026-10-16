@@ -47,6 +47,8 @@ The current server-backed slice includes Supabase Auth, profile bootstrap, RLS, 
 
 Apply `supabase/migrations/0015_secure_gameplay.sql` in the Supabase SQL Editor after the earlier migrations before using this release. It adds the Inventions catalog, protected gameplay transactions, marketplace escrow, atomic donations/promo rewards, and direct-write restrictions. Uninstalled protections fail closed with a setup error rather than trusting browser rewards.
 
+Apply `supabase/migrations/0017_ted_secret.sql` as well to enable the signed-in Ted secret click counter and grant Ted as a Unique inventory item. Without it, the secret claim endpoint cannot save the reward.
+
 Configure `SUPABASE_SERVICE_ROLE_KEY` on the server only; never expose it through a `NEXT_PUBLIC_` variable. Signed-in pack and crate rewards are generated server-side, with row locks, revision checks, ownership validation, and UTC daily limits. Ordinary profile saves cannot change tokens, Candy, materials, badges, or inventory. Guest mode remains browser-local and does not affect rankings.
 
 Admin and reward-review access require existing `admin_roles` entries. Publicly shipped codes no longer grant privileges. Audit existing admin roles and old balances separately; these protections do not automatically revoke previously granted roles or reverse past exploitation.
