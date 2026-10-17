@@ -30,10 +30,11 @@ h3,
 .breadlet-brand {
   font-family: "DynaPuff", Impact, sans-serif;
   font-weight: 700;
+  text-shadow: 0 1px 0 #13120F, 0 2px 7px #13120F88;
 }
 .breadlet-blue-theme .text-4xl,
 .breadlet-blue-theme .text-3xl,
-.breadlet-blue-theme .text-2xl { font-family: "DynaPuff", Impact, sans-serif; font-weight: 700; }
+.breadlet-blue-theme .text-2xl { font-family: "DynaPuff", Impact, sans-serif; font-weight: 700; text-shadow: 0 1px 0 #13120F, 0 2px 7px #13120F88; }
 
 .breadlet-blue-theme { 
   position: relative;
@@ -876,6 +877,7 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
 .global-chat > div:first-child { flex-shrink: 0; }
 .global-chat .chat-message-list { overflow-wrap: anywhere; }
 .global-chat .chat-online-panel { bottom: 6rem; }
+.chat-breadlet-fact { display: table; max-width: 100%; border: 1px solid #ff7568; border-radius: 8px; background: #a9231a; padding: 7px 10px; color: #FFFFFF; font-size: .9rem; font-weight: 800; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 2px 8px #13120F66; }
 @media (max-width: 767px) {
   main.breadlet-blue-theme > aside.breadlet-sidebar {
     border-right: 0 !important;
@@ -962,7 +964,10 @@ main.breadlet-blue-theme .clan-emblem {
   text-shadow: 0 3px 0 #a34400;
 }
 main.breadlet-blue-theme .clan-emblem img { width: 100%; height: 100%; object-fit: contain; }
+main.breadlet-blue-theme .clan-emblem-blook { border-radius: 0; background: transparent; text-shadow: none; }
+main.breadlet-blue-theme .clan-emblem img.clan-profile-blook { width: 92%; height: 92%; object-fit: contain; }
 main.breadlet-blue-theme .clan-name { overflow-wrap: anywhere; font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 950; line-height: 1; text-transform: uppercase; text-shadow: 0 3px 0 #a34400; }
+main.breadlet-blue-theme .clan-header-stats { display: flex; flex-wrap: wrap; gap: 12px; }
 main.breadlet-blue-theme .clan-meta { display: flex; align-items: center; gap: 7px; margin-top: 8px; color: #fff0dd !important; font-weight: 700; }
 main.breadlet-blue-theme .clan-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 main.breadlet-blue-theme .clan-action {
@@ -996,42 +1001,50 @@ main.breadlet-blue-theme .clan-workspace .clan-profile-content { padding: 18px 0
 main.breadlet-blue-theme .clan-workspace .clan-banner { height: clamp(130px, 24vw, 240px); border-radius: 14px; object-fit: cover; }
 main.breadlet-blue-theme .clan-workspace .clan-members-heading { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 main.breadlet-blue-theme .clan-workspace .clan-members-heading > span { color: #fff0dd !important; font-size: .85rem; font-weight: 800; }
-main.breadlet-blue-theme .clan-workspace .clan-member-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+main.breadlet-blue-theme .clan-workspace .clan-member-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 main.breadlet-blue-theme .clan-workspace .clan-member-card {
   display: flex;
   min-width: 0;
-  min-height: 100px;
+  min-height: 132px;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 7px;
   border: 2px solid #CC5500;
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 10px 8px;
   background: #E77D22;
   box-shadow: 0 3px 0 #a8490d;
 }
 main.breadlet-blue-theme .clan-workspace .clan-member-avatar {
   display: grid;
-  width: 48px;
-  height: 48px;
+  width: 62px;
+  height: 62px;
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  border-radius: 10px;
-  background: #CC5500;
+  border: 2px solid #13120F;
+  border-radius: 9px;
+  background: #27251F;
   color: #FFFFFF;
   font-size: 1.25rem;
   font-weight: 900;
 }
-main.breadlet-blue-theme .clan-workspace .clan-member-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 4px; }
-main.breadlet-blue-theme .clan-workspace .clan-member-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+main.breadlet-blue-theme .clan-workspace .clan-member-copy { display: flex; width: 100%; min-width: 0; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
+main.breadlet-blue-theme .clan-workspace .clan-member-copy strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 main.breadlet-blue-theme .clan-workspace .clan-member-role,
-main.breadlet-blue-theme .clan-workspace .clan-member-contribution { display: flex; align-items: center; gap: 5px; color: #fff0dd !important; font-size: .8rem; }
-@media (max-width: 900px) { main.breadlet-blue-theme .clan-workspace .clan-member-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+main.breadlet-blue-theme .clan-workspace .clan-member-contribution { display: flex; align-items: center; justify-content: center; gap: 5px; color: #fff0dd !important; font-size: .78rem; }
+main.breadlet-blue-theme .clan-workspace .clan-member-role { font-size: .7rem; }
+main.breadlet-blue-theme .clan-workspace .clan-profile-blook-banner { display: grid; place-items: center; }
+main.breadlet-blue-theme .clan-workspace .clan-profile-blook-banner img { width: 116px; height: 116px; object-fit: contain; }
+main.breadlet-blue-theme .clan-workspace .clan-blook-picker { scrollbar-color: #ED7117 #27251F; }
+main.breadlet-blue-theme .clan-workspace .clan-blook-choice { border-color: #514d43; background: #22211c; color: #FFFFFF; }
+main.breadlet-blue-theme .clan-workspace .clan-blook-choice:hover { border-color: #ED7117; background: #343129; }
+main.breadlet-blue-theme .clan-workspace .clan-blook-choice-selected { border-color: #ED7117; background: #4b2b1b; box-shadow: 0 0 0 2px #ED711755; }
+@media (max-width: 560px) { main.breadlet-blue-theme .clan-workspace .clan-member-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) {
   main.breadlet-blue-theme .clan-header { align-items: stretch; }
   main.breadlet-blue-theme .clan-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   main.breadlet-blue-theme .clan-action { padding-inline: 8px; font-size: .83rem; }
-  main.breadlet-blue-theme .clan-workspace .clan-member-grid { grid-template-columns: 1fr; }
 }
 main.breadlet-blue-theme .clan-workspace .clan-panel,
 main.breadlet-blue-theme .clan-workspace .clan-profile,

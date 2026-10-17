@@ -21,7 +21,7 @@ export async function GET() {
   // Get the chat messages first.
   let { data, error } = await database
     .from('global_chat_messages')
-    .select('id, message, created_at, profile_id, reply_to_message_id')
+    .select('id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(100);
@@ -42,7 +42,7 @@ export async function GET() {
 
     const plain = await database
       .from('global_chat_messages')
-      .select('id, message, created_at, profile_id, reply_to_message_id')
+      .select('id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot')
       .order('created_at', { ascending: false })
       .limit(100);
 
@@ -131,7 +131,7 @@ export async function GET() {
   if (replyIds.length > 0) {
     const replyResult = await database
       .from('global_chat_messages')
-      .select('id, message, profile_id')
+      .select('id, message, profile_id, is_breadlet_bot')
       .in('id', replyIds);
 
     if (!replyResult.error && replyResult.data) {
@@ -174,8 +174,9 @@ export async function GET() {
         id: row.id,
         message: row.message,
         user:
-          replyUsernameMap.get(row.profile_id) ||
-          'Player'
+          row.is_breadlet_bot
+            ? 'Breadlet'
+            : replyUsernameMap.get(row.profile_id) || 'Player'
       }
     ])
   );
@@ -184,9 +185,10 @@ export async function GET() {
   const normalized = messages.map((row: any) => {
     const profile = profileMap.get(row.profile_id);
 
-    const username =
-      profile?.username ||
-      'Player';
+    const isBreadletBot = row.is_breadlet_bot === true;
+    const username = isBreadletBot
+      ? 'Breadlet'
+      : profile?.username || 'Player';
 
     const tokens = Number(
       profile?.tokens || 0
@@ -212,7 +214,7 @@ export async function GET() {
 
     let equippedBlook = '';
 
-    if (profile?.equipped_blook_id) {
+    if (!isBreadletBot && profile?.equipped_blook_id) {
       const blookName =
         blookMap.get(
           profile.equipped_blook_id
@@ -239,7 +241,8 @@ export async function GET() {
 
       user: username,
       equippedBlook,
-      badges,
+      badges: isBreadletBot ? [] : badges,
+      isBreadletBot,
 
       profiles: {
         username
@@ -325,7 +328,7 @@ export async function POST(request: Request) {
       await database
         .from('global_chat_messages')
         .select(
-          'id, message, profile_id'
+          'id, message, profile_id, is_breadlet_bot'
         )
         .eq(
           'id',
@@ -343,22 +346,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: targetProfile } =
-      await database
-        .from('profiles')
-        .select('username')
-        .eq(
-          'id',
-          target.profile_id
-        )
-        .maybeSingle();
+    const { data: targetProfile } = target.is_breadlet_bot
+      ? { data: null }
+      : await database
+          .from('profiles')
+          .select('username')
+          .eq('id', target.profile_id)
+          .maybeSingle();
 
     replyTo = {
       id: target.id,
       message: target.message,
-      user:
-        targetProfile?.username ||
-        'Player'
+      user: target.is_breadlet_bot
+        ? 'Breadlet'
+        : targetProfile?.username || 'Player'
     };
   }
 
@@ -377,7 +378,7 @@ export async function POST(request: Request) {
           replyToMessageId
       })
       .select(
-        'id, message, created_at, profile_id, reply_to_message_id'
+        'id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot'
       )
       .maybeSingle();
 
@@ -421,7 +422,8 @@ export async function POST(request: Request) {
     user: username,
     profiles: {
       username
-    }
+    },
+    isBreadletBot: data?.is_breadlet_bot === true,
   };
 
   console.log(

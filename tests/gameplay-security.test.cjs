@@ -259,6 +259,7 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
       create table mine_progress(id uuid primary key default gen_random_uuid(), profile_id uuid);
       create table clans(id uuid primary key default gen_random_uuid(), name text not null default ('Clan-' || gen_random_uuid()::text), description text, tags text[] not null default '{}', owner_profile_id uuid, treasury integer default 0, member_count integer default 1, thumbnail_url text, created_at timestamptz not null default now());
       create table clan_members(id uuid primary key default gen_random_uuid(), profile_id uuid, clan_id uuid, role text default 'member', token_contributions integer default 0, joined_at timestamptz not null default now());
+      create table global_chat_messages(id uuid primary key default gen_random_uuid(), profile_id uuid references profiles(id), message text not null, reply_to_message_id uuid, created_at timestamptz not null default now(), deleted_at timestamptz);
       create table trades(id uuid primary key default gen_random_uuid(), sender_profile_id uuid, receiver_profile_id uuid, status text);
       create function save_player_inventory(jsonb) returns void language plpgsql as $$begin return; end$$;
       grant all on profiles, inventory, mine_progress, marketplace_listings to authenticated;
@@ -305,6 +306,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const revisedRewardArtMigration = fs.readFileSync('supabase/migrations/0030_sword_and_sprinkle_bread_artwork.sql', 'utf8');
     await database.exec(revisedRewardArtMigration);
     await database.exec(revisedRewardArtMigration);
+    const clanBlookAndChatBotMigration = fs.readFileSync('supabase/migrations/0031_clan_blook_profiles_and_chat_bot.sql', 'utf8');
+    await database.exec(clanBlookAndChatBotMigration);
+    await database.exec(clanBlookAndChatBotMigration);
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
@@ -359,6 +363,34 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const buyer = '00000000-0000-0000-0000-000000000001';
     const seller = '00000000-0000-0000-0000-000000000002';
     await database.query('insert into profiles(id,tokens) values($1,1000),($2,1000)', [buyer, seller]);
+    const clanCreator = '00000000-0000-0000-0000-000000000003';
+    await database.query('insert into profiles(id,tokens) values($1,10000)', [clanCreator]);
+    await database.query("select set_config('request.jwt.claim.sub',$1,false)", [clanCreator]);
+    await assert.rejects(
+      () => database.query("select create_clan_with_cost('Test Clan','','{}',null,'Not a Blook')"),
+      /Choose a valid Blook/i,
+    );
+    await database.query("select create_clan_with_cost('Avatar Test Clan','','{}',null,'Old Transcendent')");
+    assert.equal((await database.query("select profile_blook from clans where name='Avatar Test Clan'")).rows[0].profile_blook, 'Old Transcendent');
+    await database.query("select set_config('request.jwt.claim.sub','',false)");
+
+    await database.query(
+      "insert into global_chat_messages(profile_id,message,is_breadlet_bot) select $1,'human message ' || n,true from generate_series(1,20) n",
+      [buyer],
+    );
+    assert.equal((await database.query('select count(*)::integer as total from global_chat_messages')).rows[0].total, 21);
+    assert.equal((await database.query('select count(*)::integer as total from global_chat_messages where is_breadlet_bot')).rows[0].total, 1);
+    assert.equal((await database.query('select human_message_count from global_chat_bot_cadence where id=1')).rows[0].human_message_count, 20);
+    const firstBot = (await database.query('select message, created_at from global_chat_messages where is_breadlet_bot')).rows[0];
+    const lastHuman = (await database.query('select max(created_at) as created_at from global_chat_messages where not is_breadlet_bot')).rows[0];
+    assert.ok(firstBot.message.length > 0);
+    assert.ok(new Date(firstBot.created_at) > new Date(lastHuman.created_at), 'the fact appears after the twentieth player message');
+    await database.query(
+      "insert into global_chat_messages(profile_id,message) select $1,'next human message ' || n from generate_series(1,20) n",
+      [buyer],
+    );
+    assert.equal((await database.query('select count(*)::integer as total from global_chat_messages where is_breadlet_bot')).rows[0].total, 2);
+    assert.equal((await database.query('select human_message_count from global_chat_bot_cadence where id=1')).rows[0].human_message_count, 40);
     const legacyBreadIds = (await database.query("select name,id from blooks where name in ('Burnt Toast','Brioche','Donut')")).rows;
     const legacyBread = Object.fromEntries(legacyBreadIds.map(({ name, id }) => [name, id]));
     const toasterId = (await database.query("select id from blooks where name='Toaster'")).rows[0].id;

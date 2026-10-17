@@ -8,14 +8,17 @@ export async function GET() {
   const supabase = await createClient();
   if (!supabase) return NextResponse.json({ error: 'Clan service is not configured.' }, { status: 503 });
   const { data: { user } } = await supabase.auth.getUser();
+  const catalog = createAdminClient() || supabase;
 
-  const [{ data: clans, error: clansErr }, { data: membership, error: membershipError }] = await Promise.all([
-    supabase.from('clans').select('id, name, description, tags, treasury, member_count, member_capacity, owner_profile_id, thumbnail_url, banner_unlocked, banner_data, name_change_unlocked, colors_unlocked, theme, animated_profiles, created_at').order('treasury', { ascending: false }),
+  const [{ data: clans, error: clansErr }, { data: membership, error: membershipError }, { data: blooks, error: blooksError }] = await Promise.all([
+    supabase.from('clans').select('id, name, description, tags, treasury, member_count, member_capacity, owner_profile_id, thumbnail_url, profile_blook, banner_unlocked, banner_data, name_change_unlocked, colors_unlocked, theme, animated_profiles, created_at').order('treasury', { ascending: false }),
     user ? supabase.from('clan_members').select('clan_id, role, token_contributions').eq('profile_id', user.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    catalog.from('blooks').select('name, rarity, artwork_key').order('name', { ascending: true }),
   ]);
 
   if (clansErr) return NextResponse.json({ error: clansErr.message }, { status: 500 });
   if (membershipError) return NextResponse.json({ error: membershipError.message }, { status: 500 });
+  if (blooksError) return NextResponse.json({ error: blooksError.message }, { status: 500 });
 
   let requests: { id: string; clan_id: string; profile_id: string; username: string; created_at: string }[] = [];
   let myRequests: { id: string; clan_id: string; status: string }[] = [];
@@ -75,7 +78,7 @@ export async function GET() {
     }));
     myRequests = myRequestResult.data || [];
   }
-  return NextResponse.json({ clans: clans || [], membership: membership || null, members, requests, myRequests });
+  return NextResponse.json({ clans: clans || [], blooks: blooks || [], membership: membership || null, members, requests, myRequests });
 }
 
 export async function POST(request: Request) {
@@ -89,14 +92,21 @@ export async function POST(request: Request) {
   const description = String(body.description || '').trim().slice(0, 200);
   const tags = Array.isArray(body.tags) ? body.tags.map((t: string) => String(t).trim()).filter(Boolean).slice(0, 3) : [];
   const thumbnailUrl = String(body.thumbnailUrl || '').trim().slice(0, 2_000_000);
+  const profileBlook = String(body.profileBlook || '').trim();
 
   if (!name || name.length < 2) return NextResponse.json({ error: 'Clan name must be at least 2 characters.' }, { status: 400 });
+  if (!profileBlook) return NextResponse.json({ error: 'Choose a Blook for your clan profile.' }, { status: 400 });
+  const catalog = createAdminClient() || supabase;
+  const { data: selectedBlook, error: blookError } = await catalog.from('blooks').select('name').eq('name', profileBlook).maybeSingle();
+  if (blookError) return NextResponse.json({ error: blookError.message }, { status: 500 });
+  if (!selectedBlook) return NextResponse.json({ error: 'Choose a valid Blook for your clan profile.' }, { status: 400 });
 
   const { data, error } = await supabase.rpc('create_clan_with_cost', {
     p_name: name,
     p_description: description,
     p_tags: tags,
     p_thumbnail_url: thumbnailUrl || null,
+    p_profile_blook: profileBlook,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json(data, { status: 201 });

@@ -96,6 +96,7 @@ type ClanRecord = {
   members: number;
   treasury: number;
   thumbnailUrl?: string;
+  profileBlook?: string;
   bannerData?: string;
   ownerProfileId?: string;
   role?: string;
@@ -267,6 +268,11 @@ const artFor = (name: string) =>
     "The Bomb": "/assets/Lost and found + food pack/bomb.svg",
     Nunchucks: "/assets/Lost and found + food pack/nunchucks (rplacemnt for sheild..svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
+const artForBlook = (name: string, artworkKey?: string) => {
+  const mappedArt = artFor(name);
+  if (mappedArt !== "/assets/Bread.svg" || !artworkKey) return mappedArt;
+  return `/assets/${artworkKey.split("/").map(encodeURIComponent).join("/")}`;
+};
 const pickleFrames = [1, 2, 4, 5, 6, 7, 8, 9, 10].map(
   (n) => `/assets/Lost and found + food pack/pickel frame ${n}.svg`,
 );
@@ -3443,7 +3449,7 @@ function SimplePanel({
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
@@ -3479,6 +3485,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 user: username,
                 text: row.message,
                 equippedBlook: row.equippedBlook || "",
+                isBreadletBot: row.isBreadletBot === true,
                 replyTo: row.replyTo || null,
                 badges: row.badges || (username === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : []),
               };
@@ -3536,7 +3543,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
             if (data.id && current.some((m) => m.id === data.id)) return current;
             return [
               ...current,
-                    { id: data.id, user: username, text: data.message || textToSend, equippedBlook: player.equipped, replyTo: data.replyTo || reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) },
+                    { id: data.id, user: username, text: data.message || textToSend, equippedBlook: player.equipped, isBreadletBot: false, replyTo: data.replyTo || reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) },
             ];
           });
                   setReplyTarget(null);
@@ -3579,7 +3586,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     e.target.value = "";
   };
 
-  const renderMessageContent = (text: string) => {
+  const renderMessageContent = (text: string, isBreadletBot = false) => {
     if (text.startsWith("[img]") && text.endsWith("[/img]")) {
       const src = text.slice(5, -6);
       return (
@@ -3590,7 +3597,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         />
       );
     }
-    return <p className="text-sm text-[#d7b88c] whitespace-pre-wrap break-words">{text}</p>;
+    return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{text}</p>;
   };
 
   return (
@@ -3609,12 +3616,12 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       <div className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         {messages.map((item, index) => (
           <div id={`chat-message-${String(item.id ?? `local-${item.user}-${index}`)}`} key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
-            <button onClick={() => void openPlayerProfile(item.user)} aria-label={`Open ${item.user}'s profile`} title={`View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden">
-              {item.equippedBlook || (item.user === player.username && player.equipped) ? <RewardArt name={item.equippedBlook || player.equipped} art={artFor(item.equippedBlook || player.equipped)} className="h-full w-full" /> : <CircleUserRound size={30} />}
+            <button disabled={item.isBreadletBot} onClick={() => !item.isBreadletBot && void openPlayerProfile(item.user)} aria-label={item.isBreadletBot ? "Breadlet chat bot" : `Open ${item.user}'s profile`} title={item.isBreadletBot ? "Breadlet" : `View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden disabled:cursor-default">
+              {item.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : item.equippedBlook || (item.user === player.username && player.equipped) ? <RewardArt name={item.equippedBlook || player.equipped} art={artFor(item.equippedBlook || player.equipped)} className="h-full w-full" /> : <CircleUserRound size={30} />}
             </button>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 font-black">
-                <button onClick={() => void openPlayerProfile(item.user)} className="hover:underline">{item.user}</button>
+                <button disabled={item.isBreadletBot} onClick={() => !item.isBreadletBot && void openPlayerProfile(item.user)} className="hover:underline disabled:cursor-default disabled:no-underline">{item.user}</button>
                 {(item.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : item.badges || []).map((badge) => (
                   <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
                     <img
@@ -3626,7 +3633,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 ))}
               </div>
               {item.replyTo && <button onClick={() => document.getElementById(`chat-message-${String(item.replyTo?.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-1 block max-w-md truncate rounded-md border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-left text-xs text-sky-100">↳ {item.replyTo.user}: {item.replyTo.message}</button>}
-              {renderMessageContent(item.text)}
+              {renderMessageContent(item.text, item.isBreadletBot)}
               {(item.id != null || isGuest) && <button onClick={() => setReplyTarget({ id: item.id ?? `local-${item.user}-${index}`, user: item.user, message: item.text })} className="mt-1 text-xs font-bold text-sky-300 hover:text-white">Reply</button>}
             </div>
           </div>
@@ -4348,8 +4355,10 @@ function ClanTab({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [profileBlook, setProfileBlook] = useState("");
+  const [blookSearch, setBlookSearch] = useState("");
+  const [availableBlooks, setAvailableBlooks] = useState<{ name: string; rarity: string; artworkKey?: string }[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [createError, setCreateError] = useState("");
   const [clan, setClanState] = useState<ClanRecord | null>(null);
@@ -4370,6 +4379,7 @@ function ClanTab({
     members: Number(entry.member_count) || 1,
     treasury: Number(entry.treasury) || 0,
     thumbnailUrl: typeof entry.thumbnail_url === "string" ? entry.thumbnail_url : "",
+    profileBlook: typeof entry.profile_blook === "string" ? entry.profile_blook : "",
     bannerData: typeof entry.banner_data === "string" ? entry.banner_data : "",
     ownerProfileId: typeof entry.owner_profile_id === "string" ? entry.owner_profile_id : undefined,
     role: typeof entry.role === "string" ? entry.role : undefined,
@@ -4387,6 +4397,13 @@ function ClanTab({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Clans could not be loaded.");
       if (!Array.isArray(data.clans)) throw new Error("The clan service returned an invalid list.");
+      setAvailableBlooks(Array.isArray(data.blooks) ? data.blooks.filter((blook: Record<string, unknown>) =>
+        typeof blook.name === "string" && typeof blook.rarity === "string",
+      ).map((blook: Record<string, unknown>) => ({
+        name: String(blook.name),
+        rarity: String(blook.rarity),
+        artworkKey: typeof blook.artwork_key === "string" ? blook.artwork_key : undefined,
+      })) : []);
       const joinedClanId = String(data.membership?.clan_id || "");
       const list = data.clans.map((entry: Record<string, unknown>) => toClanRecord({
         ...entry,
@@ -4429,6 +4446,8 @@ function ClanTab({
   const allClans = dbClans;
 
   const clans = allClans.filter((item) => !filter || item.tags.some((tag) => tag.toLowerCase().includes(filter.toLowerCase())) || item.name.toLowerCase().includes(filter.toLowerCase()));
+  const clanBlookArt = (name: string) => artForBlook(name, availableBlooks.find((blook) => blook.name === name)?.artworkKey);
+  const selectableBlooks = availableBlooks.filter((blook) => blook.name.toLowerCase().includes(blookSearch.trim().toLowerCase()));
   const isOwner = Boolean(clan?.id && player.id && clan.ownerProfileId === player.id);
   const pendingByClan = new Map(myRequests.filter((request) => request.status === "pending").map((request) => [request.clanId, request.id]));
   const themeNames: Record<string, string> = { breadlet: "Breadlet", ocean: "Ocean", sunset: "Sunset", forest: "Forest", royal: "Royal", ember: "Ember" };
@@ -4436,13 +4455,17 @@ function ClanTab({
   const handleCreateClan = async () => {
     setCreateError("");
     if (!name.trim() || tags.length > 3) return;
+    if (!availableBlooks.some((blook) => blook.name === profileBlook)) {
+      setCreateError("Choose a Blook for your clan profile.");
+      return;
+    }
     if (!isGuest && player.tokens < 5000) {
       setCreateError("Creating a clan requires 5,000 tokens.");
       return;
     }
     if (isGuest) {
       setClanState({
-        name, description, tags, members: 1, treasury: 0, thumbnailUrl,
+        name, description, tags, members: 1, treasury: 0, profileBlook,
         memberCapacity: 25, nameChangeUnlocked: false, bannerUnlocked: false,
         colorsUnlocked: false, theme: "breadlet", animatedProfiles: false,
       });
@@ -4455,7 +4478,7 @@ function ClanTab({
       const res = await fetch("/api/clans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), description: description.trim(), tags, thumbnailUrl }),
+        body: JSON.stringify({ name: name.trim(), description: description.trim(), tags, profileBlook }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -4655,13 +4678,17 @@ function ClanTab({
       {clan ? (
         <div className="clan-header">
           <div className="clan-identity">
-            <span className="clan-emblem">
-              {clan.thumbnailUrl ? <img src={clan.thumbnailUrl} alt="" /> : <span aria-hidden="true">{clan.name.slice(0, 1).toUpperCase()}</span>}
+            <span className={`clan-emblem ${clan.profileBlook ? "clan-emblem-blook" : ""}`}>
+              {clan.profileBlook
+                ? <img src={clanBlookArt(clan.profileBlook)} alt={`${clan.profileBlook} clan profile`} className="clan-profile-blook" />
+                : clan.thumbnailUrl ? <img src={clan.thumbnailUrl} alt="" /> : <span aria-hidden="true">{clan.name.slice(0, 1).toUpperCase()}</span>}
             </span>
             <div className="min-w-0">
               <h1 className="clan-name">{clan.name}</h1>
-              <p className="clan-meta"><Users size={16} />{clan.members}/{clan.memberCapacity} members</p>
-              <p className="clan-meta"><Wallet size={16} />{clan.treasury.toLocaleString()} tokens</p>
+              <div className="clan-header-stats">
+                <span className="clan-meta"><Users size={16} />{clan.members}/{clan.memberCapacity} members</span>
+                <span className="clan-meta"><Wallet size={16} />{clan.treasury.toLocaleString()} tokens</span>
+              </div>
             </div>
           </div>
           <div className="clan-actions">
@@ -4682,7 +4709,42 @@ function ClanTab({
         </div>
       )}
 
-      {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm"><div className="clan-panel w-full max-w-lg rounded-3xl border p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button type="button" onClick={() => setShowCreate(false)} className="clan-text-muted">Close</button></div><label className="clan-input mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span>Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onerror = () => setCreateError("The image could not be read."); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="clan-input rounded-xl border px-3 py-3" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="clan-input rounded-xl border px-3 py-3" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="clan-input rounded-xl border px-3 py-3" /></div><button type="button" onClick={handleCreateClan} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-3 font-black">Create clan</button></div></div>}
+      {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm">
+        <div className="clan-panel w-full max-w-2xl rounded-3xl border p-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-black">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2>
+            <button type="button" onClick={() => setShowCreate(false)} className="clan-text-muted">Close</button>
+          </div>
+          <label className="clan-text-muted mt-4 block text-sm font-bold" htmlFor="clan-profile-blook-search">Choose any Blook as your clan profile</label>
+          <input
+            id="clan-profile-blook-search"
+            value={blookSearch}
+            onChange={(event) => setBlookSearch(event.target.value)}
+            placeholder="Search Blooks"
+            className="clan-input mt-2 w-full rounded-xl border px-3 py-3"
+          />
+          {availableBlooks.length ? <div className="clan-blook-picker mt-3 grid max-h-64 grid-cols-3 gap-2 overflow-y-auto p-1 sm:grid-cols-4">
+            {selectableBlooks.map((blook) => <button
+              key={blook.name}
+              type="button"
+              aria-pressed={profileBlook === blook.name}
+              onClick={() => setProfileBlook(blook.name)}
+              className={`clan-blook-choice flex min-w-0 flex-col items-center rounded-xl border p-2 text-center ${profileBlook === blook.name ? "clan-blook-choice-selected" : ""}`}
+            >
+              <img src={artForBlook(blook.name, blook.artworkKey)} alt="" className="h-14 w-14 object-contain" />
+              <span className="mt-1 w-full truncate text-xs font-black">{blook.name}</span>
+              <span className="clan-text-muted text-[10px]">{blook.rarity}</span>
+            </button>)}
+            {!selectableBlooks.length && <p className="clan-text-muted col-span-full py-6 text-center text-sm">No Blooks match that search.</p>}
+          </div> : <p className="clan-text-muted mt-3 rounded-xl border border-white/10 p-4 text-sm">Loading the Blook collection…</p>}
+          <div className="mt-4 grid gap-3">
+            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="clan-input rounded-xl border px-3 py-3" />
+            <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="clan-input rounded-xl border px-3 py-3" />
+            <input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="clan-input rounded-xl border px-3 py-3" />
+          </div>
+          <button type="button" disabled={!profileBlook || !availableBlooks.some((blook) => blook.name === profileBlook)} onClick={handleCreateClan} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-3 font-black disabled:cursor-not-allowed disabled:opacity-45">Create clan</button>
+        </div>
+      </div>}
 
       {clan && (
         <section className={`clan-profile clan-theme-${clan.theme} ${clan.animatedProfiles ? "clan-profile-animated" : ""}`}>
@@ -4695,12 +4757,12 @@ function ClanTab({
               {clanMembers.map((member) => (
                 <article key={member.profileId || member.username} className="clan-member-card">
                   <span className="clan-member-avatar">
-                    {member.equippedBlook ? <RewardArt name={member.equippedBlook} art={artFor(member.equippedBlook)} className="h-12 w-12" /> : <span aria-hidden="true">{member.username.slice(0, 1).toUpperCase()}</span>}
+                    {member.equippedBlook ? <img src={clanBlookArt(member.equippedBlook)} alt="" className="h-12 w-12 object-contain" /> : <span aria-hidden="true">{member.username.slice(0, 1).toUpperCase()}</span>}
                   </span>
                   <div className="clan-member-copy">
+                    <span className="clan-member-contribution">Contributed ({member.tokenContributions.toLocaleString()})</span>
                     <strong>{member.username}</strong>
                     <span className="clan-member-role">{member.role === "leader" ? <><Crown size={14} /> Leader</> : member.role === "admin" ? "Admin" : "Member"}</span>
-                    <span className="clan-member-contribution"><Wallet size={14} />Contributed {member.tokenContributions.toLocaleString()}</span>
                   </div>
                 </article>
               ))}
@@ -4736,7 +4798,7 @@ function ClanTab({
         const ownClan = membershipClanId === item.id;
         const theme = item.colorsUnlocked ? item.theme : "breadlet";
         return <article key={item.id || item.name} className={`clan-discover-card clan-theme-${theme} overflow-hidden rounded-2xl border ${item.animatedProfiles ? "clan-profile-animated" : ""}`}>
-          {item.bannerData ? <img src={item.bannerData} alt={`${item.name} clan banner`} className="clan-discover-banner" /> : item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="clan-discover-banner" /> : <div className="clan-discover-banner clan-banner-placeholder"><Users size={30} /></div>}
+          {item.bannerData ? <img src={item.bannerData} alt={`${item.name} clan banner`} className="clan-discover-banner" /> : item.profileBlook ? <div className="clan-discover-banner clan-profile-blook-banner"><img src={clanBlookArt(item.profileBlook)} alt={`${item.profileBlook} clan profile`} /></div> : item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="clan-discover-banner" /> : <div className="clan-discover-banner clan-banner-placeholder"><Users size={30} /></div>}
           <div className="p-4"><div className="flex items-start justify-between gap-2"><h3 className="break-words text-xl font-black">{item.name}</h3><span className="clan-stats shrink-0 rounded-full px-2.5 py-1 text-xs font-bold">{item.members}/{item.memberCapacity}</span></div><p className="clan-text-muted mt-2 text-sm leading-5">{item.description || "A Breadlet community."}</p><div className="mt-3 flex flex-wrap gap-1.5">{item.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-2.5 py-1 text-xs">#{tag}</span>)}</div><p className="clan-text-muted mt-3 text-xs">{item.treasury.toLocaleString()} treasury tokens · {themeNames[theme]} colors</p><button type="button" disabled={isGuest || ownClan || pending || full || Boolean(membershipClanId)} onClick={() => void handleRequestClan(item)} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{ownClan ? "Your clan" : pending ? "Request pending" : full ? "Clan full" : membershipClanId ? "Leave your clan before requesting" : isGuest ? "Sign in to request" : "Request to join"}</button></div>
         </article>;
       }) : <p className="col-span-full py-10 text-center clan-text-muted">No clans match that search.</p>}</div></section>}
