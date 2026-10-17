@@ -36,6 +36,8 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   const space = catalog.liveCapsules.find((pack) => pack.name === 'Space Bag');
   assert.equal(space.pool.find((reward) => reward.name === 'Earth').art, '/assets/earth-globe.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').rarity, 'Rare');
+  assert.equal(space.pool.find((reward) => reward.name === 'Space Trooper').rarity, 'Uncommon');
+  assert.equal(space.pool.find((reward) => reward.name === 'Consolation').rarity, 'Uncommon');
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').art, '/assets/sun.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Eclipse').art, '/assets/solar%20ecplise%20but%20good.svg');
   const bread = catalog.liveCapsules.find((pack) => pack.name === 'Bread Bag');
@@ -58,7 +60,11 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(space.pool.find((reward) => reward.name === 'Star Ship').rarity, 'Breadled');
   assert.equal(catalog.chanceFor(space, space.pool.find((reward) => reward.name === 'Star Ship')), 0.005);
   assert.equal(combat.pool.find((reward) => reward.name === 'Sword').rarity, 'Rare');
-  assert.equal(artifact.pool.find((reward) => reward.name === 'Aztec Coin').art, '/assets/aztec-coin-updated.svg');
+  assert.equal(combat.pool.find((reward) => reward.name === 'Shuriken').rarity, 'Uncommon');
+  assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Food Bag').pool.find((reward) => reward.name === 'Avocado').rarity, 'Common');
+  assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag').pool.find((reward) => reward.name === 'Blooket Gods').rarity, 'Common');
+  assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Bread Bag').pool.find((reward) => reward.name === 'Robo Bread').rarity, 'Uncommon');
+  assert.equal(artifact.pool.find((reward) => reward.name === 'Aztec Coin').art, undefined);
   assert.equal(artifact.pool.find((reward) => reward.name === 'Clay Vase').art, '/assets/clay-vase.svg');
   for (const pack of [space, lostAndFound, artifact]) {
     for (const reward of pack.pool) {
@@ -224,6 +230,13 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const newPackArtMigration = fs.readFileSync('supabase/migrations/0022_new_pack_art_and_rewards.sql', 'utf8');
     await database.exec(newPackArtMigration);
     await database.exec(newPackArtMigration);
+    await database.query("insert into blooks(name,rarity) values ('Consolation','Rare'),('Avocado','Rare'),('Shuriken','Rare'),('Blooket Gods','Rare') on conflict(name) do update set rarity=excluded.rarity");
+    const rarityMigration = fs.readFileSync('supabase/migrations/0023_adjust_reward_rarities.sql', 'utf8');
+    await database.exec(rarityMigration);
+    await database.exec(rarityMigration);
+    const coinArtworkMigration = fs.readFileSync('supabase/migrations/0024_restore_aztec_coin_artwork.sql', 'utf8');
+    await database.exec(coinArtworkMigration);
+    await database.exec(coinArtworkMigration);
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
@@ -245,7 +258,10 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     );
     const updatedArtwork = (await database.query("select name, artwork_key from blooks where name in ('Aztec Coin','Earth','Coffee Mug','Clay Vase') order by name")).rows;
     assert.equal(updatedArtwork.map(({ name, artwork_key }) => `${name}:${artwork_key}`).join(','),
-      'Aztec Coin:aztec-coin-updated.svg,Clay Vase:clay-vase.svg,Coffee Mug:coffee-mug.svg,Earth:earth-globe.svg');
+      'Aztec Coin:Aztect Coin 2.0.svg,Clay Vase:clay-vase.svg,Coffee Mug:coffee-mug.svg,Earth:earth-globe.svg');
+    const adjustedRarities = (await database.query("select name, rarity from blooks where name in ('Space Trooper','Consolation','Avocado','Shuriken','Blooket Gods','Robo Bread') order by name")).rows;
+    assert.equal(adjustedRarities.map(({ name, rarity }) => `${name}:${rarity}`).join(','),
+      'Avocado:Common,Blooket Gods:Common,Consolation:Uncommon,Robo Bread:Uncommon,Shuriken:Uncommon,Space Trooper:Uncommon');
     assert.deepEqual(
       (await database.query("select pool from chests where name='Bread Bag'")).rows[0].pool.slice(-1),
       ['Golden Toaster'],
