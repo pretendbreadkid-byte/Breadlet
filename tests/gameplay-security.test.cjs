@@ -130,7 +130,8 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   ]) assert.ok(fs.existsSync(art), `${art} exists`);
   for (const [name, art] of [
     ['Wallet', '/assets/wallet.svg'],
-    ['Sword', '/assets/sword.svg'],
+    ['Sword', '/assets/sword way better.svg'],
+    ['Sprinkle Bread', '/assets/Sprinkle bread improved.svg'],
     ['Rock', '/assets/rock-refreshed.svg'],
     ['Candy Corn', '/assets/candy-corn-refreshed.svg'],
     ["Ted's Shop wordmark", '/assets/ted-shop-wordmark.svg'],
@@ -301,6 +302,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const clanAndBankMigration = fs.readFileSync('supabase/migrations/0029_clan_chapter_two_and_token_bank.sql', 'utf8');
     await database.exec(clanAndBankMigration);
     await database.exec(clanAndBankMigration);
+    const revisedRewardArtMigration = fs.readFileSync('supabase/migrations/0030_sword_and_sprinkle_bread_artwork.sql', 'utf8');
+    await database.exec(revisedRewardArtMigration);
+    await database.exec(revisedRewardArtMigration);
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
@@ -347,9 +351,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
       (await database.query("select pool from chests where name='Combat Bag'")).rows[0].pool,
       ['Olive Grenade', 'Sword'],
     );
-    const newRewardArt = (await database.query("select name, artwork_key from blooks where name in ('Wallet','Sword','Rock','Candy Corn') order by name")).rows;
+    const newRewardArt = (await database.query("select name, artwork_key from blooks where name in ('Wallet','Sword','Rock','Candy Corn','Sprinkle Bread') order by name")).rows;
     assert.equal(newRewardArt.map(({ name, artwork_key }) => `${name}:${artwork_key}`).join(','),
-      'Candy Corn:candy-corn-refreshed.svg,Rock:rock-refreshed.svg,Sword:sword.svg,Wallet:wallet.svg');
+      'Candy Corn:candy-corn-refreshed.svg,Rock:rock-refreshed.svg,Sprinkle Bread:Sprinkle bread improved.svg,Sword:sword way better.svg,Wallet:wallet.svg');
     assert.equal((await database.query("select count(*)::integer as total from chests where active and name in ('Human Bag','Pixel Bag','Remix Bag')")).rows[0].total, 0);
     await database.query("insert into blooks(name,rarity) values ('Burnt Toast','Common'),('Brioche','Common'),('Donut','Uncommon') on conflict(name) do nothing");
     const buyer = '00000000-0000-0000-0000-000000000001';

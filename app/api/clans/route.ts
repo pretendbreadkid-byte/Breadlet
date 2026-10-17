@@ -19,9 +19,38 @@ export async function GET() {
 
   let requests: { id: string; clan_id: string; profile_id: string; username: string; created_at: string }[] = [];
   let myRequests: { id: string; clan_id: string; status: string }[] = [];
+  let members: { profileId: string; username: string; role: string; tokenContributions: number; equippedBlook: string }[] = [];
   if (user) {
     const admin = createAdminClient();
     if (!admin) return NextResponse.json({ error: 'Clan request service is not configured.' }, { status: 503 });
+    if (membership?.clan_id) {
+      const { data: memberRows, error: memberError } = await admin.from('clan_members')
+        .select('profile_id, role, token_contributions')
+        .eq('clan_id', membership.clan_id);
+      if (memberError) return NextResponse.json({ error: memberError.message }, { status: 500 });
+      const memberIds = (memberRows || []).map((member) => member.profile_id);
+      const { data: memberProfiles, error: memberProfilesError } = memberIds.length
+        ? await admin.from('profiles').select('id, username, equipped_blook_id').in('id', memberIds)
+        : { data: [], error: null };
+      if (memberProfilesError) return NextResponse.json({ error: memberProfilesError.message }, { status: 500 });
+      const equippedIds = Array.from(new Set((memberProfiles || []).map((profile) => profile.equipped_blook_id).filter((id): id is string => Boolean(id))));
+      const { data: equippedBlooks, error: equippedBlooksError } = equippedIds.length
+        ? await admin.from('blooks').select('id, name').in('id', equippedIds)
+        : { data: [], error: null };
+      if (equippedBlooksError) return NextResponse.json({ error: equippedBlooksError.message }, { status: 500 });
+      const profileById = new Map((memberProfiles || []).map((profile) => [profile.id, profile]));
+      const blookNameById = new Map((equippedBlooks || []).map((blook) => [blook.id, blook.name]));
+      members = (memberRows || []).map((member) => {
+        const profile = profileById.get(member.profile_id);
+        return {
+          profileId: member.profile_id,
+          username: profile?.username || 'Player',
+          role: member.role,
+          tokenContributions: Number(member.token_contributions) || 0,
+          equippedBlook: profile?.equipped_blook_id ? blookNameById.get(profile.equipped_blook_id) || '' : '',
+        };
+      });
+    }
     const ownedClanIds = (clans || []).filter((clan) => clan.owner_profile_id === user.id).map((clan) => clan.id);
     const [requestResult, myRequestResult] = await Promise.all([
       ownedClanIds.length
@@ -46,7 +75,7 @@ export async function GET() {
     }));
     myRequests = myRequestResult.data || [];
   }
-  return NextResponse.json({ clans: clans || [], membership: membership || null, requests, myRequests });
+  return NextResponse.json({ clans: clans || [], membership: membership || null, members, requests, myRequests });
 }
 
 export async function POST(request: Request) {

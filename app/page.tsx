@@ -28,6 +28,8 @@ import {
   Package,
   Gift,
   Info,
+  Wallet,
+  Sparkles,
 } from "lucide-react";
 
 type Tab =
@@ -105,6 +107,7 @@ type ClanRecord = {
   animatedProfiles: boolean;
 };
 type ClanJoinRequest = { id: string; clanId: string; username: string; createdAt: string };
+type ClanMemberRecord = { profileId: string; username: string; role: string; tokenContributions: number; equippedBlook: string };
 
 const playerKey = "breadlet-player";
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
@@ -194,7 +197,7 @@ const artFor = (name: string) =>
     Spartan: "/assets/spartin  (1).svg",
     Solider: "/assets/solider.svg",
     "Gold Bread": "/assets/gold-bread-refreshed.svg",
-    Sword: "/assets/sword.svg",
+    Sword: "/assets/sword way better.svg",
     "Golden Toaster": "/assets/goldenToaster%20frame%201.svg",
     "Lost and Found Box": "/assets/Lost%20and%20found%20box%20frame%201.svg",
     "Stone Tablet": "/assets/Stone tablet (1).svg",
@@ -258,7 +261,7 @@ const artFor = (name: string) =>
     Egg: "/assets/Lost and found + food pack/egg.svg",
     "Candy Corn": "/assets/candy-corn-refreshed.svg",
     Caramel: "/assets/Lost and found + food pack/carmel.svg",
-    "Sprinkle Bread": "/assets/Lost and found + food pack/sprinkle bread .svg",
+    "Sprinkle Bread": "/assets/Sprinkle bread improved.svg",
     "Ice Cream": "/assets/Lost and found + food pack/ice cream .svg",
     Pickle: "/assets/Lost and found + food pack/pickel frame 1.svg",
     "The Bomb": "/assets/Lost and found + food pack/bomb.svg",
@@ -270,7 +273,7 @@ const pickleFrames = [1, 2, 4, 5, 6, 7, 8, 9, 10].map(
 function AnimatedArtFrame({ src, name, className }: { src: string; name: string; className: string }) {
   return (
     <span className={`relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
-      <img key={src} src={src} alt={name} className="reward-art-frame absolute inset-0 h-full w-full object-contain" />
+      <img src={src} alt={name} className="reward-art-frame absolute inset-0 h-full w-full object-contain" />
     </span>
   );
 }
@@ -4353,6 +4356,7 @@ function ClanTab({
   const [membershipClanId, setMembershipClanId] = useState("");
   const [filter, setFilter] = useState("");
   const [dbClans, setDbClans] = useState<ClanRecord[]>([]);
+  const [clanMembers, setClanMembers] = useState<ClanMemberRecord[]>([]);
   const [requests, setRequests] = useState<ClanJoinRequest[]>([]);
   const [myRequests, setMyRequests] = useState<{ id: string; clanId: string; status: string }[]>([]);
   const [discoverOpen, setDiscoverOpen] = useState(false);
@@ -4390,6 +4394,13 @@ function ClanTab({
       }));
       setDbClans(list);
       setMembershipClanId(joinedClanId);
+      setClanMembers(Array.isArray(data.members) ? data.members.map((member: Record<string, unknown>) => ({
+        profileId: String(member.profileId || ""),
+        username: String(member.username || "Player"),
+        role: String(member.role || "member"),
+        tokenContributions: Number(member.tokenContributions) || 0,
+        equippedBlook: typeof member.equippedBlook === "string" ? member.equippedBlook : "",
+      })) : []);
       setRequests(Array.isArray(data.requests) ? data.requests.map((request: Record<string, unknown>) => ({
         id: String(request.id),
         clanId: String(request.clan_id),
@@ -4435,6 +4446,7 @@ function ClanTab({
         memberCapacity: 25, nameChangeUnlocked: false, bannerUnlocked: false,
         colorsUnlocked: false, theme: "breadlet", animatedProfiles: false,
       });
+      setClanMembers([{ profileId: "guest", username: player.username, role: "leader", tokenContributions: 0, equippedBlook: player.equipped }]);
       setClan(name.slice(0, 5));
       setShowCreate(false);
       return;
@@ -4622,6 +4634,7 @@ function ClanTab({
       return;
     }
     setClanState(null);
+    setClanMembers([]);
     setMembershipClanId("");
     setClan("");
     await loadClans();
@@ -4639,13 +4652,35 @@ function ClanTab({
   return (
     <div className="clan-workspace space-y-6">
       {createError && <div role="alert" className="clan-error fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm font-bold shadow-2xl"><span>{createError}</span><button type="button" onClick={() => setCreateError("")} aria-label="Dismiss clan error">×</button></div>}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><p className="clan-eyebrow text-xs font-black uppercase tracking-[0.2em]">Breadlet communities</p><h1 className="mt-1 text-4xl font-black">Clans</h1></div>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => setDiscoverOpen((open) => !open)} className="clan-primary-button flex items-center gap-2 rounded-xl px-4 py-3 font-black"><Search size={18} />{discoverOpen ? "Hide discovery" : "Discover clans"}</button>
-          <button type="button" aria-label="Create a clan" onClick={() => setShowCreate(true)} className="clan-secondary-button flex items-center gap-2 rounded-xl px-4 py-3 font-black"><Users size={19} />Create Clan</button>
+      {clan ? (
+        <div className="clan-header">
+          <div className="clan-identity">
+            <span className="clan-emblem">
+              {clan.thumbnailUrl ? <img src={clan.thumbnailUrl} alt="" /> : <span aria-hidden="true">{clan.name.slice(0, 1).toUpperCase()}</span>}
+            </span>
+            <div className="min-w-0">
+              <h1 className="clan-name">{clan.name}</h1>
+              <p className="clan-meta"><Users size={16} />{clan.members}/{clan.memberCapacity} members</p>
+              <p className="clan-meta"><Wallet size={16} />{clan.treasury.toLocaleString()} tokens</p>
+            </div>
+          </div>
+          <div className="clan-actions">
+            <button type="button" onClick={() => setDiscoverOpen((open) => !open)} className="clan-action clan-action-discover"><Search size={18} />{discoverOpen ? "Hide discovery" : "Discover"}</button>
+            <button type="button" onClick={handleDonate} className="clan-action clan-action-deposit"><Wallet size={18} />Deposit 100</button>
+            {isOwner && <button type="button" onClick={() => document.getElementById("clan-upgrades")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="clan-action clan-action-upgrades"><Sparkles size={18} />Upgrades</button>}
+            {!isGuest && <button type="button" onClick={() => void handleLeaveClan()} className="clan-action clan-action-leave"><LogOut size={18} />Leave</button>}
+            {!membershipClanId && <button type="button" aria-label="Create a clan" onClick={() => setShowCreate(true)} className="clan-action clan-action-discover"><Users size={18} />Create</button>}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div><p className="clan-eyebrow text-xs font-black uppercase tracking-[0.2em]">Breadlet communities</p><h1 className="mt-1 text-4xl font-black">Clans</h1></div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setDiscoverOpen((open) => !open)} className="clan-primary-button flex items-center gap-2 rounded-xl px-4 py-3 font-black"><Search size={18} />{discoverOpen ? "Hide discovery" : "Discover clans"}</button>
+            <button type="button" aria-label="Create a clan" onClick={() => setShowCreate(true)} className="clan-secondary-button flex items-center gap-2 rounded-xl px-4 py-3 font-black"><Users size={19} />Create Clan</button>
+          </div>
+        </div>
+      )}
 
       {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm"><div className="clan-panel w-full max-w-lg rounded-3xl border p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button type="button" onClick={() => setShowCreate(false)} className="clan-text-muted">Close</button></div><label className="clan-input mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span>Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onerror = () => setCreateError("The image could not be read."); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="clan-input rounded-xl border px-3 py-3" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="clan-input rounded-xl border px-3 py-3" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="clan-input rounded-xl border px-3 py-3" /></div><button type="button" onClick={handleCreateClan} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-3 font-black">Create clan</button></div></div>}
 
@@ -4653,17 +4688,22 @@ function ClanTab({
         <section className={`clan-profile clan-theme-${clan.theme} ${clan.animatedProfiles ? "clan-profile-animated" : ""}`}>
           {clan.bannerData && <img src={clan.bannerData} alt={`${clan.name} clan banner`} className="clan-banner" />}
           <div className="clan-profile-content">
-            <div className="flex flex-wrap items-start justify-between gap-5">
-              <div className="flex min-w-0 items-center gap-4">
-                {clan.thumbnailUrl && <img src={clan.thumbnailUrl} alt="" className="h-16 w-16 shrink-0 rounded-2xl border border-white/20 object-cover" />}
-                <div className="min-w-0"><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Your clan</p><h2 className="mt-1 break-words text-3xl font-black">{clan.name}</h2><p className="clan-text-muted mt-1">{clan.description || "A Breadlet community."}</p></div>
-              </div>
-              <div className="clan-stats rounded-xl border px-4 py-3 text-sm font-bold">{clan.members}/{clan.memberCapacity} members <span className="mx-1 opacity-50">·</span> {clan.treasury.toLocaleString()} treasury</div>
-            </div>
-            {clan.tags.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{clan.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-3 py-1 text-xs font-bold">#{tag}</span>)}</div>}
-            <div className="mt-5 flex flex-wrap gap-2">
-              <button type="button" onClick={handleDonate} className="clan-primary-button rounded-xl px-4 py-2.5 font-black">Contribute 100 tokens</button>
-              {!isGuest && <button type="button" onClick={() => void handleLeaveClan()} className="clan-leave-button rounded-xl px-4 py-2.5 font-black">Leave clan</button>}
+            {clan.description && <p className="clan-text-muted mb-3">{clan.description}</p>}
+            {clan.tags.length > 0 && <div className="mb-4 flex flex-wrap gap-2">{clan.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-3 py-1 text-xs font-bold">#{tag}</span>)}</div>}
+            <div className="clan-members-heading"><div><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">The community</p><h2 className="mt-1 text-2xl font-black">Clan members</h2></div><span>{clanMembers.length || clan.members} players</span></div>
+            <div className="clan-member-grid">
+              {clanMembers.map((member) => (
+                <article key={member.profileId || member.username} className="clan-member-card">
+                  <span className="clan-member-avatar">
+                    {member.equippedBlook ? <RewardArt name={member.equippedBlook} art={artFor(member.equippedBlook)} className="h-12 w-12" /> : <span aria-hidden="true">{member.username.slice(0, 1).toUpperCase()}</span>}
+                  </span>
+                  <div className="clan-member-copy">
+                    <strong>{member.username}</strong>
+                    <span className="clan-member-role">{member.role === "leader" ? <><Crown size={14} /> Leader</> : member.role === "admin" ? "Admin" : "Member"}</span>
+                    <span className="clan-member-contribution"><Wallet size={14} />Contributed {member.tokenContributions.toLocaleString()}</span>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         </section>
@@ -4676,7 +4716,7 @@ function ClanTab({
             {requests.length ? <div className="mt-4 divide-y divide-white/10">{requests.filter((request) => request.clanId === clan.id).map((request) => <div key={request.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><strong>{request.username}</strong><p className="clan-text-muted text-xs">Requested {new Date(request.createdAt).toLocaleDateString()}</p></div><div className="flex gap-2"><button type="button" onClick={() => void reviewRequest(request.id, "approved")} className="clan-primary-button rounded-lg px-3 py-2 text-sm font-black">Approve</button><button type="button" onClick={() => void reviewRequest(request.id, "declined")} className="clan-secondary-button rounded-lg px-3 py-2 text-sm font-black">Decline</button></div></div>)}</div> : <p className="clan-text-muted mt-4 text-sm">No join requests right now.</p>}
           </section>
 
-          <section className="clan-panel rounded-3xl border p-5 sm:p-6">
+          <section id="clan-upgrades" className="clan-panel scroll-mt-6 rounded-3xl border p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Chapter 2</p><h2 className="mt-1 text-2xl font-black">Clan upgrades</h2><p className="clan-text-muted mt-1 text-sm">Owners spend the shared treasury to unlock clan features.</p></div><span className="clan-treasury rounded-full px-3 py-1.5 text-sm font-black">{clan.treasury.toLocaleString()} tokens</span></div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {upgradeOptions.map((upgrade) => <article key={upgrade.feature} className="clan-upgrade-card rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black">{upgrade.title}{upgrade.level ? <span className="clan-eyebrow ml-2 text-xs">{upgrade.level}</span> : null}</h3><p className="clan-text-muted mt-1 text-sm leading-5">{upgrade.detail}</p></div>{upgrade.owned && <span className="clan-owned-badge rounded-full px-2.5 py-1 text-[10px] font-black uppercase">Unlocked</span>}</div><button type="button" disabled={isGuest || upgrade.owned || clan.treasury < upgrade.price} onClick={() => void upgradeClan(upgrade.feature)} className="clan-upgrade-button mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{upgrade.owned ? "Purchased" : `Unlock · ${upgrade.price.toLocaleString()} tokens`}</button></article>)}
