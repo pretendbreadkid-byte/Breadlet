@@ -41,6 +41,7 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(space.pool.find((reward) => reward.name === 'Earth').art, '/assets/Lost and found + food pack/earth 2.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').rarity, 'Uncommon');
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').art, '/assets/earth-globe.svg');
+  assert.equal(space.pool.find((reward) => reward.name === 'Alien').art, '/assets/alien%202%20frame%201.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').rarity, 'Rare');
   assert.equal(space.pool.find((reward) => reward.name === 'Space Trooper').rarity, 'Uncommon');
   assert.equal(space.pool.find((reward) => reward.name === 'Consolation').rarity, 'Uncommon');
@@ -83,6 +84,10 @@ test('server-generated rewards reject forged results and invalid gameplay reques
     assert.ok(fs.existsSync('public/assets/magnifying-glass.svg'), 'Magnifying Glass artwork exists');
     assert.ok(fs.existsSync('public/assets/Lost and found + food pack/earth 2.svg'), 'original Earth artwork exists');
     assert.ok(fs.existsSync('public/assets/earth-globe.svg'), 'Globe artwork exists');
+    for (let frame = 1; frame <= 13; frame += 1) {
+      assert.ok(fs.existsSync(`public/assets/alien 2 frame ${frame}.svg`), `Alien animation frame ${frame} exists`);
+    }
+    assert.ok(!fs.readFileSync('app/page.tsx', 'utf8').includes('lar blaster (for alien).svg'), 'Alien is rendered without the laser accessory');
   }
   for (const art of [
     'public/assets/Lost and found box frame 1.svg',
@@ -257,6 +262,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const latestCatalogMigration = fs.readFileSync('supabase/migrations/0025_latest_catalog_update.sql', 'utf8');
     await database.exec(latestCatalogMigration);
     await database.exec(latestCatalogMigration);
+    const alienAnimationMigration = fs.readFileSync('supabase/migrations/0027_alien_animation_artwork.sql', 'utf8');
+    await database.exec(alienAnimationMigration);
+    await database.exec(alienAnimationMigration);
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
@@ -264,6 +272,7 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const sun = (await database.query("select rarity, artwork_key from blooks where name = 'Sun'")).rows[0];
     assert.equal(sun.rarity, 'Rare');
     assert.equal(sun.artwork_key, 'sun.svg');
+    assert.equal((await database.query("select artwork_key from blooks where name='Alien'")).rows[0].artwork_key, 'alien 2 frame 1.svg');
     const breadBag = (await database.query("select active, is_retired, pool from chests where name = 'Bread Bag'")).rows[0];
     assert.equal(breadBag.active, true);
     assert.equal(breadBag.is_retired, false);

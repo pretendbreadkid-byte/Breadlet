@@ -2384,6 +2384,7 @@ const goldenToasterFrames = [
   "/assets/goldenToaster3.svg",
   "/assets/goldenToaster4.svg",
 ];
+const alienFrames = Array.from({ length: 13 }, (_, index) => `/assets/alien%202%20frame%20${index + 1}.svg`);
 function FrameSwitcher({ frames, name, className }: { frames: string[]; name: string; className: string }) {
   const [frame, setFrame] = useState(0);
   useEffect(() => {
@@ -2422,6 +2423,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   if (cleanName === "Golden Toaster") {
     return <FrameSwitcher frames={goldenToasterFrames} name={name} className={className} />;
   }
+  if (cleanName === "Alien") {
+    return <FrameSwitcher frames={alienFrames} name={name} className={className} />;
+  }
   if (cleanName === "Timeglass") {
     return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{["/assets/Time glass first animation.svg", "/assets/Time glass second animation2.svg", "/assets/Time glass 3rd animation3.svg", "/assets/Time glass final animation.svg"].map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;
   }
@@ -2435,7 +2439,6 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
     <span className={`relative inline-flex items-center justify-center ${className}`}>
       <img src={art} alt={name} className="max-h-full max-w-full object-contain" />
       {cleanName === "Caveman" && <img src="/assets/rock for caveman to throw.svg" alt="" className="caveman-accessory caveman-rock absolute bottom-0 right-0 h-1/3 w-1/3 object-contain" />}
-      {cleanName === "Alien" && <img src="/assets/lar blaster (for alien).svg" alt="" className="alien-accessory alien-laser absolute bottom-0 right-0 h-1/2 w-1/2 object-contain" />}
     </span>
   );
 }
