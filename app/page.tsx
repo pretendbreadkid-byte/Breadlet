@@ -41,6 +41,8 @@ type Tab =
   | "migration"
   | "promo"
   | "info"
+  | "resources"
+  | "assets"
   | "clan"
   | "crafting"
   | "admin";
@@ -248,7 +250,7 @@ const pickleFrames = [1, 2, 4, 5, 6, 7, 8, 9, 10].map(
 function AnimatedArtFrame({ src, name, className }: { src: string; name: string; className: string }) {
   return (
     <span className={`relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
-      <img src={src} alt={name} className="absolute inset-0 h-full w-full object-contain" />
+      <img key={src} src={src} alt={name} className="reward-art-frame absolute inset-0 h-full w-full object-contain" />
     </span>
   );
 }
@@ -1382,6 +1384,7 @@ function MainPage() {
       label: "Chat",
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
+    { id: "resources", label: "Resources", icon: <Info size={20} strokeWidth={2.2} /> },
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "migration"].includes(item.id))
@@ -1420,7 +1423,7 @@ function MainPage() {
                 key={item.id}
                 data-tour-target={item.id}
                 onClick={() => setTab(item.id)}
-                aria-current={tab === item.id ? "page" : undefined}
+                aria-current={tab === item.id || (item.id === "resources" && ["promo", "info", "migration", "assets"].includes(tab)) ? "page" : undefined}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 font-extrabold text-sm transition ${
                   tab === item.id
                     ? "bg-[#39a8f5] text-white shadow-md"
@@ -1481,33 +1484,13 @@ function MainPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setTab("promo");
+                      setTab("resources");
                       setUserMenuOpen(false);
                     }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
                   >
-                    <Percent size={18} />
-                    Promo Codes
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTab("info");
-                      setUserMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
-                  >
-                    <HelpCircle size={18} />
-                    Info & Guide
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTab("migration");
-                      setUserMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
-                  >
-                    <Gift size={18} />
-                    Migration
+                    <Info size={18} />
+                    Resources
                   </button>
                   {adminUnlocked && (
                     <button
@@ -1600,6 +1583,8 @@ function MainPage() {
             />
           )}
           {tab === "info" && <InfoTab />}
+          {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
+          {tab === "assets" && <AssetLibraryTab />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
@@ -3734,6 +3719,122 @@ function InfoTab() {
           ["Chat, Clans, Promo", "Chat is local, clan tags appear on profiles, and promo codes can grant prototype rewards."],
         ].map(([title, body]) => <section key={title} className="rounded-2xl border border-[#247bc0] bg-[#18558f] p-5"><h2 className="text-xl font-black text-[#bde8ff]">{title}</h2><p className="mt-2 text-sm leading-6 text-[#d9f3ff]">{body}</p></section>)}
       </div>
+    </div>
+  );
+}
+
+function ResourcesTab({ open }: { open: (tab: "promo" | "info" | "migration" | "assets") => void }) {
+  const resources = [
+    { title: "Promo Codes", description: "Redeem a Breadlet code for its reward.", icon: <Percent size={22} />, tab: "promo" as const, accent: "from-amber-300/20 to-orange-500/5" },
+    { title: "Info & Guide", description: "Learn how Goodybags, your Collection, crafting, and more work.", icon: <HelpCircle size={22} />, tab: "info" as const, accent: "from-sky-300/20 to-blue-500/5" },
+    { title: "Migration", description: "Request a transfer from the old game and track its review.", icon: <Gift size={22} />, tab: "migration" as const, accent: "from-emerald-300/20 to-teal-500/5" },
+    { title: "Asset Library", description: "Browse and preview Breadlet artwork and image files.", icon: <ImageIcon size={22} />, tab: "assets" as const, accent: "from-violet-300/20 to-fuchsia-500/5" },
+  ];
+  return (
+    <div className="mx-auto w-full max-w-5xl">
+      <header className="mb-7">
+        <p className="text-xs font-black uppercase tracking-[0.25em] text-[#9cc8e8]">Breadlet library</p>
+        <h1 className="mt-2 text-4xl font-black text-white">Resources</h1>
+        <p className="mt-3 max-w-2xl leading-7 text-[#bde8ff]/75">Guides, account tools, and the artwork behind Breadlet, all in one place.</p>
+      </header>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {resources.map((resource) => (
+          <button key={resource.title} type="button" onClick={() => open(resource.tab)} className={`resource-card group flex min-h-36 items-start gap-4 rounded-2xl border border-[#3d91cd]/35 bg-gradient-to-br ${resource.accent} p-5 text-left shadow-lg shadow-[#031426]/10`}>
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-white/10 bg-[#072a54]/75 text-[#bde8ff]">{resource.icon}</span>
+            <span className="min-w-0 flex-1">
+              <strong className="block text-lg font-black text-white">{resource.title}</strong>
+              <span className="mt-1 block text-sm leading-6 text-[#d9f3ff]/75">{resource.description}</span>
+              <span className="mt-4 inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider text-[#9cc8e8]">Open <span aria-hidden="true">→</span></span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+type PublicAsset = { name: string; path: string; extension: string };
+function isPublicAsset(value: unknown): value is PublicAsset {
+  return typeof value === "object" && value !== null
+    && "name" in value && typeof value.name === "string"
+    && "path" in value && typeof value.path === "string"
+    && "extension" in value && typeof value.extension === "string";
+}
+
+function AssetLibraryTab() {
+  const [assets, setAssets] = useState<PublicAsset[]>([]);
+  const [query, setQuery] = useState("");
+  const [format, setFormat] = useState("All");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoadState("loading");
+    setLoadError("");
+    fetch("/api/assets", { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`The asset library could not load (HTTP ${response.status}).`);
+        const payload: unknown = await response.json();
+        if (typeof payload !== "object" || payload === null || !("assets" in payload) || !Array.isArray(payload.assets) || !payload.assets.every(isPublicAsset)) {
+          throw new Error("The asset library returned an invalid response.");
+        }
+        setAssets(payload.assets);
+        setLoadState("ready");
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setLoadError(error instanceof Error ? error.message : "The asset library could not load.");
+        setLoadState("error");
+      });
+    return () => controller.abort();
+  }, [loadAttempt]);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredAssets = assets.filter((asset) => {
+    const matchesFormat = format === "All"
+      || (format === "Other" ? !["svg", "png", "jpg", "jpeg"].includes(asset.extension) : asset.extension.toUpperCase() === format || (format === "JPG" && asset.extension === "jpeg"));
+    return matchesFormat && (!normalizedQuery || asset.name.toLowerCase().includes(normalizedQuery) || asset.path.toLowerCase().includes(normalizedQuery));
+  });
+  const formats = ["All", "SVG", "PNG", "JPG", "Other"];
+
+  return (
+    <div className="mx-auto w-full max-w-7xl">
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-[#9cc8e8]">Resources / Artwork</p>
+          <h1 className="mt-2 text-4xl font-black text-white">Asset Library</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#bde8ff]/75">Explore the image assets used across Breadlet. Select any preview to open the original file.</p>
+        </div>
+        {loadState === "ready" && <span className="rounded-full border border-[#3d91cd]/40 bg-[#072a54]/60 px-3 py-1.5 text-xs font-bold text-[#bde8ff]">{filteredAssets.length} of {assets.length} assets</span>}
+      </header>
+      <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-[#3d91cd]/30 bg-[#072a54]/60 p-3 sm:flex-row sm:items-center">
+        <label className="relative min-w-0 flex-1">
+          <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9cc8e8]/70" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search names or file paths" className="w-full rounded-xl border border-[#3d91cd]/25 bg-[#061f3c] py-2.5 pl-10 pr-3 text-sm text-white outline-none placeholder:text-[#9cc8e8]/50 focus:border-[#73c8ff]" />
+        </label>
+        <div className="flex flex-wrap gap-1.5" aria-label="Filter assets by file type">
+          {formats.map((entry) => <button key={entry} type="button" onClick={() => setFormat(entry)} aria-pressed={format === entry} className={`rounded-lg px-3 py-2 text-xs font-black transition ${format === entry ? "bg-[#39a8f5] text-white" : "text-[#9cc8e8] hover:bg-[#103f75] hover:text-white"}`}>{entry}</button>)}
+        </div>
+      </div>
+      {loadState === "loading" && <div role="status" className="rounded-2xl border border-[#3d91cd]/30 bg-[#072a54]/50 p-8 text-center text-sm font-bold text-[#bde8ff]">Loading Breadlet artwork…</div>}
+      {loadState === "error" && <div role="alert" className="rounded-2xl border border-red-300/30 bg-red-950/40 p-6 text-center"><p className="font-bold text-red-100">{loadError}</p><button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="mt-4 rounded-xl bg-[#39a8f5] px-4 py-2 text-sm font-black text-white transition hover:bg-[#73c8ff]">Try again</button></div>}
+      {loadState === "ready" && (filteredAssets.length ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {filteredAssets.map((asset, index) => (
+            <a key={asset.path} href={asset.path} target="_blank" rel="noreferrer" className="asset-card group overflow-hidden rounded-2xl border border-[#3d91cd]/25 bg-[#072a54]/75 shadow-md shadow-[#031426]/10" style={{ "--asset-delay": `${Math.min(index, 12) * 18}ms` } as React.CSSProperties} title={`Open ${asset.name}`}>
+              <span className="grid aspect-square place-items-center overflow-hidden bg-[#061f3c]/80 p-3">
+                <img src={asset.path} alt={asset.name} loading="lazy" className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-110" />
+              </span>
+              <span className="block border-t border-[#3d91cd]/20 px-3 py-2.5">
+                <strong className="block truncate text-xs font-bold text-[#e7f6ff]" title={asset.name}>{asset.name}</strong>
+                <span className="mt-1 block truncate text-[10px] uppercase tracking-wider text-[#9cc8e8]/65">{asset.extension} · {asset.path.replace(/^\/assets\//, "")}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      ) : <div className="rounded-2xl border border-[#3d91cd]/25 bg-[#072a54]/50 p-10 text-center"><p className="font-bold text-[#d9f3ff]">No assets match that search.</p><button type="button" onClick={() => { setQuery(""); setFormat("All"); }} className="mt-3 text-sm font-bold text-[#73c8ff] underline underline-offset-4">Clear filters</button></div>)}
     </div>
   );
 }
