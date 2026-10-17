@@ -1,6 +1,6 @@
 "use client";
 
-import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, sellValueFor, wheelRewards } from "../lib/gameplay-catalog";
+import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueFor, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -3203,7 +3203,7 @@ function OddsModal({
           </button>
         </div>
         <div className="mt-4 space-y-2 overflow-y-auto pr-1 flex-1">
-          {capsule.pool.map((reward) => (
+          {sortByRarity(capsule.pool).map((reward) => (
             <div
               key={reward.name}
               className="flex items-center justify-between rounded-xl bg-[#0c3b70] p-3 text-sm border border-[#3d91cd]/20"

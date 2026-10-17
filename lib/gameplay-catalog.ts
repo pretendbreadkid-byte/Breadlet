@@ -10,15 +10,19 @@ export type Capsule = {
 };
 
 export const rarityBudget: Record<string, number> = {
-  Common: 50,
-  Uncommon: 25,
-  Rare: 15,
-  Epic: 9.3,
-  Legendary: 0.5,
-  Mythic: 0.2,
-  Unique: 0.2,
+  Common: 30,
+  Uncommon: 30,
+  Rare: 20,
+  Epic: 12,
+  Legendary: 5,
+  Mythic: 2,
+  Unique: 0.975,
   Breadled: 0.025,
 };
+
+export const rarityOrder = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Unique", "Breadled", "Chroma"];
+export const sortByRarity = <T extends { rarity: string }>(items: T[]) =>
+  [...items].sort((left, right) => rarityOrder.indexOf(left.rarity) - rarityOrder.indexOf(right.rarity));
 
 export const rewards = (
   items: [string, string][],
@@ -255,11 +259,11 @@ export const liveCapsules: Capsule[] = [
     art: "/assets/refreshed-bread-bag.svg",
     pool: rewards([
       ["Sour Dough", "Common"],
-      ["Toaster", "Common"],
+      ["Toaster", "Rare"],
       ["Golden Toaster", "Breadled"],
       ["Croissant", "Common"],
       ["Cinnamon Roll", "Uncommon"],
-      ["Robo Bread", "Uncommon"],
+      ["Robo Bread", "Epic"],
       ["Slime Bread", "Rare"],
       ["Gold Bread", "Legendary"],
       ["Holy Bread", "Mythic"],

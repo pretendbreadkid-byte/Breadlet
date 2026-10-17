@@ -36,6 +36,8 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(inventions.pool.find((reward) => reward.name === 'Bitcoin').rarity, 'Mythic');
   assert.equal(inventions.pool.find((reward) => reward.name === "Leonardo da Vinci's Tank").rarity, 'Epic');
   const space = catalog.liveCapsules.find((pack) => pack.name === 'Space Bag');
+  const marsChance = catalog.chanceFor(space, space.pool.find((reward) => reward.name === 'Mars'));
+  assert.ok(marsChance > 25 && marsChance < 40, `Mars chance is spread below 40% (was ${marsChance}%)`);
   assert.equal(space.pool.find((reward) => reward.name === 'Earth').art, '/assets/Lost and found + food pack/earth 2.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').rarity, 'Uncommon');
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').art, '/assets/earth-globe.svg');
@@ -48,6 +50,8 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(bread.pool.map((reward) => reward.name).join(','),
     'Sour Dough,Toaster,Golden Toaster,Croissant,Cinnamon Roll,Robo Bread,Slime Bread,Gold Bread,Holy Bread');
   assert.equal(bread.pool.find((reward) => reward.name === 'Holy Bread').art, '/assets/holy-bread-refreshed.svg');
+  assert.equal(bread.pool.find((reward) => reward.name === 'Toaster').rarity, 'Rare');
+  assert.equal(bread.pool.find((reward) => reward.name === 'Robo Bread').rarity, 'Epic');
   assert.equal(bread.pool.find((reward) => reward.name === 'Golden Toaster').rarity, 'Breadled');
   assert.equal(catalog.chanceFor(bread, bread.pool.find((reward) => reward.name === 'Golden Toaster')), 0.004);
   for (const reward of bread.pool) assert.ok(fs.existsSync(`public/${reward.art.slice(1)}`), `${reward.name} artwork exists`);
@@ -64,10 +68,12 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(space.pool.find((reward) => reward.name === 'Star Ship').rarity, 'Breadled');
   assert.equal(catalog.chanceFor(space, space.pool.find((reward) => reward.name === 'Star Ship')), 0.005);
   assert.equal(combat.pool.find((reward) => reward.name === 'Sword').rarity, 'Rare');
+  const oliveGrenadeChance = catalog.chanceFor(combat, combat.pool.find((reward) => reward.name === 'Olive Grenade'));
+  assert.ok(oliveGrenadeChance > 25 && oliveGrenadeChance < 40, `Olive Grenade chance is spread below 40% (was ${oliveGrenadeChance}%)`);
   assert.equal(combat.pool.find((reward) => reward.name === 'Shuriken').rarity, 'Uncommon');
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Food Bag').pool.find((reward) => reward.name === 'Avocado').rarity, 'Common');
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag').pool.find((reward) => reward.name === 'Blooket Gods').rarity, 'Common');
-  assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Bread Bag').pool.find((reward) => reward.name === 'Robo Bread').rarity, 'Uncommon');
+  assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Bread Bag').pool.find((reward) => reward.name === 'Robo Bread').rarity, 'Epic');
   assert.equal(artifact.pool.find((reward) => reward.name === 'Aztec Coin').art, undefined);
   assert.equal(artifact.pool.find((reward) => reward.name === 'Clay Vase').art, '/assets/clay-vase.svg');
   for (const pack of [space, lostAndFound, artifact]) {
@@ -102,6 +108,10 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   for (const pack of [...catalog.liveCapsules, ...catalog.legacyCapsules]) {
     assert.ok(Math.abs(pack.pool.reduce((sum, reward) => sum + catalog.chanceFor(pack, reward), 0) - 100) < 1e-8);
   }
+  assert.equal(
+    catalog.sortByRarity([{ rarity: 'Breadled' }, { rarity: 'Rare' }, { rarity: 'Common' }, { rarity: 'Epic' }]).map(({ rarity }) => rarity).join(','),
+    'Common,Rare,Epic,Breadled',
+  );
   const opening = planGameplay({ action: 'open', quantities: { 'Inventions Bag': 1 }, reward: 'Bitcoin', tokens: 999999 }, snapshot, () => 0, now);
   assert.equal(opening.results[0].reward.name, 'Wheel');
   assert.equal(opening.tokenDelta, -25);
@@ -312,6 +322,11 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const extraBreadReplacementMigration = fs.readFileSync('supabase/migrations/0019_replace_legacy_bread_inventory.sql', 'utf8');
     await database.exec(extraBreadReplacementMigration);
     await database.exec(extraBreadReplacementMigration);
+    const rebalanceMigration = fs.readFileSync('supabase/migrations/0026_rebalance_rarity_weights.sql', 'utf8');
+    await database.exec(rebalanceMigration);
+    await database.exec(rebalanceMigration);
+    const breadRarities = (await database.query("select name, rarity from blooks where name in ('Toaster','Robo Bread') order by name")).rows;
+    assert.equal(breadRarities.map(({ name, rarity }) => `${name}:${rarity}`).join(','), 'Robo Bread:Epic,Toaster:Rare');
     assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=false', [buyer, toasterId])).rows[0].quantity, 3);
     assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=true', [buyer, toasterId])).rows[0].quantity, 1);
     assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2 and shiny=false', [buyer, croissantId])).rows[0].quantity, 2);
