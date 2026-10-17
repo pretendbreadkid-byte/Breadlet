@@ -73,7 +73,7 @@ export const CHEST_DEFINITIONS = [
     name: 'BlookTuber Bag',
     price: 25,
     description: 'Creator-themed collectibles.',
-    pool: ['Bread Blook'],
+    pool: ['Bread Blook', 'Blooket Life', 'Blooket Gods', 'Fasty Jay', 'Lagoon', 'Waymore', 'Twisted Bread', 'SRN', 'Blook Master', 'Turtwix', 'Green Astronaut'],
     rarity: 'Mythic',
     isRetired: false,
     active: true,

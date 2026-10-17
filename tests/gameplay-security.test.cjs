@@ -38,6 +38,24 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   const space = catalog.liveCapsules.find((pack) => pack.name === 'Space Bag');
   const marsChance = catalog.chanceFor(space, space.pool.find((reward) => reward.name === 'Mars'));
   assert.ok(marsChance > 25 && marsChance < 40, `Mars chance is spread below 40% (was ${marsChance}%)`);
+  const foodBag = catalog.liveCapsules.find((pack) => pack.name === 'Food Bag');
+  const blookTuberBag = catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag');
+  const mythicChance = (pack) => catalog.chanceFor(pack, pack.pool.find((reward) => reward.rarity === 'Mythic'));
+  assert.equal(mythicChance(foodBag), 0.5, 'the largest reward pool gives Mythic rewards 0.5% odds');
+  const smallestMythicPack = catalog.legacyCapsules.find((pack) => pack.name === 'Legacy Bread Bag');
+  assert.equal(mythicChance(smallestMythicPack), 0.2, 'the smallest reward pool gives Mythic rewards 0.2% odds');
+  for (const pack of [...catalog.liveCapsules, ...catalog.legacyCapsules]) {
+    const mythicReward = pack.pool.find((reward) => reward.rarity === 'Mythic');
+    if (mythicReward) {
+      const chance = catalog.chanceFor(pack, mythicReward);
+      assert.ok(chance >= 0.2 && chance <= 0.5, `${pack.name} Mythic odds stay in the 0.2%-0.5% range`);
+    }
+  }
+  const sortedByPoolSize = [...catalog.liveCapsules, ...catalog.legacyCapsules].sort((left, right) => left.pool.length - right.pool.length);
+  for (let index = 1; index < sortedByPoolSize.length; index += 1) {
+    assert.ok(mythicChance(sortedByPoolSize[index]) >= mythicChance(sortedByPoolSize[index - 1]),
+      'larger reward pools have at least as high Mythic odds');
+  }
   assert.equal(space.pool.find((reward) => reward.name === 'Earth').art, '/assets/Lost and found + food pack/earth 2.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').rarity, 'Uncommon');
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').art, '/assets/earth-globe.svg');
@@ -74,6 +92,15 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(combat.pool.find((reward) => reward.name === 'Shuriken').rarity, 'Uncommon');
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Food Bag').pool.find((reward) => reward.name === 'Avocado').rarity, 'Common');
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag').pool.find((reward) => reward.name === 'Blooket Gods').rarity, 'Common');
+  const blookTuber = catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag');
+  const pageSource = fs.readFileSync('app/page.tsx', 'utf8');
+  assert.equal(blookTuber.pool.length, 11);
+  for (const name of ['Twisted Bread', 'SRN', 'Blook Master', 'Turtwix', 'Green Astronaut']) {
+    const reward = blookTuber.pool.find((item) => item.name === name);
+    assert.ok(reward, `${name} is in the BlookTuber Bag`);
+    assert.ok(fs.existsSync(`public/${reward.art.slice(1)}`), `${name} artwork exists`);
+    assert.ok(pageSource.split('\n').some((line) => line.includes(name) && line.includes(reward.art)), `${name} is mapped to its pack artwork`);
+  }
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Bread Bag').pool.find((reward) => reward.name === 'Robo Bread').rarity, 'Epic');
   assert.equal(artifact.pool.find((reward) => reward.name === 'Aztec Coin').art, undefined);
   assert.equal(artifact.pool.find((reward) => reward.name === 'Clay Vase').art, '/assets/clay-vase.svg');
@@ -237,7 +264,7 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     await database.exec(migration);
     const tankMigration = fs.readFileSync('supabase/migrations/0016_inventions_tank.sql', 'utf8');
     await database.exec(tankMigration);
-    await database.query("insert into chests(name,price,pool) values ('Human Bag',25,'[]'),('Pixel Bag',25,'[]'),('Remix Bag',25,'[]'),('Inventions Bag',25,'[\"Wheel\"]'),('Space Bag',25,'[\"Mars\",\"Earth\"]'),('Lost and Found Bag',25,'[\"Car Keys\"]'),('Artifact Bag',25,'[\"Aztec Coin\"]'),('Combat Bag',25,'[\"Olive Grenade\"]')");
+    await database.query("insert into chests(name,price,pool) values ('Human Bag',25,'[]'),('Pixel Bag',25,'[]'),('Remix Bag',25,'[]'),('BlookTuber Bag',25,'[\"Bread Blook\",\"Blooket Life\",\"Blooket Gods\",\"Fasty Jay\",\"Lagoon\",\"Waymore\"]'),('Inventions Bag',25,'[\"Wheel\"]'),('Space Bag',25,'[\"Mars\",\"Earth\"]'),('Lost and Found Bag',25,'[\"Car Keys\"]'),('Artifact Bag',25,'[\"Aztec Coin\"]'),('Combat Bag',25,'[\"Olive Grenade\"]')");
     const breadMigration = fs.readFileSync('supabase/migrations/0018_refreshed_bread_bag.sql', 'utf8');
     await database.exec(breadMigration);
     const breadReplacementMigration = fs.readFileSync('supabase/migrations/0019_replace_legacy_bread_inventory.sql', 'utf8');
@@ -265,6 +292,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const alienAnimationMigration = fs.readFileSync('supabase/migrations/0027_alien_animation_artwork.sql', 'utf8');
     await database.exec(alienAnimationMigration);
     await database.exec(alienAnimationMigration);
+    const blookTuberMigration = fs.readFileSync('supabase/migrations/0028_blooktuber_pack_rewards.sql', 'utf8');
+    await database.exec(blookTuberMigration);
+    await database.exec(blookTuberMigration);
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
@@ -295,6 +325,8 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
       ['Wheel', 'Magnifying Glass']);
     assert.deepEqual((await database.query("select pool from chests where name='Space Bag'")).rows[0].pool,
       ['Mars', 'Earth', 'Globe']);
+    assert.deepEqual((await database.query("select pool from chests where name='BlookTuber Bag'")).rows[0].pool,
+      ['Bread Blook', 'Blooket Life', 'Blooket Gods', 'Fasty Jay', 'Lagoon', 'Waymore', 'Twisted Bread', 'SRN', 'Blook Master', 'Turtwix', 'Green Astronaut']);
     const adjustedRarities = (await database.query("select name, rarity from blooks where name in ('Space Trooper','Consolation','Avocado','Shuriken','Blooket Gods','Robo Bread') order by name")).rows;
     assert.equal(adjustedRarities.map(({ name, rarity }) => `${name}:${rarity}`).join(','),
       'Avocado:Common,Blooket Gods:Common,Consolation:Uncommon,Robo Bread:Uncommon,Shuriken:Uncommon,Space Trooper:Uncommon');

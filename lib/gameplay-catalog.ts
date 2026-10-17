@@ -15,7 +15,7 @@ export const rarityBudget: Record<string, number> = {
   Rare: 20,
   Epic: 12,
   Legendary: 5,
-  Mythic: 2,
+  Mythic: 0.5,
   Unique: 0.975,
   Breadled: 0.025,
 };
@@ -42,8 +42,20 @@ export const rewards = (
 
 export const chanceFor = (capsule: Capsule, reward: Reward) => {
   if (reward.chance !== undefined) return reward.chance;
-  const fixedChance = capsule.pool.reduce((sum, item) => sum + (item.chance || 0), 0);
-  const weightedRewards = capsule.pool.filter((item) => item.chance === undefined);
+  const mythicRewards = capsule.pool.filter((item) => item.rarity === "Mythic" && item.chance === undefined);
+  const poolSizes = [...liveCapsules, ...legacyCapsules].map((item) => item.pool.length);
+  const smallestPool = Math.min(...poolSizes);
+  const largestPool = Math.max(...poolSizes);
+  const mythicPoolChance =
+    0.2 + ((capsule.pool.length - smallestPool) / (largestPool - smallestPool)) * 0.3;
+  if (reward.rarity === "Mythic" && reward.chance === undefined) {
+    return mythicPoolChance / mythicRewards.length;
+  }
+  const fixedChance =
+    capsule.pool.reduce((sum, item) => sum + (item.chance || 0), 0) + mythicPoolChance;
+  const weightedRewards = capsule.pool.filter(
+    (item) => item.chance === undefined && item.rarity !== "Mythic",
+  );
   const remainingWeight = weightedRewards.reduce((sum, item) => sum + item.weight, 0);
   return ((100 - fixedChance) * reward.weight) / remainingWeight;
 };
@@ -252,7 +264,18 @@ export const liveCapsules: Capsule[] = [
       ["Fasty Jay", "Epic"],
       ["Lagoon", "Rare"],
       ["Waymore", "Epic"],
-    ]),
+      ["Twisted Bread", "Uncommon"],
+      ["SRN", "Uncommon"],
+      ["Blook Master", "Legendary"],
+      ["Turtwix", "Rare"],
+      ["Green Astronaut", "Uncommon"],
+    ], {
+      "Twisted Bread": "/assets/twisted-bread-blooktuber.png",
+      SRN: "/assets/srn-blooktuber.png",
+      "Blook Master": "/assets/blook-master.png",
+      Turtwix: "/assets/turtwix.png",
+      "Green Astronaut": "/assets/green-astronaut-blooktuber.png",
+    }),
   },
   {
     name: "Bread Bag",
