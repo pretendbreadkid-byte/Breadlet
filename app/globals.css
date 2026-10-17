@@ -633,6 +633,15 @@ section button[class*="h-20"]:hover:not(:disabled) {
   border: 0;
   color: #fff2d8;
 }
+.teds-pack-open:hover:not(:disabled) {
+  transform: none;
+  filter: none;
+  box-shadow: none;
+}
+.teds-pack-open:focus-visible {
+  outline: 2px solid #fff2d8;
+  outline-offset: -3px;
+}
 .teds-pack-art {
   position: absolute;
   bottom: 12%;

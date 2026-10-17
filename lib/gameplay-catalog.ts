@@ -160,6 +160,7 @@ export const liveCapsules: Capsule[] = [
       ["Alien", "Mythic"],
       ["Star Ship", "Breadled"],
     ], {
+      Earth: "/assets/earth-globe.svg",
       Sun: "/assets/sun.svg",
       Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
     }, { "Star Ship": 0.005 }),
@@ -167,17 +168,18 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Bag",
     price: 25,
-    art: "/assets/lost and found bag Updatd updated updated (1).svg",
+    art: "/assets/lost-and-found-bag-updated.png",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
+      ["Coffee Mug", "Common"],
       ["Wallet", "Uncommon"],
       ["Hat", "Uncommon"],
       ["Textbook", "Rare"],
       ["Tablet", "Legendary"],
       ["Button", "Mythic"],
       ["Lost and Found Box", "Breadled"],
-    ], {}, { "Lost and Found Box": 0.003 }),
+    ], { "Coffee Mug": "/assets/coffee-mug.svg" }, { "Lost and Found Box": 0.003 }),
   },
   {
     name: "Food Bag",
@@ -204,12 +206,16 @@ export const liveCapsules: Capsule[] = [
     art: "/assets/artifact bag.svg",
     pool: rewards([
       ["Aztec Coin", "Common"],
+      ["Clay Vase", "Common"],
       ["Map", "Uncommon"],
       ["Crystal Ball", "Rare"],
       ["Necklace", "Epic"],
       ["Stone Tablet", "Legendary"],
       ["Timeglass", "Mythic"],
-    ]),
+    ], {
+      "Aztec Coin": "/assets/aztec-coin-updated.svg",
+      "Clay Vase": "/assets/clay-vase.svg",
+    }),
   },
   {
     name: "Combat Bag",
