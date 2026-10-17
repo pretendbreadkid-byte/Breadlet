@@ -43,6 +43,7 @@ type Tab =
   | "info"
   | "resources"
   | "assets"
+  | "bank"
   | "clan"
   | "crafting"
   | "admin";
@@ -85,6 +86,25 @@ type PublicProfile = {
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number } };
+type ClanRecord = {
+  id?: string;
+  name: string;
+  description: string;
+  tags: string[];
+  members: number;
+  treasury: number;
+  thumbnailUrl?: string;
+  bannerData?: string;
+  ownerProfileId?: string;
+  role?: string;
+  memberCapacity: number;
+  nameChangeUnlocked: boolean;
+  bannerUnlocked: boolean;
+  colorsUnlocked: boolean;
+  theme: string;
+  animatedProfiles: boolean;
+};
+type ClanJoinRequest = { id: string; clanId: string; username: string; createdAt: string };
 
 const playerKey = "breadlet-player";
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
@@ -1384,7 +1404,6 @@ function MainPage() {
       label: "Chat",
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
-    { id: "resources", label: "Resources", icon: <Info size={20} strokeWidth={2.2} /> },
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "migration"].includes(item.id))
@@ -1423,7 +1442,7 @@ function MainPage() {
                 key={item.id}
                 data-tour-target={item.id}
                 onClick={() => setTab(item.id)}
-                aria-current={tab === item.id || (item.id === "resources" && ["promo", "info", "migration", "assets"].includes(tab)) ? "page" : undefined}
+                aria-current={tab === item.id ? "page" : undefined}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 font-extrabold text-sm transition ${
                   tab === item.id
                     ? "bg-[#39a8f5] text-white shadow-md"
@@ -1585,6 +1604,7 @@ function MainPage() {
           {tab === "info" && <InfoTab />}
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
           {tab === "assets" && <AssetLibraryTab />}
+          {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
@@ -3723,32 +3743,75 @@ function InfoTab() {
   );
 }
 
-function ResourcesTab({ open }: { open: (tab: "promo" | "info" | "migration" | "assets") => void }) {
+function ResourcesTab({ open }: { open: (tab: "promo" | "info" | "migration" | "assets" | "bank") => void }) {
   const resources = [
-    { title: "Promo Codes", description: "Redeem a Breadlet code for its reward.", icon: <Percent size={22} />, tab: "promo" as const, accent: "from-amber-300/20 to-orange-500/5" },
-    { title: "Info & Guide", description: "Learn how Goodybags, your Collection, crafting, and more work.", icon: <HelpCircle size={22} />, tab: "info" as const, accent: "from-sky-300/20 to-blue-500/5" },
-    { title: "Migration", description: "Request a transfer from the old game and track its review.", icon: <Gift size={22} />, tab: "migration" as const, accent: "from-emerald-300/20 to-teal-500/5" },
-    { title: "Asset Library", description: "Browse and preview Breadlet artwork and image files.", icon: <ImageIcon size={22} />, tab: "assets" as const, accent: "from-violet-300/20 to-fuchsia-500/5" },
+    { title: "Promo Codes", description: "Redeem a Breadlet code for its reward.", icon: <Percent size={22} />, tab: "promo" as const },
+    { title: "Info & Guide", description: "Learn how Goodybags, your Collection, crafting, and more work.", icon: <HelpCircle size={22} />, tab: "info" as const },
+    { title: "Migration", description: "Request a transfer from the old game and track its review.", icon: <Gift size={22} />, tab: "migration" as const },
+    { title: "Asset Library", description: "Browse and preview Breadlet artwork and image files.", icon: <ImageIcon size={22} />, tab: "assets" as const },
+    { title: "Token Bank", description: "See a running total of your token spending.", icon: <img src="/assets/piggy bank.svg" alt="" className="h-7 w-7 object-contain" />, tab: "bank" as const },
   ];
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="resources-workspace mx-auto w-full max-w-5xl">
       <header className="mb-7">
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-[#9cc8e8]">Breadlet library</p>
-        <h1 className="mt-2 text-4xl font-black text-white">Resources</h1>
-        <p className="mt-3 max-w-2xl leading-7 text-[#bde8ff]/75">Guides, account tools, and the artwork behind Breadlet, all in one place.</p>
+        <p className="resources-eyebrow text-xs font-black uppercase tracking-[0.25em]">Breadlet library</p>
+        <h1 className="mt-2 text-4xl font-black">Resources</h1>
+        <p className="resources-description mt-3 max-w-2xl leading-7">Guides, account tools, and the artwork behind Breadlet, all in one place.</p>
       </header>
       <div className="grid gap-4 sm:grid-cols-2">
         {resources.map((resource) => (
-          <button key={resource.title} type="button" onClick={() => open(resource.tab)} className={`resource-card group flex min-h-36 items-start gap-4 rounded-2xl border border-[#3d91cd]/35 bg-gradient-to-br ${resource.accent} p-5 text-left shadow-lg shadow-[#031426]/10`}>
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-white/10 bg-[#072a54]/75 text-[#bde8ff]">{resource.icon}</span>
+          <button key={resource.title} type="button" onClick={() => open(resource.tab)} className="resource-card group flex min-h-36 items-start gap-4 rounded-2xl border p-5 text-left shadow-lg shadow-[#031426]/10">
+            <span className="resource-icon grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-white/10">{resource.icon}</span>
             <span className="min-w-0 flex-1">
-              <strong className="block text-lg font-black text-white">{resource.title}</strong>
-              <span className="mt-1 block text-sm leading-6 text-[#d9f3ff]/75">{resource.description}</span>
-              <span className="mt-4 inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider text-[#9cc8e8]">Open <span aria-hidden="true">→</span></span>
+              <strong className="resource-title block text-lg font-black">{resource.title}</strong>
+              <span className="resource-description mt-1 block text-sm leading-6">{resource.description}</span>
+              <span className="resource-open mt-4 inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider">Open <span aria-hidden="true">→</span></span>
             </span>
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function TokenBankTab({ isGuest }: { isGuest: boolean }) {
+  const [bank, setBank] = useState<{ historicalEstimate: number; trackedSpent: number; totalSpent: number } | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(!isGuest);
+
+  useEffect(() => {
+    if (isGuest) return;
+    const controller = new AbortController();
+    fetch("/api/token-bank", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Token Bank could not load.");
+        setBank(result);
+      })
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Token Bank could not load.");
+      })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [isGuest]);
+
+  return (
+    <div className="resources-workspace mx-auto w-full max-w-3xl">
+      <p className="resources-eyebrow text-xs font-black uppercase tracking-[0.25em]">Resources / Token Bank</p>
+      <h1 className="mt-2 text-4xl font-black">Token Bank</h1>
+      <section className="bank-card mt-6 overflow-hidden rounded-3xl border p-6 sm:p-9">
+        <div className="bank-total-block text-center">
+          <p className="text-xs font-black uppercase tracking-[0.2em]">Total tokens spent</p>
+          <p className="mt-2 text-4xl font-black tabular-nums sm:text-5xl">{loading ? "…" : isGuest ? "0" : bank?.totalSpent.toLocaleString() || "0"}</p>
+          <p className="mt-1 text-sm font-bold">tokens</p>
+        </div>
+        <img src="/assets/piggy bank.svg" alt="Piggy bank" className="mx-auto mt-5 h-48 w-48 object-contain drop-shadow-xl sm:h-56 sm:w-56" />
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="bank-breakdown rounded-xl border p-4"><p className="text-xs font-bold uppercase tracking-wide">Estimated past spending</p><p className="mt-1 text-2xl font-black tabular-nums">{loading ? "…" : (bank?.historicalEstimate || 0).toLocaleString()}</p></div>
+          <div className="bank-breakdown rounded-xl border p-4"><p className="text-xs font-bold uppercase tracking-wide">Tracked since update</p><p className="mt-1 text-2xl font-black tabular-nums">{loading ? "…" : (bank?.trackedSpent || 0).toLocaleString()}</p></div>
+        </div>
+        <p className="bank-note mt-4 text-center text-xs leading-5">{isGuest ? "Sign in to keep a persistent spending total." : error || "Past spending is estimated from recorded bag openings and clan contributions. Every future token balance decrease is tracked automatically."}</p>
+      </section>
     </div>
   );
 }
@@ -3800,36 +3863,36 @@ function AssetLibraryTab() {
   const formats = ["All", "SVG", "PNG", "JPG", "Other"];
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="resources-workspace mx-auto w-full max-w-7xl">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-[#9cc8e8]">Resources / Artwork</p>
-          <h1 className="mt-2 text-4xl font-black text-white">Asset Library</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#bde8ff]/75">Explore the image assets used across Breadlet. Select any preview to open the original file.</p>
+          <p className="resources-eyebrow text-xs font-black uppercase tracking-[0.25em]">Resources / Artwork</p>
+          <h1 className="mt-2 text-4xl font-black">Asset Library</h1>
+          <p className="resources-description mt-2 max-w-2xl text-sm leading-6">Explore the image assets used across Breadlet. Select any preview to open the original file.</p>
         </div>
-        {loadState === "ready" && <span className="rounded-full border border-[#3d91cd]/40 bg-[#072a54]/60 px-3 py-1.5 text-xs font-bold text-[#bde8ff]">{filteredAssets.length} of {assets.length} assets</span>}
+        {loadState === "ready" && <span className="asset-count rounded-full border px-3 py-1.5 text-xs font-bold">{filteredAssets.length} of {assets.length} assets</span>}
       </header>
-      <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-[#3d91cd]/30 bg-[#072a54]/60 p-3 sm:flex-row sm:items-center">
+      <div className="asset-controls mb-5 flex flex-col gap-3 rounded-2xl border p-3 sm:flex-row sm:items-center">
         <label className="relative min-w-0 flex-1">
-          <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9cc8e8]/70" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search names or file paths" className="w-full rounded-xl border border-[#3d91cd]/25 bg-[#061f3c] py-2.5 pl-10 pr-3 text-sm text-white outline-none placeholder:text-[#9cc8e8]/50 focus:border-[#73c8ff]" />
+          <Search size={18} className="asset-search-icon pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search names or file paths" className="asset-search-input w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none" />
         </label>
         <div className="flex flex-wrap gap-1.5" aria-label="Filter assets by file type">
-          {formats.map((entry) => <button key={entry} type="button" onClick={() => setFormat(entry)} aria-pressed={format === entry} className={`rounded-lg px-3 py-2 text-xs font-black transition ${format === entry ? "bg-[#39a8f5] text-white" : "text-[#9cc8e8] hover:bg-[#103f75] hover:text-white"}`}>{entry}</button>)}
+          {formats.map((entry) => <button key={entry} type="button" onClick={() => setFormat(entry)} aria-pressed={format === entry} className={`asset-filter rounded-lg px-3 py-2 text-xs font-black transition ${format === entry ? "is-active" : ""}`}>{entry}</button>)}
         </div>
       </div>
-      {loadState === "loading" && <div role="status" className="rounded-2xl border border-[#3d91cd]/30 bg-[#072a54]/50 p-8 text-center text-sm font-bold text-[#bde8ff]">Loading Breadlet artwork…</div>}
-      {loadState === "error" && <div role="alert" className="rounded-2xl border border-red-300/30 bg-red-950/40 p-6 text-center"><p className="font-bold text-red-100">{loadError}</p><button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="mt-4 rounded-xl bg-[#39a8f5] px-4 py-2 text-sm font-black text-white transition hover:bg-[#73c8ff]">Try again</button></div>}
+      {loadState === "loading" && <div role="status" className="asset-loading rounded-2xl border p-8 text-center text-sm font-bold">Loading Breadlet artwork…</div>}
+      {loadState === "error" && <div role="alert" className="rounded-2xl border border-red-300/30 bg-red-950/40 p-6 text-center"><p className="font-bold text-red-100">{loadError}</p><button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="asset-retry mt-4 rounded-xl px-4 py-2 text-sm font-black transition">Try again</button></div>}
       {loadState === "ready" && (filteredAssets.length ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {filteredAssets.map((asset, index) => (
-            <a key={asset.path} href={asset.path} target="_blank" rel="noreferrer" className="asset-card group overflow-hidden rounded-2xl border border-[#3d91cd]/25 bg-[#072a54]/75 shadow-md shadow-[#031426]/10" style={{ "--asset-delay": `${Math.min(index, 12) * 18}ms` } as React.CSSProperties} title={`Open ${asset.name}`}>
-              <span className="grid aspect-square place-items-center overflow-hidden bg-[#061f3c]/80 p-3">
+            <a key={asset.path} href={asset.path} target="_blank" rel="noreferrer" className="asset-card group overflow-hidden rounded-2xl border shadow-md shadow-[#031426]/10" style={{ "--asset-delay": `${Math.min(index, 12) * 18}ms` } as React.CSSProperties} title={`Open ${asset.name}`}>
+              <span className="asset-preview grid aspect-square place-items-center overflow-hidden p-3">
                 <img src={asset.path} alt={asset.name} loading="lazy" className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-110" />
               </span>
-              <span className="block border-t border-[#3d91cd]/20 px-3 py-2.5">
-                <strong className="block truncate text-xs font-bold text-[#e7f6ff]" title={asset.name}>{asset.name}</strong>
-                <span className="mt-1 block truncate text-[10px] uppercase tracking-wider text-[#9cc8e8]/65">{asset.extension} · {asset.path.replace(/^\/assets\//, "")}</span>
+              <span className="asset-label block border-t px-3 py-2.5">
+                <strong className="asset-name block truncate text-xs font-bold" title={asset.name}>{asset.name}</strong>
+                <span className="asset-path mt-1 block truncate text-[10px] uppercase tracking-wider">{asset.extension} · {asset.path.replace(/^\/assets\//, "")}</span>
               </span>
             </a>
           ))}
@@ -4286,36 +4349,65 @@ function ClanTab({
   const [tags, setTags] = useState<string[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [createError, setCreateError] = useState("");
-  const [clan, setClanState] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number; thumbnailUrl?: string } | null>(null);
+  const [clan, setClanState] = useState<ClanRecord | null>(null);
   const [membershipClanId, setMembershipClanId] = useState("");
   const [filter, setFilter] = useState("");
-  const [dbClans, setDbClans] = useState<{ id?: string; name: string; description: string; tags: string[]; members: number; treasury: number; thumbnailUrl?: string }[]>([]);
+  const [dbClans, setDbClans] = useState<ClanRecord[]>([]);
+  const [requests, setRequests] = useState<ClanJoinRequest[]>([]);
+  const [myRequests, setMyRequests] = useState<{ id: string; clanId: string; status: string }[]>([]);
+  const [discoverOpen, setDiscoverOpen] = useState(false);
+  const [renamedClan, setRenamedClan] = useState("");
+
+  const toClanRecord = (entry: Record<string, unknown>): ClanRecord => ({
+    id: typeof entry.id === "string" ? entry.id : undefined,
+    name: typeof entry.name === "string" ? entry.name : "Clan",
+    description: typeof entry.description === "string" ? entry.description : "",
+    tags: Array.isArray(entry.tags) ? entry.tags.filter((tag): tag is string => typeof tag === "string") : [],
+    members: Number(entry.member_count) || 1,
+    treasury: Number(entry.treasury) || 0,
+    thumbnailUrl: typeof entry.thumbnail_url === "string" ? entry.thumbnail_url : "",
+    bannerData: typeof entry.banner_data === "string" ? entry.banner_data : "",
+    ownerProfileId: typeof entry.owner_profile_id === "string" ? entry.owner_profile_id : undefined,
+    role: typeof entry.role === "string" ? entry.role : undefined,
+    memberCapacity: Number(entry.member_capacity) || 25,
+    nameChangeUnlocked: Boolean(entry.name_change_unlocked),
+    bannerUnlocked: Boolean(entry.banner_unlocked),
+    colorsUnlocked: Boolean(entry.colors_unlocked),
+    theme: typeof entry.theme === "string" ? entry.theme : "breadlet",
+    animatedProfiles: Boolean(entry.animated_profiles),
+  });
 
   const loadClans = useCallback(async () => {
     try {
       const res = await fetch("/api/clans", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.clans && Array.isArray(data.clans)) {
-          const list = data.clans.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            description: c.description || "",
-            tags: Array.isArray(c.tags) ? c.tags : [],
-            members: c.member_count || 1,
-            treasury: c.treasury || 0,
-            thumbnailUrl: c.thumbnail_url || "",
-          }));
-          setDbClans(list);
-          const joinedClanId = String(data.membership?.clan_id || "");
-          setMembershipClanId(joinedClanId);
-          const myClan = list.find((c: any) => c.id === joinedClanId)
-            || list.find((c: any) => player.clanTag && c.name.toUpperCase().startsWith(player.clanTag));
-          if (myClan) setClanState(myClan);
-        }
-      }
-    } catch {
-      // Ignore network errors
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Clans could not be loaded.");
+      if (!Array.isArray(data.clans)) throw new Error("The clan service returned an invalid list.");
+      const joinedClanId = String(data.membership?.clan_id || "");
+      const list = data.clans.map((entry: Record<string, unknown>) => toClanRecord({
+        ...entry,
+        role: entry.id === joinedClanId ? data.membership?.role : undefined,
+      }));
+      setDbClans(list);
+      setMembershipClanId(joinedClanId);
+      setRequests(Array.isArray(data.requests) ? data.requests.map((request: Record<string, unknown>) => ({
+        id: String(request.id),
+        clanId: String(request.clan_id),
+        username: String(request.username || "Player"),
+        createdAt: String(request.created_at || ""),
+      })) : []);
+      setMyRequests(Array.isArray(data.myRequests) ? data.myRequests.map((request: Record<string, unknown>) => ({
+        id: String(request.id),
+        clanId: String(request.clan_id),
+        status: String(request.status),
+      })) : []);
+      const myClan: ClanRecord | undefined = list.find((entry: ClanRecord) => entry.id === joinedClanId)
+        || list.find((entry: ClanRecord) => Boolean(player.clanTag && entry.name.toUpperCase().startsWith(player.clanTag)));
+      setClanState(myClan || null);
+      if (myClan) setRenamedClan(myClan.name);
+      setCreateError("");
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Clans could not be loaded.");
     }
   }, [player.clanTag]);
 
@@ -4325,7 +4417,10 @@ function ClanTab({
 
   const allClans = dbClans;
 
-  const clans = allClans.filter((item) => !filter || item.tags.some((tag) => tag.includes(filter.toLowerCase())) || item.name.toLowerCase().includes(filter.toLowerCase()));
+  const clans = allClans.filter((item) => !filter || item.tags.some((tag) => tag.toLowerCase().includes(filter.toLowerCase())) || item.name.toLowerCase().includes(filter.toLowerCase()));
+  const isOwner = Boolean(clan?.id && player.id && clan.ownerProfileId === player.id);
+  const pendingByClan = new Map(myRequests.filter((request) => request.status === "pending").map((request) => [request.clanId, request.id]));
+  const themeNames: Record<string, string> = { breadlet: "Breadlet", ocean: "Ocean", sunset: "Sunset", forest: "Forest", royal: "Royal", ember: "Ember" };
 
   const handleCreateClan = async () => {
     setCreateError("");
@@ -4335,7 +4430,11 @@ function ClanTab({
       return;
     }
     if (isGuest) {
-      setClanState({ name, description, tags, members: 1, treasury: 0, thumbnailUrl });
+      setClanState({
+        name, description, tags, members: 1, treasury: 0, thumbnailUrl,
+        memberCapacity: 25, nameChangeUnlocked: false, bannerUnlocked: false,
+        colorsUnlocked: false, theme: "breadlet", animatedProfiles: false,
+      });
       setClan(name.slice(0, 5));
       setShowCreate(false);
       return;
@@ -4349,7 +4448,11 @@ function ClanTab({
       if (res.ok) {
         const data = await res.json();
         savePlayer({ ...player, tokens: player.tokens - 5000 });
-        setClanState({ id: data.clan?.id, name, description, tags, members: 1, treasury: 0, thumbnailUrl });
+        if (data.clan && typeof data.clan === "object") {
+          setClanState(toClanRecord(data.clan));
+        } else {
+          throw new Error("The clan service returned an invalid clan.");
+        }
         setClan(name.slice(0, 5));
         setShowCreate(false);
         loadClans();
@@ -4364,28 +4467,116 @@ function ClanTab({
     }
   };
 
-  const handleJoinClan = async (targetClan: { id?: string; name: string; description: string; tags: string[]; members: number; treasury: number; thumbnailUrl?: string }) => {
-    if (!targetClan.id || membershipClanId) return;
+  const handleRequestClan = async (targetClan: ClanRecord) => {
+    if (!targetClan.id || isGuest) return;
+    if (membershipClanId) {
+      setCreateError("Leave your current clan before requesting to join another.");
+      return;
+    }
     setCreateError("");
     try {
       const response = await fetch("/api/clans", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "join", clanId: targetClan.id }),
+        body: JSON.stringify({ action: "request", clanId: targetClan.id }),
       });
-      const result = await response.json().catch(() => ({}));
+      const result = await response.json();
       if (!response.ok) {
         setCreateError(result.error || "The clan could not be joined.");
         return;
       }
-      const joinedClan = { ...targetClan, members: Number(result.clan?.member_count) || targetClan.members + 1 };
-      setMembershipClanId(targetClan.id);
-      setClanState(joinedClan);
-      setDbClans((current) => current.map((item) => item.id === targetClan.id ? joinedClan : item));
-      setClan(String(result.clanTag || targetClan.name.slice(0, 5)));
-    } catch {
-      setCreateError("The clan server could not be reached. Try again.");
+      await loadClans();
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "The clan server could not be reached.");
     }
+  };
+
+  const reviewRequest = async (requestId: string, decision: "approved" | "declined") => {
+    if (!clan?.id) return;
+    const response = await fetch("/api/clans", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "review_request", requestId, decision }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      setCreateError(result.error || "The clan request could not be reviewed.");
+      return;
+    }
+    if (decision === "approved") setClan(String(clan.name.slice(0, 5).toUpperCase()));
+    await loadClans();
+  };
+
+  const upgradeClan = async (feature: string, value?: string) => {
+    if (!clan?.id) return;
+    const response = await fetch("/api/clans", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "upgrade", clanId: clan.id, feature, value }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      setCreateError(result.error || "The clan upgrade could not be purchased.");
+      return;
+    }
+    const updated = toClanRecord(result.clan);
+    setClanState(updated);
+    setDbClans((current) => current.map((entry) => entry.id === updated.id ? updated : entry));
+    setRenamedClan(updated.name);
+  };
+
+  const uploadClanBanner = async (file: File) => {
+    if (!clan?.id) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setCreateError("Choose a PNG, JPEG, or WebP banner.");
+      return;
+    }
+    if (file.size > 10_000_000) {
+      setCreateError("Choose a source image smaller than 10 MB.");
+      return;
+    }
+    try {
+      const sourceUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("The banner image could not be read."));
+        reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("The banner image could not be read."));
+        reader.readAsDataURL(file);
+      });
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const loadedImage = new Image();
+        loadedImage.onerror = () => reject(new Error("The banner image could not be decoded."));
+        loadedImage.onload = () => resolve(loadedImage);
+        loadedImage.src = sourceUrl;
+      });
+      const scale = Math.min(1, 1800 / image.naturalWidth, 560 / image.naturalHeight);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Your browser could not prepare the banner image.");
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const data = canvas.toDataURL("image/jpeg", 0.82);
+      if (data.length > 1_400_000) throw new Error("The optimized banner is still over 1 MB. Choose a smaller image.");
+      const response = await fetch("/api/clans/banner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clanId: clan.id, data }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "The banner could not be uploaded.");
+      const updated = { ...clan, bannerData: data };
+      setClanState(updated);
+      setDbClans((current) => current.map((entry) => entry.id === updated.id ? updated : entry));
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "The banner could not be uploaded.");
+    }
+  };
+
+  const renameClan = async () => {
+    const trimmedName = renamedClan.trim();
+    if (trimmedName === clan?.name) return;
+    await upgradeClan("rename", trimmedName);
+    if (trimmedName.length >= 2 && trimmedName.length <= 30) setClan(trimmedName.slice(0, 5).toUpperCase());
   };
 
   const handleDonate = async () => {
@@ -4405,7 +4596,7 @@ function ClanTab({
           const data = await res.json();
           savePlayer({ ...player, tokens: player.tokens - 100 });
           setClanState({ ...clan, treasury: data.treasury });
-          loadClans();
+          void loadClans();
           return;
         }
         setCreateError((await res.json().catch(() => ({}))).error || "Donation failed.");
@@ -4436,13 +4627,79 @@ function ClanTab({
     await loadClans();
   };
 
+  const upgradeOptions = [
+    { feature: "rename_unlock", title: "Custom clan name", detail: "Unlock the ability to rename your clan.", price: 5000, owned: clan?.nameChangeUnlocked || false },
+    { feature: "banner_unlock", title: "Clan banner", detail: "Upload a wide banner visible to every clan member.", price: 10000, owned: clan?.bannerUnlocked || false },
+    { feature: "colors_unlock", title: "Clan colors", detail: "Unlock six curated color themes for your clan profile.", price: 15000, owned: clan?.colorsUnlocked || false },
+    { feature: "member_capacity", title: "More members", detail: "Add 5 places, up to 100 clan members.", price: 20000, owned: (clan?.memberCapacity || 25) >= 100, level: clan ? `${clan.memberCapacity}/100` : "" },
+    { feature: "animated_profiles", title: "Animated profile", detail: "Add a subtle animated finish to your clan profile.", price: 30000, owned: clan?.animatedProfiles || false },
+  ];
+  const themeOptions = ["breadlet", "ocean", "sunset", "forest", "royal", "ember"];
+
   return (
-    <div className="space-y-6">
-      {createError && <div role="alert" className="fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border border-rose-300/40 bg-[#421f45] px-4 py-3 text-sm font-bold text-rose-100 shadow-2xl"><span>{createError}</span><button onClick={() => setCreateError("")} aria-label="Dismiss clan error">×</button></div>}
-      <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Clans</h1><button aria-label="Create a clan" onClick={() => setShowCreate(true)} className="flex shrink-0 items-center gap-2 rounded-xl bg-[#39a8f5] px-5 py-3 font-black text-[#031426] shadow-lg hover:bg-[#73c8ff]"><Users size={19} />Create Clan</button></div>
-      {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black text-[#bde8ff]">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button onClick={() => setShowCreate(false)} className="text-[#bde8ff]">Close</button></div><label className="mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed border-[#3d91cd] bg-[#0c3b70] p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span className="text-sm text-[#9cc8e8]">Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-3 text-white" /></div><button onClick={handleCreateClan} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Create clan</button></div></div>}
-      {clan && <div className="rounded-2xl border border-[#73c8ff] bg-[#18558f] p-5"><h2 className="text-xl font-black">{clan.name}</h2><p className="mt-1 text-[#d9f3ff]">{clan.description}</p><p className="mt-2 text-sm text-[#bde8ff]">{clan.members}/25 members · Treasury {clan.treasury}</p><div className="mt-3 flex flex-wrap gap-2"><button onClick={handleDonate} className="sidebar-dark-action rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Donate {isGuest ? "free" : "100 tokens"}</button><button onClick={() => void handleLeaveClan()} className="rounded-xl bg-red-700 px-4 py-3 font-black text-white">Leave clan</button></div><p className="mt-2 text-xs text-[#d9f3ff]">Warning: donated tokens cannot be withdrawn by members; only the clan leader can withdraw the treasury.</p></div>}
-      <div className="rounded-3xl border border-[#247bc0] bg-[#103f75] p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-2xl font-black">Discover Clans</h2><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Filter tags" className="w-40 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-3 py-2 text-white" /></div><div className="mt-5 grid gap-3 md:grid-cols-3">{clans.length ? clans.map((item) => { const joined = membershipClanId === item.id; const disabled = Boolean(membershipClanId) || item.members >= 25 || !item.id; return <article key={item.name} className="overflow-hidden rounded-2xl border border-[#3d91cd] bg-[#18558f]">{item.thumbnailUrl && <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="aspect-video w-full object-cover" />}<div className="p-4"><h3 className="font-black text-[#bde8ff]">{item.name}</h3><p className="mt-2 text-sm text-[#d9f3ff]">{item.description}</p><div className="mt-3 flex flex-wrap gap-1">{item.tags.map((tag) => <span key={tag} className="rounded-full bg-[#0c3b70] px-2 py-1 text-xs text-[#bde8ff]">#{tag}</span>)}</div><p className="mt-3 text-xs text-[#9cc8e8]">{item.members}/25 members · {item.treasury} treasury</p><button disabled={disabled} onClick={() => void handleJoinClan(item)} className="mt-4 w-full rounded-xl bg-[#39a8f5] px-4 py-2.5 text-sm font-black text-[#031426] disabled:cursor-not-allowed disabled:bg-[#0c3b70] disabled:text-[#9cc8e8]">{joined ? "Joined" : item.members >= 25 ? "Clan full" : membershipClanId ? "Already in a clan" : "Join clan"}</button></div></article>; }) : <p className="col-span-full py-10 text-center text-[#9cc8e8]">No clans found.</p>}</div></div>
+    <div className="clan-workspace space-y-6">
+      {createError && <div role="alert" className="clan-error fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm font-bold shadow-2xl"><span>{createError}</span><button type="button" onClick={() => setCreateError("")} aria-label="Dismiss clan error">×</button></div>}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div><p className="clan-eyebrow text-xs font-black uppercase tracking-[0.2em]">Breadlet communities</p><h1 className="mt-1 text-4xl font-black">Clans</h1></div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setDiscoverOpen((open) => !open)} className="clan-primary-button flex items-center gap-2 rounded-xl px-4 py-3 font-black"><Search size={18} />{discoverOpen ? "Hide discovery" : "Discover clans"}</button>
+          <button type="button" aria-label="Create a clan" onClick={() => setShowCreate(true)} className="clan-secondary-button flex items-center gap-2 rounded-xl px-4 py-3 font-black"><Users size={19} />Create Clan</button>
+        </div>
+      </div>
+
+      {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm"><div className="clan-panel w-full max-w-lg rounded-3xl border p-6"><div className="flex items-center justify-between"><h2 className="text-xl font-black">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2><button type="button" onClick={() => setShowCreate(false)} className="clan-text-muted">Close</button></div><label className="clan-input mt-5 flex h-36 cursor-pointer items-center justify-center rounded-2xl border border-dashed p-3">{thumbnailUrl ? <img src={thumbnailUrl} alt="Clan preview" className="h-full max-w-full object-contain" /> : <span>Upload clan image</span>}<input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onerror = () => setCreateError("The image could not be read."); reader.onload = () => typeof reader.result === "string" && setThumbnailUrl(reader.result); reader.readAsDataURL(file); }} /></label><div className="mt-3 grid gap-3"><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="clan-input rounded-xl border px-3 py-3" /><input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="clan-input rounded-xl border px-3 py-3" /><input value={tags.join(", ")} onChange={(event) => setTags(event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean).slice(0, 3))} placeholder="Up to 3 tags" className="clan-input rounded-xl border px-3 py-3" /></div><button type="button" onClick={handleCreateClan} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-3 font-black">Create clan</button></div></div>}
+
+      {clan && (
+        <section className={`clan-profile clan-theme-${clan.theme} ${clan.animatedProfiles ? "clan-profile-animated" : ""}`}>
+          {clan.bannerData && <img src={clan.bannerData} alt={`${clan.name} clan banner`} className="clan-banner" />}
+          <div className="clan-profile-content">
+            <div className="flex flex-wrap items-start justify-between gap-5">
+              <div className="flex min-w-0 items-center gap-4">
+                {clan.thumbnailUrl && <img src={clan.thumbnailUrl} alt="" className="h-16 w-16 shrink-0 rounded-2xl border border-white/20 object-cover" />}
+                <div className="min-w-0"><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Your clan</p><h2 className="mt-1 break-words text-3xl font-black">{clan.name}</h2><p className="clan-text-muted mt-1">{clan.description || "A Breadlet community."}</p></div>
+              </div>
+              <div className="clan-stats rounded-xl border px-4 py-3 text-sm font-bold">{clan.members}/{clan.memberCapacity} members <span className="mx-1 opacity-50">·</span> {clan.treasury.toLocaleString()} treasury</div>
+            </div>
+            {clan.tags.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{clan.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-3 py-1 text-xs font-bold">#{tag}</span>)}</div>}
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button type="button" onClick={handleDonate} className="clan-primary-button rounded-xl px-4 py-2.5 font-black">Contribute 100 tokens</button>
+              {!isGuest && <button type="button" onClick={() => void handleLeaveClan()} className="clan-leave-button rounded-xl px-4 py-2.5 font-black">Leave clan</button>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isOwner && clan && (
+        <>
+          <section className="clan-panel rounded-3xl border p-5 sm:p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Owner controls</p><h2 className="mt-1 text-2xl font-black">Clan requests</h2></div><span className="clan-text-muted text-sm">{requests.length} waiting</span></div>
+            {requests.length ? <div className="mt-4 divide-y divide-white/10">{requests.filter((request) => request.clanId === clan.id).map((request) => <div key={request.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><strong>{request.username}</strong><p className="clan-text-muted text-xs">Requested {new Date(request.createdAt).toLocaleDateString()}</p></div><div className="flex gap-2"><button type="button" onClick={() => void reviewRequest(request.id, "approved")} className="clan-primary-button rounded-lg px-3 py-2 text-sm font-black">Approve</button><button type="button" onClick={() => void reviewRequest(request.id, "declined")} className="clan-secondary-button rounded-lg px-3 py-2 text-sm font-black">Decline</button></div></div>)}</div> : <p className="clan-text-muted mt-4 text-sm">No join requests right now.</p>}
+          </section>
+
+          <section className="clan-panel rounded-3xl border p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Chapter 2</p><h2 className="mt-1 text-2xl font-black">Clan upgrades</h2><p className="clan-text-muted mt-1 text-sm">Owners spend the shared treasury to unlock clan features.</p></div><span className="clan-treasury rounded-full px-3 py-1.5 text-sm font-black">{clan.treasury.toLocaleString()} tokens</span></div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {upgradeOptions.map((upgrade) => <article key={upgrade.feature} className="clan-upgrade-card rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black">{upgrade.title}{upgrade.level ? <span className="clan-eyebrow ml-2 text-xs">{upgrade.level}</span> : null}</h3><p className="clan-text-muted mt-1 text-sm leading-5">{upgrade.detail}</p></div>{upgrade.owned && <span className="clan-owned-badge rounded-full px-2.5 py-1 text-[10px] font-black uppercase">Unlocked</span>}</div><button type="button" disabled={isGuest || upgrade.owned || clan.treasury < upgrade.price} onClick={() => void upgradeClan(upgrade.feature)} className="clan-upgrade-button mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{upgrade.owned ? "Purchased" : `Unlock · ${upgrade.price.toLocaleString()} tokens`}</button></article>)}
+            </div>
+            {clan.nameChangeUnlocked && <div className="mt-5 flex flex-col gap-2 sm:flex-row"><input aria-label="New clan name" value={renamedClan} onChange={(event) => setRenamedClan(event.target.value)} maxLength={30} className="clan-input min-w-0 flex-1 rounded-xl border px-3 py-2.5" /><button type="button" onClick={() => void renameClan()} disabled={renamedClan.trim().length < 2 || renamedClan.trim() === clan.name} className="clan-primary-button rounded-xl px-4 py-2.5 font-black disabled:opacity-45">Save clan name</button></div>}
+            {clan.colorsUnlocked && <div className="mt-5"><label htmlFor="clan-theme" className="clan-text-muted mb-2 block text-sm font-bold">Clan color theme</label><select id="clan-theme" value={clan.theme} onChange={(event) => void upgradeClan("theme", event.target.value)} className="clan-input rounded-xl border px-4 py-3">{themeOptions.map((theme) => <option key={theme} value={theme}>{themeNames[theme]}</option>)}</select></div>}
+            {clan.bannerUnlocked && <div className="mt-5"><label className="clan-text-muted mb-2 block text-sm font-bold">Clan banner · wide image visible to all members</label><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadClanBanner(file); event.currentTarget.value = ""; }} className="clan-input block max-w-full text-sm" /></div>}
+          </section>
+        </>
+      )}
+
+      {!clan && <section className="clan-panel rounded-3xl border p-6 text-center"><h2 className="text-2xl font-black">Find your people</h2><p className="clan-text-muted mt-2">Discover clans, browse their banners and themes, and request to join.</p><button type="button" onClick={() => setDiscoverOpen(true)} className="clan-primary-button mt-4 rounded-xl px-5 py-3 font-black"><Search className="mr-2 inline" size={18} />Discover clans</button></section>}
+
+      {discoverOpen && <section className="clan-panel rounded-3xl border p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Find a community</p><h2 className="mt-1 text-2xl font-black">Discover Clans</h2></div><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Search clan or tag" aria-label="Search clans" className="clan-input w-full rounded-xl border px-3 py-2 sm:w-64" /></div><div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{clans.length ? clans.map((item) => {
+        const pending = pendingByClan.has(item.id || "");
+        const full = item.members >= item.memberCapacity;
+        const ownClan = membershipClanId === item.id;
+        const theme = item.colorsUnlocked ? item.theme : "breadlet";
+        return <article key={item.id || item.name} className={`clan-discover-card clan-theme-${theme} overflow-hidden rounded-2xl border ${item.animatedProfiles ? "clan-profile-animated" : ""}`}>
+          {item.bannerData ? <img src={item.bannerData} alt={`${item.name} clan banner`} className="clan-discover-banner" /> : item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="clan-discover-banner" /> : <div className="clan-discover-banner clan-banner-placeholder"><Users size={30} /></div>}
+          <div className="p-4"><div className="flex items-start justify-between gap-2"><h3 className="break-words text-xl font-black">{item.name}</h3><span className="clan-stats shrink-0 rounded-full px-2.5 py-1 text-xs font-bold">{item.members}/{item.memberCapacity}</span></div><p className="clan-text-muted mt-2 text-sm leading-5">{item.description || "A Breadlet community."}</p><div className="mt-3 flex flex-wrap gap-1.5">{item.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-2.5 py-1 text-xs">#{tag}</span>)}</div><p className="clan-text-muted mt-3 text-xs">{item.treasury.toLocaleString()} treasury tokens · {themeNames[theme]} colors</p><button type="button" disabled={isGuest || ownClan || pending || full || Boolean(membershipClanId)} onClick={() => void handleRequestClan(item)} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{ownClan ? "Your clan" : pending ? "Request pending" : full ? "Clan full" : membershipClanId ? "Leave your clan before requesting" : isGuest ? "Sign in to request" : "Request to join"}</button></div>
+        </article>;
+      }) : <p className="col-span-full py-10 text-center clan-text-muted">No clans match that search.</p>}</div></section>}
     </div>
   );
 }
