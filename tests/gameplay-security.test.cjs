@@ -31,10 +31,14 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   const now = new Date('2026-10-05T01:30:00Z');
   const snapshot = { tokens: 1000, materials: { Metal: 12, Cloth: 8 }, inventory: { Gears: { quantity: 3, rarity: 'Rare' } }, wheelSpun: false };
   const inventions = catalog.liveCapsules.find((pack) => pack.name === 'Inventions Bag');
+  assert.equal(inventions.pool.find((reward) => reward.name === 'Magnifying Glass').rarity, 'Common');
+  assert.equal(inventions.pool.find((reward) => reward.name === 'Magnifying Glass').art, '/assets/magnifying-glass.svg');
   assert.equal(inventions.pool.find((reward) => reward.name === 'Bitcoin').rarity, 'Mythic');
   assert.equal(inventions.pool.find((reward) => reward.name === "Leonardo da Vinci's Tank").rarity, 'Epic');
   const space = catalog.liveCapsules.find((pack) => pack.name === 'Space Bag');
-  assert.equal(space.pool.find((reward) => reward.name === 'Earth').art, '/assets/earth-globe.svg');
+  assert.equal(space.pool.find((reward) => reward.name === 'Earth').art, '/assets/Lost and found + food pack/earth 2.svg');
+  assert.equal(space.pool.find((reward) => reward.name === 'Globe').rarity, 'Uncommon');
+  assert.equal(space.pool.find((reward) => reward.name === 'Globe').art, '/assets/earth-globe.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').rarity, 'Rare');
   assert.equal(space.pool.find((reward) => reward.name === 'Space Trooper').rarity, 'Uncommon');
   assert.equal(space.pool.find((reward) => reward.name === 'Consolation').rarity, 'Uncommon');
@@ -70,6 +74,9 @@ test('server-generated rewards reject forged results and invalid gameplay reques
     for (const reward of pack.pool) {
       if (reward.art) assert.ok(fs.existsSync(`public/${decodeURIComponent(reward.art.slice(1))}`), `${reward.name} artwork exists`);
     }
+    assert.ok(fs.existsSync('public/assets/magnifying-glass.svg'), 'Magnifying Glass artwork exists');
+    assert.ok(fs.existsSync('public/assets/Lost and found + food pack/earth 2.svg'), 'original Earth artwork exists');
+    assert.ok(fs.existsSync('public/assets/earth-globe.svg'), 'Globe artwork exists');
   }
   for (const art of [
     'public/assets/Lost and found box frame 1.svg',
@@ -215,7 +222,7 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     await database.exec(migration);
     const tankMigration = fs.readFileSync('supabase/migrations/0016_inventions_tank.sql', 'utf8');
     await database.exec(tankMigration);
-    await database.query("insert into chests(name,price,pool) values ('Human Bag',25,'[]'),('Pixel Bag',25,'[]'),('Remix Bag',25,'[]'),('Lost and Found Bag',25,'[\"Car Keys\"]'),('Artifact Bag',25,'[\"Aztec Coin\"]'),('Combat Bag',25,'[\"Olive Grenade\"]')");
+    await database.query("insert into chests(name,price,pool) values ('Human Bag',25,'[]'),('Pixel Bag',25,'[]'),('Remix Bag',25,'[]'),('Inventions Bag',25,'[\"Wheel\"]'),('Space Bag',25,'[\"Mars\",\"Earth\"]'),('Lost and Found Bag',25,'[\"Car Keys\"]'),('Artifact Bag',25,'[\"Aztec Coin\"]'),('Combat Bag',25,'[\"Olive Grenade\"]')");
     const breadMigration = fs.readFileSync('supabase/migrations/0018_refreshed_bread_bag.sql', 'utf8');
     await database.exec(breadMigration);
     const breadReplacementMigration = fs.readFileSync('supabase/migrations/0019_replace_legacy_bread_inventory.sql', 'utf8');
@@ -237,6 +244,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const coinArtworkMigration = fs.readFileSync('supabase/migrations/0024_restore_aztec_coin_artwork.sql', 'utf8');
     await database.exec(coinArtworkMigration);
     await database.exec(coinArtworkMigration);
+    const latestCatalogMigration = fs.readFileSync('supabase/migrations/0025_latest_catalog_update.sql', 'utf8');
+    await database.exec(latestCatalogMigration);
+    await database.exec(latestCatalogMigration);
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
@@ -258,7 +268,14 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     );
     const updatedArtwork = (await database.query("select name, artwork_key from blooks where name in ('Aztec Coin','Earth','Coffee Mug','Clay Vase') order by name")).rows;
     assert.equal(updatedArtwork.map(({ name, artwork_key }) => `${name}:${artwork_key}`).join(','),
-      'Aztec Coin:Aztect Coin 2.0.svg,Clay Vase:clay-vase.svg,Coffee Mug:coffee-mug.svg,Earth:earth-globe.svg');
+      'Aztec Coin:Aztect Coin 2.0.svg,Clay Vase:clay-vase.svg,Coffee Mug:coffee-mug.svg,Earth:Lost and found + food pack/earth 2.svg');
+    const newBlookArt = (await database.query("select name, rarity, artwork_key from blooks where name in ('Globe','Magnifying Glass') order by name")).rows;
+    assert.equal(newBlookArt.map(({ name, rarity, artwork_key }) => `${name}:${rarity}:${artwork_key}`).join(','),
+      'Globe:Uncommon:earth-globe.svg,Magnifying Glass:Common:magnifying-glass.svg');
+    assert.deepEqual((await database.query("select pool from chests where name='Inventions Bag'")).rows[0].pool,
+      ['Wheel', 'Magnifying Glass']);
+    assert.deepEqual((await database.query("select pool from chests where name='Space Bag'")).rows[0].pool,
+      ['Mars', 'Earth', 'Globe']);
     const adjustedRarities = (await database.query("select name, rarity from blooks where name in ('Space Trooper','Consolation','Avocado','Shuriken','Blooket Gods','Robo Bread') order by name")).rows;
     assert.equal(adjustedRarities.map(({ name, rarity }) => `${name}:${rarity}`).join(','),
       'Avocado:Common,Blooket Gods:Common,Consolation:Uncommon,Robo Bread:Uncommon,Shuriken:Uncommon,Space Trooper:Uncommon');

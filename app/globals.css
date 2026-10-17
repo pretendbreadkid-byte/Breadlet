@@ -646,7 +646,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
   position: absolute;
   bottom: 12%;
   left: 50%;
-  width: 84%;
+  width: 94%;
   height: 66%;
   object-fit: contain;
   object-position: bottom center;
@@ -676,7 +676,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
   .teds-shelf-scene { width: 100%; }
   .teds-shelf-content { padding-inline: 4%; }
   .teds-shelf-item { margin-inline: 1%; }
-  .teds-pack-art { width: 84%; height: 64.5%; }
+  .teds-pack-art { width: 94%; height: 64.5%; }
 }
 .guest-mode-banner { border: 1px solid #CC5500; background: #ED7117; color: #3B1F0E; }
 .guest-mode-banner button { color: #3B1F0E; }

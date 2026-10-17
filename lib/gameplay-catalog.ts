@@ -137,13 +137,16 @@ export const liveCapsules: Capsule[] = [
     art: "/assets/invetion goodie bag.svg",
     pool: rewards([
       ["Wheel", "Common"],
+      ["Magnifying Glass", "Common"],
       ["Letter", "Uncommon"],
       ["Gears", "Rare"],
       ["Da Vinci's Ornithopter", "Epic"],
       ["Leonardo da Vinci's Tank", "Epic"],
       ["Leonardo da Vinci", "Legendary"],
       ["Bitcoin", "Mythic"],
-    ]),
+    ], {
+      "Magnifying Glass": "/assets/magnifying-glass.svg",
+    }),
   },
   {
     name: "Space Bag",
@@ -152,6 +155,7 @@ export const liveCapsules: Capsule[] = [
     pool: rewards([
       ["Mars", "Common"],
       ["Earth", "Uncommon"],
+      ["Globe", "Uncommon"],
       ["Star", "Rare"],
       ["Space Trooper", "Uncommon"],
       ["Consolation", "Uncommon"],
@@ -160,7 +164,8 @@ export const liveCapsules: Capsule[] = [
       ["Alien", "Mythic"],
       ["Star Ship", "Breadled"],
     ], {
-      Earth: "/assets/earth-globe.svg",
+      Earth: "/assets/Lost and found + food pack/earth 2.svg",
+      Globe: "/assets/earth-globe.svg",
       Sun: "/assets/sun.svg",
       Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
     }, { "Star Ship": 0.005 }),

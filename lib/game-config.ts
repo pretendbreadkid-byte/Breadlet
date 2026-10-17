@@ -23,7 +23,7 @@ export const CHEST_DEFINITIONS = [
     name: 'Space Bag',
     price: 25,
     description: 'Cosmic drops from deep space.',
-    pool: ['Mars', 'Earth', 'Star', 'Consolation', 'Eclipse', 'Alien', 'Star Ship'],
+    pool: ['Mars', 'Earth', 'Globe', 'Star', 'Consolation', 'Eclipse', 'Alien', 'Star Ship'],
     rarity: 'Mythic',
     isRetired: false,
     active: true,
