@@ -245,13 +245,20 @@ const artFor = (name: string) =>
 const pickleFrames = [1, 2, 4, 5, 6, 7, 8, 9, 10].map(
   (n) => `/assets/Lost and found + food pack/pickel frame ${n}.svg`,
 );
+function AnimatedArtFrame({ src, name, className }: { src: string; name: string; className: string }) {
+  return (
+    <span className={`relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
+      <img src={src} alt={name} className="absolute inset-0 h-full w-full object-contain" />
+    </span>
+  );
+}
 function PickleFrameSwitcher({ className }: { className: string }) {
   const [frame, setFrame] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => setFrame((f) => (f + 1) % pickleFrames.length), 150);
     return () => clearInterval(timer);
   }, []);
-  return <img src={pickleFrames[frame]} alt="Pickle" className={`max-h-full max-w-full object-contain ${className}`} />;
+  return <AnimatedArtFrame src={pickleFrames[frame]} name="Pickle" className={className} />;
 }
 
 
@@ -2365,13 +2372,7 @@ function StarShipFrameSwitcher({ className }: { className: string }) {
     }, 150);
     return () => clearInterval(timer);
   }, []);
-  return (
-    <img
-      src={`/assets/star ship frame ${frame}.svg`}
-      alt="Star Ship"
-      className={`max-h-full max-w-full object-contain ${className}`}
-    />
-  );
+  return <AnimatedArtFrame src={`/assets/star ship frame ${frame}.svg`} name="Star Ship" className={className} />;
 }
 
 const lostAndFoundBoxFrames = [
@@ -2397,7 +2398,7 @@ function FrameSwitcher({ frames, name, className }: { frames: string[]; name: st
     }, 180);
     return () => window.clearInterval(timer);
   }, [frames]);
-  return <img src={frames[frame]} alt={name} className={`h-full w-full max-h-full max-w-full object-contain ${className}`} />;
+  return <AnimatedArtFrame src={frames[frame]} name={name} className={className} />;
 }
 
 const pixelSprinkleFrames = [1, 2, 3].map((frame) => `/assets/Lost and found + food pack/Pixel sprinkle bread frame ${frame}.png?v=2`);
@@ -2407,7 +2408,7 @@ function PixelSprinkleFrameSwitcher({ className }: { className: string }) {
     const timer = setInterval(() => setFrame((current) => (current + 1) % pixelSprinkleFrames.length), 220);
     return () => clearInterval(timer);
   }, []);
-  return <img src={pixelSprinkleFrames[frame]} alt="Pixel Sprinkle Bread" className={`max-h-full max-w-full object-contain ${className}`} />;
+  return <AnimatedArtFrame src={pixelSprinkleFrames[frame]} name="Pixel Sprinkle Bread" className={className} />;
 }
 
 function RewardArt({ name, art, className }: { name: string; art: string; className: string }) {
