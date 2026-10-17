@@ -39,14 +39,33 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(space.pool.find((reward) => reward.name === 'Eclipse').art, '/assets/solar%20ecplise%20but%20good.svg');
   const bread = catalog.liveCapsules.find((pack) => pack.name === 'Bread Bag');
   assert.equal(bread.pool.map((reward) => reward.name).join(','),
-    'Sour Dough,Toaster,Croissant,Cinnamon Roll,Robo Bread,Slime Bread,Gold Bread,Holy Bread');
+    'Sour Dough,Toaster,Golden Toaster,Croissant,Cinnamon Roll,Robo Bread,Slime Bread,Gold Bread,Holy Bread');
   assert.equal(bread.pool.find((reward) => reward.name === 'Holy Bread').art, '/assets/holy-bread-refreshed.svg');
+  assert.equal(bread.pool.find((reward) => reward.name === 'Golden Toaster').rarity, 'Breadled');
+  assert.equal(catalog.chanceFor(bread, bread.pool.find((reward) => reward.name === 'Golden Toaster')), 0.004);
   for (const reward of bread.pool) assert.ok(fs.existsSync(`public/${reward.art.slice(1)}`), `${reward.name} artwork exists`);
   assert.ok(!catalog.liveCapsules.some((pack) => ['Human Bag', 'Pixel Bag', 'Remix Bag'].includes(pack.name)));
   const lostAndFound = catalog.liveCapsules.find((pack) => pack.name === 'Lost and Found Bag');
   const combat = catalog.liveCapsules.find((pack) => pack.name === 'Combat Bag');
   assert.equal(lostAndFound.pool.find((reward) => reward.name === 'Wallet').rarity, 'Uncommon');
+  assert.equal(lostAndFound.pool.find((reward) => reward.name === 'Lost and Found Box').rarity, 'Breadled');
+  assert.equal(catalog.chanceFor(lostAndFound, lostAndFound.pool.find((reward) => reward.name === 'Lost and Found Box')), 0.003);
+  assert.equal(space.pool.find((reward) => reward.name === 'Star Ship').rarity, 'Breadled');
+  assert.equal(catalog.chanceFor(space, space.pool.find((reward) => reward.name === 'Star Ship')), 0.005);
   assert.equal(combat.pool.find((reward) => reward.name === 'Sword').rarity, 'Rare');
+  for (const art of [
+    'public/assets/lost and found bag Updatd updated updated (1).svg',
+    'public/assets/Lost and found box frame 1.svg',
+    'public/assets/Lost and found box 2.svg',
+    'public/assets/Lost and found box 3.svg',
+    'public/assets/Lost and found box 4.svg',
+    'public/assets/Lost and found box 5.svg',
+    'public/assets/Lost and found box 6.svg',
+    'public/assets/goldenToaster frame 1.svg',
+    'public/assets/goldenToaster2.svg',
+    'public/assets/goldenToaster3.svg',
+    'public/assets/goldenToaster4.svg',
+  ]) assert.ok(fs.existsSync(art), `${art} exists`);
   for (const [name, art] of [
     ['Wallet', '/assets/wallet.svg'],
     ['Sword', '/assets/sword.svg'],
@@ -187,6 +206,11 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const extraBlooksMigration = fs.readFileSync('supabase/migrations/0020_add_lost_found_and_combat_blooks.sql', 'utf8');
     await database.exec(extraBlooksMigration);
     await database.exec(extraBlooksMigration);
+    await database.query("insert into blooks(name,rarity) values ('Old Transcendent','Transcendent')");
+    const breadledMigration = fs.readFileSync('supabase/migrations/0021_breadled_reward_items.sql', 'utf8');
+    await database.exec(breadledMigration);
+    await database.exec(breadledMigration);
+    assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
     assert.equal(tank.artwork_key, "DaVinci'sOrnothopter2.svg");
@@ -196,11 +220,18 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const breadBag = (await database.query("select active, is_retired, pool from chests where name = 'Bread Bag'")).rows[0];
     assert.equal(breadBag.active, true);
     assert.equal(breadBag.is_retired, false);
-    assert.equal(breadBag.pool.length, 8);
+    assert.equal(breadBag.pool.length, 9);
     assert.deepEqual(
       (await database.query("select pool from chests where name='Lost and Found Bag'")).rows[0].pool,
-      ['Car Keys', 'Wallet'],
+      ['Car Keys', 'Wallet', 'Lost and Found Box'],
     );
+    assert.deepEqual(
+      (await database.query("select pool from chests where name='Bread Bag'")).rows[0].pool.slice(-1),
+      ['Golden Toaster'],
+    );
+    const breadledBlooks = (await database.query("select name, rarity from blooks where name in ('Star Ship','Lost and Found Box','Golden Toaster') order by name")).rows;
+    assert.equal(breadledBlooks.map(({ name, rarity }) => `${name}:${rarity}`).join(','),
+      'Golden Toaster:Breadled,Lost and Found Box:Breadled,Star Ship:Breadled');
     assert.deepEqual(
       (await database.query("select pool from chests where name='Combat Bag'")).rows[0].pool,
       ['Olive Grenade', 'Sword'],

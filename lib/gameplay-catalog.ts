@@ -1,4 +1,4 @@
-export type Reward = { name: string; rarity: string; weight: number; art?: string };
+export type Reward = { name: string; rarity: string; weight: number; chance?: number; art?: string };
 
 export type Capsule = {
   name: string;
@@ -17,27 +17,31 @@ export const rarityBudget: Record<string, number> = {
   Legendary: 0.5,
   Mythic: 0.2,
   Unique: 0.2,
-  Transcendent: 0.025,
+  Breadled: 0.025,
 };
 
 export const rewards = (
   items: [string, string][],
   artNames: Record<string, string> = {},
+  chances: Record<string, number> = {},
 ) =>
-  items.map(([name, rarity]) => ({
-    name,
-    rarity,
-    weight: rarityBudget[rarity] || 0.1,
-    art: artNames[name],
-  }));
+  items.map(([name, rarity]) => {
+    const sameRarityCount = items.filter(([, itemRarity]) => itemRarity === rarity).length;
+    return {
+      name,
+      rarity,
+      weight: (rarityBudget[rarity] || 0.1) / sameRarityCount,
+      chance: chances[name],
+      art: artNames[name],
+    };
+  });
 
 export const chanceFor = (capsule: Capsule, reward: Reward) => {
-  const total = Array.from(new Set(capsule.pool.map((item) => item.rarity))).reduce(
-    (sum, rarity) => sum + (rarityBudget[rarity] || 0.1), 0,
-  );
-  const sameRarity =
-    capsule.pool.filter((item) => item.rarity === reward.rarity).length || 1;
-  return ((rarityBudget[reward.rarity] || 0.1) / sameRarity / total) * 100;
+  if (reward.chance !== undefined) return reward.chance;
+  const fixedChance = capsule.pool.reduce((sum, item) => sum + (item.chance || 0), 0);
+  const weightedRewards = capsule.pool.filter((item) => item.chance === undefined);
+  const remainingWeight = weightedRewards.reduce((sum, item) => sum + item.weight, 0);
+  return ((100 - fixedChance) * reward.weight) / remainingWeight;
 };
 
 export const sellValueFor = (rarity: string) =>
@@ -49,7 +53,7 @@ export const sellValueFor = (rarity: string) =>
     Legendary: 150,
     Mythic: 300,
     Unique: 500,
-    Transcendent: 1000,
+    Breadled: 1000,
   })[rarity] || 5;
 
 export const materialNames = [
@@ -76,7 +80,7 @@ export const wheelRewards = [
 ] as const;
 
 export const materialFor = (name: string, rarity: string) =>
-  rarity === "Mythic" || rarity === "Transcendent"
+  rarity === "Mythic" || rarity === "Breadled"
     ? "Metal"
     : rarity === "Legendary"
       ? "Metal"
@@ -154,16 +158,16 @@ export const liveCapsules: Capsule[] = [
       ["Sun", "Rare"],
       ["Eclipse", "Epic"],
       ["Alien", "Mythic"],
-      ["Star Ship", "Transcendent"],
+      ["Star Ship", "Breadled"],
     ], {
       Sun: "/assets/sun.svg",
       Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
-    }),
+    }, { "Star Ship": 0.005 }),
   },
   {
     name: "Lost and Found Bag",
     price: 25,
-    art: "/assets/lost and found bag right size .png",
+    art: "/assets/lost and found bag Updatd updated updated (1).svg",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
@@ -172,7 +176,8 @@ export const liveCapsules: Capsule[] = [
       ["Textbook", "Rare"],
       ["Tablet", "Legendary"],
       ["Button", "Mythic"],
-    ]),
+      ["Lost and Found Box", "Breadled"],
+    ], {}, { "Lost and Found Box": 0.003 }),
   },
   {
     name: "Food Bag",
@@ -241,6 +246,7 @@ export const liveCapsules: Capsule[] = [
     pool: rewards([
       ["Sour Dough", "Common"],
       ["Toaster", "Common"],
+      ["Golden Toaster", "Breadled"],
       ["Croissant", "Common"],
       ["Cinnamon Roll", "Uncommon"],
       ["Robo Bread", "Rare"],
@@ -256,7 +262,8 @@ export const liveCapsules: Capsule[] = [
       "Slime Bread": "/assets/slime-bread.svg",
       "Gold Bread": "/assets/gold-bread-refreshed.svg",
       "Holy Bread": "/assets/holy-bread-refreshed.svg",
-    }),
+      "Golden Toaster": "/assets/goldenToaster frame 1.svg",
+    }, { "Golden Toaster": 0.004 }),
   },
 ];
 
@@ -311,7 +318,7 @@ export const legacyCapsules: Capsule[] = [
     art: "/assets/remix bag.svg",
     retired: true,
     pool: rewards([
-      ["Red Rex", "Transcendent"],
+      ["Red Rex", "Breadled"],
       ["Albino Crow", "Uncommon"],
       ["Mr. Frog", "Uncommon"],
       ["Crimson Octopus", "Mythic"],

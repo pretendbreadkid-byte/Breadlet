@@ -165,6 +165,8 @@ const artFor = (name: string) =>
     Solider: "/assets/solider.svg",
     "Gold Bread": "/assets/gold-bread-refreshed.svg",
     Sword: "/assets/sword.svg",
+    "Golden Toaster": "/assets/goldenToaster%20frame%201.svg",
+    "Lost and Found Box": "/assets/Lost%20and%20found%20box%20frame%201.svg",
     "Stone Tablet": "/assets/Stone tablet (1).svg",
     Actor: "/assets/actor.svg",
     Alien: "/assets/Lost and found + food pack/alien 2.svg",
@@ -249,8 +251,8 @@ function PickleFrameSwitcher({ className }: { className: string }) {
 const rarityClassFor = (rarity: string) =>
   rarity === "Unique"
     ? "rarity-unique"
-    : rarity === "Transcendent"
-      ? "rarity-transcendent"
+    : rarity === "Breadled"
+      ? "rarity-breadled"
       : "";
 const rarityTileClass = (rarity: string) => {
   const classes: Record<string, string> = {
@@ -261,7 +263,7 @@ const rarityTileClass = (rarity: string) => {
     Legendary: "border-amber-400/60 bg-amber-500/10 text-amber-200",
     Mythic: "border-rose-400/60 bg-rose-500/10 text-rose-200",
     Unique: "border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-200",
-    Transcendent: "border-yellow-300/70 bg-yellow-400/15 text-yellow-100",
+    Breadled: "border-yellow-300/70 bg-yellow-400/15 text-yellow-100",
   };
   return classes[rarity] || classes.Common;
 };
@@ -1393,11 +1395,11 @@ function MainPage() {
         <div>
           {/* Logo Header */}
           <button type="button" className="sidebar-brand" data-tour-target="profile" aria-label="Open my profile" onClick={() => { setViewedProfile(null); setTab("profile"); }}>
-            <span className="sidebar-wordmark"><img src="/assets/Nw%20name%20lgo.png" alt="Breadlet" /></span>
+            <span className="sidebar-wordmark"><img src="/assets/breadlet-wordmark.png" alt="Breadlet" /></span>
           </button>
 
           {/* Sidebar Nav Buttons */}
-          <nav className="mt-2 space-y-1.5">
+          <nav className="-mt-3 space-y-1.5">
             {visibleNav.map((item) => (
               <button
                 key={item.id}
@@ -1745,13 +1747,15 @@ function LoginScreen({
     <main className="auth-screen flex min-h-screen items-center justify-center bg-[#0c3b70] px-5 text-white">
       <form
         onSubmit={login}
-        className="w-full max-w-md rounded-3xl border border-[#3d91cd] bg-[#103f75] p-8 shadow-2xl"
+        className="w-full max-w-md p-8"
       >
-        <img
-          src="/assets/New%20new%20logo.png"
-          alt="Breadlet logo"
-          className="mx-auto mb-8 h-32 w-80 object-contain"
-        />
+        <div className="mx-auto mb-8 flex h-44 w-full items-center justify-center rounded-2xl bg-[#27251F] p-3">
+          <img
+            src="/assets/breadlet-wordmark.png"
+            alt="Breadlet logo"
+            className="h-full w-full object-contain"
+          />
+        </div>
         <h1 className="text-center text-3xl font-black">
           {forgotPassword ? "Reset your password" : authMode === "login" ? "Log in" : "Start your collection"}
         </h1>
@@ -2199,7 +2203,7 @@ function CapsulesTab({
       <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <span />
         <button type="button" onClick={clickShopHeading} className="mx-auto flex justify-center bg-transparent p-0" title="Ted's Shop">
-          <img src="/assets/ted-shop-wordmark.svg" alt="Ted's Shop" className="h-12 w-64 object-contain sm:h-14 sm:w-80" />
+          <img src="/assets/teds-shop-wordmark.png" alt="Ted's Shop" className="h-12 w-64 object-cover sm:h-14 sm:w-80" />
         </button>
         <div className="flex justify-end">
           <button
@@ -2362,6 +2366,31 @@ function StarShipFrameSwitcher({ className }: { className: string }) {
   );
 }
 
+const lostAndFoundBoxFrames = [
+  "/assets/Lost%20and%20found%20box%20frame%201.svg",
+  "/assets/Lost%20and%20found%20box%202.svg",
+  "/assets/Lost%20and%20found%20box%203.svg",
+  "/assets/Lost%20and%20found%20box%204.svg",
+  "/assets/Lost%20and%20found%20box%205.svg",
+  "/assets/Lost%20and%20found%20box%206.svg",
+];
+const goldenToasterFrames = [
+  "/assets/goldenToaster%20frame%201.svg",
+  "/assets/goldenToaster2.svg",
+  "/assets/goldenToaster3.svg",
+  "/assets/goldenToaster4.svg",
+];
+function FrameSwitcher({ frames, name, className }: { frames: string[]; name: string; className: string }) {
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setFrame((current) => (current + 1) % frames.length);
+    }, 180);
+    return () => window.clearInterval(timer);
+  }, [frames]);
+  return <img src={frames[frame]} alt={name} className={`h-full w-full max-h-full max-w-full object-contain ${className}`} />;
+}
+
 const pixelSprinkleFrames = [1, 2, 3].map((frame) => `/assets/Lost and found + food pack/Pixel sprinkle bread frame ${frame}.png?v=2`);
 function PixelSprinkleFrameSwitcher({ className }: { className: string }) {
   const [frame, setFrame] = useState(0);
@@ -2382,6 +2411,12 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   if (cleanName === "Star Ship") {
     return <StarShipFrameSwitcher className={className} />;
+  }
+  if (cleanName === "Lost and Found Box") {
+    return <FrameSwitcher frames={lostAndFoundBoxFrames} name={name} className={className} />;
+  }
+  if (cleanName === "Golden Toaster") {
+    return <FrameSwitcher frames={goldenToasterFrames} name={name} className={className} />;
   }
   if (cleanName === "Timeglass") {
     return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{["/assets/Time glass first animation.svg", "/assets/Time glass second animation2.svg", "/assets/Time glass 3rd animation3.svg", "/assets/Time glass final animation.svg"].map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;
@@ -2699,9 +2734,9 @@ function RewardBurst({ rarity }: { rarity: string }) {
     Legendary: ["#fbbf24", "#fde68a", "#fff7ed"],
     Mythic: ["#fb7185", "#fda4af", "#fef2f2"],
     Unique: ["#e879f9", "#f5d0fe", "#ffffff"],
-    Transcendent: ["#facc15", "#f0abfc", "#67e8f9", "#ffffff"],
+    Breadled: ["#facc15", "#f0abfc", "#67e8f9", "#ffffff"],
   };
-  const counts: Record<string, number> = { Common: 12, Uncommon: 16, Rare: 20, Epic: 24, Legendary: 28, Mythic: 32, Unique: 36, Transcendent: 40 };
+  const counts: Record<string, number> = { Common: 12, Uncommon: 16, Rare: 20, Epic: 24, Legendary: 28, Mythic: 32, Unique: 36, Breadled: 40 };
   const colors = palettes[rarity] || palettes.Common;
   const count = counts[rarity] || counts.Common;
   const distance = 64 + Object.keys(counts).indexOf(rarity) * 24;
@@ -2972,9 +3007,9 @@ function Bazaar({
         <div><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">Player marketplace</p><h1 className="mt-2 text-4xl font-black">Bazaar</h1></div>
         <button onClick={() => setShowForm(!showForm)} className="rounded-xl bg-[#e9bd67] px-5 py-3 font-black text-[#29170c]">+ List an item</button>
       </div>
-      <div className="mt-6 flex rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415] p-1">
-        <button onClick={() => setView("browse")} className={`flex-1 rounded-xl px-4 py-3 font-black ${view === "browse" ? "bg-[#f0e2d2] text-[#29170c]" : "text-[#d7b88c]"}`}>Browse</button>
-        <button onClick={() => setView("mine")} className={`flex-1 rounded-xl px-4 py-3 font-bold ${view === "mine" ? "bg-[#e9bd67] text-[#29170c]" : "text-[#d7b88c]"}`}>My listings</button>
+      <div className="bazaar-view-tabs mt-6 flex rounded-2xl border p-1">
+        <button aria-pressed={view === "browse"} onClick={() => setView("browse")} className="flex-1 rounded-xl px-4 py-3 font-black">Browse</button>
+        <button aria-pressed={view === "mine"} onClick={() => setView("mine")} className="flex-1 rounded-xl px-4 py-3 font-bold">My listings</button>
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breadlets" className="min-w-[220px] flex-1 rounded-xl bg-[#3a2415] px-4 py-3 text-white" />
@@ -2988,6 +3023,7 @@ function Bazaar({
             "Legendary",
             "Mythic",
             "Unique",
+            "Breadled",
           ].map((item) => (
             <option key={item}>{item}</option>
           ))}
@@ -3176,15 +3212,11 @@ function OddsModal({
                 <span className="truncate font-bold text-white">{reward.name} <b className="ml-1 text-xs text-[#e9bd67]">{reward.rarity}</b></span>
               </span>
               <b className="text-[#bde8ff] text-base">
-                {chanceFor(capsule, reward).toFixed(2)}%
+                {chanceFor(capsule, reward).toFixed(chanceFor(capsule, reward) < 0.01 ? 3 : 2)}%
               </b>
             </div>
           ))}
         </div>
-        <p className="mt-4 pt-3 border-t border-[#3d91cd]/30 text-xs leading-5 text-[#9cc8e8]">
-          Legendary is 0.50% total per pack and Mythic is 0.20% total per pack.
-          Opening a bag only grants its Bread reward; it never creates tokens.
-        </p>
       </div>
     </div>
   );
@@ -3559,7 +3591,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         {messages.map((item, index) => (
           <div id={`chat-message-${String(item.id ?? `local-${item.user}-${index}`)}`} key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
             <button onClick={() => void openPlayerProfile(item.user)} aria-label={`Open ${item.user}'s profile`} title={`View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden">
-              {item.equippedBlook || (item.user === player.username && player.equipped) ? <img src={artFor(item.equippedBlook || player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={30} />}
+              {item.equippedBlook || (item.user === player.username && player.equipped) ? <RewardArt name={item.equippedBlook || player.equipped} art={artFor(item.equippedBlook || player.equipped)} className="h-full w-full" /> : <CircleUserRound size={30} />}
             </button>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 font-black">
@@ -3610,7 +3642,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         </button>
       </form>
       <aside aria-label="Online players" className={`chat-online-panel fixed right-3 z-40 ${onlinePanelOpen ? "chat-online-panel-open" : ""}`}>
-        {onlinePanelOpen && <div className="chat-online-list mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <img src={artFor(online.equippedBlook)} alt="" className="h-8 w-8 object-contain" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
+        {onlinePanelOpen && <div className="chat-online-list mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <RewardArt name={online.equippedBlook} art={artFor(online.equippedBlook)} className="h-8 w-8" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
         <button type="button" aria-expanded={onlinePanelOpen} onClick={() => setOnlinePanelOpen((open) => !open)} className="flex items-center gap-3 rounded-2xl border border-sky-300/45 bg-[#0c2947]/95 px-5 py-3 text-white shadow-xl backdrop-blur-md hover:bg-[#103f75]"><CircleUserRound size={24} fill="currentColor" strokeWidth={1.5} /><span className="text-xl font-black">{onlinePlayers.length} online</span></button>
       </aside>
     </div>

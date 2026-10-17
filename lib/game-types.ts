@@ -7,7 +7,7 @@ export type Rarity =
   | 'Mythic'
   | 'Chroma'
   | 'Unique'
-  | 'Transcendent';
+  | 'Breadled';
 
 export type RetiredStatus = 'active' | 'retired';
 
