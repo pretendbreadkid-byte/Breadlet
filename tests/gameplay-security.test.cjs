@@ -166,7 +166,11 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.ok(!pageSource.includes('Daily Crate'), 'the old Daily Crate tab label was removed');
   assert.ok(pageSource.includes('Claim Tokens</button>}<button onClick={openLookup}'), 'the Claim Tokens shortcut sits beside Find Player');
   assert.ok(!pageSource.includes('id: "event"'), 'the ended Contest of Spooky tab is removed');
-  assert.ok(pageSource.includes('aria-label="Previous Breadlet"') && pageSource.includes('aria-label="Next Breadlet"'), 'the Bazaar has one-item previous and next browsing controls');
+  assert.ok(pageSource.includes('aria-label="Previous four Blooks"') && pageSource.includes('aria-label="Next four Blooks"'), 'Bazaar arrows page through four Blooks at a time');
+  assert.ok(pageSource.includes('grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4'), 'the Bazaar carousel shows four Blooks in a row on desktop');
+  assert.ok(pageSource.includes('placeholder="Search Blooks"') && pageSource.includes('aria-label="Filter by rarity"'), 'the Bazaar has clearly labeled Blook search and rarity filtering');
+  assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-market\s*\{[^}]*background:\s*#27251F;/, 'the Bazaar background uses the sidebar charcoal color');
+  assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-filter-control\s*\{[^}]*background:\s*#13120F/, 'Bazaar search and filter controls use the darker sidebar color');
   assert.ok(pageSource.includes('function BlookListingsModal'), 'clicking a Bazaar Blook opens grouped seller offers');
   assert.ok(fs.existsSync('public/assets/space goo (1).svg'), 'Space Goo artwork exists');
   assert.ok(pageSource.includes('className="teds-shop-heading'), 'Ted’s Shop uses the text heading instead of a logo');

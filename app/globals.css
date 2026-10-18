@@ -875,6 +875,43 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
 .workspace-island .workspace-account-button { border-radius: 8px; padding: 12px 16px; font-size: 16px; }
 .workspace-island .workspace-account-button:hover { transform: none; }
 .breadlet-blue-theme button.sidebar-dark-action:hover { background-color: #13120F !important; }
+.breadlet-blue-theme .bazaar-market {
+  border: 1px solid #13120F;
+  background: #27251F;
+  color: #FFFFFF;
+}
+.breadlet-blue-theme .bazaar-market .bazaar-view-tabs,
+.breadlet-blue-theme .bazaar-market .market-blook-carousel {
+  border-color: #3C3A34;
+  background: #1D1C19;
+}
+.breadlet-blue-theme .bazaar-market .bazaar-view-tabs button[aria-pressed="true"] {
+  background: #13120F;
+  color: #FFFFFF;
+}
+.breadlet-blue-theme .bazaar-market .bazaar-view-tabs button[aria-pressed="false"] {
+  color: #D1CEC5;
+}
+.breadlet-blue-theme .bazaar-market .bazaar-filter-control {
+  border: 1px solid #3C3A34;
+  background: #13120F !important;
+  color: #FFFFFF;
+}
+.breadlet-blue-theme .bazaar-market .bazaar-filter-control::placeholder {
+  color: #AAA69B;
+}
+.breadlet-blue-theme .bazaar-market .market-blook-carousel > button,
+.breadlet-blue-theme .bazaar-market .market-blook-carousel > div > button {
+  background: #27251F;
+  color: #FFFFFF;
+}
+.breadlet-blue-theme .bazaar-market .market-blook-carousel > button:hover,
+.breadlet-blue-theme .bazaar-market .market-blook-carousel > div > button:hover {
+  background: #13120F;
+}
+.breadlet-blue-theme .bazaar-market .market-blook-carousel > div > button > div {
+  background: #13120F;
+}
 .breadlet-blue-theme .game-workspace.chat-workspace { display: flex; min-height: 0; flex-direction: column; overflow: hidden; }
 .global-chat > div:first-child { flex-shrink: 0; }
 .global-chat .chat-message-list { overflow-wrap: anywhere; }

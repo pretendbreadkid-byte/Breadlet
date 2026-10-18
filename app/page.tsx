@@ -2965,7 +2965,8 @@ function Bazaar({
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState<"browse" | "mine">("browse");
   const [marketListings, setMarketListings] = useState<Listing[]>(player.listings);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [pageStart, setPageStart] = useState(0);
+  const [selectedBlook, setSelectedBlook] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const supabase = useMemo(() => createSupabaseClient(), []);
 
@@ -3020,21 +3021,22 @@ function Bazaar({
     return matchesSearch && matchesRarity && matchesView;
   });
   const blookGroups = Array.from(new Set(listings.map((listing) => listing.blook)));
-  const selectedBlook = blookGroups[selectedIndex] || blookGroups[0];
-  const selectedListings = listings.filter((listing) => listing.blook === selectedBlook);
+  const visibleBlooks = blookGroups.slice(pageStart, pageStart + 4);
+  const pageCount = Math.ceil(blookGroups.length / 4);
 
   useEffect(() => {
-    setSelectedIndex(0);
+    setPageStart(0);
+    setSelectedBlook("");
     setDetailsOpen(false);
   }, [search, rarity, view]);
 
   const moveSelection = (direction: -1 | 1) => {
-    if (!blookGroups.length) return;
-    setSelectedIndex((index) => (index + direction + blookGroups.length) % blookGroups.length);
+    if (pageCount < 2) return;
+    setPageStart((start) => ((Math.floor(start / 4) + direction + pageCount) % pageCount) * 4);
   };
 
   return (
-    <div>
+    <div className="bazaar-market -m-3 min-h-full rounded-2xl p-4 sm:-m-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div><p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">Player marketplace</p><h1 className="mt-2 text-4xl font-black">Bazaar</h1></div>
         <button onClick={() => setShowForm(!showForm)} className="rounded-xl bg-[#e9bd67] px-5 py-3 font-black text-[#29170c]">+ List an item</button>
@@ -3044,8 +3046,8 @@ function Bazaar({
         <button aria-pressed={view === "mine"} onClick={() => setView("mine")} className="flex-1 rounded-xl px-4 py-3 font-bold">My listings</button>
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breadlets" className="min-w-[220px] flex-1 rounded-xl bg-[#3a2415] px-4 py-3 text-white" />
-        <select value={rarity} onChange={(event) => setRarity(event.target.value)} className="rounded-xl bg-[#3a2415] px-4 py-3 text-white">
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Blooks" className="bazaar-filter-control min-w-[220px] flex-1 rounded-xl px-4 py-3 text-white" />
+        <select value={rarity} onChange={(event) => setRarity(event.target.value)} aria-label="Filter by rarity" className="bazaar-filter-control rounded-xl px-4 py-3 text-white">
           <option>All rarities</option>
           {[
             "Common",
@@ -3060,7 +3062,7 @@ function Bazaar({
             <option key={item}>{item}</option>
           ))}
         </select>
-        <select className="rounded-xl bg-[#3a2415] px-4 py-3 text-white">
+        <select aria-label="Sort listings" className="bazaar-filter-control rounded-xl px-4 py-3 text-white">
           <option>Newest</option>
           <option>Lowest price</option>
           <option>Highest price</option>
@@ -3098,26 +3100,33 @@ function Bazaar({
           </button>
         </form>
       )}
-      {selectedBlook ? (
-        <section className="market-blook-carousel mt-6 flex items-center gap-3 rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415] p-4 sm:gap-5 sm:p-6" aria-label="Browse Breadlets">
-          <button type="button" onClick={() => moveSelection(-1)} disabled={blookGroups.length < 2} aria-label="Previous Breadlet" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#24170f] text-2xl font-black text-[#ffe2a0] transition hover:bg-[#56351f] disabled:opacity-40">‹</button>
-          <button type="button" onClick={() => setDetailsOpen(true)} className="min-w-0 flex-1 rounded-xl p-2 text-center transition hover:bg-[#24170f] sm:p-4">
-            <div className="mx-auto flex h-36 w-36 items-center justify-center rounded-xl bg-[#24170f] p-4 sm:h-48 sm:w-48">
-              <img src={artFor(selectedBlook)} alt={selectedBlook} className="max-h-full max-w-full object-contain" />
-            </div>
-            <h2 className="mt-3 text-xl font-black">{selectedBlook}</h2>
-            <p className="mt-1 text-sm font-bold text-[#e9bd67]">{rarityFor(selectedBlook)} · {selectedListings.reduce((total, listing) => total + Math.max(1, Number(listing.quantity) || 1), 0)} listed</p>
-            <p className="mt-2 text-xs text-[#d7b88c]">Select to view seller listings</p>
-            <p className="mt-2 text-xs font-bold text-[#b58d68]">{selectedIndex + 1} of {blookGroups.length}</p>
-          </button>
-          <button type="button" onClick={() => moveSelection(1)} disabled={blookGroups.length < 2} aria-label="Next Breadlet" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#24170f] text-2xl font-black text-[#ffe2a0] transition hover:bg-[#56351f] disabled:opacity-40">›</button>
+      {visibleBlooks.length ? (
+        <section className="market-blook-carousel mt-6 flex items-center gap-2 rounded-2xl border p-2 sm:gap-4 sm:p-4" aria-label="Browse Breadlets">
+          <button type="button" onClick={() => moveSelection(-1)} disabled={pageCount < 2} aria-label="Previous four Blooks" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl font-black transition disabled:opacity-40">‹</button>
+          <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+            {visibleBlooks.map((name, index) => {
+              const blookListings = listings.filter((listing) => listing.blook === name);
+              const quantity = blookListings.reduce((total, listing) => total + Math.max(1, Number(listing.quantity) || 1), 0);
+              return (
+                <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="min-w-0 rounded-xl p-2 text-center transition sm:p-3">
+                  <div className="mx-auto flex h-28 w-full items-center justify-center rounded-xl p-3 sm:h-36">
+                    <img src={artFor(name)} alt={name} className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <h2 className="mt-2 truncate text-sm font-black sm:text-base">{name}</h2>
+                  <p className="mt-1 text-xs font-bold text-[#e9bd67]">{rarityFor(name)} · {quantity} listed</p>
+                  <p className="mt-2 text-[10px] font-bold text-[#d7b88c]">{pageStart + index + 1} of {blookGroups.length}</p>
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" onClick={() => moveSelection(1)} disabled={pageCount < 2} aria-label="Next four Blooks" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl font-black transition disabled:opacity-40">›</button>
         </section>
       ) : (
-        <p className="mt-6 rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415] p-8 text-center text-[#d7b88c]">No listings match your search yet.</p>
+        <p className="mt-6 rounded-2xl border p-8 text-center text-[#d7b88c]">No listings match your search yet.</p>
       )}
-      {detailsOpen && selectedBlook && <BlookListingsModal
+      {detailsOpen && <BlookListingsModal
         blook={selectedBlook}
-        listings={selectedListings}
+        listings={listings.filter((listing) => listing.blook === selectedBlook)}
         close={() => setDetailsOpen(false)}
         openListing={openListing}
       />}
