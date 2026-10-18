@@ -158,8 +158,8 @@ const artFor = (name: string) =>
     "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png?v=2",
     "Lava Slime": "/assets/lava-slime.svg",
     Ted: "/assets/ted-shopkeeper.svg",
-    "Olive Grenade": "/assets/grenade.png",
-    "Golden Grenade": "/assets/golden grenade.png",
+    "Olive Grenade": "/assets/grenade2.svg",
+    "Golden Grenade": "/assets/gold grenade2.svg",
     "Sour Dough": "/assets/sour-dough-refreshed.svg",
     "Burnt Toast": "/assets/Burnt toast.svg",
     Brioche: "/assets/brioche.svg",
@@ -180,7 +180,7 @@ const artFor = (name: string) =>
     "Blook Master": "/assets/blook-master.png",
     Turtwix: "/assets/turtwix.png",
     Lagoon: "/assets/New Lag0n.png",
-    Shuriken: "/assets/shuricken.svg",
+    Shuriken: "/assets/shuricken 2.svg",
     "Albino Crow": "/assets/albino crow.svg",
     Baguette: "/assets/bagget.svg",
     Star: "/assets/Lost and found + food pack/stars 2.svg",
@@ -195,10 +195,11 @@ const artFor = (name: string) =>
     "Fasty Jay": "/assets/fastyjaynew.png",
     Waymore: "/assets/new waymore.png",
     Shield: "/assets/sheild (1).svg",
-    Spartan: "/assets/spartin  (1).svg",
+    Spartan: "/assets/spartin  2.svg",
     Solider: "/assets/solider.svg",
     "Gold Bread": "/assets/gold-bread-refreshed.svg",
     Sword: "/assets/sword way better.svg",
+    "Diamond Sword": "/assets/diamond sword frame one.svg",
     "Golden Toaster": "/assets/goldenToaster%20frame%201.svg",
     "Lost and Found Box": "/assets/Lost%20and%20found%20box%20frame%201.svg",
     "Stone Tablet": "/assets/Stone tablet (1).svg",
@@ -220,7 +221,7 @@ const artFor = (name: string) =>
     "Skeleton Pirate": "/assets/Skeleton pirate frame 1.svg",
     "Festive Skeleton Pirate": "/assets/feative Skeleton pirate .svg",
     "Bread Blook": "/assets/new breadblook.png",
-    "Golden Shuriken": "/assets/golden-shuriken.svg",
+    "Golden Shuriken": "/assets/gold shuricken 2.svg",
     "Holy Bread": "/assets/holy-bread-refreshed.svg",
     "Red Rex": "/assets/red-rex.svg",
     "Golden UFO": "/assets/golden tim the alien.png",
@@ -1385,7 +1386,6 @@ function MainPage() {
       />
     );
   const nav: NavItem[] = [
-    { id: "wheel", label: "Daily Crate", icon: <Package size={20} strokeWidth={2.2} /> },
     { id: "event", label: "Contest of Spooky", icon: <Gift size={20} strokeWidth={2.2} /> },
     {
       id: "capsules",
@@ -2032,7 +2032,7 @@ function ProfileTab({
           <div className="profile-avatar-frame">{profileEquipped ? <img src={artFor(profileEquipped)} alt={profileEquipped} /> : <CircleUserRound size={52} />}</div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
-            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => { setTradeTarget({ id: viewedProfile!.id, username: viewedProfile!.username }); setTradeTokens("0"); setTradeBlooks({}); }}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Daily Crate</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
+            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => { setTradeTarget({ id: viewedProfile!.id, username: viewedProfile!.username }); setTradeTokens("0"); setTradeBlooks({}); }}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Token Crate</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
           </div>
         </section>
         <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{tokenBadges.at(-1) || "Token milestones: 10K · 100K · 1M"}</div></section>
@@ -2231,8 +2231,8 @@ function CapsulesTab({
       </div>
       <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <span />
-        <button type="button" onClick={clickShopHeading} className="mx-auto flex justify-center bg-transparent p-0" title="Ted's Shop">
-          <img src="/assets/teds-shop-wordmark.png" alt="Ted's Shop" className="h-12 w-64 object-cover sm:h-14 sm:w-80" />
+        <button type="button" onClick={clickShopHeading} className="teds-shop-heading mx-auto flex justify-center bg-transparent p-0" title="Ted's Shop">
+          Ted's Shop
         </button>
         <div className="flex justify-end">
           <button
@@ -2404,6 +2404,10 @@ const goldenToasterFrames = [
   "/assets/goldenToaster4.svg",
 ];
 const alienFrames = Array.from({ length: 13 }, (_, index) => `/assets/alien%202%20frame%20${index + 1}.svg`);
+const diamondSwordFrames = [
+  "/assets/diamond%20sword%20frame%20one.svg",
+  ...Array.from({ length: 7 }, (_, index) => `/assets/diamond%20sword${index + 2}.svg`),
+];
 function FrameSwitcher({ frames, name, className }: { frames: string[]; name: string; className: string }) {
   const [frame, setFrame] = useState(0);
   useEffect(() => {
@@ -2444,6 +2448,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   if (cleanName === "Alien") {
     return <FrameSwitcher frames={alienFrames} name={name} className={className} />;
+  }
+  if (cleanName === "Diamond Sword") {
+    return <FrameSwitcher frames={diamondSwordFrames} name={name} className={className} />;
   }
   if (cleanName === "Timeglass") {
     return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{["/assets/Time glass first animation.svg", "/assets/Time glass second animation2.svg", "/assets/Time glass 3rd animation3.svg", "/assets/Time glass final animation.svg"].map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;
@@ -2870,8 +2877,8 @@ function WheelTab({
     <div className="max-w-6xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Guest crate · unlimited free opens" : "Daily crate · 1 free opening"}</p>
-          <h1 className="mt-2 text-4xl font-black">Daily Crate</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Guest crate · unlimited free opens" : "Token crate · 1 free opening each day"}</p>
+          <h1 className="mt-2 text-4xl font-black">Token Crate</h1>
         </div>
         <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
       </div>
@@ -2883,7 +2890,7 @@ function WheelTab({
           {phase === "spinning" && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
             <section role="dialog" aria-modal="true" aria-labelledby="crate-opening-title" className="w-full max-w-6xl rounded-2xl border border-[#CC5500] bg-[#10182b] p-4 text-center sm:p-7">
               <img src="/assets/crate%20(1).svg" alt="" className={`mx-auto h-20 w-20 object-contain ${charging ? "reveal-crate-charge" : "reveal-crate-rattle"}`} />
-              <h2 id="crate-opening-title" className="mt-3 text-2xl font-bold">Opening Daily Crate</h2>
+              <h2 id="crate-opening-title" className="mt-3 text-2xl font-bold">Opening Token Crate</h2>
           <div ref={viewportRef} className={`roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44 ${charging ? "roulette-charge" : ""}`}>
             <div className="roulette-pointer" />
             {phase === "spinning" && <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: "6.9s" }}>
@@ -2903,7 +2910,7 @@ function WheelTab({
             </section>
           </div>}
           <button onClick={spinNow} disabled={phase === "spinning" || (player.wheelSpun && !isGuest)} className="sidebar-dark-action mt-4 rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
-            {player.wheelSpun && !isGuest ? "Crate already opened today" : phase === "spinning" ? "Opening crate..." : isGuest ? "Open free crate" : "Open daily crate"}
+            {player.wheelSpun && !isGuest ? "Crate already opened today" : phase === "spinning" ? "Opening crate..." : isGuest ? "Open free crate" : "Open Token Crate"}
           </button>
           {result && phase === "result" && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
@@ -2923,7 +2930,7 @@ function WheelTab({
       {oddsOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
         <section role="dialog" aria-modal="true" aria-labelledby="crate-odds-title" className="w-full max-w-md rounded-2xl border border-sky-300/30 bg-[#10182b] p-5 text-white shadow-2xl sm:p-6">
           <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">Daily crate</p><h2 id="crate-odds-title" className="mt-1 text-2xl font-black">Possible prizes</h2></div>
+            <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">Token crate</p><h2 id="crate-odds-title" className="mt-1 text-2xl font-black">Possible prizes</h2></div>
             <button onClick={() => setOddsOpen(false)} aria-label="Close prize chances" className="flex h-10 w-10 items-center justify-center rounded-lg text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>
           </div>
           <div className="mt-4 space-y-2">
@@ -2941,8 +2948,8 @@ function WheelTab({
         </section>
       </div>}
       {confirmOpen && <ConfirmOpenModal
-        title="Daily Crate"
-        description="Are you sure you want to open the Daily Crate?"
+        title="Token Crate"
+        description="Are you sure you want to open the Token Crate?"
         confirmLabel="Open crate"
         cancel={() => setConfirmOpen(false)}
         confirm={() => {
@@ -3741,7 +3748,7 @@ function InfoTab() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {[
-          ["Daily Crate", "Open once per day to win tokens, five Gold, or five Gem. The 5,000-token reward has a 1% chance."],
+          ["Token Crate", "Open once per day to win tokens, five Gold, or five Gem. The 5,000-token reward has a 1% chance."],
           ["Goodybags", "Buy bags with tokens. Open a bag to roll from its listed Bread pool, or use Mass Open for typed quantities."],
           ["Collection", "Locked Breadlets stay black silhouettes. Owned Breadlets can be equipped or sold from their detail view."],
           ["Crafting", "Dismantle extra Breadlets into five-unit material bundles, then combine ingredients totaling 20 to craft approved Breadlets."],
@@ -3959,9 +3966,9 @@ function SpookyEventTab({ player, savePlayer }: { player: Player; savePlayer: (p
         <div className="mt-6 rounded-2xl bg-black/25 p-4"><p className="text-xs font-black uppercase tracking-widest text-orange-200">{active ? "Ends in" : now < spookyEventStart ? "Starts in" : "Event ended"}</p><p className="mt-1 text-3xl font-black text-orange-50">{days}d {String(hours).padStart(2, "0")}:{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</p><p className="mt-2 text-sm text-orange-100/70">October 2 through October 23.</p></div>
       </section>
       <section className="grid gap-4">
-        <article className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-5"><h2 className="text-xl font-black text-orange-100">How to earn Candy</h2><ul className="mt-3 space-y-2 text-sm text-orange-50/85"><li>Open Goodybags and claim the Daily Crate.</li><li>Complete trades and keep playing during the event.</li><li>Candy is the event resource used for spooky rewards.</li></ul></article>
+        <article className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-5"><h2 className="text-xl font-black text-orange-100">How to earn Candy</h2><ul className="mt-3 space-y-2 text-sm text-orange-50/85"><li>Open Goodybags and claim the Token Crate.</li><li>Complete trades and keep playing during the event.</li><li>Candy is the event resource used for spooky rewards.</li></ul></article>
       </section>
-      {tutorialOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><section className="w-full max-w-md rounded-3xl border border-orange-300/50 bg-[#6f2e08] p-6 shadow-2xl"><p className="text-xs font-black uppercase tracking-[0.25em] text-orange-200">Contest of Spooky</p><h2 className="mt-2 text-2xl font-black text-orange-50">{tutorialStep === 0 ? "The contest is live soon" : tutorialStep === 1 ? "Collect Candy" : "Enjoy the event"}</h2><p className="mt-3 leading-6 text-orange-100/80">{tutorialStep === 0 ? "This event runs from October 2 through October 23." : tutorialStep === 1 ? "Open packs, claim your Daily Crate, and complete trades to earn Candy." : "Keep playing during the event to collect Candy."}</p><div className="mt-6 flex justify-between gap-3">{tutorialStep > 0 ? <button onClick={() => setTutorialStep((step) => step - 1)} className="rounded-xl border border-orange-200/40 px-4 py-3 font-black text-orange-100">Back</button> : <span />}{tutorialStep < 2 ? <button onClick={() => setTutorialStep((step) => step + 1)} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Next</button> : <button onClick={finishTutorial} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Enter event</button>}</div></section></div>}
+      {tutorialOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 px-5 backdrop-blur-sm"><section className="w-full max-w-md rounded-3xl border border-orange-300/50 bg-[#6f2e08] p-6 shadow-2xl"><p className="text-xs font-black uppercase tracking-[0.25em] text-orange-200">Contest of Spooky</p><h2 className="mt-2 text-2xl font-black text-orange-50">{tutorialStep === 0 ? "The contest is live soon" : tutorialStep === 1 ? "Collect Candy" : "Enjoy the event"}</h2><p className="mt-3 leading-6 text-orange-100/80">{tutorialStep === 0 ? "This event runs from October 2 through October 23." : tutorialStep === 1 ? "Open packs, claim your Token Crate, and complete trades to earn Candy." : "Keep playing during the event to collect Candy."}</p><div className="mt-6 flex justify-between gap-3">{tutorialStep > 0 ? <button onClick={() => setTutorialStep((step) => step - 1)} className="rounded-xl border border-orange-200/40 px-4 py-3 font-black text-orange-100">Back</button> : <span />}{tutorialStep < 2 ? <button onClick={() => setTutorialStep((step) => step + 1)} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Next</button> : <button onClick={finishTutorial} className="rounded-xl bg-orange-500 px-4 py-3 font-black text-white">Enter event</button>}</div></section></div>}
     </div>
   );
 }

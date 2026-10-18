@@ -251,6 +251,7 @@ export const liveCapsules: Capsule[] = [
       ["Nunchucks", "Epic"],
       ["Spartan", "Legendary"],
       ["Golden Shuriken", "Mythic"],
+      ["Diamond Sword", "Breadled"],
     ]),
   },
   {

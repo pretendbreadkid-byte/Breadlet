@@ -87,9 +87,19 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(space.pool.find((reward) => reward.name === 'Star Ship').rarity, 'Breadled');
   assert.equal(catalog.chanceFor(space, space.pool.find((reward) => reward.name === 'Star Ship')), 0.005);
   assert.equal(combat.pool.find((reward) => reward.name === 'Sword').rarity, 'Rare');
+  assert.equal(combat.pool.find((reward) => reward.name === 'Diamond Sword').rarity, 'Breadled');
   const oliveGrenadeChance = catalog.chanceFor(combat, combat.pool.find((reward) => reward.name === 'Olive Grenade'));
   assert.ok(oliveGrenadeChance > 25 && oliveGrenadeChance < 40, `Olive Grenade chance is spread below 40% (was ${oliveGrenadeChance}%)`);
   assert.equal(combat.pool.find((reward) => reward.name === 'Shuriken').rarity, 'Uncommon');
+  for (const art of [
+    'grenade2.svg',
+    'gold grenade2.svg',
+    'shuricken 2.svg',
+    'gold shuricken 2.svg',
+    'spartin  2.svg',
+    'diamond sword frame one.svg',
+    ...Array.from({ length: 7 }, (_, index) => `diamond sword${index + 2}.svg`),
+  ]) assert.ok(fs.existsSync(`public/assets/${art}`), `${art} replacement artwork exists`);
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Food Bag').pool.find((reward) => reward.name === 'Avocado').rarity, 'Common');
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag').pool.find((reward) => reward.name === 'Blooket Gods').rarity, 'Common');
   const blookTuber = catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag');
@@ -131,13 +141,31 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   for (const [name, art] of [
     ['Wallet', '/assets/wallet.svg'],
     ['Sword', '/assets/sword way better.svg'],
+    ['Diamond Sword', '/assets/diamond sword frame one.svg'],
     ['Sprinkle Bread', '/assets/Sprinkle bread improved.svg'],
     ['Rock', '/assets/rock-refreshed.svg'],
     ['Candy Corn', '/assets/candy-corn-refreshed.svg'],
-    ["Ted's Shop wordmark", '/assets/ted-shop-wordmark.svg'],
   ]) {
     assert.ok(fs.existsSync(`public${art}`), `${name} artwork exists`);
   }
+  for (const obsoleteArt of [
+    'sword.svg',
+    'shuricken.svg',
+    'golden-shuriken.svg',
+    'grenade.png',
+    'golden grenade.png',
+    'golden shuricken2 (1).svg',
+    'spartin  (1).svg',
+    'Blaster (light sword replacement).svg',
+    'ted-shop-wordmark.svg',
+    'teds-shop-wordmark.png',
+  ]) assert.ok(!fs.existsSync(`public/assets/${obsoleteArt}`), `${obsoleteArt} was removed after replacement`);
+  assert.ok(!pageSource.includes('Daily Crate'), 'the old Daily Crate tab label was removed');
+  assert.ok(pageSource.includes('Token Crate</button>}<button onClick={openLookup}'), 'the Token Crate shortcut sits beside Find Player');
+  assert.ok(pageSource.includes('className="teds-shop-heading'), 'Ted’s Shop uses the text heading instead of a logo');
+  const stylesSource = fs.readFileSync('app/globals.css', 'utf8');
+  assert.match(stylesSource, /\.clan-workspace \.clan-member-avatar[\s\S]*?background: transparent;/, 'clan member Blooks render without a backing box');
+  assert.match(stylesSource, /\.teds-shop-heading[^}]*color: #FFFFFF;[^}]*font-family: "DynaPuff"/, 'Ted’s Shop title uses bold white DynaPuff text');
   for (const pack of [...catalog.liveCapsules, ...catalog.legacyCapsules]) {
     assert.ok(Math.abs(pack.pool.reduce((sum, reward) => sum + catalog.chanceFor(pack, reward), 0) - 100) < 1e-8);
   }
@@ -309,6 +337,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const clanBlookAndChatBotMigration = fs.readFileSync('supabase/migrations/0031_clan_blook_profiles_and_chat_bot.sql', 'utf8');
     await database.exec(clanBlookAndChatBotMigration);
     await database.exec(clanBlookAndChatBotMigration);
+    const diamondSwordMigration = fs.readFileSync('supabase/migrations/0032_diamond_sword_and_combat_artwork.sql', 'utf8');
+    await database.exec(diamondSwordMigration);
+    await database.exec(diamondSwordMigration);
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
@@ -353,8 +384,13 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
       'Golden Toaster:Breadled,Lost and Found Box:Breadled,Star Ship:Breadled');
     assert.deepEqual(
       (await database.query("select pool from chests where name='Combat Bag'")).rows[0].pool,
-      ['Olive Grenade', 'Sword'],
+      ['Olive Grenade', 'The Bomb', 'Golden Grenade', 'Sword', 'Shuriken', 'Nunchucks', 'Spartan', 'Golden Shuriken', 'Diamond Sword'],
     );
+    const diamondSword = (await database.query("select rarity, artwork_key, retired from blooks where name='Diamond Sword'")).rows[0];
+    assert.deepEqual(diamondSword, { rarity: 'Breadled', artwork_key: 'diamond sword frame one.svg', retired: false });
+    const newCombatArt = (await database.query("select name, artwork_key from blooks where name in ('Olive Grenade','Golden Grenade','Shuriken','Spartan','Golden Shuriken') order by name")).rows;
+    assert.equal(newCombatArt.map(({ name, artwork_key }) => `${name}:${artwork_key}`).join(','),
+      'Golden Grenade:gold grenade2.svg,Golden Shuriken:gold shuricken 2.svg,Olive Grenade:grenade2.svg,Shuriken:shuricken 2.svg,Spartan:spartin  2.svg');
     const newRewardArt = (await database.query("select name, artwork_key from blooks where name in ('Wallet','Sword','Rock','Candy Corn','Sprinkle Bread') order by name")).rows;
     assert.equal(newRewardArt.map(({ name, artwork_key }) => `${name}:${artwork_key}`).join(','),
       'Candy Corn:candy-corn-refreshed.svg,Rock:rock-refreshed.svg,Sprinkle Bread:Sprinkle bread improved.svg,Sword:sword way better.svg,Wallet:wallet.svg');
