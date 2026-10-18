@@ -1196,17 +1196,20 @@ function MainPage() {
     return true;
   };
   const salvage = async (name: string) => {
-    if (!player || player.inventory.length <= 1) return;
+    if (!player || player.inventory.length <= 1) return false;
     if (!isGuest) {
-      if (await playAction({ action: "dismantle", name })) setNotice(`${name} dismantled into a five-material bundle.`);
-      return;
+      const result = await playAction({ action: "dismantle", name });
+      if (!result) return false;
+      setNotice(`${name} dismantled into a five-material bundle.`);
+      return true;
     }
     const index = player.inventory.indexOf(name);
+    if (index === -1) return false;
     const inventory = player.inventory.filter(
       (_, itemIndex) => itemIndex !== index,
     );
     const bundle = dismantleBundleFor(name, rarityFor(name));
-    save({
+    const saved = await save({
       ...player,
       inventory,
       equipped: player.equipped === name ? inventory[0] : player.equipped,
@@ -1220,7 +1223,9 @@ function MainPage() {
         ),
       },
     }, { inventory: true });
+    if (!saved) return false;
     setNotice(`${name} dismantled into a five-material bundle.`);
+    return true;
   };
   const craft = async (name: string) => {
     const recipe = craftRecipeFor(name);
@@ -1468,12 +1473,24 @@ function MainPage() {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen md:h-screen md:min-h-0 md:overflow-y-auto">
         {/* Top Header Bar */}
         <div className="workspace-island pointer-events-none fixed right-3 top-3 z-30 flex w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] px-2 py-2 shadow-xl sm:right-5 sm:top-5 sm:gap-3 sm:px-3">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <div className="workspace-summary flex min-w-0 items-center gap-2 sm:gap-4">
             {/* Tokens Balance Counter */}
-            <div className="workspace-tokens flex items-center gap-1.5 px-1 font-black text-[#ffe2a0] text-xs">
-              <img src="/assets/coin.svg" alt="Tokens" className="h-5 w-5" />
-              <span className="text-sm">{player.tokens.toLocaleString()}</span>
+            <div className="workspace-tokens flex items-center gap-2 font-black text-[#ffe2a0]" aria-label={`${player.tokens.toLocaleString()} tokens`}>
+              <img src="/assets/coin.svg" alt="" className="h-8 w-8" />
+              <span className="text-xl">{player.tokens.toLocaleString()}</span>
             </div>
+
+            {tab === "crafting" && (
+              <div className="workspace-materials" aria-label="Crafting materials">
+                {materialNames.map((material) => (
+                  <span key={material} className="workspace-material" title={`${material}: ${player.materials[material] || 0}`}>
+                    <img src={materialArtFor(material)} alt="" />
+                    <span>{player.materials[material] || 0}</span>
+                    <span className="sr-only">{material}</span>
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Corner Username Dropdown */}
             <div ref={userMenuRef} className="workspace-account relative pointer-events-auto">
@@ -1679,9 +1696,10 @@ function MainPage() {
         <DismantleConfirmModal
           name={pendingDismantle}
           bundle={dismantleBundleFor(pendingDismantle, rarityFor(pendingDismantle))}
-          confirm={() => {
-            salvage(pendingDismantle);
-            setPendingDismantle(null);
+          confirm={async () => {
+            const dismantled = await salvage(pendingDismantle);
+            if (dismantled) setPendingDismantle(null);
+            return dismantled;
           }}
           close={() => setPendingDismantle(null)}
         />
@@ -3450,27 +3468,42 @@ function DismantleConfirmModal({
 }: {
   name: string;
   bundle: MaterialBundle;
-  confirm: () => void;
+  confirm: () => Promise<boolean> | boolean;
   close: () => void;
 }) {
+  const [dismantling, setDismantling] = useState(false);
+
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/70 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-3xl border border-[#247bc0] bg-[#0b2b52] p-6 text-center shadow-2xl">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Recycle Bread</p>
+      <div role="dialog" aria-modal="true" aria-labelledby="dismantle-confirm-title" className="w-full max-w-sm rounded-3xl border border-[#5c574d] bg-[#27251F] p-6 text-center text-white shadow-2xl">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#e9bd67]">Recycle Bread</p>
         <img src={artFor(name)} alt={name} className="mx-auto mt-4 h-28 w-28 object-contain" />
-        <h2 className="mt-3 text-2xl font-black">Dismantle {name}?</h2>
-        <p className="mt-2 text-sm text-[#9cc8e8]">This removes one copy and returns:</p>
+        <h2 id="dismantle-confirm-title" className="mt-3 text-2xl font-black">Dismantle {name}?</h2>
+        <p className="mt-2 text-sm text-[#c9c7c0]">This removes one copy and returns:</p>
         <div className="mt-4 flex justify-center gap-3">
           {bundleEntries(bundle).map(([material, amount]) => (
-            <div key={material} className="rounded-xl bg-[#071a33] p-2">
+            <div key={material} className="rounded-xl bg-[#13120F] p-2">
               <img src={materialArtFor(material)} alt={material} className="h-12 w-12 object-contain" />
-              <b className="text-[#bde8ff]">x{amount}</b>
+              <b className="text-[#e9bd67]">x{amount}</b>
             </div>
           ))}
         </div>
         <div className="mt-6 grid grid-cols-2 gap-2">
-          <button onClick={close} className="rounded-xl border border-[#24649c] px-3 py-3 font-bold text-[#bde8ff]">Cancel</button>
-          <button onClick={confirm} className="rounded-xl bg-[#39a8f5] px-3 py-3 font-black text-[#031426]">Dismantle</button>
+          <button onClick={close} className="rounded-xl border border-[#5c574d] px-3 py-3 font-bold text-white">Cancel</button>
+          <button
+            disabled={dismantling}
+            onClick={async () => {
+              setDismantling(true);
+              try {
+                await confirm();
+              } finally {
+                setDismantling(false);
+              }
+            }}
+            className="rounded-xl bg-[#e9bd67] px-3 py-3 font-black text-[#29170c] disabled:cursor-wait disabled:opacity-60"
+          >
+            {dismantling ? "Dismantling..." : "Dismantle"}
+          </button>
         </div>
       </div>
     </div>
@@ -4856,39 +4889,33 @@ function CraftingTab({
     (name, index, items) => items.indexOf(name) === index,
   ).filter((name) => name.toLowerCase().includes(search.toLowerCase()));
   return (
-    <div>
-      <h1 className="text-4xl font-black">Crafting</h1>
-      <div className="mt-8 rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
-        <div className="flex items-center justify-between gap-4">
-          <div><p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Your stock</p><h2 className="mt-1 text-2xl font-black">Materials</h2></div>
-          <span className="rounded-full px-3 py-1 text-xs font-bold text-[#d7b88c]">6 resources</span>
+    <div className="crafting-workspace">
+      <div className="crafting-page-heading">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#bde8ff]">Forge and recycle</p>
+          <h1 className="mt-1 text-4xl font-black">Crafting</h1>
         </div>
-        <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
-          {materialNames.map((material) => (
-            <div key={material} title={material} className="material-tile flex flex-col items-center rounded-2xl bg-[#24170f] p-3">
-              <img src={materialArtFor(material)} alt={material} className="material-silhouette h-16 w-16 object-contain" />
-              <strong className="mt-2 text-xl text-[#ffe2a0]">{player.materials[material] || 0}</strong>
-              <span className="sr-only">{material}</span>
-            </div>
-          ))}
-        </div>
+        <span className="crafting-material-hint">Your materials are shown above</span>
       </div>
-      <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <div className="crafting-workbench mt-5 grid gap-5 xl:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.48fr)]">
         <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
           <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Recycle station</p><h2 className="mt-1 text-2xl font-black">Dismantle</h2></div><div className="rounded-xl bg-[#24170f] px-3 py-2 text-center text-xs text-[#d7b88c]">+5<br /><b className="text-[#ffe2a0]">bundle</b></div></div>
           <div className="mt-5 flex items-center gap-3 rounded-xl bg-[#24170f] px-3 py-2"><span className="text-[#e9bd67]">⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a Bread" className="min-w-0 flex-1 bg-transparent text-white outline-none" /></div>
-          <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4">
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-2">
             {unique.map((name) => (
-              <button key={name} disabled={player.inventory.length <= 1} onClick={() => salvage(name)} title={player.inventory.length <= 1 ? "Keep at least one Bread in your collection" : `Dismantle ${name}`} aria-label={`Dismantle ${name}`} className="group flex aspect-square flex-col items-center justify-center rounded-2xl bg-[#24170f] p-2 disabled:cursor-not-allowed disabled:opacity-35">
-                <img src={artFor(name)} alt={name} className="h-16 w-16 object-contain transition group-hover:scale-110" /><span className="mt-1 max-w-full truncate text-[10px] font-bold text-[#f0d7ae]">{name}</span><span className="mt-1 flex items-center gap-1">{bundleEntries(dismantleBundleFor(name, rarityFor(name))).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-5 w-5 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span>
-              </button>
+              <div key={name} className="dismantle-item rounded-2xl bg-[#24170f] p-3">
+                <img src={artFor(name)} alt={name} className="mx-auto h-16 w-16 object-contain" />
+                <span className="mt-1 block truncate text-center text-[10px] font-bold text-[#f0d7ae]">{name} · ×{player.inventory.filter((item) => item === name).length}</span>
+                <span className="mt-2 flex justify-center gap-1">{bundleEntries(dismantleBundleFor(name, rarityFor(name))).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-5 w-5 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span>
+                <button type="button" disabled={player.inventory.length <= 1} onClick={() => salvage(name)} title={player.inventory.length <= 1 ? "Keep at least one Bread in your collection" : `Dismantle ${name}`} className="dismantle-item-action mt-3 w-full rounded-lg px-2 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-35">Dismantle</button>
+              </div>
             ))}
           </div>
           {!unique.length && <p className="mt-6 text-center text-sm text-[#b58d68]">No Breadlets found.</p>}
         </div>
-        <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
+        <div className="crafting-assembly-panel rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
           <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Breadlets</h2>
-          <div className="mt-5 space-y-3">
+          <div className="crafting-recipe-grid mt-5 grid gap-3 sm:grid-cols-2">
             {craftRecipes.map((recipe) => { const enough = isGuest || bundleEntries(recipe.ingredients).every(([material, amount]) => (player.materials[material] || 0) >= amount); return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className="craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left"><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{isGuest ? "Free to craft" : enough ? "Ready to craft" : "20 total materials"}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>→</span></button>; })}
           </div>
         </div>

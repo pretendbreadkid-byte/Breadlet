@@ -855,15 +855,108 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   box-shadow: none;
   backdrop-filter: none;
 }
-.workspace-island > div { flex-direction: column; align-items: flex-end; gap: 8px; }
-.workspace-island .workspace-account { order: 0; }
+.workspace-island > div.workspace-summary {
+  max-width: calc(100vw - 2rem);
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 14px;
+  white-space: normal;
+}
+.workspace-island .workspace-account { order: 2; }
 .workspace-island .workspace-tokens {
+  order: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  text-shadow: 0 2px 8px #00000080;
+}
+.workspace-island .workspace-materials {
   order: 1;
-  border: 2px solid #13120F;
-  border-radius: 8px;
+  display: grid;
+  max-width: min(430px, 43vw);
+  grid-template-columns: repeat(6, max-content);
+  gap: 6px 10px;
+  align-items: center;
+}
+.workspace-island .workspace-material {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 5px #000000a0;
+}
+.workspace-island .workspace-material img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.breadlet-blue-theme .crafting-workspace {
+  display: flex;
+  min-height: calc(100svh - 11rem);
+  flex-direction: column;
+}
+.breadlet-blue-theme .crafting-page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.breadlet-blue-theme .crafting-material-hint {
+  color: #c9c7c0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.breadlet-blue-theme .crafting-workbench {
+  flex: 1;
+  align-items: stretch;
+}
+.breadlet-blue-theme .crafting-workbench > div,
+.breadlet-blue-theme .crafting-assembly-panel {
+  border-color: #3c3a34 !important;
+  background: #27251F !important;
+}
+.breadlet-blue-theme .crafting-assembly-panel {
+  min-height: clamp(540px, 70vh, 900px);
+}
+.breadlet-blue-theme .crafting-recipe-grid {
+  align-content: start;
+}
+.breadlet-blue-theme .crafting-workspace .dismantle-item {
+  border: 1px solid #3c3a34;
+  background: #13120F !important;
+}
+.breadlet-blue-theme .crafting-workspace .dismantle-item-action {
+  border: 1px solid #5c574d;
   background: #27251F;
-  padding: 10px 16px;
-  font-size: 16px;
+  color: #fff;
+}
+.breadlet-blue-theme .crafting-workspace .dismantle-item-action:hover:not(:disabled) {
+  background: #13120F;
+  border-color: #e9bd67;
+}
+.breadlet-blue-theme .crafting-workspace .craft-process {
+  min-height: 116px;
+  border: 1px solid #3c3a34;
+  background: #13120F !important;
+}
+.breadlet-blue-theme .crafting-workspace .craft-process > span:first-child {
+  background: #27251F !important;
+}
+.breadlet-blue-theme .crafting-workspace .craft-process > span:nth-child(3) {
+  border-color: #5c574d !important;
+  background: #27251F !important;
+}
+.breadlet-blue-theme .crafting-workspace .craft-process:hover {
+  border-color: #e9bd67;
+  background: #1b1a17 !important;
 }
 .breadlet-blue-theme .workspace-account-button,
 .breadlet-blue-theme .workspace-account-menu,
@@ -1059,7 +1152,12 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   main.breadlet-blue-theme > aside.breadlet-sidebar nav button > span > span { font-size: inherit; }
   .breadlet-blue-theme .game-workspace { padding-top: 8.5rem; }
   .workspace-island .workspace-account-button { padding: 8px 10px; font-size: 12px; }
-  .workspace-island .workspace-tokens { padding: 8px 10px; font-size: 12px; }
+  .workspace-island .workspace-summary { gap: 6px 9px; }
+  .workspace-island .workspace-tokens { font-size: 19px; }
+  .workspace-island .workspace-tokens img { width: 25px; height: 25px; }
+  .workspace-island .workspace-materials { max-width: 43vw; grid-template-columns: repeat(3, max-content); gap: 5px 7px; }
+  .workspace-island .workspace-material { font-size: 10px; }
+  .workspace-island .workspace-material img { width: 16px; height: 16px; }
   .breadlet-blue-theme .game-workspace.chat-workspace { height: calc(100svh - 120px); flex: none; }
   .global-chat h1 { font-size: 28px; }
 }
