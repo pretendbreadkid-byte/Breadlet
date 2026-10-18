@@ -2,6 +2,8 @@ import { chanceFor, craftRecipeFor, dismantleBundleFor, liveCapsules, sellValueF
 import { isMarketPackInStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 
+export const MAX_MASS_OPEN_COUNT = 2500;
+
 export type GameplaySnapshot = {
   tokens: number;
   materials: Record<string, number>;
@@ -39,10 +41,10 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       const capsule = liveCapsules.find((entry) => entry.name === name);
       if (!capsule) throw new Error('Unknown Goodybag.');
       if (!isMarketPackInStock(name, now)) throw new Error(`${name} is out of stock. Check back after the next hourly refresh.`);
-      return { capsule, quantity: integer(value, 500) };
+      return { capsule, quantity: integer(value, MAX_MASS_OPEN_COUNT) };
     });
     const count = selected.reduce((total, entry) => total + entry.quantity, 0);
-    if (count > 500) throw new Error('Open at most 500 Goodybags at a time.');
+    if (count > MAX_MASS_OPEN_COUNT) throw new Error(`Open at most ${MAX_MASS_OPEN_COUNT} Goodybags at a time.`);
     const cost = selected.reduce((total, entry) => total + entry.capsule.price * entry.quantity, 0);
     if (snapshot.tokens < cost) throw new Error('You need more tokens for those Goodybags.');
     plan.tokenDelta = -cost;

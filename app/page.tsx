@@ -1,6 +1,7 @@
 "use client";
 
 import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueFor, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
+import { MAX_MASS_OPEN_COUNT } from "../lib/gameplay-actions";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -358,6 +359,7 @@ function playerFromServer(data: any): Player {
 
 
 const bundleEntries = (bundle: MaterialBundle) => Object.entries(bundle);
+const MAX_MARKETPLACE_PRICE = 2147483647;
 
 
 
@@ -950,6 +952,14 @@ function MainPage() {
   };
   const openMassCapsules = async (quantities: Record<string, number>) => {
     if (!player) return;
+    const selectedTotal = Object.values(quantities).reduce(
+      (total, quantity) => total + (Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 0),
+      0,
+    );
+    if (!selectedTotal || selectedTotal > MAX_MASS_OPEN_COUNT) {
+      setNotice(`Choose between 1 and ${MAX_MASS_OPEN_COUNT.toLocaleString()} bags to mass open.`);
+      return;
+    }
     if (!isGuest) {
       const selected = Object.fromEntries(Object.entries(quantities).filter(([, quantity]) => quantity > 0));
       const result = await playAction({ action: "open", quantities: selected });
@@ -1063,10 +1073,11 @@ function MainPage() {
     if (
       !player ||
       !player.inventory.includes(blook) ||
-      price > 100000 ||
+      !Number.isSafeInteger(price) ||
+      price > MAX_MARKETPLACE_PRICE ||
       price < 1
     ) {
-      setNotice("Choose an owned Bread and a price from 1 to 100,000.");
+      setNotice(`Choose an owned Bread and a whole-number price from 1 to ${MAX_MARKETPLACE_PRICE.toLocaleString()}.`);
       return;
     }
     if (supabaseClient && !isGuest) {
@@ -1684,7 +1695,17 @@ function MainPage() {
         <MassOpenModal
           quantities={massQuantities}
           setQuantity={(name, quantity) =>
-            setMassQuantities((current) => ({ ...current, [name]: quantity }))
+            setMassQuantities((current) => {
+              const otherSelected = Object.entries(current).reduce(
+                (total, [currentName, currentQuantity]) =>
+                  total + (currentName === name ? 0 : currentQuantity),
+                0,
+              );
+              return {
+                ...current,
+                [name]: Math.max(0, Math.min(MAX_MASS_OPEN_COUNT - otherSelected, quantity)),
+              };
+            })
           }
           close={() => setMassOpen(false)}
           open={openMassCapsules}
@@ -3122,9 +3143,11 @@ function Bazaar({
             onChange={(event) => setPrice(event.target.value)}
             type="number"
             min="1"
-            max="100000"
+            max={MAX_MARKETPLACE_PRICE}
+            step="1"
             className="rounded-xl bg-[#24170f] px-3 py-3 text-white"
             placeholder="Price"
+            aria-label={`Listing price, maximum ${MAX_MARKETPLACE_PRICE.toLocaleString()} tokens`}
           />
           <button className="rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]">
             List Bread
@@ -3379,6 +3402,8 @@ function MassOpenModal({
     (sum, capsule) => sum + (quantities[capsule.name] || 0),
     0,
   );
+  const maxForCapsule = (name: string) =>
+    Math.max(0, MAX_MASS_OPEN_COUNT - count + (quantities[name] || 0));
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col">
@@ -3402,21 +3427,21 @@ function MassOpenModal({
               <input
                 type="number"
                 min="0"
-                max="999"
+                max={maxForCapsule(capsule.name)}
                 value={quantities[capsule.name] || 0}
                 onChange={(event) => {
                   const value = Number.parseInt(event.target.value, 10);
-                  setQuantity(capsule.name, Number.isFinite(value) ? Math.min(999, Math.max(0, value)) : 0);
+                  setQuantity(capsule.name, Number.isFinite(value) ? Math.min(maxForCapsule(capsule.name), Math.max(0, value)) : 0);
                 }}
                 className="h-9 w-14 rounded-xl bg-[#072a54] text-center font-black text-white outline-none border border-[#3d91cd]/30"
                 aria-label={`${capsule.name} quantity`}
               />
-              <button onClick={() => setQuantity(capsule.name, (quantities[capsule.name] || 0) + 1)} className="h-9 w-9 rounded-xl bg-[#18558f] text-lg font-black text-white hover:bg-[#24649c]">+</button>
+              <button disabled={count >= MAX_MASS_OPEN_COUNT} onClick={() => setQuantity(capsule.name, (quantities[capsule.name] || 0) + 1)} className="h-9 w-9 rounded-xl bg-[#18558f] text-lg font-black text-white hover:bg-[#24649c] disabled:cursor-not-allowed disabled:opacity-40">+</button>
             </div>
           ))}
         </div>
         <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#3d91cd]/30 text-sm font-bold text-white">
-          <span>{count} bag{count === 1 ? "" : "s"}</span>
+          <span>{count.toLocaleString()} / {MAX_MASS_OPEN_COUNT.toLocaleString()} bags</span>
           <b className="text-lg text-[#ffe2a0]">{isGuest ? "FREE" : `${total.toLocaleString()} tokens`}</b>
         </div>
         <button onClick={() => open(quantities)} className="mt-4 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Open selected bags</button>
@@ -3820,11 +3845,20 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                               <button type="button" onClick={() => { setEditingMessageId(null); setEditDraft(""); }} className="rounded-lg border border-[#5c574d] px-3 py-1.5 text-xs font-bold">Cancel</button>
                             </div>
                           </div>
-                        ) : renderMessageContent(item.text, item.isBreadletBot)}
-                        {canEdit && editingMessageId !== messageId && (
-                          <button type="button" onClick={() => { setEditingMessageId(messageId); setEditDraft(item.text); }} aria-label="Edit message" title="Edit message" className="chat-message-icon-button mt-1">
-                            <Pencil size={14} />
-                          </button>
+                        ) : (
+                          <div className="chat-message-content-row">
+                            {renderMessageContent(item.text, item.isBreadletBot)}
+                            {(item.id != null || isGuest) && (
+                              <button type="button" onClick={() => setReplyTarget({ id: item.id ?? `local-${item.user}-${index}`, user: item.user, message: item.text })} aria-label="Reply" title="Reply" className="chat-message-icon-button">
+                                <Reply size={16} />
+                              </button>
+                            )}
+                            {canEdit && (
+                              <button type="button" onClick={() => { setEditingMessageId(messageId); setEditDraft(item.text); }} aria-label="Edit message" title="Edit message" className="chat-message-icon-button">
+                                <Pencil size={14} />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     );
@@ -3833,11 +3867,6 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 {group.items.filter(({ item }) => item.replyTo).map(({ item }) => (
                   <button key={`reply-${item.id}`} type="button" onClick={() => item.replyTo?.id != null && document.getElementById(`chat-message-${String(item.replyTo.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-2 block max-w-md truncate rounded-md border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-left text-xs text-sky-100">↳ {item.replyTo?.user}: {item.replyTo?.message}</button>
                 ))}
-                {(latestItem.id != null || isGuest) && (
-                  <button type="button" onClick={() => setReplyTarget({ id: latestItem.id ?? `local-${latestItem.user}-${latest.index}`, user: latestItem.user, message: latestItem.text })} aria-label="Reply" title="Reply" className="chat-message-icon-button mt-1">
-                    <Reply size={16} />
-                  </button>
-                )}
               </div>
             </div>
           );
@@ -4967,6 +4996,7 @@ function CraftingTab({
   isGuest: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const [showRecycleStation, setShowRecycleStation] = useState(false);
   const unique = player.inventory.filter(
     (name, index, items) => items.indexOf(name) === index,
   ).filter((name) => name.toLowerCase().includes(search.toLowerCase()));
@@ -4977,24 +5007,14 @@ function CraftingTab({
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#bde8ff]">Forge and recycle</p>
           <h1 className="mt-1 text-4xl font-black">Crafting</h1>
         </div>
-        <span className="crafting-material-hint">Your materials are shown above</span>
-      </div>
-      <div className="crafting-workbench mt-5 grid gap-5 xl:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.48fr)]">
-        <div className="rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
-          <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Recycle station</p><h2 className="mt-1 text-2xl font-black">Dismantle</h2></div><div className="rounded-xl bg-[#24170f] px-3 py-2 text-center text-xs text-[#d7b88c]">+5<br /><b className="text-[#ffe2a0]">bundle</b></div></div>
-          <div className="mt-5 flex items-center gap-3 rounded-xl bg-[#24170f] px-3 py-2"><span className="text-[#e9bd67]">⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a Bread" className="min-w-0 flex-1 bg-transparent text-white outline-none" /></div>
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-2">
-            {unique.map((name) => (
-              <div key={name} className="dismantle-item rounded-2xl bg-[#24170f] p-3">
-                <img src={artFor(name)} alt={name} className="mx-auto h-16 w-16 object-contain" />
-                <span className="mt-1 block truncate text-center text-[10px] font-bold text-[#f0d7ae]">{name} · ×{player.inventory.filter((item) => item === name).length}</span>
-                <span className="mt-2 flex justify-center gap-1">{bundleEntries(dismantleBundleFor(name, rarityFor(name))).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-5 w-5 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span>
-                <button type="button" disabled={player.inventory.length <= 1} onClick={() => salvage(name)} title={player.inventory.length <= 1 ? "Keep at least one Bread in your collection" : `Dismantle ${name}`} className="dismantle-item-action mt-3 w-full rounded-lg px-2 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-35">Dismantle</button>
-              </div>
-            ))}
-          </div>
-          {!unique.length && <p className="mt-6 text-center text-sm text-[#b58d68]">No Breadlets found.</p>}
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <span className="crafting-material-hint">Your materials are shown above</span>
+          <button type="button" onClick={() => setShowRecycleStation(true)} className="rounded-xl border border-[#5c574d] bg-[#27251F] px-4 py-3 text-sm font-black text-white hover:bg-[#13120F]">
+            Open Recycle Station
+          </button>
         </div>
+      </div>
+      <div className="crafting-workbench mt-5 grid gap-5">
         <div className="crafting-assembly-panel rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
           <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Breadlets</h2>
           <div className="crafting-recipe-grid mt-5 grid gap-3 sm:grid-cols-2">
@@ -5002,6 +5022,32 @@ function CraftingTab({
           </div>
         </div>
       </div>
+      {showRecycleStation && (
+        <div className="modal-layer fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" aria-labelledby="recycle-station-title" className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-3xl border border-[#5c574d] bg-[#27251F] p-5 text-white shadow-2xl sm:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-[#e9bd67]">Recycle station</p>
+                <h2 id="recycle-station-title" className="mt-1 text-2xl font-black">Dismantle Breadlets</h2>
+                <p className="mt-1 text-sm text-[#c9c7c0]">Choose a Breadlet to preview the returned materials.</p>
+              </div>
+              <button type="button" onClick={() => setShowRecycleStation(false)} aria-label="Close recycle station" className="rounded-lg px-3 py-2 text-xl text-white/70 hover:bg-[#13120F] hover:text-white">×</button>
+            </div>
+            <div className="mt-4 flex items-center gap-3 rounded-xl bg-[#13120F] px-3 py-2"><span className="text-[#e9bd67]">⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a Bread" className="min-w-0 flex-1 bg-transparent text-white outline-none" /></div>
+            <div className="mt-4 grid grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4">
+              {unique.map((name) => (
+                <div key={name} className="dismantle-item rounded-2xl bg-[#13120F] p-3">
+                  <img src={artFor(name)} alt={name} className="mx-auto h-16 w-16 object-contain" />
+                  <span className="mt-1 block truncate text-center text-[10px] font-bold text-[#f0d7ae]">{name} · ×{player.inventory.filter((item) => item === name).length}</span>
+                  <span className="mt-2 flex justify-center gap-1">{bundleEntries(dismantleBundleFor(name, rarityFor(name))).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-5 w-5 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span>
+                  <button type="button" disabled={player.inventory.length <= 1} onClick={() => { setShowRecycleStation(false); salvage(name); }} title={player.inventory.length <= 1 ? "Keep at least one Bread in your collection" : `Dismantle ${name}`} className="dismantle-item-action mt-3 w-full rounded-lg px-2 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-35">Dismantle</button>
+                </div>
+              ))}
+            </div>
+            {!unique.length && <p className="mt-6 text-center text-sm text-[#b58d68]">No Breadlets found.</p>}
+          </section>
+        </div>
+      )}
     </div>
   );
 }

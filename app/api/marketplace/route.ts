@@ -3,6 +3,7 @@ import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
+const MAX_MARKETPLACE_PRICE = 2147483647;
 
 export async function GET() {
   const supabase = await createClient();
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
   const action = body.action || 'create';
   if (action !== 'create' && action !== 'buy') return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
   const price = Number(body.price || 0);
-  if (action === 'create' && (!Number.isSafeInteger(price) || price < 1 || price > 100000)) return NextResponse.json({ error: 'Invalid listing price.' }, { status: 400 });
+  if (action === 'create' && (!Number.isSafeInteger(price) || price < 1 || price > MAX_MARKETPLACE_PRICE)) return NextResponse.json({ error: 'Invalid listing price.' }, { status: 400 });
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: 'Marketplace server is not configured.' }, { status: 503 });
   const { data, error } = await admin.rpc('secure_marketplace_action', {

@@ -1136,20 +1136,35 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
 .global-chat > div:first-child { flex-shrink: 0; }
 .global-chat .chat-message-list { overflow-wrap: anywhere; }
 .global-chat .chat-group-message + .chat-group-message { margin-top: 2px; }
+.global-chat .chat-message-content-row { display: flex; min-width: 0; align-items: flex-end; gap: 4px; }
 .global-chat .chat-message-icon-button {
   display: inline-flex;
   width: 26px;
   height: 24px;
+  flex: 0 0 26px;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   color: #bde8ff;
-  opacity: .75;
+  opacity: 0;
+  pointer-events: none;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+.global-chat .chat-group-message:hover .chat-message-icon-button,
+.global-chat .chat-group-message:focus-within .chat-message-icon-button {
+  opacity: .85;
+  pointer-events: auto;
 }
 .global-chat .chat-message-icon-button:hover {
   background: #27251F;
   color: #FFFFFF;
   opacity: 1;
+}
+@media (hover: none) {
+  .global-chat .chat-group-message .chat-message-icon-button {
+    opacity: .85;
+    pointer-events: auto;
+  }
 }
 .breadlet-blue-theme .token-crate-panel {
   border: 0 !important;

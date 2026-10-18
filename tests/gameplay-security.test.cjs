@@ -22,7 +22,7 @@ function loadModule(file, dependencies = {}) {
 
 const catalog = loadModule('lib/gameplay-catalog.ts');
 const marketStock = loadModule('lib/market-stock.ts');
-const { planGameplay } = loadModule('lib/gameplay-actions.ts', {
+const { planGameplay, MAX_MASS_OPEN_COUNT } = loadModule('lib/gameplay-actions.ts', {
   './gameplay-catalog': catalog,
   './market-stock': marketStock,
 });
@@ -30,6 +30,23 @@ const { planGameplay } = loadModule('lib/gameplay-actions.ts', {
 test('server-generated rewards reject forged results and invalid gameplay requests', () => {
   const now = new Date('2026-10-05T01:30:00Z');
   const snapshot = { tokens: 1000, materials: { Metal: 12, Cloth: 8 }, inventory: { Gears: { quantity: 3, rarity: 'Rare' } }, wheelSpun: false };
+  const massPack = catalog.liveCapsules.find((pack) => marketStock.isMarketPackInStock(pack.name, now));
+  const secondMassPack = catalog.liveCapsules.find((pack) =>
+    pack.name !== massPack.name && marketStock.isMarketPackInStock(pack.name, now),
+  );
+  const massSnapshot = { ...snapshot, tokens: Number.MAX_SAFE_INTEGER };
+  assert.throws(
+    () => planGameplay({ action: 'open', quantities: { [massPack.name]: MAX_MASS_OPEN_COUNT + 1 } }, massSnapshot, () => 0, now),
+    /Invalid item quantity/,
+  );
+  assert.throws(
+    () => planGameplay({ action: 'open', quantities: { [massPack.name]: MAX_MASS_OPEN_COUNT, [secondMassPack.name]: 1 } }, massSnapshot, () => 0, now),
+    /at most 2500 Goodybags/,
+  );
+  assert.equal(
+    planGameplay({ action: 'open', quantities: { [massPack.name]: MAX_MASS_OPEN_COUNT } }, massSnapshot, () => 0, now).capsulesOpened,
+    2500,
+  );
   const inventions = catalog.liveCapsules.find((pack) => pack.name === 'Inventions Bag');
   assert.equal(inventions.pool.find((reward) => reward.name === 'Magnifying Glass').rarity, 'Common');
   assert.equal(inventions.pool.find((reward) => reward.name === 'Magnifying Glass').art, '/assets/magnifying-glass.svg');
@@ -107,6 +124,7 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag').pool.find((reward) => reward.name === 'Blooket Gods').rarity, 'Common');
   const blookTuber = catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag');
   const pageSource = fs.readFileSync('app/page.tsx', 'utf8');
+  const stylesSource = fs.readFileSync('app/globals.css', 'utf8');
   assert.equal(blookTuber.pool.length, 11);
   for (const name of ['Twisted Bread', 'SRN', 'Blook Master', 'Turtwix', 'Green Astronaut']) {
     const reward = blookTuber.pool.find((item) => item.name === name);
@@ -169,6 +187,11 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.ok(pageSource.includes('aria-label="Previous four Blooks"') && pageSource.includes('aria-label="Next four Blooks"'), 'Bazaar arrows page through four Blooks at a time');
   assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-blook-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/, 'the Bazaar carousel shows four Blooks in a row on desktop');
   assert.ok(pageSource.includes('placeholder="Search Blooks"') && pageSource.includes('aria-label="Filter by rarity"'), 'the Bazaar has clearly labeled Blook search and rarity filtering');
+  assert.ok(pageSource.includes('MAX_MARKETPLACE_PRICE = 2147483647') && pageSource.includes('max={MAX_MARKETPLACE_PRICE}'), 'Bazaar price input accepts the signed 32-bit integer maximum');
+  assert.ok(fs.readFileSync('app/api/marketplace/route.ts', 'utf8').includes('MAX_MARKETPLACE_PRICE = 2147483647'), 'marketplace API accepts the signed 32-bit integer maximum');
+  assert.ok(fs.readFileSync('app/page.tsx', 'utf8').includes('MAX_MASS_OPEN_COUNT'), 'mass-open UI enforces the shared pack cap');
+  assert.ok(pageSource.includes('Open Recycle Station') && pageSource.includes('showRecycleStation &&'), 'the dismantle station is hidden until opened from its button');
+  assert.match(stylesSource, /\.chat-group-message:hover \.chat-message-icon-button[\s\S]*?opacity:\s*\.85/, 'chat edit and reply controls appear on hover');
   assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-market\s*\{[^}]*background:\s*transparent\s*!important/, 'the Bazaar keeps the animated page background visible');
   assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-filter-control\s*\{[^}]*background:\s*#27251F/, 'Bazaar search and filter controls use the dark sidebar palette');
   assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-art-stage\s*\{[^}]*background:\s*#13120F/, 'Blook art sits on a high-contrast dark stage');
@@ -183,7 +206,6 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.ok(pageSource.includes('"Space Goo": "/assets/space goo 2.0.svg"'), 'Space Goo renders with its updated artwork');
   assert.ok(fs.existsSync('supabase/migrations/0035_update_space_goo_artwork.sql'), 'deployed Space Goo artwork is updated by migration');
   assert.ok(pageSource.includes('className="teds-shop-heading'), 'Ted’s Shop uses the text heading instead of a logo');
-  const stylesSource = fs.readFileSync('app/globals.css', 'utf8');
   assert.match(stylesSource, /\.clan-workspace \.clan-member-avatar[\s\S]*?background: transparent;/, 'clan member Blooks render without a backing box');
   assert.match(stylesSource, /\.teds-shop-heading[^}]*color: #FFFFFF;[^}]*font-family: "DynaPuff"/, 'Ted’s Shop title uses bold white DynaPuff text');
   for (const pack of [...catalog.liveCapsules, ...catalog.legacyCapsules]) {
@@ -318,6 +340,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     `);
     const migration = fs.readFileSync('supabase/migrations/0015_secure_gameplay.sql', 'utf8');
     await database.exec(migration);
+    const marketplaceLimitMigration = fs.readFileSync('supabase/migrations/0036_raise_bazaar_price_limit.sql', 'utf8');
+    await database.exec(marketplaceLimitMigration);
+    await database.exec(marketplaceLimitMigration);
     const tankMigration = fs.readFileSync('supabase/migrations/0016_inventions_tank.sql', 'utf8');
     await database.exec(tankMigration);
     await database.query("insert into chests(name,price,pool) values ('Human Bag',25,'[]'),('Pixel Bag',25,'[]'),('Remix Bag',25,'[]'),('BlookTuber Bag',25,'[\"Bread Blook\",\"Blooket Life\",\"Blooket Gods\",\"Fasty Jay\",\"Lagoon\",\"Waymore\"]'),('Inventions Bag',25,'[\"Wheel\"]'),('Space Bag',25,'[\"Mars\",\"Earth\"]'),('Lost and Found Bag',25,'[\"Car Keys\"]'),('Artifact Bag',25,'[\"Aztec Coin\"]'),('Combat Bag',25,'[\"Olive Grenade\"]')");
@@ -583,6 +608,11 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     assert.equal((await database.query('select count(*)::integer as total from inventory where profile_id=$1 and blook_id=$2', [seller, bitcoin])).rows[0].total, 0);
     await database.query("select secure_marketplace_action($1,'buy','',0,$2)", [buyer, listing]);
     await assert.rejects(() => database.query("select secure_marketplace_action($1,'buy','',0,$2)", [buyer, listing]), /no longer active/i);
+    const maximumPriceListing = (await database.query(
+      "select secure_marketplace_action($1,'create','Bitcoin',2147483647,null) as result",
+      [buyer],
+    )).rows[0].result.listing;
+    assert.equal(maximumPriceListing.price, 2147483647);
     await database.query('select secure_builtin_promo($1)', [buyer]);
     await assert.rejects(() => database.query('select secure_builtin_promo($1)', [buyer]), /already redeemed/i);
     const clan = (await database.query('insert into clans default values returning id')).rows[0].id;

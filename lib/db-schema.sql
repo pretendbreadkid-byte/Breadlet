@@ -82,7 +82,7 @@ CREATE TABLE marketplace_listings (
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   blook_id UUID NOT NULL REFERENCES blooks(id) ON DELETE RESTRICT,
   quantity INTEGER NOT NULL CHECK (quantity > 0),
-  price INTEGER NOT NULL CHECK (price >= 0 AND price <= 100000),
+  price INTEGER NOT NULL CHECK (price >= 0 AND price <= 2147483647),
   status TEXT NOT NULL CHECK (status IN ('active', 'sold', 'cancelled', 'expired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   sold_at TIMESTAMPTZ
