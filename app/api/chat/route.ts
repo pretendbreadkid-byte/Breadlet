@@ -436,3 +436,74 @@ export async function POST(request: Request) {
     { status: 201 }
   );
 }
+
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Supabase is not configured.' },
+      { status: 503 }
+    );
+  }
+  const database = createAdminClient() || supabase;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Unauthenticated' },
+      { status: 401 }
+    );
+  }
+
+  let body: { id?: unknown; message?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: 'Invalid request body.' },
+      { status: 400 }
+    );
+  }
+
+  const id = typeof body.id === 'string' ? body.id.trim() : '';
+  const message = typeof body.message === 'string'
+    ? body.message.trim().slice(0, 500)
+    : '';
+
+  if (!id || !message) {
+    return NextResponse.json(
+      { error: 'A message ID and non-empty message are required.' },
+      { status: 400 }
+    );
+  }
+
+  const { data, error } = await database
+    .from('global_chat_messages')
+    .update({ message })
+    .eq('id', id)
+    .eq('profile_id', user.id)
+    .eq('is_breadlet_bot', false)
+    .is('deleted_at', null)
+    .select('id, message')
+    .maybeSingle();
+
+  if (error) {
+    console.error('[CHAT_PATCH] Update error:', error);
+    return NextResponse.json(
+      { error: 'Could not edit this message.' },
+      { status: 500 }
+    );
+  }
+  if (!data) {
+    return NextResponse.json(
+      { error: 'Message not found or you do not have permission to edit it.' },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json(data);
+}

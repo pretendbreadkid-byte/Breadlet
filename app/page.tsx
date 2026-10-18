@@ -30,6 +30,8 @@ import {
   Info,
   Wallet,
   Sparkles,
+  Reply,
+  Pencil,
 } from "lucide-react";
 
 type Tab =
@@ -214,7 +216,7 @@ const artFor = (name: string) =>
     "Star Ship": "/assets/star ship frame 1.svg",
     "Skeleton Pirate": "/assets/Skeleton pirate frame 1.svg",
     "Festive Skeleton Pirate": "/assets/feative Skeleton pirate .svg",
-    "Space Goo": "/assets/space goo (1).svg",
+    "Space Goo": "/assets/space goo 2.0.svg",
     "Bread Blook": "/assets/new breadblook.png",
     "Golden Shuriken": "/assets/gold shuricken 2.svg",
     "Holy Bread": "/assets/holy-bread-refreshed.svg",
@@ -2885,9 +2887,9 @@ function WheelTab({
         <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
       </div>
       <div className="mt-5">
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-xl sm:p-6">
+        <div className="token-crate-panel overflow-hidden rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-xl sm:p-6">
           <div className={`crate-display ${phase === "spinning" ? "crate-opening" : charging ? "reveal-crate-charge" : ""}`}>
-            <img src="/assets/crate%20(1).svg" alt="Daily reward crate" className="h-40 w-40 object-contain drop-shadow-2xl sm:h-48 sm:w-48" />
+            <img src="/assets/crate%20(1).svg" alt="Daily reward crate" className="h-56 w-56 object-contain drop-shadow-2xl sm:h-72 sm:w-72" />
           </div>
           {phase === "spinning" && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
             <section role="dialog" aria-modal="true" aria-labelledby="crate-opening-title" className="w-full max-w-6xl rounded-2xl border border-[#CC5500] bg-[#10182b] p-4 text-center sm:p-7">
@@ -3575,6 +3577,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const [onlinePanelOpen, setOnlinePanelOpen] = useState(false);
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
   const isVerified = player.badges?.includes("Verified");
@@ -3722,6 +3726,55 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{text}</p>;
   };
 
+  const messageGroups = messages.reduce<Array<{ user: string; isBreadletBot: boolean; items: Array<{ item: (typeof messages)[number]; index: number }> }>>((groups, item, index) => {
+    const current = groups[groups.length - 1];
+    if (current && current.user === item.user && current.isBreadletBot === Boolean(item.isBreadletBot)) {
+      current.items.push({ item, index });
+    } else {
+      groups.push({ user: item.user, isBreadletBot: Boolean(item.isBreadletBot), items: [{ item, index }] });
+    }
+    return groups;
+  }, []);
+  const saveEditedMessage = async (item: (typeof messages)[number], index: number) => {
+    const updatedMessage = editDraft.trim();
+    if (!updatedMessage) {
+      setChatError("Message cannot be empty.");
+      return;
+    }
+
+    if (item.id == null || String(item.id).startsWith("local-")) {
+      setMessages((current) => current.map((messageItem, messageIndex) =>
+        messageIndex === index ? { ...messageItem, text: updatedMessage } : messageItem,
+      ));
+      setEditingMessageId(null);
+      setEditDraft("");
+      setChatError("");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, message: updatedMessage }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setChatError(result.error || "Your message could not be edited.");
+        return;
+      }
+      setMessages((current) => current.map((messageItem) =>
+        messageItem.id === result.id ? { ...messageItem, text: result.message } : messageItem,
+      ));
+      setEditingMessageId(null);
+      setEditDraft("");
+      setChatError("");
+    } catch (error) {
+      console.error("[CLIENT_CHAT] Error editing message:", error);
+      setChatError("Could not reach chat. Check your connection and try again.");
+    }
+  };
+
   return (
     <div className="global-chat flex h-full min-h-0 w-full flex-col">
       <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlinePlayers.length} players</span></div>
@@ -3736,30 +3789,59 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         </div>
       )}
       <div className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
-        {messages.map((item, index) => (
-          <div id={`chat-message-${String(item.id ?? `local-${item.user}-${index}`)}`} key={`${item.id ?? item.user}-${index}`} className="flex gap-3">
-            <button disabled={item.isBreadletBot} onClick={() => !item.isBreadletBot && void openPlayerProfile(item.user)} aria-label={item.isBreadletBot ? "Breadlet chat bot" : `Open ${item.user}'s profile`} title={item.isBreadletBot ? "Breadlet" : `View ${item.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden disabled:cursor-default">
-              {item.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : item.equippedBlook || (item.user === player.username && player.equipped) ? <RewardArt name={item.equippedBlook || player.equipped} art={artFor(item.equippedBlook || player.equipped)} className="h-full w-full" /> : <CircleUserRound size={30} />}
-            </button>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 font-black">
-                <button disabled={item.isBreadletBot} onClick={() => !item.isBreadletBot && void openPlayerProfile(item.user)} className="hover:underline disabled:cursor-default disabled:no-underline">{item.user}</button>
-                {(item.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : item.badges || []).map((badge) => (
-                  <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
-                    <img
-                      src={badgeIconFor(badge)}
-                      alt={badge}
-                      className="h-5 w-5 object-contain"
-                    />
-                  </button>
+        {messageGroups.map((group) => {
+          const latest = group.items[group.items.length - 1];
+          const latestItem = latest.item;
+          return (
+            <div key={`${group.user}-${latest.index}`} className="flex gap-3">
+              <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} aria-label={group.isBreadletBot ? "Breadlet chat bot" : `Open ${group.user}'s profile`} title={group.isBreadletBot ? "Breadlet" : `View ${group.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden disabled:cursor-default">
+                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <RewardArt name={latestItem.equippedBlook || player.equipped} art={artFor(latestItem.equippedBlook || player.equipped)} className="h-full w-full" /> : <CircleUserRound size={30} />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 font-black">
+                  <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="hover:underline disabled:cursor-default disabled:no-underline">{group.user}</button>
+                  {(group.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : latestItem.badges || []).map((badge) => (
+                    <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
+                      <img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" />
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-1 space-y-2">
+                  {group.items.map(({ item, index }) => {
+                    const messageId = String(item.id ?? `local-${item.user}-${index}`);
+                    const canEdit = !item.isBreadletBot && item.user === player.username && (item.id != null || isGuest);
+                    return (
+                      <div key={messageId} id={`chat-message-${messageId}`} className="chat-group-message">
+                        {editingMessageId === messageId ? (
+                          <div className="space-y-2">
+                            <textarea value={editDraft} onChange={(event) => setEditDraft(event.target.value)} maxLength={500} aria-label="Edit message" className="w-full resize-y rounded-lg border border-[#5c574d] bg-[#13120F] p-2 text-sm text-white outline-none focus:border-[#e9bd67]" />
+                            <div className="flex gap-2">
+                              <button type="button" onClick={() => void saveEditedMessage(item, index)} className="rounded-lg bg-[#e9bd67] px-3 py-1.5 text-xs font-black text-[#29170c]">Save</button>
+                              <button type="button" onClick={() => { setEditingMessageId(null); setEditDraft(""); }} className="rounded-lg border border-[#5c574d] px-3 py-1.5 text-xs font-bold">Cancel</button>
+                            </div>
+                          </div>
+                        ) : renderMessageContent(item.text, item.isBreadletBot)}
+                        {canEdit && editingMessageId !== messageId && (
+                          <button type="button" onClick={() => { setEditingMessageId(messageId); setEditDraft(item.text); }} aria-label="Edit message" title="Edit message" className="chat-message-icon-button mt-1">
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {group.items.filter(({ item }) => item.replyTo).map(({ item }) => (
+                  <button key={`reply-${item.id}`} type="button" onClick={() => item.replyTo?.id != null && document.getElementById(`chat-message-${String(item.replyTo.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-2 block max-w-md truncate rounded-md border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-left text-xs text-sky-100">↳ {item.replyTo?.user}: {item.replyTo?.message}</button>
                 ))}
+                {(latestItem.id != null || isGuest) && (
+                  <button type="button" onClick={() => setReplyTarget({ id: latestItem.id ?? `local-${latestItem.user}-${latest.index}`, user: latestItem.user, message: latestItem.text })} aria-label="Reply" title="Reply" className="chat-message-icon-button mt-1">
+                    <Reply size={16} />
+                  </button>
+                )}
               </div>
-              {item.replyTo && <button onClick={() => document.getElementById(`chat-message-${String(item.replyTo?.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-1 block max-w-md truncate rounded-md border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-left text-xs text-sky-100">↳ {item.replyTo.user}: {item.replyTo.message}</button>}
-              {renderMessageContent(item.text, item.isBreadletBot)}
-              {(item.id != null || isGuest) && <button onClick={() => setReplyTarget({ id: item.id ?? `local-${item.user}-${index}`, user: item.user, message: item.text })} className="mt-1 text-xs font-bold text-sky-300 hover:text-white">Reply</button>}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <form onSubmit={send} className="mt-4 flex shrink-0 items-center gap-3">
         {isVerified && (

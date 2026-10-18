@@ -169,11 +169,19 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.ok(pageSource.includes('aria-label="Previous four Blooks"') && pageSource.includes('aria-label="Next four Blooks"'), 'Bazaar arrows page through four Blooks at a time');
   assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-blook-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/, 'the Bazaar carousel shows four Blooks in a row on desktop');
   assert.ok(pageSource.includes('placeholder="Search Blooks"') && pageSource.includes('aria-label="Filter by rarity"'), 'the Bazaar has clearly labeled Blook search and rarity filtering');
-  assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-market\s*\{[^}]*linear-gradient\(145deg,\s*#ed8425/, 'the Bazaar uses the warm orange reference as its improved backdrop');
+  assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-market\s*\{[^}]*background:\s*transparent\s*!important/, 'the Bazaar keeps the animated page background visible');
   assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-filter-control\s*\{[^}]*background:\s*#27251F/, 'Bazaar search and filter controls use the dark sidebar palette');
   assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.bazaar-art-stage\s*\{[^}]*background:\s*#13120F/, 'Blook art sits on a high-contrast dark stage');
   assert.ok(pageSource.includes('function BlookListingsModal'), 'clicking a Bazaar Blook opens grouped seller offers');
-  assert.ok(fs.existsSync('public/assets/space goo (1).svg'), 'Space Goo artwork exists');
+  assert.ok(pageSource.includes('className="token-crate-panel') && pageSource.includes('h-56 w-56'), 'the token crate panel is unboxed and enlarged');
+  assert.match(fs.readFileSync('app/globals.css', 'utf8'), /\.token-crate-panel\s*\{[^}]*border:\s*0\s*!important;[^}]*background:\s*transparent\s*!important/, 'the token crate panel styling is transparent and borderless');
+  assert.ok(pageSource.includes('messageGroups.map') && pageSource.includes('<Reply size={16} />') && pageSource.includes('<Pencil size={14} />'), 'chat groups consecutive messages and uses reply and edit icons');
+  const chatRoute = fs.readFileSync('app/api/chat/route.ts', 'utf8');
+  assert.match(chatRoute, /export async function PATCH[\s\S]*?\.eq\('profile_id', user\.id\)[\s\S]*?\.eq\('is_breadlet_bot', false\)/, 'chat edits are limited to the authenticated author and exclude bot messages');
+  assert.ok(fs.existsSync('supabase/migrations/0034_allow_owners_to_edit_chat_messages.sql'), 'chat message edits have an owner-only database policy');
+  assert.ok(fs.existsSync('public/assets/space goo 2.0.svg'), 'updated Space Goo artwork exists');
+  assert.ok(pageSource.includes('"Space Goo": "/assets/space goo 2.0.svg"'), 'Space Goo renders with its updated artwork');
+  assert.ok(fs.existsSync('supabase/migrations/0035_update_space_goo_artwork.sql'), 'deployed Space Goo artwork is updated by migration');
   assert.ok(pageSource.includes('className="teds-shop-heading'), 'Ted’s Shop uses the text heading instead of a logo');
   const stylesSource = fs.readFileSync('app/globals.css', 'utf8');
   assert.match(stylesSource, /\.clan-workspace \.clan-member-avatar[\s\S]*?background: transparent;/, 'clan member Blooks render without a backing box');
@@ -395,6 +403,13 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
       { name: 'Space Goo', rarity: 'Uncommon', artwork_key: 'space goo (1).svg', retired: false },
       { name: 'Space Trooper', rarity: 'Uncommon', artwork_key: 'Lost and found + food pack/space troopeer.png', retired: true },
     ]);
+    const spaceGooArtworkMigration = fs.readFileSync('supabase/migrations/0035_update_space_goo_artwork.sql', 'utf8');
+    await database.exec(spaceGooArtworkMigration);
+    await database.exec(spaceGooArtworkMigration);
+    assert.equal(
+      (await database.query("select artwork_key from blooks where name='Space Goo'")).rows[0].artwork_key,
+      'space goo 2.0.svg',
+    );
     const transferredInventory = (await database.query(
       "select quantity,shiny from inventory where profile_id=$1 and blook_id=(select id from blooks where name='Space Goo') order by shiny",
       [contestPlayers[0][0]],

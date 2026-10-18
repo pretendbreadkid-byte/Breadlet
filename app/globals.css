@@ -969,11 +969,9 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
 .workspace-island .workspace-account-button:hover { transform: none; }
 .breadlet-blue-theme button.sidebar-dark-action:hover { background-color: #13120F !important; }
 .breadlet-blue-theme .bazaar-market {
-  border: 1px solid #13120F;
-  border-radius: 18px;
-  background:
-    radial-gradient(ellipse at 13% 0%, rgba(255, 195, 89, 0.25), transparent 38%),
-    linear-gradient(145deg, #ed8425 0%, #d96b17 100%);
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
   color: #FFFFFF;
 }
 .breadlet-blue-theme .bazaar-header {
@@ -1137,6 +1135,35 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
 .breadlet-blue-theme .game-workspace.chat-workspace { display: flex; min-height: 0; flex-direction: column; overflow: hidden; }
 .global-chat > div:first-child { flex-shrink: 0; }
 .global-chat .chat-message-list { overflow-wrap: anywhere; }
+.global-chat .chat-group-message + .chat-group-message { margin-top: 2px; }
+.global-chat .chat-message-icon-button {
+  display: inline-flex;
+  width: 26px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #bde8ff;
+  opacity: .75;
+}
+.global-chat .chat-message-icon-button:hover {
+  background: #27251F;
+  color: #FFFFFF;
+  opacity: 1;
+}
+.breadlet-blue-theme .token-crate-panel {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0;
+  box-shadow: none !important;
+}
+.breadlet-blue-theme .token-crate-panel .crate-display {
+  min-height: 260px;
+}
+.breadlet-blue-theme .token-crate-panel .crate-display img {
+  width: clamp(220px, 35vw, 340px);
+  height: clamp(220px, 35vw, 340px);
+}
 .global-chat .chat-online-panel { bottom: 6rem; }
 .chat-breadlet-fact { display: table; max-width: 100%; border: 1px solid #ff7568; border-radius: 8px; background: #a9231a; padding: 7px 10px; color: #FFFFFF; font-size: .9rem; font-weight: 800; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 2px 8px #13120F66; }
 @media (max-width: 767px) {
@@ -1158,6 +1185,8 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   .workspace-island .workspace-materials { max-width: 43vw; grid-template-columns: repeat(3, max-content); gap: 5px 7px; }
   .workspace-island .workspace-material { font-size: 10px; }
   .workspace-island .workspace-material img { width: 16px; height: 16px; }
+  .breadlet-blue-theme .token-crate-panel .crate-display { min-height: 220px; }
+  .breadlet-blue-theme .token-crate-panel .crate-display img { width: min(62vw, 280px); height: min(62vw, 280px); }
   .breadlet-blue-theme .game-workspace.chat-workspace { height: calc(100svh - 120px); flex: none; }
   .global-chat h1 { font-size: 28px; }
 }
