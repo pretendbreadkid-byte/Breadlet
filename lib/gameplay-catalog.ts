@@ -173,7 +173,7 @@ export const liveCapsules: Capsule[] = [
       ["Earth", "Uncommon"],
       ["Globe", "Uncommon"],
       ["Star", "Rare"],
-      ["Space Trooper", "Uncommon"],
+      ["Space Goo", "Uncommon"],
       ["Consolation", "Uncommon"],
       ["Sun", "Rare"],
       ["Eclipse", "Epic"],

@@ -31,8 +31,6 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
   const action = String(body.action || '');
   const plan: GameplayPlan = { action, tokenDelta: 0, materialDelta: {}, inventoryDelta: {}, candyDelta: 0, capsulesOpened: 0, results: [], sold: {}, tokensEarned: 0 };
   const addItem = (name: string, quantity: number) => { plan.inventoryDelta[name] = (plan.inventoryDelta[name] || 0) + quantity; };
-  const eventActive = now >= new Date('2026-10-02T00:00:00Z') && now < new Date('2026-10-24T00:00:00Z');
-
   if (action === 'open') {
     if (!body.quantities || typeof body.quantities !== 'object' || Array.isArray(body.quantities)) throw new Error('Choose a Goodybag.');
     const quantities = Object.entries(body.quantities as Record<string, unknown>);
@@ -49,7 +47,6 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
     if (snapshot.tokens < cost) throw new Error('You need more tokens for those Goodybags.');
     plan.tokenDelta = -cost;
     plan.capsulesOpened = count;
-    plan.candyDelta = eventActive ? count : 0;
     for (const { capsule, quantity } of selected) {
       const total = capsule.pool.reduce((sum, reward) => sum + chanceFor(capsule, reward), 0);
       for (let opened = 0; opened < quantity; opened += 1) {
@@ -60,13 +57,12 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       }
     }
   } else if (action === 'crate') {
-    if (snapshot.wheelSpun) throw new Error('You already opened today\'s Token Crate.');
+    if (snapshot.wheelSpun) throw new Error('You already claimed today\'s tokens.');
     let roll = random() * wheelRewards.reduce((total, reward) => total + reward.chance, 0);
     const reward = wheelRewards.find((entry) => { roll -= entry.chance; return roll < 0; }) || wheelRewards[wheelRewards.length - 1];
     plan.crateReward = reward;
     if (reward.type === 'tokens') plan.tokenDelta = reward.amount;
     else plan.materialDelta[reward.material] = reward.amount;
-    plan.candyDelta = eventActive ? 1 : 0;
   } else if (action === 'craft') {
     const recipe = craftRecipeFor(String(body.name || ''));
     if (!recipe) throw new Error('Unknown crafting recipe.');

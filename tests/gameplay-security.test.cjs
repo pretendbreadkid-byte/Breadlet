@@ -36,6 +36,8 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(inventions.pool.find((reward) => reward.name === 'Bitcoin').rarity, 'Mythic');
   assert.equal(inventions.pool.find((reward) => reward.name === "Leonardo da Vinci's Tank").rarity, 'Epic');
   const space = catalog.liveCapsules.find((pack) => pack.name === 'Space Bag');
+  assert.equal(space.pool.find((reward) => reward.name === 'Space Goo').rarity, 'Uncommon');
+  assert.equal(space.pool.some((reward) => reward.name === 'Space Trooper'), false);
   const marsChance = catalog.chanceFor(space, space.pool.find((reward) => reward.name === 'Mars'));
   assert.ok(marsChance > 25 && marsChance < 40, `Mars chance is spread below 40% (was ${marsChance}%)`);
   const foodBag = catalog.liveCapsules.find((pack) => pack.name === 'Food Bag');
@@ -61,7 +63,8 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').art, '/assets/earth-globe.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Alien').art, '/assets/alien%202%20frame%201.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').rarity, 'Rare');
-  assert.equal(space.pool.find((reward) => reward.name === 'Space Trooper').rarity, 'Uncommon');
+  assert.equal(space.pool.find((reward) => reward.name === 'Space Goo').rarity, 'Uncommon');
+  assert.equal(space.pool.some((reward) => reward.name === 'Space Trooper'), false);
   assert.equal(space.pool.find((reward) => reward.name === 'Consolation').rarity, 'Uncommon');
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').art, '/assets/sun.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Eclipse').art, '/assets/solar%20ecplise%20but%20good.svg');
@@ -161,7 +164,11 @@ test('server-generated rewards reject forged results and invalid gameplay reques
     'teds-shop-wordmark.png',
   ]) assert.ok(!fs.existsSync(`public/assets/${obsoleteArt}`), `${obsoleteArt} was removed after replacement`);
   assert.ok(!pageSource.includes('Daily Crate'), 'the old Daily Crate tab label was removed');
-  assert.ok(pageSource.includes('Token Crate</button>}<button onClick={openLookup}'), 'the Token Crate shortcut sits beside Find Player');
+  assert.ok(pageSource.includes('Claim Tokens</button>}<button onClick={openLookup}'), 'the Claim Tokens shortcut sits beside Find Player');
+  assert.ok(!pageSource.includes('id: "event"'), 'the ended Contest of Spooky tab is removed');
+  assert.ok(pageSource.includes('aria-label="Previous Breadlet"') && pageSource.includes('aria-label="Next Breadlet"'), 'the Bazaar has one-item previous and next browsing controls');
+  assert.ok(pageSource.includes('function BlookListingsModal'), 'clicking a Bazaar Blook opens grouped seller offers');
+  assert.ok(fs.existsSync('public/assets/space goo (1).svg'), 'Space Goo artwork exists');
   assert.ok(pageSource.includes('className="teds-shop-heading'), 'Ted’s Shop uses the text heading instead of a logo');
   const stylesSource = fs.readFileSync('app/globals.css', 'utf8');
   assert.match(stylesSource, /\.clan-workspace \.clan-member-avatar[\s\S]*?background: transparent;/, 'clan member Blooks render without a backing box');
@@ -176,7 +183,8 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   const opening = planGameplay({ action: 'open', quantities: { 'Inventions Bag': 1 }, reward: 'Bitcoin', tokens: 999999 }, snapshot, () => 0, now);
   assert.equal(opening.results[0].reward.name, 'Wheel');
   assert.equal(opening.tokenDelta, -25);
-  assert.equal(opening.candyDelta, 1);
+  assert.equal(opening.candyDelta, 0);
+  assert.equal(planGameplay({ action: 'crate' }, snapshot, () => 0, now).candyDelta, 0);
   assert.throws(() => planGameplay({ action: 'open', quantities: { 'Inventions Bag': 1 } }, { ...snapshot, tokens: 0 }, () => 0, now));
   for (const name of ['Human Bag', 'Pixel Bag', 'Remix Bag']) {
     assert.throws(() => planGameplay({ action: 'open', quantities: { [name]: 1 } }, snapshot, () => 0, now), /Unknown Goodybag/);
@@ -279,11 +287,13 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
       create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
       create table blooks(id uuid primary key default gen_random_uuid(), name text unique not null, rarity text not null, artwork_key text, retired boolean not null default false);
       create table chests(id uuid primary key default gen_random_uuid(), name text unique not null, price integer not null, description text, pool jsonb not null default '[]', rarity text, is_retired boolean not null default false, active boolean not null default true);
-      create table profiles(id uuid primary key, username text, tokens integer not null default 0 check(tokens>=0), stats jsonb not null default '{}', materials jsonb not null default '{}', is_banned boolean default false, account_status text default 'active', equipped_blook_id uuid);
+      create table profiles(id uuid primary key, username text, created_at timestamptz not null default now(), tokens integer not null default 0 check(tokens>=0), stats jsonb not null default '{}', materials jsonb not null default '{}', is_banned boolean default false, account_status text default 'active', equipped_blook_id uuid);
       create table token_transactions(id uuid primary key default gen_random_uuid(), profile_id uuid references profiles(id), type text not null, delta integer not null, reason text not null, created_at timestamptz not null default now());
       create table chest_rolls(id uuid primary key default gen_random_uuid(), profile_id uuid references profiles(id), tokens_spent integer not null);
       create table inventory(id uuid primary key default gen_random_uuid(), profile_id uuid references profiles(id), blook_id uuid references blooks(id), quantity integer not null check(quantity>=0), shiny boolean default false, retired boolean not null default false, unique(profile_id,blook_id,shiny));
       create table marketplace_listings(id uuid primary key default gen_random_uuid(), profile_id uuid references profiles(id), blook_id uuid references blooks(id), quantity integer, price integer, status text, sold_at timestamptz);
+      create table notifications(id uuid primary key default gen_random_uuid(), profile_id uuid, type text not null, payload jsonb not null default '{}', is_read boolean not null default false, created_at timestamptz not null default now());
+      create table events(id uuid primary key default gen_random_uuid(), name text not null, start_at timestamptz not null, end_at timestamptz not null, active boolean not null default true);
       create table mine_progress(id uuid primary key default gen_random_uuid(), profile_id uuid);
       create table clans(id uuid primary key default gen_random_uuid(), name text not null default ('Clan-' || gen_random_uuid()::text), description text, tags text[] not null default '{}', owner_profile_id uuid, treasury integer default 0, member_count integer default 1, thumbnail_url text, created_at timestamptz not null default now());
       create table clan_members(id uuid primary key default gen_random_uuid(), profile_id uuid, clan_id uuid, role text default 'member', token_contributions integer default 0, joined_at timestamptz not null default now());
@@ -340,6 +350,80 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     const diamondSwordMigration = fs.readFileSync('supabase/migrations/0032_diamond_sword_and_combat_artwork.sql', 'utf8');
     await database.exec(diamondSwordMigration);
     await database.exec(diamondSwordMigration);
+    const spaceTrooperId = (await database.query("select id from blooks where name='Space Trooper'")).rows[0].id;
+    const spaceGooMigration = fs.readFileSync('supabase/migrations/0033_close_spooky_contest_and_replace_space_trooper.sql', 'utf8');
+    const contestPlayers = [
+      ['00000000-0000-0000-0000-00000000000a', 'CandyWinnerA', 100],
+      ['00000000-0000-0000-0000-00000000000b', 'CandyWinnerB', 90],
+      ['00000000-0000-0000-0000-00000000000c', 'CandyWinnerC', 80],
+      ['00000000-0000-0000-0000-00000000000d', 'CandyWinnerD', 40],
+      ['00000000-0000-0000-0000-00000000000e', 'CandyZero', 0],
+    ];
+    for (const [id, username, candy] of contestPlayers) {
+      await database.query(
+        'insert into profiles(id,username,stats) values($1,$2,$3)',
+        [id, username, JSON.stringify({ candy })],
+      );
+    }
+    await database.query(`
+      insert into profiles(id,username,stats)
+      select ('00000000-0000-0000-0000-' || lpad(to_hex(100 + n),12,'0'))::uuid,
+             'ContestFiller' || n,
+             jsonb_build_object('candy',40 - n)
+      from generate_series(1,27) as fillers(n)
+    `);
+    await database.query("insert into events(name,start_at,end_at,active) values('Contest of Spooky',now() - interval '1 day',now() + interval '30 days',true)");
+    await database.query("update chests set pool='[\"Mars\",\"Space Trooper\"]' where name='Space Bag'");
+    await database.query(
+      "insert into inventory(profile_id,blook_id,quantity,shiny) values($1,$2,3,false),($1,$2,1,true)",
+      [contestPlayers[0][0], spaceTrooperId],
+    );
+    await database.query("update profiles set equipped_blook_id=$1 where id=$2", [spaceTrooperId, contestPlayers[0][0]]);
+    await database.query(
+      "insert into marketplace_listings(profile_id,blook_id,quantity,price,status) values($1,$2,1,25,'active')",
+      [contestPlayers[0][0], spaceTrooperId],
+    );
+    await database.exec(spaceGooMigration);
+    await database.exec(spaceGooMigration);
+    const replacementBlooks = (await database.query("select name,rarity,artwork_key,retired from blooks where name in ('Space Trooper','Space Goo') order by name")).rows;
+    assert.deepEqual(replacementBlooks, [
+      { name: 'Space Goo', rarity: 'Uncommon', artwork_key: 'space goo (1).svg', retired: false },
+      { name: 'Space Trooper', rarity: 'Uncommon', artwork_key: 'Lost and found + food pack/space troopeer.png', retired: true },
+    ]);
+    const transferredInventory = (await database.query(
+      "select quantity,shiny from inventory where profile_id=$1 and blook_id=(select id from blooks where name='Space Goo') order by shiny",
+      [contestPlayers[0][0]],
+    )).rows;
+    assert.deepEqual(transferredInventory, [{ quantity: 3, shiny: false }, { quantity: 1, shiny: true }]);
+    assert.equal((await database.query("select equipped_blook_id=(select id from blooks where name='Space Goo') as equipped from profiles where id=$1", [contestPlayers[0][0]])).rows[0].equipped, true);
+    assert.equal((await database.query("select blook_id=(select id from blooks where name='Space Goo') as replaced from marketplace_listings where profile_id=$1", [contestPlayers[0][0]])).rows[0].replaced, true);
+    assert.deepEqual((await database.query("select pool from chests where name='Space Bag'")).rows[0].pool, ['Mars', 'Space Goo']);
+    assert.equal((await database.query("select count(*)::integer as total from notifications where profile_id=$1 and type='blook_replacement'", [contestPlayers[0][0]])).rows[0].total, 1);
+    assert.equal((await database.query("select count(*)::integer as total from spooky_contest_prizes")).rows[0].total, 30);
+    const contestPrizes = (await database.query(
+      "select profile.username, prize.placement, reward.name as reward from spooky_contest_prizes prize join profiles profile on profile.id=prize.profile_id join blooks reward on reward.id=prize.reward_blook_id order by prize.placement",
+    )).rows;
+    assert.deepEqual(contestPrizes.slice(0, 4), [
+      { username: 'CandyWinnerA', placement: 1, reward: 'Festive Skeleton Pirate' },
+      { username: 'CandyWinnerB', placement: 2, reward: 'Festive Skeleton Pirate' },
+      { username: 'CandyWinnerC', placement: 3, reward: 'Festive Skeleton Pirate' },
+      { username: 'CandyWinnerD', placement: 4, reward: 'Skeleton Pirate' },
+    ]);
+    assert.equal(contestPrizes.at(-1).placement, 30);
+    assert.equal(contestPrizes.at(-1).reward, 'Skeleton Pirate');
+    assert.equal((await database.query("select count(*)::integer as total from spooky_contest_prizes prize join profiles profile on profile.id=prize.profile_id where profile.username like 'ContestFiller%'")).rows[0].total, 26);
+    assert.equal((await database.query("select count(*)::integer as total from spooky_contest_prizes prize join profiles profile on profile.id=prize.profile_id where profile.username='CandyZero'")).rows[0].total, 0);
+    assert.equal((await database.query("select count(*)::integer as total from notifications where type='spooky_contest_prize'")).rows[0].total, 30);
+    assert.equal((await database.query("select active from events where name='Contest of Spooky'")).rows[0].active, false);
+    await database.query("select set_config('request.jwt.claim.role','service_role',false)");
+    await assert.rejects(
+      () => database.query("select apply_gameplay_action($1,0,'open',0,'[]','{}',1,0)", [contestPlayers[0][0]]),
+      /Contest of Spooky has ended/i,
+    );
+    const candyBeforeDisabledTradeAward = (await database.query("select (stats->>'candy')::integer as candy from profiles where id=$1", [contestPlayers[0][0]])).rows[0].candy;
+    await database.query("select award_trade_candy('00000000-0000-0000-0000-000000000099')");
+    assert.equal((await database.query("select (stats->>'candy')::integer as candy from profiles where id=$1", [contestPlayers[0][0]])).rows[0].candy, candyBeforeDisabledTradeAward);
+    await database.query("select set_config('request.jwt.claim.role','',false)");
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
     const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
@@ -369,7 +453,7 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     assert.deepEqual((await database.query("select pool from chests where name='Inventions Bag'")).rows[0].pool,
       ['Wheel', 'Magnifying Glass']);
     assert.deepEqual((await database.query("select pool from chests where name='Space Bag'")).rows[0].pool,
-      ['Mars', 'Earth', 'Globe']);
+      ['Mars', 'Space Goo']);
     assert.deepEqual((await database.query("select pool from chests where name='BlookTuber Bag'")).rows[0].pool,
       ['Bread Blook', 'Blooket Life', 'Blooket Gods', 'Fasty Jay', 'Lagoon', 'Waymore', 'Twisted Bread', 'SRN', 'Blook Master', 'Turtwix', 'Green Astronaut']);
     const adjustedRarities = (await database.query("select name, rarity from blooks where name in ('Space Trooper','Consolation','Avocado','Shuriken','Blooket Gods','Robo Bread') order by name")).rows;
@@ -459,16 +543,16 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     await database.exec("set request.jwt.claim.role='service_role'");
     const apply = (revision, action, delta, items = [], materials = {}, candy = 0, opened = 0) => database.query('select apply_gameplay_action($1,$2,$3,$4,$5,$6,$7,$8)', [buyer, revision, action, delta, JSON.stringify(items), JSON.stringify(materials), candy, opened]);
     const cooldown = () => database.query("update profiles set stats=stats-'lastGameplayAt' where id=$1", [buyer]);
-    await apply(0, 'open', -25, [{ blook_id: wheel, quantity: 1, shiny: false }], {}, 1, 1);
+    await apply(0, 'open', -25, [{ blook_id: wheel, quantity: 1, shiny: false }], {}, 0, 1);
     assert.equal((await database.query('select tokens from profiles where id=$1', [buyer])).rows[0].tokens, 975);
     await assert.rejects(() => apply(0, 'open', -25), /state changed/i);
     await cooldown();
     await assert.rejects(() => apply(1, 'open', -5000), /token balance/i);
     await assert.rejects(() => apply(1, 'craft', 0, [{ blook_id: wheel, quantity: 1, shiny: false }], { Metal: -20 }), /materials/i);
     assert.equal((await database.query('select quantity from inventory where profile_id=$1 and blook_id=$2', [buyer, wheel])).rows[0].quantity, 6);
-    await apply(1, 'crate', 250, [], {}, 1);
+    await apply(1, 'crate', 250);
     await cooldown();
-    await assert.rejects(() => apply(2, 'crate', 250), /already opened/i);
+    await assert.rejects(() => apply(2, 'crate', 250), /already claimed/i);
     await assert.rejects(() => apply(2, 'dismantle', 0, [{ blook_id: bitcoin, quantity: -1, shiny: false }]), /collection changed/i);
     await database.exec('set role authenticated');
     await assert.rejects(() => database.query('update profiles set tokens=999999 where id=$1', [buyer]), /permission denied/i);

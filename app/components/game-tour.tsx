@@ -2,21 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, ArrowRight, Backpack, CircleUserRound, Gift, Hammer, Hand, MessageCircle, Package, ShoppingBag, Store, Users, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Backpack, CircleUserRound, Hammer, Hand, MessageCircle, Package, ShoppingBag, Store, Users, X } from "lucide-react";
 
-export type TourTab = "profile" | "wheel" | "capsules" | "inventory" | "crafting" | "clan" | "market" | "chat" | "event";
+export type TourTab = "profile" | "wheel" | "capsules" | "inventory" | "crafting" | "clan" | "market" | "chat";
 
 const steps: { title: string; description: string; tab: TourTab; target?: TourTab; icon: typeof Hand }[] = [
   { title: "Welcome to Breadlet!", description: "Take a quick tour of your profile, Goodybags, collection, and the rest of Breadlet. You can skip at any time.", tab: "profile", icon: Hand },
   { title: "Your Profile", description: "Click the Breadlet logo to open your profile. View your tokens, owned Breadlets, badges, and activity. Find players here to send friend and trade requests.", tab: "profile", target: "profile", icon: CircleUserRound },
-  { title: "Daily Crate", description: "Open your free Daily Crate to win tokens or crafting materials. Signed-in players receive one opening per UTC day.", tab: "wheel", target: "wheel", icon: Package },
+  { title: "Claim Tokens", description: "Claim your daily tokens or crafting materials. Signed-in players can claim once per UTC day.", tab: "wheel", target: "wheel", icon: Package },
   { title: "Goodybags", description: "Open Goodybags with tokens to collect Breadlets. The info button shows a bag's rewards and odds. Mass Open lets you open several at once. Legacy bags return from 17:00 to 18:00 UTC.", tab: "capsules", target: "capsules", icon: Store },
   { title: "Your Collection", description: "Browse your Breadlets and select an owned item to see details, equip it, or sell extra copies. Mass Sell keeps one copy of every selected Breadlet.", tab: "inventory", target: "inventory", icon: Backpack },
   { title: "Crafting", description: "Dismantle Breadlets into material bundles, then use the listed recipes to craft special Breadlets. Dismantling never awards Gold or Gem.", tab: "crafting", target: "crafting", icon: Hammer },
   { title: "Clans", description: "Find a clan to join or create your own. Donate tokens to its treasury and work together. You can leave a clan from its panel.", tab: "clan", target: "clan", icon: Users },
   { title: "Bazaar", description: "Browse player listings, buy Breadlets, or offer an owned Breadlet for sale. A listed item is reserved until it sells, so it cannot be spent twice.", tab: "market", target: "market", icon: ShoppingBag },
   { title: "Global Chat", description: "Talk to other players, reply to messages, and click a username to view their profile. The online-player control shows who is currently around.", tab: "chat", target: "chat", icon: MessageCircle },
-  { title: "Contest of Spooky", description: "During the event, earn Candy by opening bags, claiming your Daily Crate, and completing trades.", tab: "event", target: "event", icon: Gift },
 ];
 
 export function GameTour({ onSelect, onClose }: { onSelect: (tab: TourTab) => void; onClose: () => void }) {

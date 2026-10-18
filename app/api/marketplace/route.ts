@@ -10,14 +10,14 @@ export async function GET() {
 
   const { data: listings, error } = await supabase
     .from('marketplace_listings')
-    .select('id, price, status, profile_id, blook_id, shiny, blooks(name), profiles(username)')
+    .select('id, price, quantity, status, profile_id, blook_id, shiny, blooks(name), profiles(username)')
     .eq('status', 'active')
     .order('created_at', { ascending: false });
 
   if (error) {
     const fallback = await supabase
       .from('marketplace_listings')
-      .select('id, price, status, profile_id, blook_id, shiny')
+      .select('id, price, quantity, status, profile_id, blook_id, shiny')
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
@@ -40,6 +40,7 @@ export async function GET() {
       sellerId: listing.profile_id,
       blook: `${listing.shiny ? 'Shiny ' : ''}${bMap.get(listing.blook_id) || 'Bread Blook'}`,
       price: listing.price,
+      quantity: listing.quantity,
     }));
     return NextResponse.json(formatted);
   }
@@ -62,6 +63,7 @@ export async function GET() {
       sellerId: listing.profile_id,
       blook: `${listing.shiny ? 'Shiny ' : ''}${blook?.name || bMap.get(listing.blook_id) || 'Bread Blook'}`,
       price: listing.price,
+      quantity: listing.quantity,
     };
   });
 
