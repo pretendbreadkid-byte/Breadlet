@@ -79,6 +79,15 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const action = body.action || 'create';
+  if (action === 'cancel') {
+    const listingId = typeof body.listingId === 'string' ? body.listingId : '';
+    if (!listingId) return NextResponse.json({ error: 'A listing ID is required.' }, { status: 400 });
+    const cancelAdmin = createAdminClient();
+    if (!cancelAdmin) return NextResponse.json({ error: 'Marketplace server is not configured.' }, { status: 503 });
+    const { data, error } = await cancelAdmin.rpc('cancel_marketplace_listing', { p_profile_id: user.id, p_listing_id: listingId });
+    if (error) return NextResponse.json({ error: error.code === 'PGRST202' ? 'Apply migration 0037_cancel_marketplace_listing.sql to enable taking down listings.' : error.message }, { status: 409 });
+    return NextResponse.json(data);
+  }
   if (action !== 'create' && action !== 'buy') return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
   const price = Number(body.price || 0);
   if (action === 'create' && (!Number.isSafeInteger(price) || price < 1 || price > MAX_MARKETPLACE_PRICE)) return NextResponse.json({ error: 'Invalid listing price.' }, { status: 400 });

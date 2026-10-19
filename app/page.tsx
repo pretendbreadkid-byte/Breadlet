@@ -1111,6 +1111,26 @@ function MainPage() {
     save({ ...player, listings: [...player.listings, listing] });
     setNotice(`${blook} listed in the Bazaar.`);
   };
+  const cancelListing = async (listing: Listing) => {
+    if (!player || isGuest || !supabaseClient) {
+      if (player) save({ ...player, listings: player.listings.filter((item) => item.id !== listing.id) });
+      return;
+    }
+    const res = await fetch("/api/marketplace", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "cancel", listingId: listing.id }),
+    });
+    if (!res.ok) {
+      setNotice((await res.json().catch(() => ({}))).error || "Could not take down this listing.");
+      return;
+    }
+    const nextPlayer = { ...player, inventory: [...player.inventory, listing.blook] };
+    const listRes = await fetch("/api/marketplace");
+    if (listRes.ok) nextPlayer.listings = await listRes.json();
+    setPlayer(nextPlayer);
+    setNotice(`${listing.blook} taken down and returned to your inventory.`);
+  };
   const buyListing = async (listing: Listing) => {
     if (!player) return;
     if (!isGuest && player.tokens < listing.price) {
@@ -1612,6 +1632,7 @@ function MainPage() {
             <Bazaar
               player={player}
               createListing={createListing}
+              cancelListing={cancelListing}
               openListing={setSelectedListing}
                 isGuest={isGuest}
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
@@ -2990,12 +3011,14 @@ function WheelTab({
 function Bazaar({
   player,
   createListing,
+  cancelListing,
   openListing,
   setPlayerListings,
   isGuest,
 }: {
   player: Player;
   createListing: (blook: string, price: number) => void;
+  cancelListing: (listing: Listing) => void | Promise<void>;
   openListing: (listing: Listing) => void;
   setPlayerListings?: (listings: Listing[]) => void;
   isGuest: boolean;
@@ -3184,6 +3207,8 @@ function Bazaar({
         listings={listings.filter((listing) => listing.blook === selectedBlook)}
         close={() => setDetailsOpen(false)}
         openListing={openListing}
+        ownUsername={view === "mine" ? player.username : undefined}
+        cancelListing={cancelListing}
       />}
     </div>
   );
@@ -3194,11 +3219,15 @@ function BlookListingsModal({
   listings,
   close,
   openListing,
+  ownUsername,
+  cancelListing,
 }: {
   blook: string;
   listings: Listing[];
   close: () => void;
   openListing: (listing: Listing) => void;
+  ownUsername?: string;
+  cancelListing: (listing: Listing) => void | Promise<void>;
 }) {
   const sellers = Array.from(listings.reduce((groups, listing) => {
     const sellerKey = listing.sellerId || listing.seller;
@@ -3228,7 +3257,11 @@ function BlookListingsModal({
                   {offers.map((offer) => (
                     <div key={offer.id} className="flex items-center justify-between gap-3 rounded-lg bg-black/20 px-3 py-2">
                       <span className="text-sm font-black text-[#ffe2a0]">{offer.price.toLocaleString()} tokens</span>
-                      <button type="button" onClick={() => openListing(offer)} className="rounded-lg bg-[#e9bd67] px-3 py-2 text-xs font-black text-[#29170c]">View offer</button>
+                      {ownUsername && offer.seller === ownUsername ? (
+                        <button type="button" onClick={async () => { await cancelListing(offer); if (offers.length === 1 && sellers.length === 1) close(); }} className="rounded-lg bg-red-500 px-3 py-2 text-xs font-black text-white">Take down</button>
+                      ) : (
+                        <button type="button" onClick={() => openListing(offer)} className="rounded-lg bg-[#e9bd67] px-3 py-2 text-xs font-black text-[#29170c]">View offer</button>
+                      )}
                     </div>
                   ))}
                 </div>
