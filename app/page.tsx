@@ -33,6 +33,7 @@ import {
   Sparkles,
   Reply,
   Pencil,
+  Trash2,
 } from "lucide-react";
 
 type Tab =
@@ -3598,7 +3599,7 @@ function SimplePanel({
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
@@ -3637,6 +3638,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 text: row.message,
                 equippedBlook: row.equippedBlook || "",
                 isBreadletBot: row.isBreadletBot === true,
+                canDelete: row.canDelete === true,
                 replyTo: row.replyTo || null,
                 badges: row.badges || (username === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : []),
               };
@@ -3760,6 +3762,25 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     }
     return groups;
   }, []);
+  const deleteMessage = async (item: (typeof messages)[number], index: number) => {
+    if (item.id == null || String(item.id).startsWith("local-")) {
+      setMessages((current) => current.filter((_, messageIndex) => messageIndex !== index));
+      return;
+    }
+    try {
+      const response = await fetch(`/api/chat?id=${encodeURIComponent(String(item.id))}`, { method: "DELETE" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setChatError(result.error || "Your message could not be deleted.");
+        return;
+      }
+      setMessages((current) => current.filter((messageItem) => messageItem.id !== item.id));
+      setChatError("");
+    } catch (error) {
+      console.error("[CLIENT_CHAT] Error deleting message:", error);
+      setChatError("Could not reach chat. Check your connection and try again.");
+    }
+  };
   const saveEditedMessage = async (item: (typeof messages)[number], index: number) => {
     const updatedMessage = editDraft.trim();
     if (!updatedMessage) {
@@ -3851,6 +3872,11 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                             {(item.id != null || isGuest) && (
                               <button type="button" onClick={() => setReplyTarget({ id: item.id ?? `local-${item.user}-${index}`, user: item.user, message: item.text })} aria-label="Reply" title="Reply" className="chat-message-icon-button">
                                 <Reply size={16} />
+                              </button>
+                            )}
+                            {(item.canDelete || (isGuest && !item.isBreadletBot && item.user === player.username)) && (
+                              <button type="button" onClick={() => void deleteMessage(item, index)} aria-label="Delete message" title="Delete message" className="chat-message-icon-button">
+                                <Trash2 size={14} />
                               </button>
                             )}
                             {canEdit && (

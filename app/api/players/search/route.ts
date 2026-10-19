@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
+import { createAdminClient } from '../../../../lib/supabase/admin';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -11,15 +12,16 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.from('profiles').select('id, username, tokens, equipped_blook_id, stats').ilike('username', `%${query}%`).neq('id', user.id).limit(20);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const profiles = data || [];
+  const statsDb = createAdminClient() || supabase;
   const profileIds = profiles.map((profile) => profile.id);
   const equippedIds = profiles.map((profile) => profile.equipped_blook_id).filter(Boolean);
   const [{ data: inventory }, { data: equippedBlooks }] = await Promise.all([
-    profileIds.length ? supabase.from('inventory').select('profile_id, quantity').in('profile_id', profileIds) : Promise.resolve({ data: [] }),
+    profileIds.length ? statsDb.from('inventory').select('profile_id, quantity').in('profile_id', profileIds) : Promise.resolve({ data: [] }),
     equippedIds.length ? supabase.from('blooks').select('id, name').in('id', equippedIds) : Promise.resolve({ data: [] }),
   ]);
   const [{ data: chestRolls }, { data: chatMessages }] = await Promise.all([
-    profileIds.length ? supabase.from('chest_rolls').select('profile_id').in('profile_id', profileIds) : Promise.resolve({ data: [] }),
-    profileIds.length ? supabase.from('global_chat_messages').select('profile_id').in('profile_id', profileIds).is('deleted_at', null) : Promise.resolve({ data: [] }),
+    profileIds.length ? statsDb.from('chest_rolls').select('profile_id').in('profile_id', profileIds) : Promise.resolve({ data: [] }),
+    profileIds.length ? statsDb.from('global_chat_messages').select('profile_id').in('profile_id', profileIds).is('deleted_at', null) : Promise.resolve({ data: [] }),
   ]);
   const equippedById = new Map((equippedBlooks || []).map((blook: any) => [blook.id, blook.name === 'Surgeon' ? 'Doctor' : blook.name]));
   const countByProfile = new Map<string, number>();
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
       tokens,
       equippedBlook: equippedById.get(profile.equipped_blook_id) || '',
       inventoryCount: countByProfile.get(profile.id) || 0,
-      capsulesOpened: capsulesByProfile.get(profile.id) || 0,
+      capsulesOpened: (capsulesByProfile.get(profile.id) || 0) + (Number(profile.stats?.capsulesOpened) || 0),
       messagesSent: messagesByProfile.get(profile.id) || 0,
       badges: Array.from(new Set([
         ...(profile.stats?.badges || []),

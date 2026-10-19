@@ -4,6 +4,11 @@ import { createAdminClient } from '../../../lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
+async function isChatAdmin(database: any, userId: string) {
+  const { data } = await database.from('admin_roles').select('role').eq('profile_id', userId).in('role', ['owner', 'admin']).limit(1).maybeSingle();
+  return Boolean(data);
+}
+
 export async function GET() {
   console.log('[CHAT_GET] Starting GET /api/chat');
 
@@ -17,6 +22,8 @@ export async function GET() {
     );
   }
   const database = createAdminClient() || supabase;
+  const { data: { user: viewer } } = await supabase.auth.getUser();
+  const viewerIsAdmin = viewer ? await isChatAdmin(database, viewer.id) : false;
 
   // Get the chat messages first.
   let { data, error } = await database
@@ -243,6 +250,7 @@ export async function GET() {
       equippedBlook,
       badges: isBreadletBot ? [] : badges,
       isBreadletBot,
+      canDelete: Boolean(viewer) && (viewerIsAdmin || row.profile_id === viewer?.id || (!isBreadletBot && !profile)),
 
       profiles: {
         username
@@ -506,4 +514,61 @@ export async function PATCH(request: Request) {
   }
 
   return NextResponse.json(data);
+}
+
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
+  }
+  const database = createAdminClient() || supabase;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  let id = url.searchParams.get('id')?.trim() || '';
+  if (!id) {
+    const body = await request.json().catch(() => ({}));
+    id = typeof body.id === 'string' ? body.id.trim() : '';
+  }
+  if (!id) {
+    return NextResponse.json({ error: 'A message ID is required.' }, { status: 400 });
+  }
+
+  const { data: target, error: readError } = await database
+    .from('global_chat_messages')
+    .select('id, profile_id, is_breadlet_bot')
+    .eq('id', id)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (readError) {
+    return NextResponse.json({ error: 'Could not delete this message.' }, { status: 500 });
+  }
+  if (!target) {
+    return NextResponse.json({ error: 'Message not found.' }, { status: 404 });
+  }
+
+  let allowed = target.profile_id === user.id || (await isChatAdmin(database, user.id));
+  if (!allowed && !target.is_breadlet_bot) {
+    // Anyone may clear messages left behind by deleted accounts.
+    const { data: author } = await database.from('profiles').select('id').eq('id', target.profile_id).maybeSingle();
+    allowed = !author;
+  }
+  if (!allowed) {
+    return NextResponse.json({ error: 'You do not have permission to delete this message.' }, { status: 403 });
+  }
+
+  const { error } = await database
+    .from('global_chat_messages')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) {
+    console.error('[CHAT_DELETE] Delete error:', error);
+    return NextResponse.json({ error: 'Could not delete this message.' }, { status: 500 });
+  }
+
+  return NextResponse.json({ id });
 }
