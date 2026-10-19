@@ -56,9 +56,17 @@ async function validateOffer(admin: ReturnType<typeof createAdminClient> & {}, p
   return null;
 }
 
+const offerKey = (value: unknown) => {
+  const offer = parseOffer(value);
+  return JSON.stringify({ tokens: offer.tokens, blooks: [...offer.blooks].sort((a, b) => a.name.localeCompare(b.name)) });
+};
+
 export async function GET(request: Request) {
   const session = await auth(request);
   if ('response' in session) return session.response;
+  const now = Date.now();
+  await session.admin.from('trades').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('status', 'pending').eq('room_open', false).lt('updated_at', new Date(now - 2 * 60 * 1000).toISOString());
+  await session.admin.from('trades').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('status', 'pending').eq('room_open', true).lt('updated_at', new Date(now - 20 * 60 * 1000).toISOString());
   const { data: trades, error } = await session.admin.from('trades').select('*')
     .or(`sender_profile_id.eq.${session.userId},receiver_profile_id.eq.${session.userId}`)
     .order('updated_at', { ascending: false }).limit(50);
@@ -87,6 +95,8 @@ export async function POST(request: Request) {
     const { data: receiver, error: receiverError } = await session.admin.from('profiles').select('id, username').ilike('username', receiverUsername).maybeSingle();
     if (receiverError || !receiver) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
     if (receiver.id === session.userId) return NextResponse.json({ error: 'You cannot trade with yourself.' }, { status: 400 });
+    const { data: busyTrades } = await session.admin.from('trades').select('id').eq('status', 'pending').or(`sender_profile_id.in.(${session.userId},${receiver.id}),receiver_profile_id.in.(${session.userId},${receiver.id})`).limit(1);
+    if (busyTrades?.length) return NextResponse.json({ error: 'One of you is already in a trade. Finish or cancel it first.' }, { status: 409 });
     const offer = parseOffer(body.offer);
     const invalid = await validateOffer(session.admin, session.userId, offer);
     if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
@@ -116,6 +126,21 @@ export async function POST(request: Request) {
   const { data: trade, error: tradeError } = await session.admin.from('trades').select('*').eq('id', tradeId).maybeSingle();
   if (tradeError || !trade) return NextResponse.json({ error: 'Trade not found.' }, { status: 404 });
   if (![trade.sender_profile_id, trade.receiver_profile_id].includes(session.userId)) return NextResponse.json({ error: 'You are not part of this trade.' }, { status: 403 });
+
+  if (action === 'accept') {
+    if (trade.receiver_profile_id !== session.userId) return NextResponse.json({ error: 'Only the invited player can accept the request.' }, { status: 403 });
+    if (trade.status !== 'pending') return NextResponse.json({ error: 'This trade request is no longer available.' }, { status: 409 });
+    const { data: opened, error: openError } = await session.admin.from('trades').update({ room_open: true, updated_at: new Date().toISOString() }).eq('id', tradeId).eq('status', 'pending').select('*').single();
+    if (openError) return NextResponse.json({ error: openError.code === '42703' ? 'Apply migration 0038_live_trading_and_emojis.sql to enable live trading.' : openError.message }, { status: 400 });
+    return NextResponse.json(opened);
+  }
+  if ((action === 'offer' || action === 'confirm') && !trade.room_open) return NextResponse.json({ error: 'Wait for the other player to accept the trade request.' }, { status: 409 });
+  if (action === 'confirm' && body.seen) {
+    const seen = body.seen as { sender?: unknown; receiver?: unknown };
+    if (offerKey(seen.sender) !== offerKey(trade.sender_offer_json) || offerKey(seen.receiver) !== offerKey(trade.receiver_offer_json)) {
+      return NextResponse.json({ error: 'The offer just changed. Review it and accept again.' }, { status: 409 });
+    }
+  }
 
   let offer: TradeOffer | null = null;
   if (action === 'offer') {

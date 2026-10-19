@@ -13,9 +13,9 @@ async function getSession() {
 }
 
 async function verifyCompletedTrade(admin: NonNullable<ReturnType<typeof createAdminClient>>, tradeId: string, userId: string) {
-  const { data: trade, error } = await admin.from('trades').select('id, sender_profile_id, receiver_profile_id, status').eq('id', tradeId).maybeSingle();
+  const { data: trade, error } = await admin.from('trades').select('id, sender_profile_id, receiver_profile_id, status, room_open').eq('id', tradeId).maybeSingle();
   if (error || !trade) return { error: 'Trade was not found.' };
-  if (trade.status !== 'completed') return { error: 'Trade chat unlocks after both players accept the trade.' };
+  if (trade.status !== 'completed' && !(trade.status === 'pending' && trade.room_open)) return { error: 'Trade chat opens once both players are in the trade.' };
   if (trade.sender_profile_id !== userId && trade.receiver_profile_id !== userId) return { error: 'You are not part of this trade.' };
   return { trade };
 }
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
   if ('error' in access) return NextResponse.json({ error: access.error }, { status: 403 });
   const { data, error } = await session.admin.from('trade_messages').insert({ trade_id: tradeId, profile_id: session.userId, message }).select('id, trade_id, profile_id, message, created_at').single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  await session.admin.from('trades').update({ updated_at: new Date().toISOString() }).eq('id', tradeId).eq('status', 'pending');
   const { data: profile } = await session.admin.from('profiles').select('username').eq('id', session.userId).single();
   return NextResponse.json({ ...data, username: profile?.username || 'Player' }, { status: 201 });
 }

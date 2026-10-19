@@ -5,6 +5,8 @@ import { MAX_MASS_OPEN_COUNT } from "../lib/gameplay-actions";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
+import { LiveTrade } from "./components/live-trade";
+import { EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
 import {
@@ -43,6 +45,7 @@ type Tab =
   | "wheel"
   | "market"
   | "chat"
+  | "leaderboard"
   | "migration"
   | "promo"
   | "info"
@@ -411,11 +414,14 @@ function MainPage() {
   const [tab, setTab] = useState<Tab>("wheel");
   const [notice, setNotice] = useState("");
   const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
-  const [incomingTradeNotice, setIncomingTradeNotice] = useState("");
-  const [incomingTrade, setIncomingTrade] = useState<{ id: string; username: string } | null>(null);
   const [onlineProfileIds, setOnlineProfileIds] = useState<string[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState<{ id: string; username: string; equippedBlook: string }[]>([]);
   const [presenceReady, setPresenceReady] = useState(false);
+  const { emojis: customEmojis, canManage: canManageEmojis, reload: reloadEmojis } = useCustomEmojis(Boolean(supabaseClient) && !isGuest && Boolean(player));
+  const refreshPlayerFromServer = useCallback(async () => {
+    const refreshed = await fetch("/api/player", { cache: "no-store" }).catch(() => null);
+    if (refreshed?.ok) setPlayer(playerFromServer(await refreshed.json()));
+  }, []);
   const [viewedProfile, setViewedProfile] = useState<PublicProfile | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
@@ -464,18 +470,6 @@ function MainPage() {
       body: JSON.stringify({ id: current.id }),
     }).catch(() => undefined);
     setPlayerNotifications((notifications) => notifications.slice(1));
-  };
-
-  const respondToIncomingTrade = async (action: "confirm" | "decline") => {
-    if (!incomingTrade) return;
-    const response = await fetchTradeApi({
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tradeId: incomingTrade.id, action }),
-    });
-    const result = await response.json().catch(() => ({}));
-    setIncomingTrade(null);
-    setNotice(response.ok ? (action === "confirm" ? "Trade accepted." : "Trade declined.") : (result.error || "Trade action failed."));
   };
 
   useEffect(() => {
@@ -547,26 +541,6 @@ function MainPage() {
     if (!supabaseClient) return;
     fetch("/api/admin").then((response) => setAdminUnlocked(response.ok)).catch(() => setAdminUnlocked(false));
   }, [supabaseClient]);
-  useEffect(() => {
-    if (!supabaseClient || !player?.id || isGuest) return;
-    const showPendingTrade = async () => {
-      const response = await fetchTradeApi({ cache: "no-store" });
-      if (!response.ok) return;
-      const trades = await response.json().catch(() => []);
-      const pending = Array.isArray(trades)
-        ? trades.find((trade: any) => trade.receiver_profile_id === player.id && trade.status === "pending")
-        : null;
-      if (pending) setIncomingTrade({ id: pending.id, username: pending.sender_username || "A player" });
-    };
-    void showPendingTrade();
-    const channel = supabaseClient.channel(`incoming-trade-notification-${player.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trades", filter: `receiver_profile_id=eq.${player.id}` }, () => {
-        setIncomingTradeNotice("You received a trade request.");
-        void showPendingTrade();
-      })
-      .subscribe();
-    return () => { void supabaseClient.removeChannel(channel); };
-  }, [isGuest, player?.id, supabaseClient]);
   useEffect(() => {
     if (!supabaseClient || !player?.id || isGuest) {
       setOnlinePlayers([]);
@@ -1442,9 +1416,10 @@ function MainPage() {
       label: "Chat",
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
+    { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
   ];
   const visibleNav = isGuest
-    ? nav.filter((item) => !["clan", "market", "chat", "migration"].includes(item.id))
+    ? nav.filter((item) => !["clan", "market", "chat", "migration", "leaderboard"].includes(item.id))
     : nav;
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
@@ -1592,8 +1567,7 @@ function MainPage() {
 
         {/* Dynamic Page Section */}
         <section className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
-          {incomingTradeNotice && <button onClick={() => { setIncomingTradeNotice(""); setTab("profile"); }} className="profile-trade-toast fixed right-5 top-20 z-40 w-[min(24rem,calc(100vw-2rem))]" role="status">{incomingTradeNotice}<span>Open profile</span></button>}
-          {incomingTrade && <div className="profile-trade-toast fixed bottom-5 right-5 z-50 w-[min(24rem,calc(100vw-2rem))]" role="status"><div><span>{incomingTrade.username}</span> would like to trade with you.</div><div className="mt-3 flex gap-2"><button onClick={() => void respondToIncomingTrade("confirm")} className="rounded-lg bg-[#f97316] px-3 py-2 text-xs font-black text-white">Accept</button><button onClick={() => void respondToIncomingTrade("decline")} className="rounded-lg bg-[#7f1d1d] px-3 py-2 text-xs font-black text-white">Decline</button><button onClick={() => { setIncomingTrade(null); setTab("profile"); }} className="ml-auto rounded-lg border border-white/30 px-3 py-2 text-xs font-black">View</button></div></div>}
+          {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} />}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
@@ -1638,7 +1612,8 @@ function MainPage() {
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
             />
           )}
-          {tab === "chat" && <ChatTab player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
+          {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
+          {tab === "chat" && <ChatTab emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (
             <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} craft={craft} isGuest={isGuest} />
@@ -1942,11 +1917,7 @@ function ProfileTab({
   const [lookup, setLookup] = useState("");
   const [matches, setMatches] = useState<PublicProfile[]>([]);
   const [trades, setTrades] = useState<any[]>([]);
-  const [tradeTarget, setTradeTarget] = useState<{ id?: string; username: string; tradeId?: string; offer?: any } | null>(null);
-  const [tradeTokens, setTradeTokens] = useState("0");
-  const [tradeBlooks, setTradeBlooks] = useState<Record<string, number>>({});
   const [tradeMessage, setTradeMessage] = useState("");
-  const [tradeBusy, setTradeBusy] = useState(false);
   const [tradeAlert, setTradeAlert] = useState("");
   const [tradeErrorPopup, setTradeErrorPopup] = useState("");
   const [chatTrade, setChatTrade] = useState<any | null>(null);
@@ -2021,33 +1992,23 @@ function ProfileTab({
     if (response.ok) setMatches(await response.json());
   };
 
-  const saveTradeOffer = async () => {
-    if (!tradeTarget) return;
-    if (!tradeTarget.tradeId && tradeTarget.id && !onlineProfileIds.includes(tradeTarget.id)) {
-      setTradeErrorPopup(presenceReady ? `${tradeTarget.username} is offline. Trade requests can only be sent while they are online.` : "Checking player availability. Please try again in a moment.");
+  const requestTrade = async (targetId: string, targetName: string) => {
+    if (!onlineProfileIds.includes(targetId)) {
+      setTradeErrorPopup(presenceReady ? `${targetName} is offline. Both players must be online to trade.` : "Checking player availability. Please try again in a moment.");
       return;
     }
-    setTradeBusy(true);
-    setTradeMessage("");
-    const offer = {
-      tokens: Math.max(0, Math.floor(Number(tradeTokens) || 0)),
-      blooks: Object.entries(tradeBlooks).filter(([, quantity]) => quantity > 0).map(([name, quantity]) => ({ name, quantity })),
-    };
     const response = await fetchTradeApi({
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(tradeTarget.tradeId
-        ? { action: "offer", tradeId: tradeTarget.tradeId, offer }
-        : { action: "create", receiverUsername: tradeTarget.username, offer }),
+      body: JSON.stringify({ action: "create", receiverUsername: targetName, offer: { tokens: 0, blooks: [] } }),
     });
     const result = await response.json().catch(() => ({}));
-    setTradeBusy(false);
     if (!response.ok) {
-      setTradeMessage(result.error || "Could not send the trade offer.");
-      setTradeErrorPopup(result.error || "Could not send the trade offer.");
+      setTradeErrorPopup(result.error || "Could not send the trade request.");
       return;
     }
-    setTradeTarget(null);
+    setTradeMessage(`Trade request sent to ${targetName}.`);
+    window.dispatchEvent(new Event("breadlet:trades-refresh"));
     await loadTrades();
   };
 
@@ -2062,12 +2023,6 @@ function ProfileTab({
     await loadTrades();
   };
 
-  const uniqueBlooks = player.inventory.reduce<{ name: string; quantity: number }[]>((items, name) => {
-    const existing = items.find((item) => item.name === name);
-    if (existing) existing.quantity += 1;
-    else items.push({ name, quantity: 1 });
-    return items;
-  }, []);
   const offerSummary = (offer: any) => {
     const blooks = Array.isArray(offer?.blooks) ? offer.blooks : [];
     const tokens = Number(offer?.tokens) || 0;
@@ -2084,7 +2039,7 @@ function ProfileTab({
           <div className="profile-avatar-frame">{profileEquipped ? <img src={artFor(profileEquipped)} alt={profileEquipped} /> : <CircleUserRound size={52} />}</div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
-            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => { setTradeTarget({ id: viewedProfile!.id, username: viewedProfile!.username }); setTradeTokens("0"); setTradeBlooks({}); }}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Tokens</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
+            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Tokens</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
           </div>
         </section>
         <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{tokenBadges.at(-1) || "Token milestones: 10K · 100K · 1M"}</div></section>
@@ -2103,11 +2058,10 @@ function ProfileTab({
           const myOffer = sentByMe ? trade.sender_offer_json : trade.receiver_offer_json;
           const theirOffer = sentByMe ? trade.receiver_offer_json : trade.sender_offer_json;
           const confirmed = sentByMe ? trade.sender_confirmed : trade.receiver_confirmed;
-          return <article key={trade.id} className="profile-trade-row"><div className="profile-trade-head"><strong>{otherName}</strong><span className={`profile-trade-status status-${trade.status}`}>{trade.status}</span></div><p>You: {offerSummary(myOffer)}</p><p>Them: {offerSummary(theirOffer)}</p><div className="profile-trade-actions">{trade.status === "pending" && <><button onClick={() => { setTradeTarget({ username: otherName, tradeId: trade.id }); setTradeTokens(String(Number(myOffer?.tokens) || 0)); setTradeBlooks(Object.fromEntries((myOffer?.blooks || []).map((item: any) => [item.name, item.quantity]))); }}>Edit offer</button><button className="profile-action-primary" onClick={() => void respondToTrade(trade.id, "confirm")}>{confirmed ? "Confirm again" : "Accept / confirm"}</button><button className="profile-action-danger" onClick={() => void respondToTrade(trade.id, sentByMe ? "cancel" : "decline")}>{sentByMe ? "Cancel" : "Decline"}</button></>}{trade.status === "completed" && <button className="profile-action-primary" onClick={() => { setChatTrade(trade); setTradeMessages([]); }}>Open live chat</button>}</div></article>;
+          return <article key={trade.id} className="profile-trade-row"><div className="profile-trade-head"><strong>{otherName}</strong><span className={`profile-trade-status status-${trade.status}`}>{trade.status}</span></div><p>You: {offerSummary(myOffer)}</p><p>Them: {offerSummary(theirOffer)}</p><div className="profile-trade-actions">{trade.status === "pending" && <span className="profile-empty">Open in the live trade window</span>}{trade.status === "completed" && <button className="profile-action-primary" onClick={() => { setChatTrade(trade); setTradeMessages([]); }}>Open live chat</button>}</div></article>;
         })}{!trades.length && <p className="profile-empty">No trades yet. Find a player to send a trade request.</p>}</div></section>}
       </div>}
-      {profileLookupOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"><section role="dialog" aria-modal="true" className="profile-popup"><div className="profile-list-heading"><h2>Find a Player</h2><button aria-label="Close player lookup" onClick={() => setProfileLookupOpen(false)}>×</button></div><div className="profile-search-row"><input value={lookup} onChange={(event) => setLookup(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchPlayers()} placeholder="Search username" /><button onClick={() => void searchPlayers()}>Search</button></div><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{matches.map((match) => <div key={match.id} className="profile-friend-row"><button onClick={() => { setProfileLookupOpen(false); void openPlayerProfile(match.username); }} className="min-w-0 flex-1 truncate text-left font-bold">{match.username}</button><button onClick={() => addFriend(match.username)}>Add</button><button disabled={isGuest} onClick={() => { setTradeTarget({ id: match.id, username: match.username }); setTradeTokens("0"); setTradeBlooks({}); setProfileLookupOpen(false); }}>Trade</button></div>)}{!matches.length && <p className="profile-empty">Search for a username to add, trade, or view.</p>}</div></section></div>}
-      {tradeTarget && <TradeOfferModal targetName={tradeTarget.username} ownBlooks={uniqueBlooks} tokens={player.tokens} tokenValue={tradeTokens} setTokenValue={setTradeTokens} blookQuantities={tradeBlooks} setBlookQuantities={setTradeBlooks} busy={tradeBusy} message={tradeMessage} close={() => setTradeTarget(null)} submit={() => void saveTradeOffer()} />}
+      {profileLookupOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"><section role="dialog" aria-modal="true" className="profile-popup"><div className="profile-list-heading"><h2>Find a Player</h2><button aria-label="Close player lookup" onClick={() => setProfileLookupOpen(false)}>×</button></div><div className="profile-search-row"><input value={lookup} onChange={(event) => setLookup(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchPlayers()} placeholder="Search username" /><button onClick={() => void searchPlayers()}>Search</button></div><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{matches.map((match) => <div key={match.id} className="profile-friend-row"><button onClick={() => { setProfileLookupOpen(false); void openPlayerProfile(match.username); }} className="min-w-0 flex-1 truncate text-left font-bold">{match.username}</button><button onClick={() => addFriend(match.username)}>Add</button><button disabled={isGuest} onClick={() => { setProfileLookupOpen(false); void requestTrade(match.id, match.username); }}>Trade</button></div>)}{!matches.length && <p className="profile-empty">Search for a username to add, trade, or view.</p>}</div></section></div>}
       {chatTrade && <TradeChatModal trade={chatTrade} playerId={player.id || ""} username={player.username} messages={tradeMessages} input={tradeChatInput} setInput={setTradeChatInput} close={() => setChatTrade(null)} send={sendTradeMessage} />}
       {tradeErrorPopup && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 px-4"><section role="alertdialog" aria-modal="true" className="profile-popup w-full max-w-sm"><h2 className="text-xl font-black">Trade unavailable</h2><p className="mt-3 text-sm">{tradeErrorPopup}</p><button autoFocus onClick={() => setTradeErrorPopup("")} className="profile-action-primary mt-5 w-full rounded-lg px-4 py-3 font-black">OK</button></section></div>}
     </div>
@@ -2150,44 +2104,6 @@ function TradeChatModal({
       <div className="mt-4 grid gap-3 sm:grid-cols-2">{offerCard("Your offer", ownOffer, username)}{offerCard("Their offer", otherOffer, otherName)}</div>
       <div className="trade-chat-messages mt-4 flex-1 space-y-2 overflow-y-auto">{messages.map((item) => <div key={item.id} className={`trade-chat-message ${item.profile_id === playerId ? "trade-chat-mine" : ""}`}><b>{item.username || (item.profile_id === playerId ? username : otherName)}</b><p>{item.message}</p><time>{new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div>)}{!messages.length && <p className="profile-empty">Trade accepted. Say hello!</p>}</div>
       <form onSubmit={send} className="profile-search-row mt-4"><input value={input} maxLength={1000} onChange={(event) => setInput(event.target.value)} placeholder="Message this player" /><button type="submit">Send</button></form>
-    </section>
-  </div>;
-}
-
-function TradeOfferModal({
-  targetName,
-  ownBlooks,
-  tokens,
-  tokenValue,
-  setTokenValue,
-  blookQuantities,
-  setBlookQuantities,
-  busy,
-  message,
-  close,
-  submit,
-}: {
-  targetName: string;
-  ownBlooks: { name: string; quantity: number }[];
-  tokens: number;
-  tokenValue: string;
-  setTokenValue: (value: string) => void;
-  blookQuantities: Record<string, number>;
-  setBlookQuantities: (value: Record<string, number>) => void;
-  busy: boolean;
-  message: string;
-  close: () => void;
-  submit: () => void;
-}) {
-  return <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/80 px-4 py-6 backdrop-blur-sm">
-    <section role="dialog" aria-modal="true" aria-labelledby="trade-offer-title" className="w-full max-w-lg rounded-2xl border border-emerald-200/30 bg-[#10251f] p-5 text-white shadow-2xl sm:p-6">
-      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-200">Trade offer</p><h2 id="trade-offer-title" className="mt-1 text-2xl font-black">Trading with {targetName}</h2></div><button onClick={close} aria-label="Close trade offer" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10">×</button></div>
-      <label className="mt-5 block text-sm font-bold">Tokens to offer (you have {tokens.toLocaleString()})<input type="number" min="0" max={tokens} value={tokenValue} onChange={(event) => setTokenValue(event.target.value)} className="mt-2 w-full rounded-xl border border-emerald-100/15 bg-black/20 px-3 py-3 text-white" /></label>
-      <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">{ownBlooks.map(({ name, quantity }) => {
-        return <label key={name} className="flex items-center justify-between gap-3 rounded-xl bg-black/20 px-3 py-2"><span className="min-w-0 truncate text-sm font-bold">{name} <small className="text-white/50">×{quantity}</small></span><input aria-label={`${name} quantity`} type="number" min="0" max={quantity} value={blookQuantities[name] || 0} onChange={(event) => setBlookQuantities({ ...blookQuantities, [name]: Math.max(0, Math.min(quantity, Number(event.target.value) || 0)) })} className="w-20 rounded-lg border border-emerald-100/15 bg-[#10251f] px-2 py-2 text-center text-white" /></label>;
-      })}{!ownBlooks.length && <p className="rounded-xl bg-black/20 p-4 text-sm text-white/60">Your collection is empty.</p>}</div>
-      {message && <p role="alert" className="mt-3 text-sm text-rose-200">{message}</p>}
-      <div className="mt-5 grid grid-cols-2 gap-3"><button onClick={close} className="rounded-xl border border-white/15 px-4 py-3 font-bold text-white/75 hover:bg-white/10">Cancel</button><button disabled={busy} onClick={submit} className="rounded-xl bg-emerald-300 px-4 py-3 font-black text-emerald-950 disabled:opacity-50">{busy ? "Sending..." : "Send offer"}</button></div>
     </section>
   </div>;
 }
@@ -3629,7 +3545,7 @@ function SimplePanel({
   );
 }
 
-function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
+function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis }: { emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
@@ -3783,7 +3699,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         />
       );
     }
-    return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{text}</p>;
+    return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderEmojiText(text, emojis)}</p>;
   };
 
   const messageGroups = messages.reduce<Array<{ user: string; isBreadletBot: boolean; items: Array<{ item: (typeof messages)[number]; index: number }> }>>((groups, item, index) => {
@@ -3946,6 +3862,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
             />
           </label>
         )}
+        <EmojiPicker emojis={emojis} canManage={canManageEmojis} onPick={(text) => setMessage((current) => `${text}`.slice(0, 500))} onChanged={reloadEmojis} />
         <div className="min-w-0 flex-1">
         {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {replyTarget.message}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">×</button></div>}
         <input
@@ -3967,6 +3884,63 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   );
 }
 
+function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; openPlayerProfile: (username: string) => void | Promise<void> }) {
+  const [rows, setRows] = useState<{ rank: number; id: string; username: string; tokens: number; equippedBlook: string; badges: string[] }[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch("/api/rankings", { cache: "no-store" });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !Array.isArray(data)) {
+        setError((data && data.error) || "The leaderboard could not load.");
+        setStatus("error");
+        return;
+      }
+      setRows(data);
+      setStatus("ready");
+    } catch {
+      setError("Could not reach the leaderboard. Check your connection.");
+      setStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => void load(), 30000);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
+  return (
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-4xl font-black">Leaderboard</h1>
+        <button onClick={() => void load()} className="rounded-xl border border-[#3d91cd] bg-[#103f75] px-4 py-2 text-sm font-black text-[#bde8ff] hover:bg-[#18558f]">Refresh</button>
+      </div>
+      <p className="mt-1 text-sm text-[#9cc8e8]">The 50 richest players by token balance.</p>
+      {status === "error" && <p role="alert" className="mt-4 rounded-lg border border-orange-300/40 bg-black/20 px-3 py-2 text-sm text-orange-100">{error}</p>}
+      {status === "loading" && <p className="mt-6 text-[#9cc8e8]">Loading rankings...</p>}
+      <ol className="mt-5 space-y-2">
+        {rows.map((row) => {
+          const own = row.id === player.id;
+          return (
+            <li key={row.id} className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${own ? "border-[#73c8ff] bg-[#18558f]" : "border-[#3d91cd]/40 bg-[#103f75]"}`}>
+              <span className={`w-9 shrink-0 text-center text-xl font-black ${row.rank === 1 ? "text-[#ffd166]" : row.rank === 2 ? "text-[#dfe7ee]" : row.rank === 3 ? "text-[#e0a15f]" : "text-[#9cc8e8]"}`}>{row.rank <= 3 ? <Crown size={24} className="mx-auto" /> : `#${row.rank}`}</span>
+              <span className="grid h-11 w-11 shrink-0 place-items-center">{row.equippedBlook ? <img src={artFor(row.equippedBlook)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={30} />}</span>
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <button onClick={() => void openPlayerProfile(row.username)} className="truncate font-black hover:underline">{row.username}{own ? " (you)" : ""}</button>
+                {row.badges.map((badge) => <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5"><img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" /></button>)}
+              </div>
+              <span className="flex shrink-0 items-center gap-1.5 font-black text-[#ffe2a0]"><img src="/assets/coin.svg" alt="" className="h-5 w-5" />{row.tokens.toLocaleString()}</span>
+            </li>
+          );
+        })}
+      </ol>
+      {status === "ready" && !rows.length && <p className="mt-6 text-[#9cc8e8]">No players ranked yet.</p>}
+    </div>
+  );
+}
 function BadgeModal({ badge, close }: { badge: string; close: () => void }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
