@@ -78,7 +78,8 @@ export async function GET() {
     }));
     myRequests = myRequestResult.data || [];
   }
-  return NextResponse.json({ clans: clans || [], blooks: blooks || [], membership: membership || null, members, requests, myRequests });
+  const visibleClans = (clans || []).map((clan) => (clan.id === membership?.clan_id ? clan : { ...clan, banner_data: '' }));
+  return NextResponse.json({ clans: visibleClans, blooks: blooks || [], membership: membership || null, members, requests, myRequests });
 }
 
 export async function POST(request: Request) {

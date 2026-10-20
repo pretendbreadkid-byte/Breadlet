@@ -307,7 +307,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
   );
 
   return (
-    <div className="modal-layer fixed inset-0 z-[9998] flex flex-col overflow-y-auto bg-[#0b0a09] text-white">
+    <div className="modal-layer fixed inset-0 z-[9998] flex flex-col overflow-y-auto text-white" style={{ background: "#E77D22 url(/assets/tab-stripes-bg.png) center / cover fixed no-repeat" }}>
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#3c3a34]/30 bg-[#13120F] px-4 py-3">
         <div className="flex items-center gap-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-10 w-auto object-contain" /><span className="text-2xl font-black tracking-wide" style={{ fontFamily: "DynaPuff, Impact, sans-serif" }}>Breadlet</span><h2 className="ml-3 border-l border-[#3c3a34] pl-3 text-lg font-black">Trading with {otherName}</h2></div>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${otherOffline ? "bg-red-600" : "bg-green-600"}`}>{otherOffline ? "Offline" : "Online"}</span>

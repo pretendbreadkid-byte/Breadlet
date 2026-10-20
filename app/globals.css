@@ -1500,3 +1500,11 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .chat-new-divider { display: flex; align-items: center; gap: .75rem; margin: .5rem 0; color: #ff5a5a; }
 .chat-new-divider span { height: 1px; flex: 1; background: #ff5a5a; }
 .chat-new-divider b { font-family: "DynaPuff", Impact, sans-serif; font-size: .8rem; letter-spacing: .02em; }
+.leaderboard-tab { border-color: #CC5500; background: #D4701C; color: #3B1F0E; }
+.leaderboard-tab[aria-pressed="true"] { background: #27251F; color: #fff; border-color: #13120F; }
+.leaderboard-podium-card { width: 220px; border-color: #13120F; background: #27251F; color: #fff; box-shadow: 0 6px 0 #13120F; }
+.leaderboard-podium-card.leaderboard-first { width: 250px; padding-top: 2.25rem; padding-bottom: 2.25rem; }
+.leaderboard-row { border-color: #13120F; background: #27251F; color: #fff; }
+.leaderboard-row-own { border-color: #e9bd67; }
+@media (max-width: 640px) { .leaderboard-podium { gap: .5rem; } .leaderboard-podium-card, .leaderboard-podium-card.leaderboard-first { width: 32%; padding: .75rem .4rem; } }
+.breadlet-blue-theme .sidebar-brand:hover:not(:disabled), .breadlet-blue-theme .sidebar-brand:active:not(:disabled) { transform: none; filter: none; box-shadow: none; background: transparent; }

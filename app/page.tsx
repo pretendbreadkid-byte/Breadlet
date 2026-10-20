@@ -2984,6 +2984,9 @@ function Bazaar({
   const [price, setPrice] = useState("10");
   const [search, setSearch] = useState("");
   const [rarity, setRarity] = useState("All rarities");
+  const [pack, setPack] = useState("All packs");
+  const packOf = (blook: string) => [...liveCapsules, ...legacyCapsules].find((capsule) => capsule.pool.some((reward) => reward.name === blook.replace(/^Shiny /, "")))?.name || "Other";
+  const packNames = [...liveCapsules.map((capsule) => capsule.name), "Other"];
   const [sortOrder, setSortOrder] = useState("Newest");
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState<"browse" | "mine">("browse");
@@ -3040,8 +3043,9 @@ function Bazaar({
   const filteredListings = marketListings.filter((listing) => {
     const matchesSearch = listing.blook.toLowerCase().includes(search.toLowerCase());
     const matchesRarity = rarity === "All rarities" || rarityFor(listing.blook) === rarity;
+    const matchesPack = pack === "All packs" || packOf(listing.blook) === pack;
     const matchesView = view === "browse" || listing.seller === player.username;
-    return matchesSearch && matchesRarity && matchesView;
+    return matchesSearch && matchesRarity && matchesPack && matchesView;
   });
   const listings = [...filteredListings].sort((left, right) => {
     if (sortOrder === "Lowest price") return left.price - right.price;
@@ -3056,7 +3060,7 @@ function Bazaar({
     setPageStart(0);
     setSelectedBlook("");
     setDetailsOpen(false);
-  }, [search, rarity, view]);
+  }, [search, rarity, pack, view]);
 
   const moveSelection = (direction: -1 | 1) => {
     if (pageCount < 2) return;
@@ -3086,6 +3090,10 @@ function Bazaar({
               ].map((item) => (
                 <option key={item}>{item}</option>
               ))}
+            </select>
+            <select value={pack} onChange={(event) => setPack(event.target.value)} aria-label="Filter by pack" className="bazaar-filter-control">
+              <option>All packs</option>
+              {packNames.map((item) => <option key={item}>{item}</option>)}
             </select>
             <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sort listings" className="bazaar-filter-control">
               <option>Newest</option>
@@ -3977,21 +3985,35 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   );
 }
 
+type LeaderboardEntry = { key: string; rank: number; name: string; value: number; art: string; badges: string[]; own: boolean; sub?: string; profileName?: string };
 function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; openPlayerProfile: (username: string) => void | Promise<void> }) {
-  const [rows, setRows] = useState<{ rank: number; id: string; username: string; tokens: number; equippedBlook: string; badges: string[] }[]>([]);
+  const [board, setBoard] = useState<"players" | "clans">("players");
+  const [playerRows, setPlayerRows] = useState<{ rank: number; id: string; username: string; tokens: number; equippedBlook: string; badges: string[] }[]>([]);
+  const [clanRows, setClanRows] = useState<{ id: string; name: string; treasury: number; members: number; profileBlook: string; thumbnailUrl: string }[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/rankings", { cache: "no-store" });
+      const [response, clanResponse] = await Promise.all([fetch("/api/rankings", { cache: "no-store" }), fetch("/api/clans", { cache: "no-store" }).catch(() => null)]);
       const data = await response.json().catch(() => null);
       if (!response.ok || !Array.isArray(data)) {
         setError((data && data.error) || "The leaderboard could not load.");
         setStatus("error");
         return;
       }
-      setRows(data);
+      setPlayerRows(data);
+      const clanData = clanResponse?.ok ? await clanResponse.json().catch(() => null) : null;
+      if (clanData && Array.isArray(clanData.clans)) {
+        setClanRows(clanData.clans.map((clan: Record<string, unknown>) => ({
+          id: String(clan.id),
+          name: String(clan.name || "Clan"),
+          treasury: Number(clan.treasury) || 0,
+          members: Number(clan.member_count) || 1,
+          profileBlook: typeof clan.profile_blook === "string" ? clan.profile_blook : "",
+          thumbnailUrl: typeof clan.thumbnail_url === "string" ? clan.thumbnail_url : "",
+        })).sort((a: { treasury: number }, b: { treasury: number }) => b.treasury - a.treasury).slice(0, 50));
+      }
       setStatus("ready");
     } catch {
       setError("Could not reach the leaderboard. Check your connection.");
@@ -4005,36 +4027,59 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
     return () => window.clearInterval(timer);
   }, [load]);
 
+  const entries: LeaderboardEntry[] = board === "players"
+    ? playerRows.map((row) => ({ key: row.id, rank: row.rank, name: row.username, value: row.tokens, art: row.equippedBlook ? artFor(row.equippedBlook) : "", badges: row.badges, own: row.id === player.id, profileName: row.username }))
+    : clanRows.map((row, index) => ({ key: row.id, rank: index + 1, name: row.name, value: row.treasury, art: row.profileBlook ? artFor(row.profileBlook) : row.thumbnailUrl, badges: [], own: false, sub: `${row.members} members` }));
+  const podium = [entries[1], entries[0], entries[2]].filter(Boolean) as LeaderboardEntry[];
+  const rest = entries.slice(3);
+  const ordinal = (rank: number) => (rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd");
+  const openEntry = (entry: LeaderboardEntry) => { if (entry.profileName) void openPlayerProfile(entry.profileName); };
+  const valueLabel = board === "players" ? "tokens" : "treasury";
+
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="leaderboard-page mx-auto w-full max-w-5xl">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-4xl font-black">Leaderboard</h1>
-        <button onClick={() => void load()} className="rounded-xl border border-[#3d91cd] bg-[#103f75] px-4 py-2 text-sm font-black text-[#bde8ff] hover:bg-[#18558f]">Refresh</button>
+        <h1 className="text-5xl font-black text-white">Leaderboard</h1>
+        <button onClick={() => void load()} className="rounded-xl border-2 border-[#CC5500] bg-[#27251F] px-4 py-2 text-sm font-black text-white hover:bg-[#13120F]">Refresh</button>
       </div>
-      <p className="mt-1 text-sm text-[#9cc8e8]">The 50 richest players by token balance.</p>
-      {status === "error" && <p role="alert" className="mt-4 rounded-lg border border-orange-300/40 bg-black/20 px-3 py-2 text-sm text-orange-100">{error}</p>}
-      {status === "loading" && <p className="mt-6 text-[#9cc8e8]">Loading rankings...</p>}
-      <ol className="mt-5 space-y-2">
-        {rows.map((row) => {
-          const own = row.id === player.id;
-          return (
-            <li key={row.id} className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${own ? "border-[#73c8ff] bg-[#18558f]" : "border-[#3d91cd]/40 bg-[#103f75]"}`}>
-              <span className={`w-9 shrink-0 text-center text-xl font-black ${row.rank === 1 ? "text-[#ffd166]" : row.rank === 2 ? "text-[#dfe7ee]" : row.rank === 3 ? "text-[#e0a15f]" : "text-[#9cc8e8]"}`}>{row.rank <= 3 ? <Crown size={24} className="mx-auto" /> : `#${row.rank}`}</span>
-              <span className="grid h-11 w-11 shrink-0 place-items-center">{row.equippedBlook ? <img src={artFor(row.equippedBlook)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={30} />}</span>
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                <button onClick={() => void openPlayerProfile(row.username)} className="truncate font-black hover:underline">{row.username}{own ? " (you)" : ""}</button>
-                {row.badges.map((badge) => <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5"><img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" /></button>)}
-              </div>
-              <span className="flex shrink-0 items-center gap-1.5 font-black text-[#ffe2a0]"><img src="/assets/coin.svg" alt="" className="h-5 w-5" />{row.tokens.toLocaleString()}</span>
-            </li>
-          );
-        })}
+      <div className="leaderboard-tabs mt-4 flex gap-3">
+        {(["players", "clans"] as const).map((item) => (
+          <button key={item} type="button" aria-pressed={board === item} onClick={() => setBoard(item)} className="leaderboard-tab rounded-full border-2 px-5 py-2 text-sm font-black">{item === "players" ? "Most Tokens" : "Top Clans"}</button>
+        ))}
+      </div>
+      {status === "error" && <p role="alert" className="mt-4 rounded-lg border border-[#CC5500] bg-[#27251F] px-3 py-2 text-sm text-white">{error}</p>}
+      {status === "loading" && <p className="mt-6 font-bold">Loading rankings...</p>}
+      {status === "ready" && !entries.length && <p className="mt-6 font-bold">Nobody is ranked yet.</p>}
+      {podium.length > 0 && (
+        <div className="leaderboard-podium mt-8 flex items-end justify-center gap-4">
+          {podium.map((entry) => (
+            <div key={entry.key} className={`leaderboard-podium-card flex flex-col items-center rounded-2xl border-2 p-5 text-center ${entry.rank === 1 ? "leaderboard-first" : ""}`}>
+              <p className="text-lg font-black">{ordinal(entry.rank)}</p>
+              <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="mt-2 max-w-full truncate text-2xl font-black disabled:cursor-default">{entry.name}</button>
+              <div className="my-4 grid h-28 w-28 place-items-center">{entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={64} />}</div>
+              <p className="flex items-center gap-2 text-xl font-black"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
+              {entry.sub && <p className="text-xs font-bold opacity-80">{entry.sub}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      <ol className="mt-6 space-y-3">
+        {rest.map((entry) => (
+          <li key={entry.key} className={`leaderboard-row flex items-center gap-4 rounded-2xl border-2 px-4 py-2 ${entry.own ? "leaderboard-row-own" : ""}`}>
+            <span className="w-10 shrink-0 text-center text-lg font-black">{entry.rank}</span>
+            <span className="grid h-12 w-12 shrink-0 place-items-center">{entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={32} />}</span>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="truncate text-lg font-black hover:underline disabled:cursor-default disabled:no-underline">{entry.name}{entry.own ? " (you)" : ""}</button>
+              {entry.sub && <span className="text-xs font-bold opacity-80">{entry.sub}</span>}
+              {entry.badges.map((badge) => <button key={badge} type="button" onClick={() => showBadge(badge)} title={badge} className="h-5 w-5"><img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" /></button>)}
+            </div>
+            <span className="flex shrink-0 items-center gap-1.5 text-lg font-black" title={valueLabel}><img src="/assets/coin.svg" alt="" className="h-5 w-5" />{entry.value.toLocaleString()}</span>
+          </li>
+        ))}
       </ol>
-      {status === "ready" && !rows.length && <p className="mt-6 text-[#9cc8e8]">No players ranked yet.</p>}
     </div>
   );
-}
-function BadgeModal({ badge, close }: { badge: string; close: () => void }) {
+}function BadgeModal({ badge, close }: { badge: string; close: () => void }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
@@ -5103,7 +5148,7 @@ function ClanTab({
         const ownClan = membershipClanId === item.id;
         const theme = item.colorsUnlocked ? item.theme : "breadlet";
         return <article key={item.id || item.name} className={`clan-discover-card clan-theme-${theme} overflow-hidden rounded-2xl border ${item.animatedProfiles ? "clan-profile-animated" : ""}`}>
-          {item.bannerData ? <img src={item.bannerData} alt={`${item.name} clan banner`} className="clan-discover-banner" /> : item.profileBlook ? <div className="clan-discover-banner clan-profile-blook-banner"><img src={clanBlookArt(item.profileBlook)} alt={`${item.profileBlook} clan profile`} /></div> : item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="clan-discover-banner" /> : <div className="clan-discover-banner clan-banner-placeholder"><Users size={30} /></div>}
+          {item.bannerData && ownClan ? <img src={item.bannerData} alt={`${item.name} clan banner`} className="clan-discover-banner" /> : item.profileBlook ? <div className="clan-discover-banner clan-profile-blook-banner"><img src={clanBlookArt(item.profileBlook)} alt={`${item.profileBlook} clan profile`} /></div> : item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="clan-discover-banner" /> : <div className="clan-discover-banner clan-banner-placeholder"><Users size={30} /></div>}
           <div className="p-4"><div className="flex items-start justify-between gap-2"><h3 className="break-words text-xl font-black">{item.name}</h3><span className="clan-stats shrink-0 rounded-full px-2.5 py-1 text-xs font-bold">{item.members}/{item.memberCapacity}</span></div><p className="clan-text-muted mt-2 text-sm leading-5">{item.description || "A Breadlet community."}</p><div className="mt-3 flex flex-wrap gap-1.5">{item.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-2.5 py-1 text-xs">#{tag}</span>)}</div><p className="clan-text-muted mt-3 text-xs">{item.treasury.toLocaleString()} treasury tokens · {themeNames[theme]} colors</p><button type="button" disabled={isGuest || ownClan || pending || full || Boolean(membershipClanId)} onClick={() => void handleRequestClan(item)} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{ownClan ? "Your clan" : pending ? "Request pending" : full ? "Clan full" : membershipClanId ? "Leave your clan before requesting" : isGuest ? "Sign in to request" : "Request to join"}</button></div>
         </article>;
       }) : <p className="col-span-full py-10 text-center clan-text-muted">No clans match that search.</p>}</div></section>}
