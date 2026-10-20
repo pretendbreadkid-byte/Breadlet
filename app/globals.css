@@ -1484,7 +1484,8 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
   .breadlet-blue-theme .game-workspace .crafting-page-heading { padding-right: 25rem; }
 }
 .breadlet-blue-theme .craft-machine-modal {
-  border-color: #CC5500 !important;
-  background: #FFD9B3 !important;
-  color: #3B1F0E !important;
+  border-color: #3c3a34 !important;
+  background: #13120F !important;
+  color: #fff !important;
 }
+.breadlet-blue-theme .profile-dashboard { background: transparent !important; background-image: none !important; box-shadow: none !important; border: 0 !important; }

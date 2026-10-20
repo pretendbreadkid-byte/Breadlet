@@ -3488,7 +3488,7 @@ function DismantleConfirmModal({
 
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/70 px-5 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" aria-labelledby="dismantle-confirm-title" className="w-full max-w-sm rounded-3xl border-4 border-[#CC5500] bg-[#FFD9B3] p-6 text-center text-[#3B1F0E] shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-labelledby="dismantle-confirm-title" className="w-full max-w-sm rounded-3xl border-2 border-[#3c3a34] bg-[#13120F] p-6 text-center text-white shadow-2xl">
         <p className="text-xs font-bold uppercase tracking-widest text-[#e9bd67]">Recycle Bread</p>
         <img src={artFor(name)} alt={name} className="mx-auto mt-4 h-28 w-28 object-contain" />
         <h2 id="dismantle-confirm-title" className="mt-3 text-2xl font-black">Dismantle {name}?</h2>
@@ -3535,25 +3535,25 @@ function CraftingMachineModal({
 }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
-      <div className="craft-machine-modal w-full max-w-xl rounded-3xl border-4 border-[#CC5500] bg-[#FFD9B3] p-6 text-center text-[#3B1F0E] shadow-2xl">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-[#CC5500]">Crafting machine</p>
+      <div className="craft-machine-modal w-full max-w-xl rounded-3xl border-2 border-[#3c3a34] bg-[#13120F] p-6 text-center text-white shadow-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-[#e9bd67]">Crafting machine</p>
         <h2 className="mt-2 text-3xl font-black">{phase === "processing" ? "Forging your Bread" : phase === "charging" ? "Powering up" : "Craft complete!"}</h2>
-          <div className="mt-6 rounded-2xl border-4 border-[#CC5500] bg-[#FFF0E0] p-5">
+          <div className="mt-6 rounded-2xl border-4 border-[#3c3a34] bg-[#27251F] p-5">
             <img src="/assets/crafting machine.svg" alt="Crafting machine" className="mx-auto mb-4 h-28 w-full object-contain" />
-          <div className={`craft-reveal-stage flex min-h-44 items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#FFB066] p-4 ${phase === "charging" ? "craft-energy-charge" : phase === "output" ? "craft-output-flash" : ""}`}>
+          <div className={`craft-reveal-stage flex min-h-44 items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#13120F] p-4 ${phase === "charging" ? "craft-energy-charge" : phase === "output" ? "craft-output-flash" : ""}`}>
             {phase === "processing" ? (
               <div className="craft-material-stream flex items-center gap-2">
-                {bundleEntries(ingredients).map(([material, amount]) => <span key={material} className="craft-input flex items-center rounded-xl bg-white/80 p-2"><img src={materialArtFor(material)} alt={material} className="h-12 w-12 object-contain" /><b className="text-sm">x{amount}</b></span>)}
+                {bundleEntries(ingredients).map(([material, amount]) => <span key={material} className="craft-input flex items-center rounded-xl bg-[#27251F] p-2"><img src={materialArtFor(material)} alt={material} className="h-12 w-12 object-contain" /><b className="text-sm">x{amount}</b></span>)}
               </div>
             ) : phase === "charging" ? (
               <div className="craft-energy-core"><span /><span /><span /></div>
             ) : (
-              <div className="craft-output-pop relative rounded-2xl bg-white/75 p-5"><RewardBurst rarity={craftedRarityFor(name)} /><RewardArt name={name} art={artFor(name)} className="relative z-10 mx-auto h-36 w-36 object-contain" /><strong className="relative z-10 mt-2 block text-lg">{craftedRarityFor(name)}</strong></div>
+              <div className="craft-output-pop relative rounded-2xl bg-[#27251F] p-5"><RewardBurst rarity={craftedRarityFor(name)} /><RewardArt name={name} art={artFor(name)} className="relative z-10 mx-auto h-36 w-36 object-contain" /><strong className="relative z-10 mt-2 block text-lg">{craftedRarityFor(name)}</strong></div>
             )}
           </div>
-          <div className="mx-auto mt-4 flex max-w-sm items-center gap-2"><span className="h-3 flex-1 rounded-full bg-[#CC5500]" /><span className="h-10 w-20 rounded-lg border-4 border-[#CC5500] bg-[#ED7117]" /><span className="h-3 flex-1 rounded-full bg-[#CC5500]" /></div>
+          <div className="mx-auto mt-4 flex max-w-sm items-center gap-2"><span className="h-3 flex-1 rounded-full bg-[#3c3a34]" /><span className="h-10 w-20 rounded-lg border-4 border-[#3c3a34] bg-[#5c574d]" /><span className="h-3 flex-1 rounded-full bg-[#3c3a34]" /></div>
         </div>
-        {phase === "output" && <button onClick={close} className="craft-collect mt-6 w-full rounded-xl bg-[#CC5500] px-4 py-3 font-black text-white">Collect {name}</button>}
+        {phase === "output" && <button onClick={close} className="craft-collect mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]">Collect {name}</button>}
       </div>
     </div>
   );
