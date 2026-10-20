@@ -1489,3 +1489,7 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
   color: #fff !important;
 }
 .breadlet-blue-theme .profile-dashboard { background: transparent !important; background-image: none !important; box-shadow: none !important; border: 0 !important; }
+.auth-screen > form { position: relative; z-index: 1; }
+.auth-falling { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.auth-falling img { position: absolute; top: -90px; width: 64px; height: 64px; object-fit: contain; filter: brightness(0); opacity: .35; animation: auth-fall linear infinite; }
+@keyframes auth-fall { from { transform: translateY(-10vh) rotate(-12deg); } to { transform: translateY(115vh) rotate(18deg); } }

@@ -288,69 +288,69 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
     .filter((entry) => entry.left > 0);
 
   const avatar = (name: string, large = true) => (
-    <div className={`${large ? "h-28 w-28 sm:h-36 sm:w-36" : "h-12 w-12"} shrink-0 overflow-hidden rounded-2xl border-2 border-[#3d91cd] bg-[#103f75]`}>
-      {name ? <img src={artFor(name)} alt={name} className="h-full w-full object-contain" /> : <CircleUserRound className="h-full w-full p-4 text-[#9cc8e8]" />}
+    <div className={`${large ? "h-28 w-28 sm:h-36 sm:w-36" : "h-12 w-12"} shrink-0 overflow-hidden rounded-2xl border-2 border-[#3c3a34] bg-[#27251F]`}>
+      {name ? <img src={artFor(name)} alt={name} className="h-full w-full object-contain" /> : <CircleUserRound className="h-full w-full p-4 text-[#c9c7c0]" />}
     </div>
   );
   const slots = (items: { name: string; quantity: number }[], editable: boolean) => (
-    <div className="grid grid-cols-4 gap-2 rounded-2xl bg-[#072a54] p-2">
+    <div className="grid grid-cols-4 gap-2 rounded-2xl bg-[#13120F] p-2">
       {Array.from({ length: Math.max(8, items.length + (items.length % 4 ? 4 - (items.length % 4) : 0)) }).map((_, index) => {
         const item = items[index];
         return item ? (
-          <button key={item.name} type="button" disabled={!editable} onClick={() => removeBlook(item.name)} title={editable ? `Remove one ${item.name}` : item.name} className="relative flex aspect-square items-center justify-center rounded-xl bg-[#103f75] p-1 enabled:hover:bg-[#18558f]">
+          <button key={item.name} type="button" disabled={!editable} onClick={() => removeBlook(item.name)} title={editable ? `Remove one ${item.name}` : item.name} className="relative flex aspect-square items-center justify-center rounded-xl bg-[#27251F] p-1 enabled:hover:bg-[#3c3a34]">
             <img src={artFor(item.name)} alt={item.name} className="max-h-full max-w-full object-contain" />
-            <span className="absolute -bottom-1 -right-1 rounded-full bg-[#39a8f5] px-1.5 text-[10px] font-black text-white">{item.quantity}</span>
+            <span className="absolute -bottom-1 -right-1 rounded-full bg-[#e9bd67] px-1.5 text-[10px] font-black text-white">{item.quantity}</span>
           </button>
-        ) : <div key={`empty-${index}`} className="aspect-square rounded-xl bg-[#0c3b70]/60" />;
+        ) : <div key={`empty-${index}`} className="aspect-square rounded-xl bg-[#1b1a17]/60" />;
       })}
     </div>
   );
 
   return (
-    <div className="modal-layer fixed inset-0 z-[9998] flex flex-col overflow-y-auto bg-[#061f3d] text-white">
-      <header className="flex items-center justify-between border-b border-[#3d91cd]/30 bg-[#072a54] px-4 py-3">
-        <div className="flex items-center gap-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-10 w-auto object-contain" /><h2 className="text-xl font-black">Trading with {otherName}</h2></div>
+    <div className="modal-layer fixed inset-0 z-[9998] flex flex-col overflow-y-auto bg-[#0b0a09] text-white">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#3c3a34]/30 bg-[#13120F] px-4 py-3">
+        <div className="flex items-center gap-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-10 w-auto object-contain" /><span className="text-2xl font-black tracking-wide" style={{ fontFamily: "DynaPuff, Impact, sans-serif" }}>Breadlet</span><h2 className="ml-3 border-l border-[#3c3a34] pl-3 text-lg font-black">Trading with {otherName}</h2></div>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${otherOffline ? "bg-red-600" : "bg-green-600"}`}>{otherOffline ? "Offline" : "Online"}</span>
       </header>
       {otherOffline && <p role="alert" className="bg-red-700 px-4 py-2 text-center text-sm font-bold">{otherName} left. Both players must be online to trade, so you can only decline for now.</p>}
       <div className="grid flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
         <section className="space-y-3">
-          <div className="flex items-center gap-3">{avatar(player.equipped)}<div><p className="text-xl font-black">{player.username}</p><p className="text-xs text-[#9cc8e8]">You</p></div></div>
-          <label className="flex items-center gap-2 rounded-xl bg-[#072a54] px-3 py-2 text-sm font-bold"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />
+          <div className="flex items-center gap-3">{avatar(player.equipped)}<div><p className="text-xl font-black">{player.username}</p><p className="text-xs text-[#c9c7c0]">You</p></div></div>
+          <label className="flex items-center gap-2 rounded-xl bg-[#13120F] px-3 py-2 text-sm font-bold"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />
             <input type="number" min={0} max={player.tokens} value={offer.tokens || ""} placeholder="0" aria-label="Tokens to offer" onChange={(event) => change({ ...offer, tokens: Math.max(0, Math.min(player.tokens, Math.floor(Number(event.target.value) || 0))) })} className="w-full bg-transparent text-white outline-none" />
-            <span className="whitespace-nowrap text-xs text-[#9cc8e8]">of {player.tokens.toLocaleString()}</span></label>
+            <span className="whitespace-nowrap text-xs text-[#c9c7c0]">of {player.tokens.toLocaleString()}</span></label>
           {slots(toOffer(offer).blooks, true)}
-          <p className={`text-xs font-bold ${myConfirmed ? "text-green-300" : "text-[#9cc8e8]"}`}>{myConfirmed ? "You accepted" : "Not accepted yet"}</p>
+          <p className={`text-xs font-bold ${myConfirmed ? "text-green-300" : "text-[#c9c7c0]"}`}>{myConfirmed ? "You accepted" : "Not accepted yet"}</p>
         </section>
-        <section className="flex min-h-[18rem] flex-col rounded-2xl bg-[#0c3b70] p-3">
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search your Breadlets" className="w-full rounded-lg bg-[#072a54] px-3 py-2 text-center text-sm font-bold text-white outline-none placeholder:text-[#9cc8e8]" />
+        <section className="flex min-h-[18rem] flex-col rounded-2xl bg-[#1b1a17] p-3">
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search your Breadlets" className="w-full rounded-lg bg-[#13120F] px-3 py-2 text-center text-sm font-bold text-white outline-none placeholder:text-[#c9c7c0]" />
           <div className="mt-3 grid flex-1 grid-cols-4 content-start gap-2 overflow-y-auto sm:grid-cols-5 lg:max-h-[22rem]">
             {visibleInventory.map(({ name, left }) => (
-              <button key={name} type="button" onClick={() => addBlook(name)} title={`${name} (${left} left)`} className="relative flex aspect-square items-center justify-center rounded-xl bg-[#103f75] p-1 hover:bg-[#18558f]">
+              <button key={name} type="button" onClick={() => addBlook(name)} title={`${name} (${left} left)`} className="relative flex aspect-square items-center justify-center rounded-xl bg-[#27251F] p-1 hover:bg-[#3c3a34]">
                 <img src={artFor(name)} alt={name} className="max-h-full max-w-full object-contain" />
-                {left > 1 && <span className="absolute -bottom-1 -right-1 rounded-full bg-[#39a8f5] px-1.5 text-[10px] font-black text-white">{left}</span>}
+                {left > 1 && <span className="absolute -bottom-1 -right-1 rounded-full bg-[#e9bd67] px-1.5 text-[10px] font-black text-white">{left}</span>}
               </button>
             ))}
-            {!visibleInventory.length && <p className="col-span-full py-6 text-center text-sm text-[#9cc8e8]">Nothing left to add.</p>}
+            {!visibleInventory.length && <p className="col-span-full py-6 text-center text-sm text-[#c9c7c0]">Nothing left to add.</p>}
           </div>
         </section>
         <section className="space-y-3">
-          <div className="flex flex-row-reverse items-center gap-3 text-right">{avatar(otherEquipped)}<div><p className="text-xl font-black">{otherName}</p><p className="text-xs text-[#9cc8e8]">Their offer</p></div></div>
-          <div className="flex items-center justify-end gap-2 rounded-xl bg-[#072a54] px-3 py-2 text-sm font-bold"><span>{Number(serverTheirs?.tokens || 0).toLocaleString()}</span><img src="/assets/coin.svg" alt="" className="h-6 w-6" /></div>
+          <div className="flex flex-row-reverse items-center gap-3 text-right">{avatar(otherEquipped)}<div><p className="text-xl font-black">{otherName}</p><p className="text-xs text-[#c9c7c0]">Their offer</p></div></div>
+          <div className="flex items-center justify-end gap-2 rounded-xl bg-[#13120F] px-3 py-2 text-sm font-bold"><span>{Number(serverTheirs?.tokens || 0).toLocaleString()}</span><img src="/assets/coin.svg" alt="" className="h-6 w-6" /></div>
           {slots(serverTheirs?.blooks || [], false)}
-          <p className={`text-right text-xs font-bold ${theirConfirmed ? "text-green-300" : "text-[#9cc8e8]"}`}>{theirConfirmed ? `${otherName} accepted` : "Not accepted yet"}</p>
+          <p className={`text-right text-xs font-bold ${theirConfirmed ? "text-green-300" : "text-[#c9c7c0]"}`}>{theirConfirmed ? `${otherName} accepted` : "Not accepted yet"}</p>
         </section>
       </div>
       <div className="px-4">
-        <div className="max-h-44 min-h-24 space-y-2 overflow-y-auto rounded-t-xl bg-[#072a54] p-3">
+        <div className="max-h-44 min-h-24 space-y-2 overflow-y-auto rounded-t-xl bg-[#13120F] p-3">
           {messages.map((item) => (
-            <div key={item.id} className="text-sm"><b className={item.profile_id === playerId ? "text-[#73c8ff]" : "text-[#ffd166]"}>{item.username || (item.profile_id === playerId ? player.username : otherName)}</b><p className="whitespace-pre-wrap break-words text-[#d9f3ff]">{renderEmojiText(item.message, emojis)}</p></div>
+            <div key={item.id} className="text-sm"><b className={item.profile_id === playerId ? "text-[#f3d58f]" : "text-[#ffd166]"}>{item.username || (item.profile_id === playerId ? player.username : otherName)}</b><p className="whitespace-pre-wrap break-words text-[#f2efe6]">{renderEmojiText(item.message, emojis)}</p></div>
           ))}
-          {!messages.length && <p className="text-sm text-[#9cc8e8]">Say hello and agree on a fair trade.</p>}
+          {!messages.length && <p className="text-sm text-[#c9c7c0]">Say hello and agree on a fair trade.</p>}
           <div ref={chatEndRef} />
         </div>
-        <form onSubmit={sendMessage} className="flex items-center gap-2 rounded-b-xl bg-[#103f75] p-2">
-          <input value={draft} maxLength={1000} onChange={(event) => setDraft(event.target.value)} placeholder="Message" className="min-w-0 flex-1 rounded-lg bg-[#072a54] px-3 py-3 text-white outline-none placeholder:text-[#9cc8e8]" />
+        <form onSubmit={sendMessage} className="flex items-center gap-2 rounded-b-xl bg-[#27251F] p-2">
+          <input value={draft} maxLength={1000} onChange={(event) => setDraft(event.target.value)} placeholder="Message" className="min-w-0 flex-1 rounded-lg bg-[#13120F] px-3 py-3 text-white outline-none placeholder:text-[#c9c7c0]" />
           <EmojiPicker emojis={emojis} canManage={canManageEmojis} onPick={(text) => setDraft((current) => `${current}${text}`.slice(0, 1000))} onChanged={reloadEmojis} align="right" />
         </form>
         {chatError && <p role="alert" className="mt-2 text-sm font-bold text-orange-200">{chatError}</p>}

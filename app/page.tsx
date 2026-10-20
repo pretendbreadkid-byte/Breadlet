@@ -201,7 +201,7 @@ const artFor = (name: string) =>
     "Fasty Jay": "/assets/fastyjaynew.png",
     Waymore: "/assets/new waymore.png",
     Shield: "/assets/sheild (1).svg",
-    Spartan: "/assets/spartin  2.svg",
+    Spartan: "/assets/spartan-new.svg",
     Solider: "/assets/solider.svg",
     "Gold Bread": "/assets/gold-bread-refreshed.svg",
     Sword: "/assets/sword way better.svg",
@@ -1836,7 +1836,12 @@ function LoginScreen({
   setAuthFeedback: (value: string) => void;
 }) {
   return (
-    <main className="auth-screen flex min-h-screen items-center justify-center bg-[#0c3b70] px-5 text-white">
+    <main className="auth-screen relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0c3b70] px-5 text-white">
+      <div className="auth-falling" aria-hidden="true">
+        {["Mars", "Worker", "Chef", "Earth", "Doctor", "Brioche", "Ted", "Spartan", "Crystal Ball", "Sour Dough", "Globe", "Burnt Toast", "Lava Slime", "Magnifying Glass"].map((name, index) => (
+          <img key={name} src={artFor(name)} alt="" style={{ left: `${(index * 7.3 + 3) % 96}%`, animationDelay: `${-(index * 1.7) % 12}s`, animationDuration: `${9 + (index % 5) * 2}s` }} />
+        ))}
+      </div>
       <form
         onSubmit={login}
         className="w-full max-w-md p-8"
@@ -3749,6 +3754,18 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     window.alert(response?.ok ? `Gave Walter White to ${name}.` : result?.error || "Could not give Walter White.");
   };
 
+  const chatListRef = useRef<HTMLDivElement>(null);
+  const chatScrolledRef = useRef(false);
+  useEffect(() => {
+    const list = chatListRef.current;
+    if (!list || !messages.length) return;
+    const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 160;
+    if (!chatScrolledRef.current || nearBottom) {
+      list.scrollTop = list.scrollHeight;
+      chatScrolledRef.current = true;
+    }
+  }, [messages]);
+
   const messageGroups = messages.reduce<Array<{ user: string; isBreadletBot: boolean; items: Array<{ item: (typeof messages)[number]; index: number }> }>>((groups, item, index) => {
     const current = groups[groups.length - 1];
     if (current && current.user === item.user && current.isBreadletBot === Boolean(item.isBreadletBot)) {
@@ -3830,7 +3847,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           </div>
         </div>
       )}
-      <div className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
+      <div ref={chatListRef} className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         {messageGroups.map((group) => {
           const latest = group.items[group.items.length - 1];
           const latestItem = latest.item;
