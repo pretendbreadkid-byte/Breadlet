@@ -415,7 +415,7 @@ function MainPage() {
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [forgotPassword, setForgotPassword] = useState(false);
-  const [tab, setTab] = useState<Tab>("wheel");
+  const [tab, setTab] = useState<Tab>("profile");
   const [notice, setNotice] = useState("");
   const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
   const [onlineProfileIds, setOnlineProfileIds] = useState<string[]>([]);
@@ -1506,7 +1506,7 @@ function MainPage() {
         )}
 
         {/* Sidebar Footer Controls */}
-        <div className="mt-8 pt-4 border-t border-[#3d91cd]/20 flex items-center justify-around text-white">
+        <div className="sidebar-footer mt-auto flex items-center justify-center gap-5 pb-2 pt-4 text-white">
           <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
           <a title="YouTube" href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><CirclePlay size={18} /></a>
           <a title="Discord" href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><MessageCircle size={18} /></a>
@@ -2092,7 +2092,7 @@ function ProfileTab({
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
       </div></section>
       {!viewingOther && <div className="profile-lower-grid">
-        <section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends</h2><button onClick={openLookup}>Find Player</button></div><div className="profile-list-body">{player.friends?.length ? player.friends.map((friend) => <div key={friend} className="profile-friend-row"><img src="/assets/logo and defualt pfp.svg" alt="" /><span>{friend}</span></div>) : <p className="profile-empty">No friends yet.</p>}</div></section>
+        <section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends</h2><button onClick={openLookup}>Find Player</button></div><div className="profile-list-body">{player.friends?.length ? player.friends.map((friend) => <div key={friend} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><span>{friend}</span></div>) : <p className="profile-empty">No friends yet.</p>}</div></section>
         {!isGuest && <section className="profile-list-panel" id="profile-trades"><div className="profile-list-heading"><h2>Trades</h2><button onClick={() => void loadTrades()}>Refresh</button></div>{tradeMessage && <p role="status" className="profile-alert-inline">{tradeMessage}</p>}<div className="profile-list-body profile-trade-list">{trades.map((trade) => {
           const sentByMe = trade.sender_profile_id === player.id;
           const otherName = sentByMe ? trade.receiver_username : trade.sender_username;
@@ -2555,7 +2555,7 @@ function InventoryTab({
                         className={`relative flex aspect-square flex-col items-center justify-center transition-all p-0 ${
                         quantity
                           ? "cursor-pointer hover:-translate-y-1"
-                          : "opacity-60 cursor-not-allowed"
+                          : "cursor-not-allowed"
                       }`}
                     >
                       {quantity ? (
@@ -2565,10 +2565,7 @@ function InventoryTab({
                           className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`}
                         />
                       ) : (
-                        <div className="relative flex h-full w-full items-center justify-center">
-                          <span className="h-full w-full rounded-xl bg-black/80" />
-                          <Lock size={16} className="absolute text-white/80" />
-                        </div>
+                        <RewardArt name={reward.name} art={artFor(reward.name)} className="locked-blook-art h-full w-full" />
                       )}
 
                       {/* Quantity badge */}

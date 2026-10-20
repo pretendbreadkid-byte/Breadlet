@@ -670,6 +670,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-rows: 25% 23% 22% 21%;
+  padding-inline: 9%;
 }
 .teds-shelf-item {
   position: relative;
@@ -727,7 +728,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
 @media (max-width: 760px) {
   .teds-shop-layout { padding-bottom: 0; }
   .teds-shelf-scene { width: 100%; }
-  .teds-shelf-content { padding-inline: 4%; }
+  .teds-shelf-content { padding-inline: 10%; }
   .teds-shelf-item { margin-inline: 1%; }
   .teds-pack-art { width: 94%; height: 64.5%; }
 }
@@ -1508,3 +1509,9 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .leaderboard-row-own { border-color: #e9bd67; }
 @media (max-width: 640px) { .leaderboard-podium { gap: .5rem; } .leaderboard-podium-card, .leaderboard-podium-card.leaderboard-first { width: 32%; padding: .75rem .4rem; } }
 .breadlet-blue-theme .sidebar-brand:hover:not(:disabled), .breadlet-blue-theme .sidebar-brand:active:not(:disabled) { transform: none; filter: none; box-shadow: none; background: transparent; }
+.locked-blook-art, .locked-blook-art * { filter: grayscale(1) brightness(.62) contrast(.95); }
+.breadlet-sidebar .sidebar-footer { border: 0; }
+.breadlet-sidebar .sidebar-brand { cursor: pointer; border-radius: 12px; transition: transform .15s ease; }
+.breadlet-blue-theme .sidebar-brand:hover:not(:disabled) { transform: scale(1.07); filter: none; box-shadow: none; background: transparent; }
+.breadlet-sidebar .sidebar-brand:hover::after { content: "Open profile"; display: block; margin-top: 2px; font-size: 11px; font-weight: 800; color: #fff; }
+.breadlet-blue-theme .workspace-island { background: #13120F !important; border-color: #3c3a34 !important; color: #fff; }
