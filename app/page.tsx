@@ -6,7 +6,8 @@ import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
-import { EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
+import { SettingsTab } from "./components/settings-tab";
+import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
 import {
@@ -54,6 +55,7 @@ type Tab =
   | "bank"
   | "clan"
   | "crafting"
+  | "settings"
   | "admin";
 
 
@@ -1506,7 +1508,7 @@ function MainPage() {
         )}
 
         {/* Sidebar Footer Controls */}
-        <div className="sidebar-footer mx-auto mb-3 mt-auto flex items-center justify-center gap-5 rounded-2xl bg-[#13120F] px-5 py-3 text-white">
+        <div className="sidebar-footer mt-auto flex items-center justify-center gap-7 bg-[#13120F] py-4 text-white">
           <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
           <a title="YouTube" href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><CirclePlay size={18} /></a>
           <a title="Discord" href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><MessageCircle size={18} /></a>
@@ -1525,7 +1527,7 @@ function MainPage() {
               <span className="text-xl">{player.tokens.toLocaleString()}</span>
             </div>
 
-            {(
+            {tab === "crafting" && (
               <div className="workspace-materials" aria-label="Crafting materials">
                 {materialNames.map((material) => (
                   <span key={material} className="workspace-material" title={`${material}: ${player.materials[material] || 0}`}>
@@ -1571,6 +1573,16 @@ function MainPage() {
                   >
                     <Info size={18} />
                     Resources
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTab("settings");
+                      setUserMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
+                  >
+                    <Info size={18} />
+                    Settings
                   </button>
                   {adminUnlocked && (
                     <button
@@ -1663,6 +1675,7 @@ function MainPage() {
             />
           )}
           {tab === "info" && <InfoTab />}
+          {tab === "settings" && <SettingsTab username={player.username} isGuest={isGuest} onLogout={leaveSession} />}
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
           {tab === "assets" && <AssetLibraryTab />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
@@ -2478,6 +2491,15 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   );
 }
 
+let blookEmojiCache: CustomEmoji[] | null = null;
+function blookEmojis(): CustomEmoji[] {
+  if (!blookEmojiCache) {
+    const names = new Set([...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool.map((reward) => reward.name)).concat(craftRecipes.map((recipe) => recipe.name)));
+    blookEmojiCache = Array.from(names).map((name) => ({ id: `blook-${name}`, name: name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""), image: artFor(name) }));
+  }
+  return blookEmojiCache;
+}
+
 function BlookImg({ name, className }: { name: string; className: string }) {
   return <RewardArt name={name} art={artFor(name)} className={`${className} ${rewardEffectClassFor(name, rarityFor(name))}`} />;
 }
@@ -2556,7 +2578,7 @@ function InventoryTab({
                       key={reward.name}
                       title={quantity ? `${reward.name} (x${quantity})` : `${reward.name} (Locked)`}
                       onClick={() => quantity && setSelected(reward)}
-                        className={`relative flex aspect-square flex-col items-center justify-center transition-all p-0 ${
+                        className={`blook-tilt relative flex aspect-square flex-col items-center justify-center transition-all p-0 ${
                         quantity
                           ? "cursor-pointer hover:-translate-y-1"
                           : "cursor-not-allowed"
@@ -2569,7 +2591,7 @@ function InventoryTab({
                           className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`}
                         />
                       ) : (
-                        <RewardArt name={reward.name} art={artFor(reward.name)} className="locked-blook-art h-full w-full" />
+                        <img src={artFor(reward.name)} alt="" className="locked-blook-art h-full w-full object-contain" />
                       )}
 
                       {/* Quantity badge */}
@@ -2609,7 +2631,7 @@ function InventoryTab({
                         type="button"
                         title={`${name} · ${reward.rarity} (x${quantity})`}
                         onClick={() => setSelected(reward)}
-                        className="relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-black/25 p-2 transition hover:-translate-y-1"
+                        className="blook-tilt relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-black/25 p-2"
                       >
                         <RewardArt name={name} art={reward.art || artFor(name)} className={`h-full w-full ${rewardEffectClassFor(name, reward.rarity)}`} />
                         <span className="absolute bottom-1 left-1 rounded-md bg-[#e9bd67] px-1.5 py-0.5 text-[9px] font-black text-[#29170c]">{reward.rarity}</span>
@@ -3751,7 +3773,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         />
       );
     }
-    return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderEmojiText(text, emojis)}</p>;
+    return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderEmojiText(text, [...emojis, ...blookEmojis()])}</p>;
   };
 
   const giveWalterWhite = async (targetId: string, name: string) => {

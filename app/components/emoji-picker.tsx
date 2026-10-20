@@ -38,7 +38,7 @@ export function renderEmojiText(text: string, emojis: CustomEmoji[]): ReactNode 
   const byName = new Map(emojis.map((emoji) => [emoji.name, emoji]));
   const parts: ReactNode[] = [];
   let last = 0;
-  const pattern = /:([a-z0-9_]{2,24}):/g;
+  const pattern = /:([a-z0-9_]{2,40}):/g;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text))) {
     const emoji = byName.get(match[1]);

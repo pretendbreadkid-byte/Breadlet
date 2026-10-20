@@ -1555,3 +1555,10 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .workspace-island .workspace-material img { width: 22px; height: 22px; }
 .breadlet-blue-theme .sidebar-footer { background: #13120F; }
 .locked-blook-art, .locked-blook-art * { filter: brightness(0) invert(.5) !important; }
+/* v3 overrides */
+.breadlet-blue-theme .workspace-island { background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important; }
+.breadlet-blue-theme header.trade-room-header { background-color: #13120F !important; border-color: #3c3a34 !important; }
+.breadlet-sidebar > div.sidebar-footer { margin: 0 -12px -12px 0; border-radius: 0; background: #13120F; }
+.locked-blook-art { filter: brightness(0) !important; opacity: .35; animation: none !important; transition: none !important; }
+.blook-tilt { transition: transform .18s ease; }
+.blook-tilt:not(.cursor-not-allowed):hover { transform: rotate(-8deg) translateY(-4px); }

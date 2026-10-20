@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CircleUserRound } from "lucide-react";
 import { createClient as createSupabaseClient, fetchTradeApi } from "../../lib/supabase/client";
+import { readSettings, useSettings } from "./settings-tab";
 import { CustomEmoji, EmojiPicker, renderEmojiText } from "./emoji-picker";
 
 type Offer = { tokens: number; blooks: { name: string; quantity: number }[] };
@@ -37,6 +38,7 @@ export function LiveTrade(props: LiveTradeProps) {
   const { player, isGuest, onPlayerRefresh, notify, onTradeComplete } = props;
   const [trades, setTrades] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
+  const { settings } = useSettings();
   const knownRoom = useRef<string | null>(null);
   const roomActive = useRef(false);
   const supabase = useMemo(() => (isGuest ? null : createSupabaseClient()), [isGuest]);
@@ -56,7 +58,7 @@ export function LiveTrade(props: LiveTradeProps) {
       const ended = list.find((trade: any) => trade.id === knownRoom.current);
       knownRoom.current = null;
       if (ended?.status === "completed") {
-        onTradeComplete?.(ended.sender_profile_id === player.id ? ended.receiver_username : ended.sender_username);
+        if (readSettings().tradeOffers) onTradeComplete?.(ended.sender_profile_id === player.id ? ended.receiver_username : ended.sender_username);
         void onPlayerRefresh();
       } else if (ended) {
         notify(`The trade was ${ended.status}.`);
@@ -108,6 +110,13 @@ export function LiveTrade(props: LiveTradeProps) {
     await load();
     return result;
   };
+
+  const incomingPending = settings.incomingTrades ? undefined : trades.find((trade) => trade.status === "pending" && !trade.room_open && trade.receiver_profile_id === player.id);
+  const incomingPendingId = incomingPending?.id;
+  useEffect(() => {
+    if (incomingPendingId) void act(incomingPendingId, "decline");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingPendingId]);
 
   if (isGuest || !player.id) return null;
   const pending = trades.filter((trade) => trade.status === "pending");
@@ -309,10 +318,11 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
 
   return (
     <div className="modal-layer fixed inset-0 z-[9998] flex flex-col overflow-y-auto text-white" style={{ background: "#E77D22 url(/assets/tab-stripes-bg.png) center / cover fixed no-repeat" }}>
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#3c3a34]/30 bg-[#13120F] px-4 py-3">
+      <header className="trade-room-header sticky top-0 z-10 flex items-center justify-between border-b border-[#3c3a34]/30 bg-[#13120F] px-4 py-3">
         <div className="flex items-center gap-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-10 w-auto object-contain" /><span className="text-2xl font-black tracking-wide" style={{ fontFamily: "DynaPuff, Impact, sans-serif" }}>Breadlet</span><h2 className="ml-3 border-l border-[#3c3a34] pl-3 text-lg font-black">Trading with {otherName}</h2></div>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${otherOffline ? "bg-red-600" : "bg-green-600"}`}>{otherOffline ? "Offline" : "Online"}</span>
       </header>
+      <p role="note" className="bg-[#27251F] px-4 py-2 text-center text-sm font-bold text-[#e9bd67]">A 20% fee is taken from all tokens traded. To sell items for tokens, use the Bazaar instead.</p>
       {otherOffline && <p role="alert" className="bg-red-700 px-4 py-2 text-center text-sm font-bold">{otherName} left. Both players must be online to trade, so you can only decline for now.</p>}
       <div className="grid flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
         <section className="space-y-3">
