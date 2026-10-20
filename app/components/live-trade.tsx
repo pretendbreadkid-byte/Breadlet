@@ -15,6 +15,7 @@ type LiveTradeProps = {
   presenceReady: boolean;
   onlinePlayers: { id: string; username: string; equippedBlook: string }[];
   artFor: (name: string) => string;
+  BlookArt: (props: { name: string; className: string }) => React.ReactElement;
   emojis: CustomEmoji[];
   canManageEmojis: boolean;
   reloadEmojis: () => void | Promise<void>;
@@ -141,7 +142,7 @@ export function LiveTrade(props: LiveTradeProps) {
   return null;
 }
 
-function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, onlinePlayers, artFor, emojis, canManageEmojis, reloadEmojis, act, busy }: LiveTradeProps & {
+function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, onlinePlayers, BlookArt, emojis, canManageEmojis, reloadEmojis, act, busy }: LiveTradeProps & {
   trade: any;
   playerId: string;
   act: (tradeId: string, action: string, extra?: Record<string, unknown>) => Promise<any>;
@@ -289,7 +290,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
 
   const avatar = (name: string, large = true) => (
     <div className={`${large ? "h-28 w-28 sm:h-36 sm:w-36" : "h-12 w-12"} shrink-0 overflow-hidden rounded-2xl border-2 border-[#3c3a34] bg-[#27251F]`}>
-      {name ? <img src={artFor(name)} alt={name} className="h-full w-full object-contain" /> : <CircleUserRound className="h-full w-full p-4 text-[#c9c7c0]" />}
+      {name ? <BlookArt name={name} className="h-full w-full" /> : <CircleUserRound className="h-full w-full p-4 text-[#c9c7c0]" />}
     </div>
   );
   const slots = (items: { name: string; quantity: number }[], editable: boolean) => (
@@ -298,7 +299,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
         const item = items[index];
         return item ? (
           <button key={item.name} type="button" disabled={!editable} onClick={() => removeBlook(item.name)} title={editable ? `Remove one ${item.name}` : item.name} className="relative flex aspect-square items-center justify-center rounded-xl bg-[#27251F] p-1 enabled:hover:bg-[#3c3a34]">
-            <img src={artFor(item.name)} alt={item.name} className="max-h-full max-w-full object-contain" />
+            <BlookArt name={item.name} className="h-full w-full" />
             <span className="absolute -bottom-1 -right-1 rounded-full bg-[#e9bd67] px-1.5 text-[10px] font-black text-white">{item.quantity}</span>
           </button>
         ) : <div key={`empty-${index}`} className="aspect-square rounded-xl bg-[#1b1a17]/60" />;
@@ -327,7 +328,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
           <div className="mt-3 grid flex-1 grid-cols-4 content-start gap-2 overflow-y-auto sm:grid-cols-5 lg:max-h-[22rem]">
             {visibleInventory.map(({ name, left }) => (
               <button key={name} type="button" onClick={() => addBlook(name)} title={`${name} (${left} left)`} className="relative flex aspect-square items-center justify-center rounded-xl bg-[#27251F] p-1 hover:bg-[#3c3a34]">
-                <img src={artFor(name)} alt={name} className="max-h-full max-w-full object-contain" />
+                <BlookArt name={name} className="h-full w-full" />
                 {left > 1 && <span className="absolute -bottom-1 -right-1 rounded-full bg-[#e9bd67] px-1.5 text-[10px] font-black text-white">{left}</span>}
               </button>
             ))}

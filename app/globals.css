@@ -1515,3 +1515,43 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .breadlet-blue-theme .sidebar-brand:hover:not(:disabled) { transform: scale(1.07); filter: none; box-shadow: none; background: transparent; }
 .breadlet-sidebar .sidebar-brand:hover::after { content: "Open profile"; display: block; margin-top: 2px; font-size: 11px; font-weight: 800; color: #fff; }
 .breadlet-blue-theme .workspace-island { background: #13120F !important; border-color: #3c3a34 !important; color: #fff; }
+/* island: account on top, tokens and materials in separate black boxes beneath */
+.breadlet-blue-theme .workspace-island > div.workspace-summary {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.workspace-island .workspace-account { order: 0; }
+.workspace-island .workspace-account-button,
+.workspace-island .workspace-account-menu { background: #13120F !important; border: 1px solid #3c3a34 !important; color: #e9bd67 !important; }
+.workspace-island .workspace-tokens {
+  order: 1;
+  border: 1px solid #3c3a34;
+  border-radius: 12px;
+  background: #13120F;
+  padding: 6px 12px;
+  font-size: 20px;
+  text-shadow: none;
+}
+.workspace-island .workspace-materials {
+  order: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: min(430px, 90vw);
+  gap: 6px;
+}
+.workspace-island .workspace-material {
+  border: 1px solid #3c3a34;
+  border-radius: 12px;
+  background: #13120F;
+  padding: 5px 10px;
+  gap: 5px;
+  font-size: 14px;
+  text-shadow: none;
+}
+.workspace-island .workspace-material img { width: 22px; height: 22px; }
+.breadlet-blue-theme .sidebar-footer { background: #13120F; }
+.locked-blook-art, .locked-blook-art * { filter: brightness(0) invert(.5) !important; }

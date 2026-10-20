@@ -1506,7 +1506,7 @@ function MainPage() {
         )}
 
         {/* Sidebar Footer Controls */}
-        <div className="sidebar-footer mt-auto flex items-center justify-center gap-5 pb-2 pt-4 text-white">
+        <div className="sidebar-footer mx-auto mb-3 mt-auto flex items-center justify-center gap-5 rounded-2xl bg-[#13120F] px-5 py-3 text-white">
           <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
           <a title="YouTube" href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><CirclePlay size={18} /></a>
           <a title="Discord" href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><MessageCircle size={18} /></a>
@@ -1525,7 +1525,7 @@ function MainPage() {
               <span className="text-xl">{player.tokens.toLocaleString()}</span>
             </div>
 
-            {tab === "crafting" && (
+            {(
               <div className="workspace-materials" aria-label="Crafting materials">
                 {materialNames.map((material) => (
                   <span key={material} className="workspace-material" title={`${material}: ${player.materials[material] || 0}`}>
@@ -1541,17 +1541,17 @@ function MainPage() {
             <div ref={userMenuRef} className="workspace-account relative pointer-events-auto">
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
-                className="workspace-account-button flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3d91cd] bg-[#103f75] px-2 py-2 font-black text-[#bde8ff] transition hover:bg-[#18558f] sm:max-w-none sm:gap-2.5 sm:px-3.5"
+                className="workspace-account-button flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3c3a34] bg-[#13120F] px-2 py-2 font-black text-[#e9bd67] transition hover:bg-[#27251F] sm:max-w-none sm:gap-2.5 sm:px-3.5"
               >
                 <div className="flex h-6 w-6 items-center justify-center overflow-hidden">
-                  {player.equipped ? <img src={artFor(player.equipped)} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={18} className="text-[#9cc8e8]" />}
+                  {player.equipped ? <BlookImg name={player.equipped} className="h-full w-full" /> : <CircleUserRound size={18} className="text-[#9cc8e8]" />}
                 </div>
                 <span title={player.username} className="min-w-0 max-w-[min(52vw,22rem)] whitespace-normal break-words text-left leading-tight [overflow-wrap:anywhere] sm:max-w-[24rem]">{player.username}</span>
                 <ChevronDown size={18} />
               </button>
 
               {userMenuOpen && (
-                <div className="workspace-account-menu absolute right-0 z-50 mt-2 max-h-[calc(100vh-6rem)] w-56 overflow-y-auto rounded-2xl border border-[#3d91cd] bg-[#103f75] p-2 shadow-2xl">
+                <div className="workspace-account-menu absolute right-0 z-50 mt-2 max-h-[calc(100vh-6rem)] w-56 overflow-y-auto rounded-2xl border border-[#3c3a34] bg-[#13120F] p-2 shadow-2xl">
                   <button
                     onClick={() => {
                       setTab("profile");
@@ -1603,7 +1603,7 @@ function MainPage() {
 
         {/* Dynamic Page Section */}
         <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
-          {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
+          {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} BlookArt={BlookImg} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
@@ -2077,7 +2077,7 @@ function ProfileTab({
       {tradeAlert && <button onClick={() => { setTradeAlert(""); document.getElementById("profile-trades")?.scrollIntoView({ behavior: "smooth" }); }} className="profile-trade-toast" role="status">{tradeAlert}<span>View trade</span></button>}
       <div className="profile-top-grid">
         <section className="profile-player-panel">
-          <div className="profile-avatar-frame profile-avatar-float">{profileEquipped ? <img src={artFor(profileEquipped)} alt={profileEquipped} /> : <CircleUserRound size={52} />}</div>
+          <div className="profile-avatar-frame profile-avatar-float">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <CircleUserRound size={52} />}</div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
             <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Tokens</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
@@ -2476,6 +2476,10 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
       {cleanName === "Caveman" && <img src="/assets/rock for caveman to throw.svg" alt="" className="caveman-accessory caveman-rock absolute bottom-0 right-0 h-1/3 w-1/3 object-contain" />}
     </span>
   );
+}
+
+function BlookImg({ name, className }: { name: string; className: string }) {
+  return <RewardArt name={name} art={artFor(name)} className={`${className} ${rewardEffectClassFor(name, rarityFor(name))}`} />;
 }
 
 function InventoryTab({
@@ -3150,7 +3154,7 @@ function Bazaar({
               return (
                 <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-blook-card">
                   <div className="bazaar-art-stage">
-                    <img src={artFor(name)} alt={name} className="max-h-full max-w-full object-contain" />
+                    <BlookImg name={name} className="h-full w-full" />
                   </div>
                   <h2 className="mt-2 truncate text-sm font-black sm:text-base">{name}</h2>
                   <p className="mt-1 text-xs font-bold text-[#ffd166]">{rarityFor(name)} · {quantity} listed</p>
@@ -3204,7 +3208,7 @@ function BlookListingsModal({
       <section role="dialog" aria-modal="true" aria-labelledby="blook-listings-title" className="w-full max-w-2xl rounded-2xl border border-[#d49a4a]/40 bg-[#24170f] p-5 text-white shadow-2xl sm:p-6">
         <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div className="flex min-w-0 items-center gap-3">
-            <img src={artFor(blook)} alt="" className="h-12 w-12 shrink-0 object-contain" />
+            <BlookImg name={blook} className="h-12 w-12 shrink-0" />
             <div className="min-w-0"><h2 id="blook-listings-title" className="truncate text-xl font-black">{blook}</h2><p className="text-xs font-bold text-[#e9bd67]">{rarityFor(blook)} · {listings.length} offer{listings.length === 1 ? "" : "s"}</p></div>
           </div>
           <button type="button" onClick={close} aria-label="Close listings" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>
@@ -3314,7 +3318,7 @@ function ListingModal({ listing, close, buy, isGuest }: { listing: Listing; clos
       <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
         <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Bazaar listing</p>
         <div className="mt-5 flex h-40 items-center justify-center rounded-2xl bg-[#0c3b70] p-4 border border-[#3d91cd]/30">
-          <img src={artFor(listing.blook)} alt={listing.blook} className="max-h-full max-w-full object-contain" />
+          <BlookImg name={listing.blook} className="h-full w-full" />
         </div>
         <h2 className="mt-4 text-2xl font-black text-white">{listing.blook}</h2>
         <p className="mt-1 text-sm text-[#9cc8e8]">{rarityFor(listing.blook)} · Seller: {listing.seller}</p>
@@ -3879,7 +3883,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           return (
             <div key={`${group.user}-${latest.index}`} className="flex gap-3">
               <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} aria-label={group.isBreadletBot ? "Breadlet chat bot" : `Open ${group.user}'s profile`} title={group.isBreadletBot ? "Breadlet" : `View ${group.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden disabled:cursor-default">
-                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <RewardArt name={latestItem.equippedBlook || player.equipped} art={artFor(latestItem.equippedBlook || player.equipped)} className="h-full w-full" /> : <CircleUserRound size={30} />}
+                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <CircleUserRound size={30} />}
               </button>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 font-black">
@@ -3982,7 +3986,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   );
 }
 
-type LeaderboardEntry = { key: string; rank: number; name: string; value: number; art: string; badges: string[]; own: boolean; sub?: string; profileName?: string };
+type LeaderboardEntry = { key: string; rank: number; name: string; value: number; art: string; blook?: string; badges: string[]; own: boolean; sub?: string; profileName?: string };
 function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [board, setBoard] = useState<"players" | "clans">("players");
   const [playerRows, setPlayerRows] = useState<{ rank: number; id: string; username: string; tokens: number; equippedBlook: string; badges: string[] }[]>([]);
@@ -4025,8 +4029,8 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
   }, [load]);
 
   const entries: LeaderboardEntry[] = board === "players"
-    ? playerRows.map((row) => ({ key: row.id, rank: row.rank, name: row.username, value: row.tokens, art: row.equippedBlook ? artFor(row.equippedBlook) : "", badges: row.badges, own: row.id === player.id, profileName: row.username }))
-    : clanRows.map((row, index) => ({ key: row.id, rank: index + 1, name: row.name, value: row.treasury, art: row.profileBlook ? artFor(row.profileBlook) : row.thumbnailUrl, badges: [], own: false, sub: `${row.members} members` }));
+    ? playerRows.map((row) => ({ key: row.id, rank: row.rank, name: row.username, value: row.tokens, art: "", blook: row.equippedBlook, badges: row.badges, own: row.id === player.id, profileName: row.username }))
+    : clanRows.map((row, index) => ({ key: row.id, rank: index + 1, name: row.name, value: row.treasury, art: row.profileBlook ? "" : row.thumbnailUrl, blook: row.profileBlook, badges: [], own: false, sub: `${row.members} members` }));
   const podium = [entries[1], entries[0], entries[2]].filter(Boolean) as LeaderboardEntry[];
   const rest = entries.slice(3);
   const ordinal = (rank: number) => (rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd");
@@ -4053,7 +4057,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
             <div key={entry.key} className={`leaderboard-podium-card flex flex-col items-center rounded-2xl border-2 p-5 text-center ${entry.rank === 1 ? "leaderboard-first" : ""}`}>
               <p className="text-lg font-black">{ordinal(entry.rank)}</p>
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="mt-2 max-w-full truncate text-2xl font-black disabled:cursor-default">{entry.name}</button>
-              <div className="my-4 grid h-28 w-28 place-items-center">{entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={64} />}</div>
+              <div className="my-4 grid h-28 w-28 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={64} />}</div>
               <p className="flex items-center gap-2 text-xl font-black"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
               {entry.sub && <p className="text-xs font-bold opacity-80">{entry.sub}</p>}
             </div>
@@ -4064,7 +4068,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
         {rest.map((entry) => (
           <li key={entry.key} className={`leaderboard-row flex items-center gap-4 rounded-2xl border-2 px-4 py-2 ${entry.own ? "leaderboard-row-own" : ""}`}>
             <span className="w-10 shrink-0 text-center text-lg font-black">{entry.rank}</span>
-            <span className="grid h-12 w-12 shrink-0 place-items-center">{entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={32} />}</span>
+            <span className="grid h-12 w-12 shrink-0 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={32} />}</span>
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="truncate text-lg font-black hover:underline disabled:cursor-default disabled:no-underline">{entry.name}{entry.own ? " (you)" : ""}</button>
               {entry.sub && <span className="text-xs font-bold opacity-80">{entry.sub}</span>}
@@ -5221,7 +5225,7 @@ function CraftingTab({
             <div className="mt-3 space-y-2 overflow-y-auto pr-1">
               {recyclable.map(([name, count]) => (
                 <div key={name} className="flex items-center gap-3 rounded-xl border-2 border-[#CC5500] bg-[#ED7117] p-2">
-                  <img src={artFor(name)} alt="" className="h-10 w-10 object-contain" />
+                  <BlookImg name={name} className="h-10 w-10" />
                   <span className="min-w-0 flex-1 truncate text-sm font-black">{name} <span className="font-bold">· {count - 1} extra</span></span>
                   <input type="number" min={0} max={count - 1} value={recycleQuantities[name] || 0} onChange={(event) => setRecycleQuantities((current) => ({ ...current, [name]: Math.min(count - 1, Math.max(0, Math.floor(Number(event.target.value) || 0))) }))} aria-label={`Recycle ${name}`} className="w-20 rounded-lg border-2 border-[#CC5500] bg-[#FFF0E0] px-2 py-1 text-right font-black text-[#3B1F0E]" />
                   <button type="button" onClick={() => setRecycleQuantities((current) => ({ ...current, [name]: count - 1 }))} className="rounded-lg bg-[#CC5500] px-2 py-1 text-xs font-black text-white">Max</button>
@@ -5251,7 +5255,7 @@ function CraftingTab({
             <div className="mt-4 grid grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4">
               {unique.map((name) => (
                 <div key={name} className="dismantle-item rounded-2xl p-3">
-                  <img src={artFor(name)} alt={name} className="mx-auto h-16 w-16 object-contain" />
+                  <BlookImg name={name} className="mx-auto h-16 w-16" />
                   <span className="mt-1 block truncate text-center text-[10px] font-bold text-[#3B1F0E]">{name} · ×{player.inventory.filter((item) => item === name).length}</span>
                   <span className="mt-2 flex justify-center gap-1">{bundleEntries(dismantleBundleFor(name, rarityFor(name))).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-5 w-5 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span>
                   <button type="button" disabled={player.inventory.length <= 1} onClick={() => { setShowRecycleStation(false); salvage(name); }} title={player.inventory.length <= 1 ? "Keep at least one Bread in your collection" : `Dismantle ${name}`} className="dismantle-item-action mt-3 w-full rounded-lg px-2 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-35">Dismantle</button>
