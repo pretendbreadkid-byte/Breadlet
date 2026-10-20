@@ -20,6 +20,7 @@ type LiveTradeProps = {
   reloadEmojis: () => void | Promise<void>;
   onPlayerRefresh: () => void | Promise<void>;
   notify: (message: string) => void;
+  onTradeComplete?: (otherName: string) => void;
 };
 
 const toLocal = (offer: Offer | undefined): LocalOffer => ({
@@ -32,7 +33,7 @@ const toOffer = (offer: LocalOffer): Offer => ({
 });
 
 export function LiveTrade(props: LiveTradeProps) {
-  const { player, isGuest, onPlayerRefresh, notify } = props;
+  const { player, isGuest, onPlayerRefresh, notify, onTradeComplete } = props;
   const [trades, setTrades] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
   const knownRoom = useRef<string | null>(null);
@@ -54,13 +55,13 @@ export function LiveTrade(props: LiveTradeProps) {
       const ended = list.find((trade: any) => trade.id === knownRoom.current);
       knownRoom.current = null;
       if (ended?.status === "completed") {
-        notify("Trade complete! Your collection was updated.");
+        onTradeComplete?.(ended.sender_profile_id === player.id ? ended.receiver_username : ended.sender_username);
         void onPlayerRefresh();
       } else if (ended) {
         notify(`The trade was ${ended.status}.`);
       }
     }
-  }, [isGuest, notify, onPlayerRefresh, player.id]);
+  }, [isGuest, notify, onPlayerRefresh, onTradeComplete, player.id]);
 
   useEffect(() => {
     if (isGuest || !player.id) return;
@@ -118,11 +119,10 @@ export function LiveTrade(props: LiveTradeProps) {
   }
   if (incoming) {
     return (
-      <div className="modal-layer fixed inset-0 z-[9998] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
-        <section role="alertdialog" aria-modal="true" className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
-          <p className="text-lg font-black text-[#bde8ff]">Trade request</p>
-          <p className="mt-3 text-sm text-[#d9f3ff]"><b>{incoming.sender_username || "A player"}</b> wants to trade with you right now.</p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="fixed bottom-5 right-5 z-[9998] w-[min(22rem,calc(100vw-2rem))]">
+        <section role="alert" className="rounded-2xl border border-white/15 bg-black p-4 text-white shadow-2xl">
+          <p className="text-sm text-white/90"><b>{incoming.sender_username || "A player"}</b> has sent you a trade request.</p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <button disabled={busy} onClick={() => void act(incoming.id, "decline")} className="rounded-xl bg-red-600 px-4 py-3 font-black text-white disabled:opacity-50">Decline</button>
             <button disabled={busy} onClick={() => void act(incoming.id, "accept")} className="rounded-xl bg-green-600 px-4 py-3 font-black text-white disabled:opacity-50">Accept</button>
           </div>
@@ -132,7 +132,7 @@ export function LiveTrade(props: LiveTradeProps) {
   }
   if (outgoing) {
     return (
-      <div className="fixed bottom-5 right-5 z-50 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-[#73c8ff] bg-[#18558f] p-4 text-white shadow-2xl" role="status">
+      <div className="fixed bottom-5 right-5 z-50 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-white/15 bg-black p-4 text-white shadow-2xl" role="status">
         <p className="text-sm font-bold">Waiting for <b>{outgoing.receiver_username || "the player"}</b> to accept your trade request...</p>
         <button disabled={busy} onClick={() => void act(outgoing.id, "cancel")} className="mt-3 w-full rounded-lg bg-red-600 px-3 py-2 text-sm font-black text-white disabled:opacity-50">Cancel request</button>
       </div>

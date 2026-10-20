@@ -45,7 +45,7 @@ h3,
   background: var(--breadlet-background) !important;
 }
 
-.breadlet-blue-theme > *:not(.bread-floaters) {
+.breadlet-blue-theme > * {
   position: relative;
   z-index: 1;
 }
@@ -612,7 +612,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
   box-shadow: 0 10px 22px rgba(233, 189, 103, 0.2);
 }
 
-.breadlet-blue-theme { background: #E77D22 !important; color: #3B1F0E; }
+.breadlet-blue-theme { background: #E77D22 url("/assets/tab-stripes-bg.png") center / cover fixed no-repeat !important; color: #3B1F0E; }
 .breadlet-blue-theme [class*="bg-[#0c3b70"],
 .breadlet-blue-theme [class*="bg-[#072a54"],
 .breadlet-blue-theme [class*="bg-[#103f75"],

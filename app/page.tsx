@@ -6,14 +6,12 @@ import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
-import { TradesPage } from "./components/trades-page";
 import { EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
 import {
   Backpack,
   CircleUserRound,
-  ArrowLeftRight,
   Crown,
   Hammer,
   Lock,
@@ -48,7 +46,6 @@ type Tab =
   | "market"
   | "chat"
   | "leaderboard"
-  | "trades"
   | "migration"
   | "promo"
   | "info"
@@ -428,6 +425,7 @@ function MainPage() {
   const [viewedProfile, setViewedProfile] = useState<PublicProfile | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [tradeDoneNotice, setTradeDoneNotice] = useState("");
   const [capsuleToConfirm, setCapsuleToConfirm] = useState<Capsule | null>(null);
   const [reveal, setReveal] = useState<{
     capsule: Capsule;
@@ -1419,31 +1417,13 @@ function MainPage() {
       label: "Chat",
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
-    { id: "trades", label: "Trading", icon: <ArrowLeftRight size={20} strokeWidth={2.2} /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
   ];
   const visibleNav = isGuest
-    ? nav.filter((item) => !["clan", "market", "chat", "migration", "leaderboard", "trades"].includes(item.id))
+    ? nav.filter((item) => !["clan", "market", "chat", "migration", "leaderboard"].includes(item.id))
     : nav;
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
-      <div className="bread-floaters" aria-hidden="true">
-        {Array.from({ length: 120 }).map((_, i) => (
-          <img
-            key={i}
-            src={
-              i % 3 === 0
-                ? "/assets/bread-silhouette-loaf.svg"
-                : i % 3 === 1
-                  ? "/assets/bread-silhouette-oval.svg"
-                  : "/assets/bread-silhouette-ring.svg"
-            }
-            alt=""
-            className="bread-floater"
-          />
-        ))}
-      </div>
-
       {/* Left Blooket-style Persistent Sidebar */}
       <aside className="breadlet-sidebar w-full md:w-60 md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-3 flex flex-col justify-between z-20 shadow-xl">
         <div>
@@ -1472,6 +1452,14 @@ function MainPage() {
             ))}
           </nav>
         </div>
+
+        {tradeDoneNotice && (
+          <div role="status" className="mt-4 rounded-xl border border-white/15 bg-black p-3 text-sm text-white shadow-lg">
+            <p className="font-black">Trade completed</p>
+            <p className="mt-1 text-white/75">Your trade with <b>{tradeDoneNotice}</b> went through.</p>
+            <button type="button" onClick={() => setTradeDoneNotice("")} className="mt-2 w-full rounded-lg bg-white/10 px-2 py-1 text-xs font-bold hover:bg-white/20">Dismiss</button>
+          </div>
+        )}
 
         {/* Sidebar Footer Controls */}
         <div className="mt-8 pt-4 border-t border-[#3d91cd]/20 flex items-center justify-around text-white">
@@ -1571,7 +1559,7 @@ function MainPage() {
 
         {/* Dynamic Page Section */}
         <section className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
-          {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} />}
+          {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
@@ -1616,7 +1604,6 @@ function MainPage() {
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
             />
           )}
-          {tab === "trades" && <TradesPage playerId={player.id ?? ""} onlinePlayers={onlinePlayers} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} artFor={artFor} />}
           {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
           {tab === "chat" && <ChatTab emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
