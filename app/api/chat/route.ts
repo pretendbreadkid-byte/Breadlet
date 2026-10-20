@@ -305,11 +305,10 @@ export async function POST(request: Request) {
 
   const body = await request.json();
 
-  const message = String(
-    body.message || ''
-  )
-    .trim()
-    .slice(0, 500);
+  const rawMessage = String(body.message || '').trim();
+  // Image messages carry a base64 data URL (png, jpeg, gif, webp or svg) and need a larger limit.
+  const isImageMessage = /^\[img\]data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+\/=]+\[\/img\]$/.test(rawMessage) && rawMessage.length <= 600000;
+  const message = isImageMessage ? rawMessage : rawMessage.slice(0, 500);
 
   if (!message) {
     return NextResponse.json(

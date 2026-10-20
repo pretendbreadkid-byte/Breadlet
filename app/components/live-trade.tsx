@@ -309,7 +309,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
   return (
     <div className="modal-layer fixed inset-0 z-[9998] flex flex-col overflow-y-auto bg-[#061f3d] text-white">
       <header className="flex items-center justify-between border-b border-[#3d91cd]/30 bg-[#072a54] px-4 py-3">
-        <h2 className="text-xl font-black">Trading with {otherName}</h2>
+        <div className="flex items-center gap-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-10 w-auto object-contain" /><h2 className="text-xl font-black">Trading with {otherName}</h2></div>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${otherOffline ? "bg-red-600" : "bg-green-600"}`}>{otherOffline ? "Offline" : "Online"}</span>
       </header>
       {otherOffline && <p role="alert" className="bg-red-700 px-4 py-2 text-center text-sm font-bold">{otherName} left. Both players must be online to trade, so you can only decline for now.</p>}

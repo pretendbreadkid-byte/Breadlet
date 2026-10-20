@@ -6,12 +6,14 @@ import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
+import { TradesPage } from "./components/trades-page";
 import { EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
 import {
   Backpack,
   CircleUserRound,
+  ArrowLeftRight,
   Crown,
   Hammer,
   Lock,
@@ -46,6 +48,7 @@ type Tab =
   | "market"
   | "chat"
   | "leaderboard"
+  | "trades"
   | "migration"
   | "promo"
   | "info"
@@ -1416,10 +1419,11 @@ function MainPage() {
       label: "Chat",
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
+    { id: "trades", label: "Trading", icon: <ArrowLeftRight size={20} strokeWidth={2.2} /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
   ];
   const visibleNav = isGuest
-    ? nav.filter((item) => !["clan", "market", "chat", "migration", "leaderboard"].includes(item.id))
+    ? nav.filter((item) => !["clan", "market", "chat", "migration", "leaderboard", "trades"].includes(item.id))
     : nav;
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
@@ -1612,6 +1616,7 @@ function MainPage() {
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
             />
           )}
+          {tab === "trades" && <TradesPage playerId={player.id ?? ""} onlinePlayers={onlinePlayers} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} artFor={artFor} />}
           {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
           {tab === "chat" && <ChatTab emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
@@ -3674,8 +3679,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert("Image file size must be smaller than 3MB.");
+    if (file.size > 400 * 1024) {
+      alert("Image file size must be smaller than 400KB.");
       return;
     }
     const reader = new FileReader();
@@ -3862,7 +3867,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
             />
           </label>
         )}
-        <EmojiPicker emojis={emojis} canManage={canManageEmojis} onPick={(text) => setMessage((current) => `${text}`.slice(0, 500))} onChanged={reloadEmojis} />
+        <EmojiPicker emojis={emojis} canManage={canManageEmojis} onPick={(text) => setMessage((current) => `${current}${text}`.slice(0, 500))} onChanged={reloadEmojis} />
         <div className="min-w-0 flex-1">
         {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {replyTarget.message}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">×</button></div>}
         <input
