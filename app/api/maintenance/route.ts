@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasAdminAccess } from '../../../lib/admin-access';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
@@ -19,8 +20,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: 'Admin server configuration is missing.' }, { status: 503 });
-  const { data: role } = await admin.from('admin_roles').select('role').eq('profile_id', user.id).in('role', ['owner', 'admin']).limit(1).maybeSingle();
-  if (!role) return NextResponse.json({ error: 'Administrator access is required.' }, { status: 403 });
+  if (!(await hasAdminAccess(admin, user.id))) return NextResponse.json({ error: 'Administrator access is required.' }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const maintenanceMode = Boolean(body.maintenanceMode);
   const { error } = await admin.from('app_settings').upsert({ id: 1, maintenance_mode: maintenanceMode, updated_at: new Date().toISOString() });

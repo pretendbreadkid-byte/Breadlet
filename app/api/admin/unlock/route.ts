@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasAdminAccess } from '../../../../lib/admin-access';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 
@@ -9,8 +10,6 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: 'Admin server configuration is missing.' }, { status: 503 });
-  const { data: role, error } = await admin.from('admin_roles').select('role').eq('profile_id', user.id).in('role', ['owner', 'admin']).limit(1).maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  if (!role) return NextResponse.json({ error: 'An owner must grant your account administrator access.' }, { status: 403 });
+  if (!(await hasAdminAccess(admin, user.id))) return NextResponse.json({ error: 'Administrator access is restricted to the adminxd2 account.' }, { status: 403 });
   return NextResponse.json({ ok: true });
 }

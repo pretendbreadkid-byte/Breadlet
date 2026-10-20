@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasAdminAccess } from '../../../lib/admin-access';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
@@ -9,8 +10,7 @@ async function adminSession() {
   if (!user) return { error: NextResponse.json({ error: 'Unauthenticated' }, { status: 401 }) };
   const supabase = createAdminClient();
   if (!supabase) return { error: NextResponse.json({ error: 'Admin server configuration is missing.' }, { status: 503 }) };
-  const { data: role } = await supabase.from('admin_roles').select('role').eq('profile_id', user.id).in('role', ['owner', 'admin']).limit(1).maybeSingle();
-  if (!role) return { error: NextResponse.json({ error: 'Administrator access is required.' }, { status: 403 }) };
+  if (!(await hasAdminAccess(supabase, user.id))) return { error: NextResponse.json({ error: 'Administrator access is required.' }, { status: 403 }) };
   return { supabase, userId: user.id };
 }
 

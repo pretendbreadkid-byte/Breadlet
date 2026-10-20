@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasAdminAccess } from '../../../lib/admin-access';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
@@ -13,8 +14,7 @@ async function session() {
 }
 
 async function hasReviewerAccess(admin: NonNullable<ReturnType<typeof createAdminClient>>, userId: string) {
-  const { data: role } = await admin.from('admin_roles').select('role').eq('profile_id', userId).in('role', ['owner', 'admin']).limit(1).maybeSingle();
-  return Boolean(role);
+  return hasAdminAccess(admin, userId);
 }
 
 export async function GET() {

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { hasAdminAccess } from '../../../lib/admin-access';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
@@ -13,8 +14,7 @@ async function session() {
   if (!user) return { response: NextResponse.json({ error: 'Unauthenticated' }, { status: 401 }) };
   const admin = createAdminClient();
   if (!admin) return { response: NextResponse.json({ error: 'Emoji server is not configured.' }, { status: 503 }) };
-  const { data: role } = await admin.from('admin_roles').select('role').eq('profile_id', user.id).in('role', ['owner', 'admin']).limit(1).maybeSingle();
-  return { admin, userId: user.id, isAdmin: Boolean(role) };
+  return { admin, userId: user.id, isAdmin: await hasAdminAccess(admin, user.id) };
 }
 
 export async function GET() {

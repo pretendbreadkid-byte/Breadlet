@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
+import { hasAdminAccess } from '../../../lib/admin-access';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
 async function isChatAdmin(database: any, userId: string) {
-  const { data } = await database.from('admin_roles').select('role').eq('profile_id', userId).in('role', ['owner', 'admin']).limit(1).maybeSingle();
-  return Boolean(data);
+  return hasAdminAccess(database, userId);
 }
 
 export async function GET() {
