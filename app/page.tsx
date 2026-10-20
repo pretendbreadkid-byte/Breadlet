@@ -2077,7 +2077,7 @@ function ProfileTab({
       {tradeAlert && <button onClick={() => { setTradeAlert(""); document.getElementById("profile-trades")?.scrollIntoView({ behavior: "smooth" }); }} className="profile-trade-toast" role="status">{tradeAlert}<span>View trade</span></button>}
       <div className="profile-top-grid">
         <section className="profile-player-panel">
-          <div className="profile-avatar-frame">{profileEquipped ? <img src={artFor(profileEquipped)} alt={profileEquipped} /> : <CircleUserRound size={52} />}</div>
+          <div className="profile-avatar-frame profile-avatar-float">{profileEquipped ? <img src={artFor(profileEquipped)} alt={profileEquipped} /> : <CircleUserRound size={52} />}</div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
             <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Tokens</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
@@ -3589,7 +3589,7 @@ function SimplePanel({
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis }: { emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; profileId?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; profileId?: string; createdAt?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
@@ -3630,6 +3630,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 isBreadletBot: row.isBreadletBot === true,
                 canDelete: row.canDelete === true,
                 profileId: row.profile_id,
+                createdAt: row.created_at,
                 replyTo: row.replyTo || null,
                 badges: row.badges || (username === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : []),
               };
@@ -3756,6 +3757,13 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
 
   const chatListRef = useRef<HTMLDivElement>(null);
   const chatScrolledRef = useRef(false);
+  const [chatAtBottom, setChatAtBottom] = useState(true);
+  const lastSeenKey = `breadlet-chat-last-seen-${player.username}`;
+  const [lastSeenAtOpen] = useState(() => (typeof window === "undefined" ? "" : window.localStorage.getItem(lastSeenKey) || ""));
+  const newestCreatedAt = messages.reduce((latest, item) => (item.createdAt && item.createdAt > latest ? item.createdAt : latest), "");
+  const firstUnreadId = lastSeenAtOpen
+    ? messages.find((item) => item.createdAt && item.createdAt > lastSeenAtOpen && item.user !== player.username)?.id
+    : undefined;
   useEffect(() => {
     const list = chatListRef.current;
     if (!list || !messages.length) return;
@@ -3763,8 +3771,20 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     if (!chatScrolledRef.current || nearBottom) {
       list.scrollTop = list.scrollHeight;
       chatScrolledRef.current = true;
+      setChatAtBottom(true);
+      if (newestCreatedAt) window.localStorage.setItem(lastSeenKey, newestCreatedAt);
+    } else {
+      setChatAtBottom(false);
     }
-  }, [messages]);
+  }, [messages, newestCreatedAt, lastSeenKey]);
+  const handleChatScroll = () => {
+    const list = chatListRef.current;
+    if (!list) return;
+    const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+    setChatAtBottom(atBottom);
+    if (atBottom && newestCreatedAt) window.localStorage.setItem(lastSeenKey, newestCreatedAt);
+  };
+  const scrollChatToBottom = () => chatListRef.current?.scrollTo({ top: chatListRef.current.scrollHeight, behavior: "smooth" });
 
   const messageGroups = messages.reduce<Array<{ user: string; isBreadletBot: boolean; items: Array<{ item: (typeof messages)[number]; index: number }> }>>((groups, item, index) => {
     const current = groups[groups.length - 1];
@@ -3847,7 +3867,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           </div>
         </div>
       )}
-      <div ref={chatListRef} className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
+      <div ref={chatListRef} onScroll={handleChatScroll} className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         {messageGroups.map((group) => {
           const latest = group.items[group.items.length - 1];
           const latestItem = latest.item;
@@ -3874,6 +3894,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                     const canEdit = !item.isBreadletBot && item.user === player.username && (item.id != null || isGuest);
                     return (
                       <div key={messageId} id={`chat-message-${messageId}`} className="chat-group-message">
+                        {firstUnreadId != null && item.id === firstUnreadId && (
+                          <div className="chat-new-divider" role="separator"><span /><b>NEW MESSAGES</b></div>
+                        )}
                         {editingMessageId === messageId ? (
                           <div className="space-y-2">
                             <textarea value={editDraft} onChange={(event) => setEditDraft(event.target.value)} maxLength={500} aria-label="Edit message" className="w-full resize-y rounded-lg border border-[#5c574d] bg-[#13120F] p-2 text-sm text-white outline-none focus:border-[#e9bd67]" />
@@ -3913,6 +3936,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
             </div>
           );
         })}
+      </div>
+      <div className="relative z-10 h-0 shrink-0">
+        {!chatAtBottom && <button type="button" onClick={scrollChatToBottom} className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border-2 border-[#CC5500] bg-[#3B1F0E] px-4 py-2 text-sm font-black text-white shadow-lg hover:bg-[#5a2f16]">Scroll to most recent message ↓</button>}
       </div>
       <form onSubmit={send} className="mt-4 flex shrink-0 items-center gap-3">
         {isVerified && (

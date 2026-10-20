@@ -1036,8 +1036,7 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   transition: transform 160ms ease, background 160ms ease;
 }
 .breadlet-blue-theme .bazaar-market .bazaar-list-button:hover { transform: translateY(-1px); background: #13120F; }
-.breadlet-blue-theme .bazaar-market .bazaar-view-tabs,
-.breadlet-blue-theme .bazaar-market .market-blook-carousel {
+.breadlet-blue-theme .bazaar-market .bazaar-view-tabs {
   border: 2px solid #090908;
   background: #27251F;
   box-shadow: 0 5px 0 #090908;
@@ -1054,7 +1053,10 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
 }
 .breadlet-blue-theme .bazaar-market .market-blook-carousel {
   min-height: 218px;
+  border: 0 !important;
   border-radius: 14px;
+  background: transparent !important;
+  box-shadow: none !important;
   padding: 10px;
 }
 .breadlet-blue-theme .bazaar-market .bazaar-blook-grid {
@@ -1493,3 +1495,8 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .auth-falling { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 .auth-falling img { position: absolute; top: -90px; width: 64px; height: 64px; object-fit: contain; filter: brightness(0); opacity: .35; animation: auth-fall linear infinite; }
 @keyframes auth-fall { from { transform: translateY(-10vh) rotate(-12deg); } to { transform: translateY(115vh) rotate(18deg); } }
+.profile-avatar-float img, .profile-avatar-float svg { animation: profile-float 3s ease-in-out infinite; }
+@keyframes profile-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.chat-new-divider { display: flex; align-items: center; gap: .75rem; margin: .5rem 0; color: #ff5a5a; }
+.chat-new-divider span { height: 1px; flex: 1; background: #ff5a5a; }
+.chat-new-divider b { font-family: "DynaPuff", Impact, sans-serif; font-size: .8rem; letter-spacing: .02em; }
