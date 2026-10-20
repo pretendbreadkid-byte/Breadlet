@@ -203,7 +203,8 @@ export async function GET() {
 
     const badges = Array.from(
       new Set([
-        ...(profile?.stats?.badges || []),
+        'OG',
+      ...(profile?.stats?.badges || []),
 
         ...(tokens >= 10000
           ? ['10K Tokens']

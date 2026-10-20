@@ -128,8 +128,10 @@ const badgeDescriptions: Record<string, string> = {
   "10K Tokens": "Reach a balance of 10,000 tokens.",
   "100K Tokens": "Reach a balance of 100,000 tokens.",
   "1M Tokens": "Reach a balance of 1,000,000 tokens.",
+  OG: "Awarded to every original Breadlet player.",
 };
 const tokenBadgesFor = (tokens: number) => [
+  "OG",
   ...(tokens >= 10000 ? ["10K Tokens"] : []),
   ...(tokens >= 100000 ? ["100K Tokens"] : []),
   ...(tokens >= 1000000 ? ["1M Tokens"] : []),
@@ -141,6 +143,7 @@ const badgeIconFor = (badge: string) => ({
   "10K Tokens": "/assets/token-badge-10k.svg",
   "100K Tokens": "/assets/token-badge-100k.svg",
   "1M Tokens": "/assets/token-badge-1m.svg",
+  OG: "/assets/og-badge.svg",
 })[badge] || "/assets/verified-badge.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>
@@ -160,6 +163,7 @@ const artFor = (name: string) =>
     "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png?v=2",
     "Lava Slime": "/assets/lava-slime.svg",
     Ted: "/assets/ted-shopkeeper.svg",
+    "Walter White": "/assets/walter-white.svg",
     "Olive Grenade": "/assets/grenade2.svg",
     "Golden Grenade": "/assets/gold grenade2.svg",
     "Sour Dough": "/assets/sour-dough-refreshed.svg",
@@ -456,11 +460,21 @@ function MainPage() {
       setPlayerNotifications([]);
       return;
     }
-    fetch("/api/notifications", { cache: "no-store" })
+    const load = () => fetch("/api/notifications", { cache: "no-store" })
       .then(async (response) => response.ok ? response.json() : [])
-      .then((rows) => setPlayerNotifications(Array.isArray(rows) ? rows : []))
+      .then((rows) => {
+        if (!Array.isArray(rows)) return;
+        setPlayerNotifications((current) => {
+          const known = new Set(current.map((item) => item.id));
+          if (rows.some((row) => !known.has(row.id) && row.type === "admin_gift")) void refreshPlayerFromServer();
+          return rows;
+        });
+      })
       .catch(() => undefined);
-  }, [isGuest, player?.id]);
+    void load();
+    const timer = window.setInterval(load, 15000);
+    return () => window.clearInterval(timer);
+  }, [isGuest, player?.id, refreshPlayerFromServer]);
 
   const dismissPlayerNotification = async () => {
     const current = playerNotifications[0];
@@ -1035,6 +1049,36 @@ function MainPage() {
     }
     return false;
   };
+  const massDismantle = async (quantities: Record<string, number>) => {
+    if (!player) return false;
+    const requested = Object.fromEntries(Object.entries(quantities).filter(([, quantity]) => quantity > 0));
+    if (!Object.keys(requested).length) {
+      setNotice("Choose at least one extra Breadlet to recycle.");
+      return false;
+    }
+    if (!isGuest) {
+      const result = await playAction({ action: "dismantle", quantities: requested });
+      if (!result) return false;
+      setNotice("Breadlets recycled into materials.");
+      return true;
+    }
+    const remaining = [...player.inventory];
+    const materials = { ...player.materials };
+    let recycled = 0;
+    Object.entries(requested).forEach(([name, requestedAmount]) => {
+      const ownedCount = remaining.filter((item) => item === name).length;
+      const amount = Math.min(requestedAmount, Math.max(0, ownedCount - 1));
+      for (let count = 0; count < amount; count += 1) remaining.splice(remaining.indexOf(name), 1);
+      bundleEntries(dismantleBundleFor(name, rarityFor(name))).forEach(([material, perCopy]) => {
+        materials[material] = (materials[material] || 0) + perCopy * amount;
+      });
+      recycled += amount;
+    });
+    if (!recycled) return false;
+    await save({ ...player, inventory: remaining, materials }, { inventory: true });
+    setNotice(`${recycled} Breadlets recycled into materials.`);
+    return true;
+  };
   const buyUpgrade = (index: number) => {
     if (!player || index <= player.pickaxe) return;
     const upgrade = upgrades[index];
@@ -1398,7 +1442,7 @@ function MainPage() {
     },
     {
       id: "inventory",
-      label: "Collection",
+      label: "Breadlets",
       icon: <Backpack size={20} strokeWidth={2.2} />,
     },
     {
@@ -1558,7 +1602,7 @@ function MainPage() {
         </div>
 
         {/* Dynamic Page Section */}
-        <section className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
+        <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
           {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
@@ -1608,7 +1652,7 @@ function MainPage() {
           {tab === "chat" && <ChatTab emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (
-            <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} craft={craft} isGuest={isGuest} />
+            <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} massDismantle={massDismantle} craft={craft} isGuest={isGuest} />
           )}
           {tab === "migration" && <RequestsTab isGuest={isGuest} />}
           {tab === "promo" && (
@@ -2102,7 +2146,7 @@ function TradeChatModal({
 
 function rarityFor(name: string) {
   const baseName = name.replace(/^Shiny /, "");
-  if (baseName === "Ted") return "Unique";
+  if (baseName === "Ted" || baseName === "Walter White") return "Unique";
   const craftedRarity = craftedRarityFor(baseName);
   if (craftRecipes.some((recipe) => recipe.name === baseName)) return craftedRarity;
   return (
@@ -2471,7 +2515,7 @@ function InventoryTab({
     <div className="flex flex-col lg:flex-row gap-8 items-start">
       {/* Main Breadlets Grid Area */}
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#3d91cd]/30">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#3d91cd]/30 lg:pr-[25rem]">
           <div>
             <h1 className="text-4xl font-black text-white tracking-wide">My Breadlets</h1>
             <p className="mt-1 text-sm text-[#9cc8e8]">Click any Breadlet to view details, equip, or sell.</p>
@@ -2483,7 +2527,7 @@ function InventoryTab({
 
         <div className="mt-6 space-y-8">
           {catalog.map((capsule) => (
-            <section key={capsule.name} className="rounded-3xl border border-[#3d91cd]/30 bg-[#103f75]/80 p-5 shadow-md">
+            <section key={capsule.name} className="p-1">
               <div className="mb-4 flex items-center justify-between border-b border-[#3d91cd]/20 pb-2">
                 <h2 className="text-xl font-black text-[#bde8ff] flex items-center gap-2">
                   <img src={capsule.art} alt="" className="h-6 w-6 object-contain" />
@@ -2541,7 +2585,7 @@ function InventoryTab({
               </div>
             </section>
           ))}
-          <section className="rounded-3xl border border-[#d49a4a]/35 bg-[#3a2415]/80 p-5 shadow-md">
+          <section className="p-1">
             <div className="mb-4 flex items-center justify-between border-b border-[#d49a4a]/20 pb-2">
               <h2 className="text-xl font-black text-[#ffe2a0]">Other</h2>
               <span className="text-xs font-bold uppercase tracking-widest text-[#d7b88c]">Extra, secret, and crafted Breadlets</span>
@@ -3444,21 +3488,21 @@ function DismantleConfirmModal({
 
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/70 px-5 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" aria-labelledby="dismantle-confirm-title" className="w-full max-w-sm rounded-3xl border border-[#5c574d] bg-[#27251F] p-6 text-center text-white shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-labelledby="dismantle-confirm-title" className="w-full max-w-sm rounded-3xl border-4 border-[#CC5500] bg-[#FFD9B3] p-6 text-center text-[#3B1F0E] shadow-2xl">
         <p className="text-xs font-bold uppercase tracking-widest text-[#e9bd67]">Recycle Bread</p>
         <img src={artFor(name)} alt={name} className="mx-auto mt-4 h-28 w-28 object-contain" />
         <h2 id="dismantle-confirm-title" className="mt-3 text-2xl font-black">Dismantle {name}?</h2>
-        <p className="mt-2 text-sm text-[#c9c7c0]">This removes one copy and returns:</p>
+        <p className="mt-2 text-sm text-[#3B1F0E]">This removes one copy and returns:</p>
         <div className="mt-4 flex justify-center gap-3">
           {bundleEntries(bundle).map(([material, amount]) => (
-            <div key={material} className="rounded-xl bg-[#13120F] p-2">
+            <div key={material} className="rounded-xl border-2 border-[#CC5500] bg-[#FFB066] p-2">
               <img src={materialArtFor(material)} alt={material} className="h-12 w-12 object-contain" />
-              <b className="text-[#e9bd67]">x{amount}</b>
+              <b className="text-[#3B1F0E]">x{amount}</b>
             </div>
           ))}
         </div>
         <div className="mt-6 grid grid-cols-2 gap-2">
-          <button onClick={close} className="rounded-xl border border-[#5c574d] px-3 py-3 font-bold text-white">Cancel</button>
+          <button onClick={close} className="rounded-xl border-2 border-[#CC5500] px-3 py-3 font-bold text-[#3B1F0E] hover:bg-[#FFB066]">Cancel</button>
           <button
             disabled={dismantling}
             onClick={async () => {
@@ -3469,7 +3513,7 @@ function DismantleConfirmModal({
                 setDismantling(false);
               }
             }}
-            className="rounded-xl bg-[#e9bd67] px-3 py-3 font-black text-[#29170c] disabled:cursor-wait disabled:opacity-60"
+            className="rounded-xl bg-[#CC5500] px-3 py-3 font-black text-white disabled:cursor-wait disabled:opacity-60"
           >
             {dismantling ? "Dismantling..." : "Dismantle"}
           </button>
@@ -3490,13 +3534,13 @@ function CraftingMachineModal({
   close: () => void;
 }) {
   return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-[#031426]/85 px-5 backdrop-blur-sm">
-      <div className="craft-machine-modal w-full max-w-xl rounded-3xl border border-[#5dbdff] bg-[#bfe8ff] p-6 text-center text-[#062443] shadow-2xl">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-[#17659c]">Crafting machine</p>
+    <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
+      <div className="craft-machine-modal w-full max-w-xl rounded-3xl border-4 border-[#CC5500] bg-[#FFD9B3] p-6 text-center text-[#3B1F0E] shadow-2xl">
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-[#CC5500]">Crafting machine</p>
         <h2 className="mt-2 text-3xl font-black">{phase === "processing" ? "Forging your Bread" : phase === "charging" ? "Powering up" : "Craft complete!"}</h2>
-          <div className="mt-6 rounded-2xl border-4 border-[#17659c] bg-[#e8f8ff] p-5">
+          <div className="mt-6 rounded-2xl border-4 border-[#CC5500] bg-[#FFF0E0] p-5">
             <img src="/assets/crafting machine.svg" alt="Crafting machine" className="mx-auto mb-4 h-28 w-full object-contain" />
-          <div className={`craft-reveal-stage flex min-h-44 items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#8ed2f7] p-4 ${phase === "charging" ? "craft-energy-charge" : phase === "output" ? "craft-output-flash" : ""}`}>
+          <div className={`craft-reveal-stage flex min-h-44 items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#FFB066] p-4 ${phase === "charging" ? "craft-energy-charge" : phase === "output" ? "craft-output-flash" : ""}`}>
             {phase === "processing" ? (
               <div className="craft-material-stream flex items-center gap-2">
                 {bundleEntries(ingredients).map(([material, amount]) => <span key={material} className="craft-input flex items-center rounded-xl bg-white/80 p-2"><img src={materialArtFor(material)} alt={material} className="h-12 w-12 object-contain" /><b className="text-sm">x{amount}</b></span>)}
@@ -3507,9 +3551,9 @@ function CraftingMachineModal({
               <div className="craft-output-pop relative rounded-2xl bg-white/75 p-5"><RewardBurst rarity={craftedRarityFor(name)} /><RewardArt name={name} art={artFor(name)} className="relative z-10 mx-auto h-36 w-36 object-contain" /><strong className="relative z-10 mt-2 block text-lg">{craftedRarityFor(name)}</strong></div>
             )}
           </div>
-          <div className="mx-auto mt-4 flex max-w-sm items-center gap-2"><span className="h-3 flex-1 rounded-full bg-[#17659c]" /><span className="h-10 w-20 rounded-lg border-4 border-[#17659c] bg-[#5dbdff]" /><span className="h-3 flex-1 rounded-full bg-[#17659c]" /></div>
+          <div className="mx-auto mt-4 flex max-w-sm items-center gap-2"><span className="h-3 flex-1 rounded-full bg-[#CC5500]" /><span className="h-10 w-20 rounded-lg border-4 border-[#CC5500] bg-[#ED7117]" /><span className="h-3 flex-1 rounded-full bg-[#CC5500]" /></div>
         </div>
-        {phase === "output" && <button onClick={close} className="craft-collect mt-6 w-full rounded-xl bg-[#17659c] px-4 py-3 font-black text-white">Collect {name}</button>}
+        {phase === "output" && <button onClick={close} className="craft-collect mt-6 w-full rounded-xl bg-[#CC5500] px-4 py-3 font-black text-white">Collect {name}</button>}
       </div>
     </div>
   );
@@ -3540,7 +3584,7 @@ function SimplePanel({
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis }: { emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; profileId?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
@@ -3580,6 +3624,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 equippedBlook: row.equippedBlook || "",
                 isBreadletBot: row.isBreadletBot === true,
                 canDelete: row.canDelete === true,
+                profileId: row.profile_id,
                 replyTo: row.replyTo || null,
                 badges: row.badges || (username === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : []),
               };
@@ -3694,6 +3739,16 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderEmojiText(text, emojis)}</p>;
   };
 
+  const giveWalterWhite = async (targetId: string, name: string) => {
+    const response = await fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetId, operation: "add", blookName: "Walter White", notification: { title: "You got Walter White!", message: "An admin gave you the Walter White Breadlet. Check your Breadlets." } }),
+    }).catch(() => null);
+    const result = await response?.json().catch(() => ({}));
+    window.alert(response?.ok ? `Gave Walter White to ${name}.` : result?.error || "Could not give Walter White.");
+  };
+
   const messageGroups = messages.reduce<Array<{ user: string; isBreadletBot: boolean; items: Array<{ item: (typeof messages)[number]; index: number }> }>>((groups, item, index) => {
     const current = groups[groups.length - 1];
     if (current && current.user === item.user && current.isBreadletBot === Boolean(item.isBreadletBot)) {
@@ -3792,6 +3847,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                       <img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" />
                     </button>
                   ))}
+                  {canManageEmojis && !isGuest && !group.isBreadletBot && latestItem.profileId && latestItem.user !== player.username && (
+                    <button type="button" onClick={() => void giveWalterWhite(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Give Walter White</button>
+                  )}
                 </div>
                 <div className="mt-1 space-y-2">
                   {group.items.map(({ item, index }) => {
@@ -5012,16 +5070,27 @@ function ClanTab({
 function CraftingTab({
   player,
   salvage,
+  massDismantle,
   craft,
   isGuest,
 }: {
   player: Player;
   salvage: (name: string) => void;
+  massDismantle: (quantities: Record<string, number>) => Promise<boolean>;
   craft: (material: string) => void;
   isGuest: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [showRecycleStation, setShowRecycleStation] = useState(false);
+  const [massRecycleOpen, setMassRecycleOpen] = useState(false);
+  const [recycleQuantities, setRecycleQuantities] = useState<Record<string, number>>({});
+  const ownedCounts = player.inventory.reduce<Record<string, number>>((counts, name) => ({ ...counts, [name]: (counts[name] || 0) + 1 }), {});
+  const recyclable = Object.entries(ownedCounts).filter(([, count]) => count > 1);
+  const recycleTotals = recyclable.reduce<Record<string, number>>((totals, [name]) => {
+    bundleEntries(dismantleBundleFor(name, rarityFor(name))).forEach(([material, amount]) => { totals[material] = (totals[material] || 0) + amount * (recycleQuantities[name] || 0); });
+    return totals;
+  }, {});
+  const recycleCount = Object.values(recycleQuantities).reduce((sum, value) => sum + value, 0);
   const unique = player.inventory.filter(
     (name, index, items) => items.indexOf(name) === index,
   ).filter((name) => name.toLowerCase().includes(search.toLowerCase()));
@@ -5034,36 +5103,71 @@ function CraftingTab({
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <span className="crafting-material-hint">Your materials are shown above</span>
-          <button type="button" onClick={() => setShowRecycleStation(true)} className="rounded-xl border border-[#5c574d] bg-[#27251F] px-4 py-3 text-sm font-black text-white hover:bg-[#13120F]">
+          <button type="button" onClick={() => { setRecycleQuantities({}); setMassRecycleOpen(true); }} disabled={!recyclable.length} className="rounded-xl border-2 border-[#CC5500] bg-[#FFD9B3] px-4 py-3 text-sm font-black text-[#3B1F0E] hover:bg-white disabled:opacity-50">
+            Mass recycle
+          </button>
+          <button type="button" onClick={() => setShowRecycleStation(true)} className="rounded-xl border-2 border-[#CC5500] bg-[#CC5500] px-4 py-3 text-sm font-black text-white hover:bg-[#A94500]">
             Open Recycle Station
           </button>
         </div>
       </div>
       <div className="crafting-workbench mt-5 grid gap-5">
-        <div className="crafting-assembly-panel rounded-3xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 sm:p-7">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#ffe2a0]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Breadlets</h2>
+        <div className="crafting-assembly-panel rounded-3xl border-2 border-[#CC5500] bg-[#D4701C] p-5 sm:p-7">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#3B1F0E]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Breadlets</h2>
           <div className="crafting-recipe-grid mt-5 grid gap-3 sm:grid-cols-2">
             {craftRecipes.map((recipe) => { const enough = isGuest || bundleEntries(recipe.ingredients).every(([material, amount]) => (player.materials[material] || 0) >= amount); return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className="craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left"><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{isGuest ? "Free to craft" : enough ? "Ready to craft" : "20 total materials"}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>→</span></button>; })}
           </div>
         </div>
       </div>
+      {massRecycleOpen && (
+        <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-3xl border-4 border-[#CC5500] bg-[#FFD9B3] p-5 text-[#3B1F0E] shadow-2xl sm:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black">Mass recycle</h2>
+                <p className="mt-1 text-sm">Recycle extra copies into materials. One of each Breadlet is always kept.</p>
+              </div>
+              <button type="button" onClick={() => setMassRecycleOpen(false)} aria-label="Close mass recycle" className="rounded-lg px-3 py-2 text-xl hover:bg-[#FFB066]">×</button>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button type="button" onClick={() => setRecycleQuantities(Object.fromEntries(recyclable.map(([name, count]) => [name, count - 1])))} className="rounded-lg bg-[#CC5500] px-3 py-1.5 text-xs font-black text-white hover:bg-[#A94500]">Max all</button>
+              <button type="button" onClick={() => setRecycleQuantities({})} className="rounded-lg border-2 border-[#CC5500] px-3 py-1.5 text-xs font-black hover:bg-[#FFB066]">Clear</button>
+            </div>
+            <div className="mt-3 space-y-2 overflow-y-auto pr-1">
+              {recyclable.map(([name, count]) => (
+                <div key={name} className="flex items-center gap-3 rounded-xl border-2 border-[#CC5500] bg-[#ED7117] p-2">
+                  <img src={artFor(name)} alt="" className="h-10 w-10 object-contain" />
+                  <span className="min-w-0 flex-1 truncate text-sm font-black">{name} <span className="font-bold">· {count - 1} extra</span></span>
+                  <input type="number" min={0} max={count - 1} value={recycleQuantities[name] || 0} onChange={(event) => setRecycleQuantities((current) => ({ ...current, [name]: Math.min(count - 1, Math.max(0, Math.floor(Number(event.target.value) || 0))) }))} aria-label={`Recycle ${name}`} className="w-20 rounded-lg border-2 border-[#CC5500] bg-[#FFF0E0] px-2 py-1 text-right font-black text-[#3B1F0E]" />
+                  <button type="button" onClick={() => setRecycleQuantities((current) => ({ ...current, [name]: count - 1 }))} className="rounded-lg bg-[#CC5500] px-2 py-1 text-xs font-black text-white">Max</button>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#FFF0E0] p-3">
+              <span className="text-sm font-black">{recycleCount} Breadlets →</span>
+              {Object.entries(recycleTotals).filter(([, amount]) => amount > 0).map(([material, amount]) => <span key={material} className="flex items-center gap-1 text-sm font-black"><img src={materialArtFor(material)} alt={material} className="h-6 w-6 object-contain" />{amount}</span>)}
+            </div>
+            <button type="button" disabled={!recycleCount} onClick={async () => { if (await massDismantle(recycleQuantities)) { setMassRecycleOpen(false); setRecycleQuantities({}); } }} className="mt-4 rounded-xl bg-[#CC5500] px-4 py-3 font-black text-white hover:bg-[#A94500] disabled:opacity-50">Recycle {recycleCount} Breadlets</button>
+          </section>
+        </div>
+      )}
       {showRecycleStation && (
         <div className="modal-layer fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-          <section role="dialog" aria-modal="true" aria-labelledby="recycle-station-title" className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-3xl border border-[#5c574d] bg-[#27251F] p-5 text-white shadow-2xl sm:p-7">
+          <section role="dialog" aria-modal="true" aria-labelledby="recycle-station-title" className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-3xl border-4 border-[#CC5500] bg-[#FFD9B3] p-5 text-[#3B1F0E] shadow-2xl sm:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-[#e9bd67]">Recycle station</p>
                 <h2 id="recycle-station-title" className="mt-1 text-2xl font-black">Dismantle Breadlets</h2>
-                <p className="mt-1 text-sm text-[#c9c7c0]">Choose a Breadlet to preview the returned materials.</p>
+                <p className="mt-1 text-sm text-[#3B1F0E]">Choose a Breadlet to preview the returned materials.</p>
               </div>
-              <button type="button" onClick={() => setShowRecycleStation(false)} aria-label="Close recycle station" className="rounded-lg px-3 py-2 text-xl text-white/70 hover:bg-[#13120F] hover:text-white">×</button>
+              <button type="button" onClick={() => setShowRecycleStation(false)} aria-label="Close recycle station" className="rounded-lg px-3 py-2 text-xl text-[#3B1F0E] hover:bg-[#FFB066]">×</button>
             </div>
-            <div className="mt-4 flex items-center gap-3 rounded-xl bg-[#13120F] px-3 py-2"><span className="text-[#e9bd67]">⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a Bread" className="min-w-0 flex-1 bg-transparent text-white outline-none" /></div>
+            <div className="mt-4 flex items-center gap-3 rounded-xl border-2 border-[#CC5500] bg-[#FFF0E0] px-3 py-2"><span className="text-[#CC5500]">⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a Bread" className="min-w-0 flex-1 bg-transparent text-[#3B1F0E] outline-none" /></div>
             <div className="mt-4 grid grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4">
               {unique.map((name) => (
-                <div key={name} className="dismantle-item rounded-2xl bg-[#13120F] p-3">
+                <div key={name} className="dismantle-item rounded-2xl p-3">
                   <img src={artFor(name)} alt={name} className="mx-auto h-16 w-16 object-contain" />
-                  <span className="mt-1 block truncate text-center text-[10px] font-bold text-[#f0d7ae]">{name} · ×{player.inventory.filter((item) => item === name).length}</span>
+                  <span className="mt-1 block truncate text-center text-[10px] font-bold text-[#3B1F0E]">{name} · ×{player.inventory.filter((item) => item === name).length}</span>
                   <span className="mt-2 flex justify-center gap-1">{bundleEntries(dismantleBundleFor(name, rarityFor(name))).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-5 w-5 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span>
                   <button type="button" disabled={player.inventory.length <= 1} onClick={() => { setShowRecycleStation(false); salvage(name); }} title={player.inventory.length <= 1 ? "Keep at least one Bread in your collection" : `Dismantle ${name}`} className="dismantle-item-action mt-3 w-full rounded-lg px-2 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-35">Dismantle</button>
                 </div>

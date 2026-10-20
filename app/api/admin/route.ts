@@ -109,6 +109,13 @@ export async function POST(request: Request) {
     const { error } = await session.supabase.from('profiles').update({ materials }).eq('id', targetId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  if (operation === 'add' && body.notification && typeof body.notification === 'object') {
+    const title = String(body.notification.title || '').slice(0, 80);
+    const message = String(body.notification.message || '').slice(0, 300);
+    if (title || message) {
+      await session.supabase.from('notifications').insert({ profile_id: targetId, type: 'admin_gift', payload: { title, message } });
+    }
+  }
   return NextResponse.json({ ok: true, operation });
 }
 

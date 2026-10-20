@@ -43,6 +43,7 @@ export async function GET(request: Request) {
       messagesSent: messagesByProfile.get(profile.id) || 0,
       badges: Array.from(new Set([
         ...(profile.stats?.badges || []),
+        'OG',
         ...(tokens >= 10000 ? ['10K Tokens'] : []),
         ...(tokens >= 100000 ? ['100K Tokens'] : []),
         ...(tokens >= 1000000 ? ['1M Tokens'] : []),

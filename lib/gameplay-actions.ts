@@ -73,6 +73,18 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       plan.materialDelta[material] = -amount;
     }
     addItem(recipe.name, 1);
+  } else if (action === 'dismantle' && body.quantities && typeof body.quantities === 'object' && !Array.isArray(body.quantities)) {
+    const quantities = Object.entries(body.quantities as Record<string, unknown>);
+    if (!quantities.length || quantities.length > 200) throw new Error('Invalid recycle selection.');
+    for (const [name, value] of quantities) {
+      const quantity = integer(value, 100000);
+      const owned = snapshot.inventory[name];
+      if (!owned || quantity >= owned.quantity) throw new Error(`Keep one copy of ${name}.`);
+      addItem(name, -quantity);
+      for (const [material, amount] of Object.entries(dismantleBundleFor(name, owned.rarity))) {
+        plan.materialDelta[material] = (plan.materialDelta[material] || 0) + amount * quantity;
+      }
+    }
   } else if (action === 'dismantle') {
     const name = String(body.name || '');
     const owned = snapshot.inventory[name];
