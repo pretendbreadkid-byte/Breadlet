@@ -1562,3 +1562,6 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .locked-blook-art { filter: brightness(0) !important; opacity: .35; animation: none !important; transition: none !important; }
 .blook-tilt { transition: transform .18s ease; }
 .blook-tilt:not(.cursor-not-allowed):hover { transform: rotate(-8deg) translateY(-4px); }
+/* coin flip */
+@keyframes coin-flip-spin { from { transform: rotateY(0deg); } to { transform: rotateY(1800deg); } }
+.coin-flip-spinning { animation: coin-flip-spin 2.4s cubic-bezier(.2,.6,.3,1) both; }

@@ -7,6 +7,7 @@ import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../li
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { SettingsTab } from "./components/settings-tab";
+import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
@@ -75,6 +76,7 @@ type Player = {
   badges: string[];
   friends?: string[];
   wheelSpun?: boolean;
+  wheelSpunAt?: string;
   guestStarterRemoved?: boolean;
   capsulesOpened?: number;
   messagesSent?: number;
@@ -121,7 +123,6 @@ const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
 const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
 const guestSessionPlayerKey = "breadlet-guest-session-player";
-const wheelSpinKey = "breadlet-wheel-spun";
 const firstFiftyKey = "breadlet-first-fifty-count";
 const badgeDescriptions: Record<string, string> = {
   "First 50": "Awarded to the first 50 players to join Breadlet.",
@@ -360,6 +361,7 @@ function playerFromServer(data: any): Player {
     badges: data.profile.badges || data.profile.stats?.badges || [],
     friends: data.profile.friends || [],
     wheelSpun: Boolean(data.profile.wheel_spun),
+    wheelSpunAt: data.profile.wheel_spun_at || undefined,
     capsulesOpened: data.activity?.capsulesOpened || 0,
     messagesSent: data.activity?.messagesSent || 0,
     completedTrades: data.activity?.completedTrades || 0,
@@ -549,7 +551,7 @@ function MainPage() {
           materials: { ...emptyMaterials(), ...(old.materials || {}) },
           badges: old.badges || [],
           friends: old.friends || [],
-          wheelSpun: Boolean(old.wheelSpun) && window.localStorage.getItem(`${wheelSpinKey}:${old.username}`) === new Date().toDateString(),
+          wheelSpun: false,
         });
         })();
     }
@@ -1615,6 +1617,7 @@ function MainPage() {
 
         {/* Dynamic Page Section */}
         <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
+          {player && !isGuest && <CoinFlipPopup onFinished={refreshPlayerFromServer} />}
           {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} BlookArt={BlookImg} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
@@ -2853,49 +2856,28 @@ function WheelTab({
   spin: () => Promise<(typeof wheelRewards)[number] | null>;
   isGuest: boolean;
 }) {
-  const viewportRef = useRef<HTMLDivElement>(null);
   const [oddsOpen, setOddsOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [phase, setPhase] = useState<"ready" | "spinning" | "result">("ready");
-  const [charging, setCharging] = useState(false);
   const [result, setResult] = useState<(typeof wheelRewards)[number] | null>(null);
-  const [track, setTrack] = useState<(typeof wheelRewards)[number][]>(() =>
-    Array.from({ length: 36 }, () => wheelRewards[Math.floor(Math.random() * wheelRewards.length)]),
-  );
-  const [beltOffset, setBeltOffset] = useState(0);
-  const winnerIndex = 54;
-  const performSpin = async () => {
-    if (phase === "spinning" || (player.wheelSpun && !isGuest)) return;
-    setCharging(true);
-    setResult(null);
-    setBeltOffset(0);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const spunAtMs = player.wheelSpunAt ? new Date(player.wheelSpunAt).getTime() : 0;
+  const waitMs = isGuest ? 0 : Math.max(0, spunAtMs + 3600000 - now);
+  const locked = waitMs > 0;
+  const waitLabel = `${String(Math.floor(waitMs / 60000)).padStart(2, "0")}:${String(Math.floor((waitMs % 60000) / 1000)).padStart(2, "0")}`;
+  const spinNow = async () => {
+    if (phase === "spinning" || locked) return;
     setPhase("spinning");
     const reward = await spin();
     if (!reward) {
-      setCharging(false);
       setPhase("ready");
       return;
     }
-    setTrack(Array.from({ length: 62 }, (_, index) =>
-      index === winnerIndex
-        ? reward
-        : wheelRewards[Math.floor(Math.random() * wheelRewards.length)],
-    ));
-    window.setTimeout(() => {
-      setCharging(false);
-      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-        const viewport = viewportRef.current;
-        if (viewport) setBeltOffset(viewport.clientWidth / 2 - winnerIndex * 120 - 56);
-      }));
-    }, 850);
-    window.setTimeout(() => {
-      setResult(reward);
-      setPhase("result");
-    }, 7900);
-  };
-  const spinNow = () => {
-    if (phase === "spinning" || (player.wheelSpun && !isGuest)) return;
-    setConfirmOpen(true);
+    setResult(reward);
+    setPhase("result");
   };
   const resultIcon = result?.type === "tokens"
     ? "/assets/coin.svg"
@@ -2904,40 +2886,18 @@ function WheelTab({
     <div className="max-w-6xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Claim tokens · unlimited free claims" : "Claim tokens · once each day"}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Claim tokens · unlimited free claims" : "Claim tokens · once every hour"}</p>
           <h1 className="mt-2 text-4xl font-black">Claim Tokens</h1>
         </div>
         <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
       </div>
       <div className="mt-5">
         <div className="token-crate-panel overflow-hidden rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-xl sm:p-6">
-          <div className={`crate-display ${phase === "spinning" ? "crate-opening" : charging ? "reveal-crate-charge" : ""}`}>
+          <div className="crate-display">
             <img src="/assets/crate%20(1).svg" alt="Daily reward crate" className="h-56 w-56 object-contain drop-shadow-2xl sm:h-72 sm:w-72" />
           </div>
-          {phase === "spinning" && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-            <section role="dialog" aria-modal="true" aria-labelledby="crate-opening-title" className="w-full max-w-6xl rounded-2xl border border-[#CC5500] bg-[#10182b] p-4 text-center sm:p-7">
-              <img src="/assets/crate%20(1).svg" alt="" className={`mx-auto h-20 w-20 object-contain ${charging ? "reveal-crate-charge" : "reveal-crate-rattle"}`} />
-              <h2 id="crate-opening-title" className="mt-3 text-2xl font-bold">Claiming Tokens</h2>
-          <div ref={viewportRef} className={`roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44 ${charging ? "roulette-charge" : ""}`}>
-            <div className="roulette-pointer" />
-            {phase === "spinning" && <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: "6.9s" }}>
-              {track.map((reward, index) => {
-                const rarity = wheelRarityFor(reward);
-                const icon = reward.type === "tokens" ? "/assets/coin.svg" : materialArtFor(reward.material || "Gold");
-                return <div key={`${index}-${reward.label}`} className={`roulette-prize ${rarityTileClass(rarity)}`}>
-                  <img src={icon} alt="" className="h-9 w-9 object-contain sm:h-10 sm:w-10" />
-                  <span className="max-w-full truncate text-[9px] font-black sm:text-[10px]">{reward.type === "tokens" ? reward.amount.toLocaleString() : `x${reward.amount}`} {reward.type === "tokens" ? "tokens" : reward.material}</span>
-                  <span className="text-[8px] font-bold opacity-70">{rarity}</span>
-                </div>;
-              })}
-            </div>}
-            {charging && <div className="absolute inset-0 flex items-center justify-center bg-[#090e1b]/90"><span className="reveal-scanline" /><span className="relative z-10 text-sm font-black uppercase tracking-[0.28em] text-sky-100">Crate charging...</span></div>}
-          </div>
-              <p role="status" className="mt-5 text-sm font-bold">{charging ? "Crate is powering up..." : "Your reward is on the way..."}</p>
-            </section>
-          </div>}
-          <button onClick={spinNow} disabled={phase === "spinning" || (player.wheelSpun && !isGuest)} className="sidebar-dark-action mt-4 rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
-            {player.wheelSpun && !isGuest ? "Tokens already claimed today" : phase === "spinning" ? "Claiming..." : "Claim Tokens"}
+          <button onClick={spinNow} disabled={phase === "spinning" || locked} className="sidebar-dark-action mt-4 rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
+            {locked ? `Next claim in ${waitLabel}` : phase === "spinning" ? "Claiming..." : "Claim Tokens"}
           </button>
           {result && phase === "result" && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
@@ -2974,16 +2934,6 @@ function WheelTab({
           <p className="mt-4 flex items-center gap-2 border-t border-white/10 pt-3 text-sm font-bold text-amber-100"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />Balance: {player.tokens.toLocaleString()} tokens</p>
         </section>
       </div>}
-      {confirmOpen && <ConfirmOpenModal
-        title="Claim Tokens"
-        description="Are you sure you want to claim today's tokens?"
-        confirmLabel="Claim tokens"
-        cancel={() => setConfirmOpen(false)}
-        confirm={() => {
-          setConfirmOpen(false);
-          performSpin();
-        }}
-      />}
     </div>
   );
 }
@@ -3742,6 +3692,11 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     const text = message.trim();
     if (!text) return;
     setMessage("");
+    if (text.toLowerCase() === "/accept" && supabase) {
+      const result = await postGameAction({ action: "coinflip_accept" });
+      setChatError(result.ok ? "" : result.error || "Could not join the coin flip.");
+      return;
+    }
     await sendMessageText(text);
   };
 
@@ -4001,6 +3956,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         </button>
       </form>
       <aside aria-label="Online players" className={`chat-online-panel fixed right-3 z-40 ${onlinePanelOpen ? "chat-online-panel-open" : ""}`}>
+        {!isGuest && <GamesMenu onError={setChatError} />}
         {onlinePanelOpen && <div className="chat-online-list mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <RewardArt name={online.equippedBlook} art={artFor(online.equippedBlook)} className="h-8 w-8" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
         <button type="button" aria-expanded={onlinePanelOpen} onClick={() => setOnlinePanelOpen((open) => !open)} className="flex items-center gap-3 rounded-2xl border border-sky-300/45 bg-[#0c2947]/95 px-5 py-3 text-white shadow-xl backdrop-blur-md hover:bg-[#103f75]"><CircleUserRound size={24} fill="currentColor" strokeWidth={1.5} /><span className="text-xl font-black">{onlinePlayers.length} online</span></button>
       </aside>

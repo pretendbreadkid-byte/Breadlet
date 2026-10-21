@@ -59,7 +59,7 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       }
     }
   } else if (action === 'crate') {
-    if (snapshot.wheelSpun) throw new Error('You already claimed today\'s tokens.');
+    if (snapshot.wheelSpun) throw new Error('You can claim tokens again once an hour has passed.');
     let roll = random() * wheelRewards.reduce((total, reward) => total + reward.chance, 0);
     const reward = wheelRewards.find((entry) => { roll -= entry.chance; return roll < 0; }) || wheelRewards[wheelRewards.length - 1];
     plan.crateReward = reward;

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     tokens: profile.tokens,
     materials: profile.materials || {},
     inventory: {},
-    wheelSpun: typeof profile.stats?.wheelSpunAt === 'string' && profile.stats.wheelSpunAt.slice(0, 10) === new Date().toISOString().slice(0, 10),
+    wheelSpun: typeof profile.stats?.wheelSpunAt === 'string' && Date.now() - new Date(profile.stats.wheelSpunAt).getTime() < 60 * 60 * 1000,
   };
   for (const row of inventory || []) {
     const blook = row.blooks as unknown as { id: string; name: string; rarity: string } | null;

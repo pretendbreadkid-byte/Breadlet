@@ -84,15 +84,17 @@ export const materialNames = [
 export const dismantleMaterialNames = materialNames.filter((material) => material !== "Gold" && material !== "Gem");
 
 export const wheelRewards = [
-  { label: "250 tokens", type: "tokens", amount: 250, chance: 32.5 },
-  { label: "500 tokens", type: "tokens", amount: 500, chance: 25 },
-  { label: "1,000 tokens", type: "tokens", amount: 1000, chance: 18 },
-  { label: "2,000 tokens", type: "tokens", amount: 2000, chance: 10 },
-  { label: "3,000 tokens", type: "tokens", amount: 3000, chance: 5 },
-  { label: "4,000 tokens", type: "tokens", amount: 4000, chance: 3.5 },
-  { label: "5,000 tokens", type: "tokens", amount: 5000, chance: 1 },
-  { label: "5 Gold", type: "material", material: "Gold", amount: 5, chance: 2.5 },
-  { label: "5 Gem", type: "material", material: "Gem", amount: 5, chance: 2.5 },
+  { label: "100 tokens", type: "tokens", amount: 100, chance: 8 },
+  { label: "200 tokens", type: "tokens", amount: 200, chance: 14 },
+  { label: "300 tokens", type: "tokens", amount: 300, chance: 19 },
+  { label: "400 tokens", type: "tokens", amount: 400, chance: 21 },
+  { label: "500 tokens", type: "tokens", amount: 500, chance: 17 },
+  { label: "600 tokens", type: "tokens", amount: 600, chance: 11 },
+  { label: "800 tokens", type: "tokens", amount: 800, chance: 4 },
+  { label: "1,000 tokens", type: "tokens", amount: 1000, chance: 2.5 },
+  { label: "1,500 tokens", type: "tokens", amount: 1500, chance: 1 },
+  { label: "5 Gold", type: "material", material: "Gold", amount: 5, chance: 1.25 },
+  { label: "5 Gem", type: "material", material: "Gem", amount: 5, chance: 1.25 },
 ] as const;
 
 export const materialFor = (name: string, rarity: string) =>

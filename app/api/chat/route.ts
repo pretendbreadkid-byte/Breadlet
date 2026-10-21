@@ -404,6 +404,12 @@ export async function POST(request: Request) {
     );
   }
 
+  // Let word games (word race / unscramble) react to the message.
+  if (!isImageMessage) {
+    const { error: gameError } = await database.rpc('chat_game_action', { p_profile_id: user.id, p_action: 'check_answer', p_message: message });
+    if (gameError) console.error('[CHAT_POST] Game check failed:', gameError.message);
+  }
+
   const { data: profile } =
     await database
       .from('profiles')

@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   const inventoryRows = (inventory || []) as unknown as Array<{ quantity: number; shiny: boolean; blooks: { name: string } | null }>;
 
   const wheelSpunAt = profile.stats?.wheelSpunAt;
-  const wheelSpunToday = typeof wheelSpunAt === 'string' && wheelSpunAt.slice(0, 10) === new Date().toISOString().slice(0, 10);
+  const wheelSpunToday = typeof wheelSpunAt === 'string' && Date.now() - new Date(wheelSpunAt).getTime() < 60 * 60 * 1000;
 
   return NextResponse.json({
     profile: {
@@ -44,6 +44,7 @@ export async function GET(request: Request) {
       badges: Array.from(new Set(['OG', ...(profile.stats?.badges || [])])),
       clan_tag: profile.stats?.clanTag || '',
       wheel_spun: Boolean(profile.stats?.wheelSpun) && wheelSpunToday,
+      wheel_spun_at: typeof wheelSpunAt === 'string' ? wheelSpunAt : null,
     },
     inventory: inventoryRows.flatMap((entry) =>
       Array.from({ length: entry.quantity }, () => entry.blooks?.name ? `${entry.shiny ? 'Shiny ' : ''}${entry.blooks.name}` : null).filter(Boolean),
