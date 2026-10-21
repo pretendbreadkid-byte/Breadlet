@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Enter a valid email address or leave it blank.' }, { status: 400 });
   }
 
+  if (['admin', 'adminxd2', 'breadblook'].includes(username.toLowerCase())) return NextResponse.json({ error: 'That username is already taken.' }, { status: 409 });
   const { data: existingProfile, error: lookupError } = await admin
     .from('profiles')
     .select('id')

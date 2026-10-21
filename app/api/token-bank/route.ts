@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
+import { bankBalance } from "../../../lib/bank";
 import { createClient } from "../../../lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export async function GET() {
   return NextResponse.json({
     historicalEstimate: Number(data?.historical_estimate) || 0,
     trackedSpent: Number(data?.tracked_spent) || 0,
+    bankBalance: await bankBalance(admin),
     totalSpent: (Number(data?.historical_estimate) || 0) + (Number(data?.tracked_spent) || 0),
   });
 }

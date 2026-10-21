@@ -4197,7 +4197,7 @@ function ResourcesTab({ open }: { open: (tab: "promo" | "info" | "migration" | "
 }
 
 function TokenBankTab({ isGuest }: { isGuest: boolean }) {
-  const [bank, setBank] = useState<{ historicalEstimate: number; trackedSpent: number; totalSpent: number } | null>(null);
+  const [bank, setBank] = useState<{ historicalEstimate: number; trackedSpent: number; totalSpent: number; bankBalance?: number } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(!isGuest);
 
@@ -4226,6 +4226,7 @@ function TokenBankTab({ isGuest }: { isGuest: boolean }) {
           <p className="text-xs font-black uppercase tracking-[0.2em]">Total Bread Bucks spent</p>
           <p className="mt-2 text-4xl font-black tabular-nums sm:text-5xl">{loading ? "…" : isGuest ? "0" : bank?.totalSpent.toLocaleString() || "0"}</p>
           <p className="mt-1 text-sm font-bold">Bread Bucks</p>
+          <p className="mt-3 text-sm font-black">Shared bank balance: {loading ? "…" : (bank?.bankBalance || 0).toLocaleString()} Bread Bucks</p>
         </div>
         <img src="/assets/piggy bank.svg" alt="Piggy bank" className="mx-auto mt-5 h-48 w-48 object-contain drop-shadow-xl sm:h-56 sm:w-56" />
         <div className="mt-5 grid gap-3 sm:grid-cols-2">

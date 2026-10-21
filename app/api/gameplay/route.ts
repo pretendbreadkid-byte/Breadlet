@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
+import { depositBankSpend } from '../../../lib/bank';
 import { planGameplay } from '../../../lib/gameplay-actions';
 import type { GameplaySnapshot } from '../../../lib/gameplay-actions';
 import { GET as getPlayer } from '../player/route';
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
       const missing = error.code === 'PGRST202' || error.code === '42883';
       return NextResponse.json({ error: missing ? 'Apply supabase/migrations/0015_secure_gameplay.sql to enable protected gameplay.' : error.message }, { status: missing ? 503 : 409 });
     }
+    if (plan.tokenDelta < 0) await depositBankSpend(admin, user.id, -plan.tokenDelta);
     const state = await getPlayer(request);
     if (!state.ok) return state;
     const player = await state.json();
