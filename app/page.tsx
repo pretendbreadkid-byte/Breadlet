@@ -128,9 +128,9 @@ const badgeDescriptions: Record<string, string> = {
   "First 50": "Awarded to the first 50 players to join Breadlet.",
   Verified: "A verified badge for trusted, well-known community members.",
   BlookTuber: "Awarded to YouTubers who create Breadlet content or similar collectible-game content.",
-  "10K Tokens": "Reach a balance of 10,000 tokens.",
-  "100K Tokens": "Reach a balance of 100,000 tokens.",
-  "1M Tokens": "Reach a balance of 1,000,000 tokens.",
+  "10K Tokens": "Reach a balance of 10,000 Bread Bucks.",
+  "100K Tokens": "Reach a balance of 100,000 Bread Bucks.",
+  "1M Tokens": "Reach a balance of 1,000,000 Bread Bucks.",
   OG: "Awarded to every original Breadlet player.",
 };
 const tokenBadgesFor = (tokens: number) => [
@@ -906,7 +906,7 @@ function MainPage() {
       return;
     }
     if (!isGuest && player.tokens < capsule.price) {
-      setNotice("You need more tokens for that bag.");
+      setNotice("You need more Bread Bucks for that bag.");
       return;
     }
     const total = capsule.pool.reduce(
@@ -974,7 +974,7 @@ function MainPage() {
       return;
     }
     if (!isGuest && player.tokens < cost) {
-      setNotice("You need more tokens for that mass opening.");
+      setNotice("You need more Bread Bucks for that mass opening.");
       return;
     }
     const results = selected.map((capsule) => {
@@ -1022,7 +1022,7 @@ function MainPage() {
       inventory,
       equipped: player.equipped === name ? inventory[0] : player.equipped,
     }, { inventory: true });
-    setNotice(`${name} sold for ${value} tokens.`);
+    setNotice(`${name} sold for ${value} Bread Bucks.`);
   };
   const massSell = async (quantities: Record<string, number>) => {
     if (!player) return false;
@@ -1034,7 +1034,7 @@ function MainPage() {
     if (!isGuest) {
       const result = await playAction({ action: "sell", quantities: requested });
       if (!result) return false;
-      setNotice(`Breadlets sold for ${result.tokensEarned.toLocaleString()} tokens.`);
+      setNotice(`Breadlets sold for ${result.tokensEarned.toLocaleString()} Bread Bucks.`);
       return true;
     }
     if (isGuest) {
@@ -1048,7 +1048,7 @@ function MainPage() {
       });
       if (!tokensEarned) return false;
       save({ ...player, tokens: player.tokens + tokensEarned, inventory: remaining }, { inventory: true });
-      setNotice(`Breadlets sold for ${tokensEarned.toLocaleString()} tokens.`);
+      setNotice(`Breadlets sold for ${tokensEarned.toLocaleString()} Bread Bucks.`);
       return true;
     }
     return false;
@@ -1087,7 +1087,7 @@ function MainPage() {
     if (!player || index <= player.pickaxe) return;
     const upgrade = upgrades[index];
     if (!isGuest && player.tokens < upgrade.cost) {
-      setNotice(`You need ${upgrade.cost} tokens for ${upgrade.name}.`);
+      setNotice(`You need ${upgrade.cost} Bread Bucks for ${upgrade.name}.`);
       return;
     }
     save({ ...player, tokens: isGuest ? player.tokens : player.tokens - upgrade.cost, pickaxe: index });
@@ -1157,7 +1157,7 @@ function MainPage() {
   const buyListing = async (listing: Listing) => {
     if (!player) return;
     if (!isGuest && player.tokens < listing.price) {
-      setNotice("You need more tokens for this listing.");
+      setNotice("You need more Bread Bucks for this listing.");
       return;
     }
     if (supabaseClient && !isGuest) {
@@ -1206,7 +1206,7 @@ function MainPage() {
       }
       setPlayer((current) => current ? { ...current, tokens: current.tokens + Number(result.amount || 1000) } : current);
       setPromoCode("");
-      setNotice("Promo redeemed: +1,000 tokens.");
+      setNotice("Promo redeemed: +1,000 Bread Bucks.");
     } else if (code === "admin1234532!") {
       const response = await fetch("/api/requests", {
         method: "POST",
@@ -1524,8 +1524,8 @@ function MainPage() {
         <div className="workspace-island pointer-events-none fixed right-3 top-3 z-30 flex w-fit max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] px-2 py-2 shadow-xl sm:right-5 sm:top-5 sm:gap-3 sm:px-3">
           <div className="workspace-summary flex min-w-0 items-center gap-2 sm:gap-4">
             {/* Tokens Balance Counter */}
-            <div className="workspace-tokens flex items-center gap-2 font-black text-[#ffe2a0]" aria-label={`${player.tokens.toLocaleString()} tokens`}>
-              <img src="/assets/coin.svg" alt="" className="h-8 w-8" />
+            <div className="workspace-tokens flex items-center gap-2 font-black text-[#ffe2a0]" aria-label={`${player.tokens.toLocaleString()} Bread Bucks`}>
+              <img src="/assets/Bread%20bucks.svg" alt="" className="h-8 w-8" />
               <span className="text-xl">{player.tokens.toLocaleString()}</span>
             </div>
 
@@ -1728,7 +1728,7 @@ function MainPage() {
       {capsuleToConfirm && <ConfirmOpenModal
         title={capsuleToConfirm.name}
         description={`Are you sure you want to open ${capsuleToConfirm.name}?`}
-        confirmLabel={isGuest ? "Open for free" : `Open for ${capsuleToConfirm.price} tokens`}
+        confirmLabel={isGuest ? "Open for free" : `Open for ${capsuleToConfirm.price} Bread Bucks`}
         cancel={() => setCapsuleToConfirm(null)}
         confirm={() => {
           const capsule = capsuleToConfirm;
@@ -2083,7 +2083,7 @@ function ProfileTab({
   const offerSummary = (offer: any) => {
     const blooks = Array.isArray(offer?.blooks) ? offer.blooks : [];
     const tokens = Number(offer?.tokens) || 0;
-    return [tokens ? `${tokens.toLocaleString()} tokens` : "", ...blooks.map((item: any) => `${item.name} ×${item.quantity}`)].filter(Boolean).join(" · ") || "No items or tokens offered";
+    return [tokens ? `${tokens.toLocaleString()} Bread Bucks` : "", ...blooks.map((item: any) => `${item.name} ×${item.quantity}`)].filter(Boolean).join(" · ") || "No items or Bread Bucks offered";
   };
   const tokenBadges = tokenBadgesFor(profileTokens);
   const displayedBadges = Array.from(new Set([...profileBadges, ...tokenBadges]));
@@ -2096,13 +2096,13 @@ function ProfileTab({
           <div className="profile-avatar-frame profile-avatar-float">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <CircleUserRound size={52} />}</div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
-            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Tokens</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
+            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
           </div>
         </section>
         <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{tokenBadges.at(-1) || "Token milestones: 10K · 100K · 1M"}</div></section>
       </div>
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
-        <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/coin.svg" />
+        <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/Bread%20bucks.svg" />
         <ProfileMetric label="Breadlets Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
         <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space bag updated again.svg" />
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
@@ -2358,7 +2358,7 @@ function PackDetailsModal({
             <span>Stock</span><b className={inStock ? "text-green-300" : "text-red-300"}>{inStock ? "In stock" : "Sold out"}</b>
           </p>
           <p className="flex items-center justify-between gap-3">
-            <span>Price</span><b>{isGuest ? "Free" : `${capsule.price} tokens`}</b>
+            <span>Price</span><b>{isGuest ? "Free" : `${capsule.price} Bread Bucks`}</b>
           </p>
           <p className="flex items-center justify-between gap-3">
             <span>Chance to be in stock</span>
@@ -2372,7 +2372,7 @@ function PackDetailsModal({
         </div>
         <button type="button" onClick={showRewardOdds} className="mt-4 w-full rounded-xl border border-[#d49a4a]/60 px-4 py-2.5 text-sm font-bold text-[#ffe2a0]">View reward chances</button>
         <button type="button" disabled={!inStock} onClick={open} className="mt-3 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] disabled:cursor-not-allowed disabled:opacity-50">
-          {inStock ? (isGuest ? "Open for free" : `Open for ${capsule.price} tokens`) : "Currently sold out"}
+          {inStock ? (isGuest ? "Open for free" : `Open for ${capsule.price} Bread Bucks`) : "Currently sold out"}
         </button>
       </section>
     </div>
@@ -2693,7 +2693,7 @@ function InventoryTab({
         </div>
       </div>
 
-      {massSellOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-[#9cc8e8]">Collection</p><h2 className="text-2xl font-black">Mass sell Breadlets</h2></div><button onClick={() => setMassSellOpen(false)} className="rounded-lg bg-[#18558f] px-3 py-2 font-bold">Close</button></div><p className="mt-2 text-sm text-[#9cc8e8]">Choose extra copies to sell. One copy of every Breadlet is always kept.</p><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{sellableBreads.map((bread) => <label key={bread.name} className="flex items-center gap-3 rounded-xl bg-[#0c3b70] p-3"><RewardArt name={bread.name} art={artFor(bread.name)} className="h-12 w-12 shrink-0" /><span className="min-w-0 flex-1 truncate font-bold">{bread.name}<small className="ml-2 text-[#9cc8e8]">up to {bread.available}</small></span><input aria-label={`${bread.name} sell quantity`} type="number" min="0" max={bread.available} value={sellQuantities[bread.name] || 0} onChange={(event) => setSellQuantities({ ...sellQuantities, [bread.name]: Math.min(bread.available, Math.max(0, Math.floor(Number(event.target.value) || 0))) })} className="w-20 rounded-lg bg-[#072a54] px-3 py-2 text-white" /></label>)}</div><button disabled={!massSellTotal} onClick={async () => { if (!window.confirm(`Sell the selected Breadlets for ${massSellTotal.toLocaleString()} tokens?`)) return; if (await massSell(sellQuantities)) setMassSellOpen(false); }} className="mt-4 w-full rounded-xl bg-rose-300 px-4 py-3 font-black text-rose-950 disabled:opacity-40">Sell for {massSellTotal.toLocaleString()} tokens</button></div></div>}
+      {massSellOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-[#9cc8e8]">Collection</p><h2 className="text-2xl font-black">Mass sell Breadlets</h2></div><button onClick={() => setMassSellOpen(false)} className="rounded-lg bg-[#18558f] px-3 py-2 font-bold">Close</button></div><p className="mt-2 text-sm text-[#9cc8e8]">Choose extra copies to sell. One copy of every Breadlet is always kept.</p><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{sellableBreads.map((bread) => <label key={bread.name} className="flex items-center gap-3 rounded-xl bg-[#0c3b70] p-3"><RewardArt name={bread.name} art={artFor(bread.name)} className="h-12 w-12 shrink-0" /><span className="min-w-0 flex-1 truncate font-bold">{bread.name}<small className="ml-2 text-[#9cc8e8]">up to {bread.available}</small></span><input aria-label={`${bread.name} sell quantity`} type="number" min="0" max={bread.available} value={sellQuantities[bread.name] || 0} onChange={(event) => setSellQuantities({ ...sellQuantities, [bread.name]: Math.min(bread.available, Math.max(0, Math.floor(Number(event.target.value) || 0))) })} className="w-20 rounded-lg bg-[#072a54] px-3 py-2 text-white" /></label>)}</div><button disabled={!massSellTotal} onClick={async () => { if (!window.confirm(`Sell the selected Breadlets for ${massSellTotal.toLocaleString()} Bread Bucks?`)) return; if (await massSell(sellQuantities)) setMassSellOpen(false); }} className="mt-4 w-full rounded-xl bg-rose-300 px-4 py-3 font-black text-rose-950 disabled:opacity-40">Sell for {massSellTotal.toLocaleString()} tokens</button></div></div>}
 
       {/* Selected Bread Detail Modal */}
       {selected && (
@@ -2751,7 +2751,7 @@ function BlookDetail({
           <Stat label="Shiny" value={shinyEligibleNames.has(reward.name.replace(/^Shiny /, "")) ? "Eligible · 1/100" : "Not eligible"} />
           <Stat
             label="Sell value"
-            value={`${sellValueFor(reward.rarity)} tokens`}
+            value={`${sellValueFor(reward.rarity)} Bread Bucks`}
           />
         </div>
         <div className="mt-6 grid grid-cols-2 gap-3">
@@ -2770,7 +2770,7 @@ function BlookDetail({
             onClick={() => {
               if (
                 window.confirm(
-                  `Sell ${reward.name} for ${sellValueFor(reward.rarity)} tokens?`,
+                  `Sell ${reward.name} for ${sellValueFor(reward.rarity)} Bread Bucks?`,
                 )
               ) {
                 sell(reward.name);
@@ -2859,6 +2859,10 @@ function WheelTab({
   const [oddsOpen, setOddsOpen] = useState(false);
   const [phase, setPhase] = useState<"ready" | "spinning" | "result">("ready");
   const [result, setResult] = useState<(typeof wheelRewards)[number] | null>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [track, setTrack] = useState<(typeof wheelRewards)[number][]>(() => Array.from({ length: 62 }, () => wheelRewards[Math.floor(Math.random() * wheelRewards.length)]));
+  const [beltOffset, setBeltOffset] = useState(0);
+  const winnerIndex = 54;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -2870,43 +2874,68 @@ function WheelTab({
   const waitLabel = `${String(Math.floor(waitMs / 60000)).padStart(2, "0")}:${String(Math.floor((waitMs % 60000) / 1000)).padStart(2, "0")}`;
   const spinNow = async () => {
     if (phase === "spinning" || locked) return;
+    setResult(null);
+    setBeltOffset(0);
     setPhase("spinning");
     const reward = await spin();
     if (!reward) {
       setPhase("ready");
       return;
     }
-    setResult(reward);
-    setPhase("result");
+    setTrack(Array.from({ length: 62 }, (_, index) => index === winnerIndex ? reward : wheelRewards[Math.floor(Math.random() * wheelRewards.length)]));
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      const viewport = viewportRef.current;
+      if (viewport) setBeltOffset(viewport.clientWidth / 2 - winnerIndex * 120 - 56);
+    }));
+    window.setTimeout(() => {
+      setResult(reward);
+      setPhase("result");
+    }, 7000);
   };
   const resultIcon = result?.type === "tokens"
-    ? "/assets/coin.svg"
+    ? "/assets/Bread%20bucks.svg"
     : materialArtFor(result?.material || "Gold");
   return (
     <div className="max-w-6xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Claim tokens · unlimited free claims" : "Claim tokens · once every hour"}</p>
-          <h1 className="mt-2 text-4xl font-black">Claim Tokens</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Claim Bread Bucks · unlimited free claims" : "Claim Bread Bucks · once every hour"}</p>
+          <h1 className="mt-2 text-4xl font-black">Claim Bread Bucks</h1>
         </div>
         <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
       </div>
-      <div className="mt-5">
-        <div className="token-crate-panel overflow-hidden rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-xl sm:p-6">
-          <div className="crate-display">
-            <img src="/assets/crate%20(1).svg" alt="Daily reward crate" className="h-56 w-56 object-contain drop-shadow-2xl sm:h-72 sm:w-72" />
-          </div>
-          <button onClick={spinNow} disabled={phase === "spinning" || locked} className="sidebar-dark-action mt-4 rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
-            {locked ? `Next claim in ${waitLabel}` : phase === "spinning" ? "Claiming..." : "Claim Tokens"}
-          </button>
+      <div className="mt-8">
+        <button onClick={spinNow} disabled={phase === "spinning" || locked} className="sidebar-dark-action rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
+          {locked ? `Next claim in ${waitLabel}` : phase === "spinning" ? "Claiming..." : "Claim Bread Bucks"}
+        </button>
+        <div>
+          {phase === "spinning" && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
+            <section role="dialog" aria-modal="true" aria-label="Claiming Bread Bucks" className="w-full max-w-6xl rounded-2xl border border-[#3c3a34] bg-[#13120F] p-4 text-center sm:p-7">
+              <div ref={viewportRef} className="roulette-viewport relative h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44">
+                <div className="roulette-pointer" />
+                <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: "6.5s" }}>
+                  {track.map((reward, index) => {
+                    const rarity = wheelRarityFor(reward);
+                    const icon = reward.type === "tokens" ? "/assets/Bread%20bucks.svg" : materialArtFor(reward.material || "Gold");
+                    return <div key={`${index}-${reward.label}`} className={`roulette-prize ${rarityTileClass(rarity)}`}>
+                      <img src={icon} alt="" className="h-9 w-9 object-contain sm:h-10 sm:w-10" />
+                      <span className="max-w-full truncate text-[9px] font-black sm:text-[10px]">{reward.type === "tokens" ? reward.amount.toLocaleString() : `x${reward.amount}`} {reward.type === "tokens" ? "Bread Bucks" : reward.material}</span>
+                      <span className="text-[8px] font-bold opacity-70">{rarity}</span>
+                    </div>;
+                  })}
+                </div>
+              </div>
+              <p role="status" className="mt-5 text-sm font-bold">Your reward is on the way...</p>
+            </section>
+          </div>}
           {result && phase === "result" && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-              <div role="dialog" aria-modal="true" aria-labelledby="crate-result-title" className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-sky-300/40 bg-[#10182b] p-6 text-center text-white shadow-2xl">
+              <div role="dialog" aria-modal="true" aria-labelledby="crate-result-title" className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[#3c3a34] bg-[#13120F] p-6 text-center text-white shadow-2xl">
               <RewardBurst rarity={wheelRarityFor(result)} />
               <img src={resultIcon} alt="" className="reveal-win-slam relative z-10 mx-auto h-28 w-28 object-contain" />
               <div className="reveal-win-slam relative z-10 mt-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-white/50">You won · {wheelRarityFor(result)}</p>
-                <h2 id="crate-result-title" className="mt-2 text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} tokens` : `${result.amount} ${result.material}`}</h2>
+                <h2 id="crate-result-title" className="mt-2 text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} Bread Bucks` : `${result.amount} ${result.material}`}</h2>
               </div>
               <button onClick={() => { setResult(null); setPhase("ready"); }} className="relative z-10 mt-6 w-full rounded-xl bg-sky-400 px-5 py-3 font-black text-slate-950 hover:bg-sky-300">Collect reward</button>
               </div>
@@ -2917,21 +2946,21 @@ function WheelTab({
       {oddsOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
         <section role="dialog" aria-modal="true" aria-labelledby="crate-odds-title" className="w-full max-w-md rounded-2xl border border-sky-300/30 bg-[#10182b] p-5 text-white shadow-2xl sm:p-6">
           <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">Claim Tokens</p><h2 id="crate-odds-title" className="mt-1 text-2xl font-black">Possible prizes</h2></div>
+            <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">Claim Bread Bucks</p><h2 id="crate-odds-title" className="mt-1 text-2xl font-black">Possible prizes</h2></div>
             <button onClick={() => setOddsOpen(false)} aria-label="Close prize chances" className="flex h-10 w-10 items-center justify-center rounded-lg text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>
           </div>
           <div className="mt-4 space-y-2">
             {wheelRewards.map((reward) => {
               const rarity = wheelRarityFor(reward);
-              const icon = reward.type === "tokens" ? "/assets/coin.svg" : materialArtFor(reward.material || "Gold");
+              const icon = reward.type === "tokens" ? "/assets/Bread%20bucks.svg" : materialArtFor(reward.material || "Gold");
               return <div key={reward.label} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${rarityTileClass(rarity)}`}>
                 <img src={icon} alt="" className="h-9 w-9 shrink-0 object-contain" />
-                <span className="min-w-0 flex-1 truncate text-sm font-bold">{reward.type === "tokens" ? `${reward.amount.toLocaleString()} tokens` : `${reward.amount} ${reward.material}`}</span>
+                <span className="min-w-0 flex-1 truncate text-sm font-bold">{reward.type === "tokens" ? `${reward.amount.toLocaleString()} Bread Bucks` : `${reward.amount} ${reward.material}`}</span>
                 <span className="text-xs font-black">{reward.chance}%</span>
               </div>;
             })}
           </div>
-          <p className="mt-4 flex items-center gap-2 border-t border-white/10 pt-3 text-sm font-bold text-amber-100"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />Balance: {player.tokens.toLocaleString()} tokens</p>
+          <p className="mt-4 flex items-center gap-2 border-t border-white/10 pt-3 text-sm font-bold text-amber-100"><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" />Balance: {player.tokens.toLocaleString()} tokens</p>
         </section>
       </div>}
     </div>
@@ -3109,7 +3138,7 @@ function Bazaar({
             step="1"
             className="rounded-xl bg-[#24170f] px-3 py-3 text-white"
             placeholder="Price"
-            aria-label={`Listing price, maximum ${MAX_MARKETPLACE_PRICE.toLocaleString()} tokens`}
+            aria-label={`Listing price, maximum ${MAX_MARKETPLACE_PRICE.toLocaleString()} Bread Bucks`}
           />
           <button className="rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]">
             List Bread
@@ -3294,7 +3323,7 @@ function ListingModal({ listing, close, buy, isGuest }: { listing: Listing; clos
         </div>
         <h2 className="mt-4 text-2xl font-black text-white">{listing.blook}</h2>
         <p className="mt-1 text-sm text-[#9cc8e8]">{rarityFor(listing.blook)} · Seller: {listing.seller}</p>
-        <p className="mt-3 text-xl font-black text-[#ffe2a0]">{isGuest ? "FREE" : `${listing.price} tokens`}</p>
+        <p className="mt-3 text-xl font-black text-[#ffe2a0]">{isGuest ? "FREE" : `${listing.price} Bread Bucks`}</p>
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-3 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
           <button onClick={() => buy(listing)} className="rounded-xl bg-[#39a8f5] px-3 py-3 text-sm font-black text-[#031426] hover:bg-[#73c8ff]">Buy Bread</button>
@@ -3393,7 +3422,7 @@ function MassOpenModal({
               <img src={capsule.art} alt={capsule.name} className="h-12 w-12 object-contain" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-black text-white">{capsule.name}</p>
-                <p className="text-xs text-[#9cc8e8]">{isGuest ? "FREE" : `${capsule.price} tokens each`}</p>
+                <p className="text-xs text-[#9cc8e8]">{isGuest ? "FREE" : `${capsule.price} Bread Bucks each`}</p>
               </div>
               <button onClick={() => setQuantity(capsule.name, Math.max(0, (quantities[capsule.name] || 0) - 1))} className="h-9 w-9 rounded-xl bg-[#18558f] text-lg font-black text-white hover:bg-[#24649c]">-</button>
               <input
@@ -3414,7 +3443,7 @@ function MassOpenModal({
         </div>
         <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#3d91cd]/30 text-sm font-bold text-white">
           <span>{count.toLocaleString()} / {MAX_MASS_OPEN_COUNT.toLocaleString()} bags</span>
-          <b className="text-lg text-[#ffe2a0]">{isGuest ? "FREE" : `${total.toLocaleString()} tokens`}</b>
+          <b className="text-lg text-[#ffe2a0]">{isGuest ? "FREE" : `${total.toLocaleString()} Bread Bucks`}</b>
         </div>
         <button onClick={() => open(quantities)} className="mt-4 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Open selected bags</button>
       </div>
@@ -4023,7 +4052,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
       </div>
       <div className="leaderboard-tabs mt-4 flex gap-3">
         {(["players", "clans"] as const).map((item) => (
-          <button key={item} type="button" aria-pressed={board === item} onClick={() => setBoard(item)} className="leaderboard-tab rounded-full border-2 px-5 py-2 text-sm font-black">{item === "players" ? "Most Tokens" : "Top Clans"}</button>
+          <button key={item} type="button" aria-pressed={board === item} onClick={() => setBoard(item)} className="leaderboard-tab rounded-full border-2 px-5 py-2 text-sm font-black">{item === "players" ? "Most Bread Bucks" : "Top Clans"}</button>
         ))}
       </div>
       {status === "error" && <p role="alert" className="mt-4 rounded-lg border border-[#CC5500] bg-[#27251F] px-3 py-2 text-sm text-white">{error}</p>}
@@ -4036,7 +4065,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
               <p className="text-lg font-black">{ordinal(entry.rank)}</p>
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="mt-2 max-w-full truncate text-2xl font-black disabled:cursor-default">{entry.name}</button>
               <div className="my-4 grid h-28 w-28 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={64} />}</div>
-              <p className="flex items-center gap-2 text-xl font-black"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
+              <p className="flex items-center gap-2 text-xl font-black"><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
               {entry.sub && <p className="text-xs font-bold opacity-80">{entry.sub}</p>}
             </div>
           ))}
@@ -4052,7 +4081,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
               {entry.sub && <span className="text-xs font-bold opacity-80">{entry.sub}</span>}
               {entry.badges.map((badge) => <button key={badge} type="button" onClick={() => showBadge(badge)} title={badge} className="h-5 w-5"><img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" /></button>)}
             </div>
-            <span className="flex shrink-0 items-center gap-1.5 text-lg font-black" title={valueLabel}><img src="/assets/coin.svg" alt="" className="h-5 w-5" />{entry.value.toLocaleString()}</span>
+            <span className="flex shrink-0 items-center gap-1.5 text-lg font-black" title={valueLabel}><img src="/assets/Bread%20bucks.svg" alt="" className="h-5 w-5" />{entry.value.toLocaleString()}</span>
           </li>
         ))}
       </ol>
@@ -4120,12 +4149,12 @@ function InfoTab() {
       <div className="rounded-3xl border border-[#73c8ff]/45 bg-[#bde8ff] p-7 text-[#062443]">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-[#17659c]">Breadlet guide</p>
         <h1 className="mt-2 text-4xl font-black">How to play</h1>
-        <p className="mt-3 max-w-2xl leading-7">Build your collection, earn tokens, trade Breadlets, and turn materials into special craft-only Breadlets.</p>
+        <p className="mt-3 max-w-2xl leading-7">Build your collection, earn Bread Bucks, trade Breadlets, and turn materials into special craft-only Breadlets.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {[
-          ["Claim Tokens", "Claim once per day to win tokens, five Gold, or five Gem. The 5,000-token reward has a 1% chance."],
-          ["Goodybags", "Buy bags with tokens. Open a bag to roll from its listed Bread pool, or use Mass Open for typed quantities."],
+          ["Claim Bread Bucks", "Claim once every hour to win 100 to 1,500 Bread Bucks, five Gold, or five Gem."],
+          ["Goodybags", "Buy bags with Bread Bucks. Open a bag to roll from its listed Bread pool, or use Mass Open for typed quantities."],
           ["Collection", "Locked Breadlets stay black silhouettes. Owned Breadlets can be equipped or sold from their detail view."],
           ["Crafting", "Dismantle extra Breadlets into five-unit material bundles, then combine ingredients totaling 20 to craft approved Breadlets."],
           ["Bazaar", "List Breadlets, browse listings, and open a listing card to buy one."],
@@ -4142,7 +4171,7 @@ function ResourcesTab({ open }: { open: (tab: "promo" | "info" | "migration" | "
     { title: "Info & Guide", description: "Learn how Goodybags, your Collection, crafting, and more work.", icon: <HelpCircle size={22} />, tab: "info" as const },
     { title: "Migration", description: "Request a transfer from the old game and track its review.", icon: <Gift size={22} />, tab: "migration" as const },
     { title: "Asset Library", description: "Browse and preview Breadlet artwork and image files.", icon: <ImageIcon size={22} />, tab: "assets" as const },
-    { title: "Token Bank", description: "See a running total of your token spending.", icon: <img src="/assets/piggy bank.svg" alt="" className="h-7 w-7 object-contain" />, tab: "bank" as const },
+    { title: "Bread Bucks Bank", description: "See a running total of your Bread Bucks spending.", icon: <img src="/assets/piggy bank.svg" alt="" className="h-7 w-7 object-contain" />, tab: "bank" as const },
   ];
   return (
     <div className="resources-workspace mx-auto w-full max-w-5xl">
@@ -4194,9 +4223,9 @@ function TokenBankTab({ isGuest }: { isGuest: boolean }) {
       <h1 className="mt-2 text-4xl font-black">Token Bank</h1>
       <section className="bank-card mt-6 overflow-hidden rounded-3xl border p-6 sm:p-9">
         <div className="bank-total-block text-center">
-          <p className="text-xs font-black uppercase tracking-[0.2em]">Total tokens spent</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em]">Total Bread Bucks spent</p>
           <p className="mt-2 text-4xl font-black tabular-nums sm:text-5xl">{loading ? "…" : isGuest ? "0" : bank?.totalSpent.toLocaleString() || "0"}</p>
-          <p className="mt-1 text-sm font-bold">tokens</p>
+          <p className="mt-1 text-sm font-bold">Bread Bucks</p>
         </div>
         <img src="/assets/piggy bank.svg" alt="Piggy bank" className="mx-auto mt-5 h-48 w-48 object-contain drop-shadow-xl sm:h-56 sm:w-56" />
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -4364,15 +4393,15 @@ function RequestsTab({ isGuest }: { isGuest: boolean }) {
 
   const requestSummary = (request: any) => [
     ...(request.requested_blooks || []).map((item: { name: string; quantity: number }) => `${item.name} ×${item.quantity}`),
-    Number(request.requested_tokens) > 0 ? `${Number(request.requested_tokens).toLocaleString()} tokens` : "",
+    Number(request.requested_tokens) > 0 ? `${Number(request.requested_tokens).toLocaleString()} Bread Bucks` : "",
   ].filter(Boolean).join(" · ");
 
   return <div className="max-w-6xl space-y-6">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Old game transfer</p><h1 className="mt-1 text-4xl font-black">Migration</h1><p className="mt-2 max-w-2xl text-sm text-white/70">Use this page to request your Breadlets and tokens from the old game. A reviewer will accept or decline each request; rewards are added only after acceptance. Reviewers unlock request approvals with the admin code in Promo Codes.</p></div><button onClick={() => void loadRequests()} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-bold text-white/75">Refresh</button></header>
+    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Old game transfer</p><h1 className="mt-1 text-4xl font-black">Migration</h1><p className="mt-2 max-w-2xl text-sm text-white/70">Use this page to request your Breadlets and Bread Bucks from the old game. A reviewer will accept or decline each request; rewards are added only after acceptance. Reviewers unlock request approvals with the admin code in Promo Codes.</p></div><button onClick={() => void loadRequests()} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-bold text-white/75">Refresh</button></header>
     {message && <p role="status" className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">{message}</p>}
     {isGuest ? <p className="rounded-xl bg-black/20 p-4 text-sm text-white/65">Sign in to submit reward requests.</p> : <>
       <section className="rounded-2xl border border-emerald-200/20 bg-[#10251f] p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">New request</h2><p className="mt-1 text-xs text-white/55">Items are only added if a reviewer accepts.</p></div><input value={tokens} onChange={(event) => setTokens(event.target.value)} type="number" min="0" max="100000" aria-label="Requested tokens" className="w-44 rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" placeholder="Tokens" /></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">New request</h2><p className="mt-1 text-xs text-white/55">Items are only added if a reviewer accepts.</p></div><input value={tokens} onChange={(event) => setTokens(event.target.value)} type="number" min="0" max="100000" aria-label="Requested Bread Bucks" className="w-44 rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" placeholder="Tokens" /></div>
         <div className="mt-4"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breadlets" className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" /></div>
         <div className="mt-4 grid max-h-[460px] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">{catalog.map((reward) => <div key={reward.name} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-black/20"><img src={reward.art || artFor(reward.name)} alt={reward.name} className="h-full w-full object-contain" /></div>
@@ -4489,7 +4518,7 @@ function AdminTab({
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
           <h2 className="text-xl font-black text-[#bde8ff] flex items-center gap-2">
-            <img src="/assets/coin.svg" alt="" className="h-6 w-6" /> Token Controls
+            <img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" /> Token Controls
           </h2>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[100, 1000, 10000, 100000].map((amt) => (
@@ -4505,7 +4534,7 @@ function AdminTab({
               onChange={(e) => setTokenAmount(e.target.value)}
               type="number"
               min="0"
-              placeholder="Custom token amount"
+              placeholder="Custom Bread Bucks amount"
               className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#0c3b70] px-4 py-3 text-white outline-none"
             />
             <button onClick={() => grantReward(targetId, { operation: "add", tokens: Number(tokenAmount) || 0 })} className="rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426] hover:bg-[#73c8ff]">Add</button>
@@ -4789,7 +4818,7 @@ function ClanTab({
       return;
     }
     if (!isGuest && player.tokens < 5000) {
-      setCreateError("Creating a clan requires 5,000 tokens.");
+      setCreateError("Creating a clan requires 5,000 Bread Bucks.");
       return;
     }
     if (isGuest) {
@@ -5041,7 +5070,7 @@ function ClanTab({
       {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm">
         <div className="clan-panel w-full max-w-2xl rounded-3xl border p-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black">Create a clan · {isGuest ? "FREE" : "5,000 tokens"}</h2>
+            <h2 className="text-xl font-black">Create a clan · {isGuest ? "FREE" : "5,000 Bread Bucks"}</h2>
             <button type="button" onClick={() => setShowCreate(false)} className="clan-text-muted">Close</button>
           </div>
           <label className="clan-text-muted mt-4 block text-sm font-bold" htmlFor="clan-profile-blook-search">Choose any Blook as your clan profile</label>
@@ -5110,7 +5139,7 @@ function ClanTab({
           <section id="clan-upgrades" className="clan-panel scroll-mt-6 rounded-3xl border p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Chapter 2</p><h2 className="mt-1 text-2xl font-black">Clan upgrades</h2><p className="clan-text-muted mt-1 text-sm">Owners spend the shared treasury to unlock clan features.</p></div><span className="clan-treasury rounded-full px-3 py-1.5 text-sm font-black">{clan.treasury.toLocaleString()} tokens</span></div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {upgradeOptions.map((upgrade) => <article key={upgrade.feature} className="clan-upgrade-card rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black">{upgrade.title}{upgrade.level ? <span className="clan-eyebrow ml-2 text-xs">{upgrade.level}</span> : null}</h3><p className="clan-text-muted mt-1 text-sm leading-5">{upgrade.detail}</p></div>{upgrade.owned && <span className="clan-owned-badge rounded-full px-2.5 py-1 text-[10px] font-black uppercase">Unlocked</span>}</div><button type="button" disabled={isGuest || upgrade.owned || clan.treasury < upgrade.price} onClick={() => void upgradeClan(upgrade.feature)} className="clan-upgrade-button mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{upgrade.owned ? "Purchased" : `Unlock · ${upgrade.price.toLocaleString()} tokens`}</button></article>)}
+              {upgradeOptions.map((upgrade) => <article key={upgrade.feature} className="clan-upgrade-card rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black">{upgrade.title}{upgrade.level ? <span className="clan-eyebrow ml-2 text-xs">{upgrade.level}</span> : null}</h3><p className="clan-text-muted mt-1 text-sm leading-5">{upgrade.detail}</p></div>{upgrade.owned && <span className="clan-owned-badge rounded-full px-2.5 py-1 text-[10px] font-black uppercase">Unlocked</span>}</div><button type="button" disabled={isGuest || upgrade.owned || clan.treasury < upgrade.price} onClick={() => void upgradeClan(upgrade.feature)} className="clan-upgrade-button mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{upgrade.owned ? "Purchased" : `Unlock · ${upgrade.price.toLocaleString()} Bread Bucks`}</button></article>)}
             </div>
             {clan.nameChangeUnlocked && <div className="mt-5 flex flex-col gap-2 sm:flex-row"><input aria-label="New clan name" value={renamedClan} onChange={(event) => setRenamedClan(event.target.value)} maxLength={30} className="clan-input min-w-0 flex-1 rounded-xl border px-3 py-2.5" /><button type="button" onClick={() => void renameClan()} disabled={renamedClan.trim().length < 2 || renamedClan.trim() === clan.name} className="clan-primary-button rounded-xl px-4 py-2.5 font-black disabled:opacity-45">Save clan name</button></div>}
             {clan.colorsUnlocked && <div className="mt-5"><label htmlFor="clan-theme" className="clan-text-muted mb-2 block text-sm font-bold">Clan color theme</label><select id="clan-theme" value={clan.theme} onChange={(event) => void upgradeClan("theme", event.target.value)} className="clan-input rounded-xl border px-4 py-3">{themeOptions.map((theme) => <option key={theme} value={theme}>{themeNames[theme]}</option>)}</select></div>}

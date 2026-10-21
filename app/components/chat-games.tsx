@@ -46,13 +46,13 @@ export function GamesMenu({ onError }: { onError: (message: string) => void }) {
       {open && (
         <div className="mb-2 w-[min(18rem,calc(100vw-1.5rem))] space-y-2 rounded-2xl border border-[#3c3a34] bg-[#13120F] p-3 text-white shadow-2xl">
           <h2 className="font-black text-[#e9bd67]">Chat games</h2>
-          <button disabled={busy} className={option} onClick={() => void run({ action: "wordrace_start" })}>Word Race<span className="block text-xs font-bold text-white/60">First to type the word wins 5 tokens</span></button>
-          <button disabled={busy} className={option} onClick={() => void run({ action: "unscramble_start" })}>Unscramble<span className="block text-xs font-bold text-white/60">Unscramble the word for 5 tokens</span></button>
+          <button disabled={busy} className={option} onClick={() => void run({ action: "wordrace_start" })}>Word Race<span className="block text-xs font-bold text-white/60">First to type the word wins 5 Bread Bucks</span></button>
+          <button disabled={busy} className={option} onClick={() => void run({ action: "unscramble_start" })}>Unscramble<span className="block text-xs font-bold text-white/60">Unscramble the word for 5 Bread Bucks</span></button>
           <div className="rounded-xl bg-[#27251F] p-2">
             <p className="px-1 text-sm font-black">Coin Flip</p>
             <p className="px-1 pb-2 text-xs font-bold text-white/60">Both players put in the bet. Winner takes the pot.</p>
             <div className="flex gap-2">
-              <input value={bet} onChange={(event) => setBet(event.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" aria-label="Bet in tokens" className="min-w-0 flex-1 rounded-lg bg-[#13120F] px-3 py-2 text-sm font-bold text-white outline-none" />
+              <input value={bet} onChange={(event) => setBet(event.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" aria-label="Bet in Bread Bucks" className="min-w-0 flex-1 rounded-lg bg-[#13120F] px-3 py-2 text-sm font-bold text-white outline-none" />
               <button disabled={busy} onClick={() => void run({ action: "coinflip_start", bet: Number(bet) })} className="rounded-lg bg-[#e9bd67] px-3 py-2 text-sm font-black text-[#13120F] disabled:opacity-50">Start</button>
             </div>
           </div>

@@ -46,7 +46,7 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
     const count = selected.reduce((total, entry) => total + entry.quantity, 0);
     if (count > MAX_MASS_OPEN_COUNT) throw new Error(`Open at most ${MAX_MASS_OPEN_COUNT} Goodybags at a time.`);
     const cost = selected.reduce((total, entry) => total + entry.capsule.price * entry.quantity, 0);
-    if (snapshot.tokens < cost) throw new Error('You need more tokens for those Goodybags.');
+    if (snapshot.tokens < cost) throw new Error('You need more Bread Bucks for those Goodybags.');
     plan.tokenDelta = -cost;
     plan.capsulesOpened = count;
     for (const { capsule, quantity } of selected) {
@@ -59,7 +59,7 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       }
     }
   } else if (action === 'crate') {
-    if (snapshot.wheelSpun) throw new Error('You can claim tokens again once an hour has passed.');
+    if (snapshot.wheelSpun) throw new Error('You can claim Bread Bucks again once an hour has passed.');
     let roll = random() * wheelRewards.reduce((total, reward) => total + reward.chance, 0);
     const reward = wheelRewards.find((entry) => { roll -= entry.chance; return roll < 0; }) || wheelRewards[wheelRewards.length - 1];
     plan.crateReward = reward;

@@ -322,13 +322,13 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
         <div className="flex items-center gap-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-10 w-auto object-contain" /><span className="text-2xl font-black tracking-wide" style={{ fontFamily: "DynaPuff, Impact, sans-serif" }}>Breadlet</span><h2 className="ml-3 border-l border-[#3c3a34] pl-3 text-lg font-black">Trading with {otherName}</h2></div>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${otherOffline ? "bg-red-600" : "bg-green-600"}`}>{otherOffline ? "Offline" : "Online"}</span>
       </header>
-      <p role="note" className="bg-[#27251F] px-4 py-2 text-center text-sm font-bold text-[#e9bd67]">A 20% fee is taken from all tokens traded. To sell items for tokens, use the Bazaar instead.</p>
+      <p role="note" className="bg-[#27251F] px-4 py-2 text-center text-sm font-bold text-[#e9bd67]">A 20% fee is taken from all Bread Bucks traded. To sell items for Bread Bucks, use the Bazaar instead.</p>
       {otherOffline && <p role="alert" className="bg-red-700 px-4 py-2 text-center text-sm font-bold">{otherName} left. Both players must be online to trade, so you can only decline for now.</p>}
       <div className="grid flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)]">
         <section className="space-y-3">
           <div className="flex items-center gap-3">{avatar(player.equipped)}<div><p className="text-xl font-black">{player.username}</p><p className="text-xs text-[#c9c7c0]">You</p></div></div>
-          <label className="flex items-center gap-2 rounded-xl bg-[#13120F] px-3 py-2 text-sm font-bold"><img src="/assets/coin.svg" alt="" className="h-6 w-6" />
-            <input type="number" min={0} max={player.tokens} value={offer.tokens || ""} placeholder="0" aria-label="Tokens to offer" onChange={(event) => change({ ...offer, tokens: Math.max(0, Math.min(player.tokens, Math.floor(Number(event.target.value) || 0))) })} className="w-full bg-transparent text-white outline-none" />
+          <label className="flex items-center gap-2 rounded-xl bg-[#13120F] px-3 py-2 text-sm font-bold"><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" />
+            <input type="number" min={0} max={player.tokens} value={offer.tokens || ""} placeholder="0" aria-label="Bread Bucks to offer" onChange={(event) => change({ ...offer, tokens: Math.max(0, Math.min(player.tokens, Math.floor(Number(event.target.value) || 0))) })} className="w-full bg-transparent text-white outline-none" />
             <span className="whitespace-nowrap text-xs text-[#c9c7c0]">of {player.tokens.toLocaleString()}</span></label>
           {slots(toOffer(offer).blooks, true)}
           <p className={`text-xs font-bold ${myConfirmed ? "text-green-300" : "text-[#c9c7c0]"}`}>{myConfirmed ? "You accepted" : "Not accepted yet"}</p>
@@ -347,7 +347,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
         </section>
         <section className="space-y-3">
           <div className="flex flex-row-reverse items-center gap-3 text-right">{avatar(otherEquipped)}<div><p className="text-xl font-black">{otherName}</p><p className="text-xs text-[#c9c7c0]">Their offer</p></div></div>
-          <div className="flex items-center justify-end gap-2 rounded-xl bg-[#13120F] px-3 py-2 text-sm font-bold"><span>{Number(serverTheirs?.tokens || 0).toLocaleString()}</span><img src="/assets/coin.svg" alt="" className="h-6 w-6" /></div>
+          <div className="flex items-center justify-end gap-2 rounded-xl bg-[#13120F] px-3 py-2 text-sm font-bold"><span>{Number(serverTheirs?.tokens || 0).toLocaleString()}</span><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" /></div>
           {slots(serverTheirs?.blooks || [], false)}
           <p className={`text-right text-xs font-bold ${theirConfirmed ? "text-green-300" : "text-[#c9c7c0]"}`}>{theirConfirmed ? `${otherName} accepted` : "Not accepted yet"}</p>
         </section>

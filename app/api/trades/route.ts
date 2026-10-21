@@ -36,7 +36,7 @@ async function validateOffer(admin: ReturnType<typeof createAdminClient> & {}, p
   if (offer.tokens < 0 || offer.tokens > 100000000) return 'Token amount is invalid.';
   const { data: profile, error: profileError } = await admin.from('profiles').select('tokens').eq('id', profileId).single();
   if (profileError || !profile) return 'Player profile was not found.';
-  if (offer.tokens > profile.tokens) return 'You do not have enough tokens for this offer.';
+  if (offer.tokens > profile.tokens) return 'You do not have enough Bread Bucks for this offer.';
   if (offer.blooks.length > 20) return 'You can include at most 20 Bread types in one offer.';
   const names = offer.blooks.map((item) => item.name.replace(/^Shiny /, ''));
   const { data: blooks, error: blookError } = names.length
