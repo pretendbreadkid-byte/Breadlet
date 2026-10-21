@@ -3893,7 +3893,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
               </button>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 font-black">
-                  <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="hover:underline disabled:cursor-default disabled:no-underline">{group.user}</button>
+                  <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="hover:underline disabled:cursor-default disabled:no-underline">{group.user}{group.isBreadletBot ? " 🤖" : ""}</button>
                   {(group.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : latestItem.badges || []).map((badge) => (
                     <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
                       <img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" />

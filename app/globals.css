@@ -1184,7 +1184,7 @@ main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"
   height: clamp(220px, 35vw, 340px);
 }
 .global-chat .chat-online-panel { bottom: 6rem; }
-.chat-breadlet-fact { display: table; max-width: 100%; border: 1px solid #ff7568; border-radius: 8px; background: #a9231a; padding: 7px 10px; color: #FFFFFF; font-size: .9rem; font-weight: 800; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 2px 8px #13120F66; }
+.chat-breadlet-fact { display: block; max-width: 100%; border: 0; background: transparent; padding: 0; color: #ff5a4d; font-size: .9rem; font-weight: 800; white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 767px) {
   main.breadlet-blue-theme > aside.breadlet-sidebar {
     border-right: 0 !important;
