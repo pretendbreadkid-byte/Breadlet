@@ -31,6 +31,12 @@ export async function POST(request: Request) {
   if (lookupError) return NextResponse.json({ error: lookupError.message }, { status: 500 });
   if (existingProfile) return NextResponse.json({ error: 'That username is already taken.' }, { status: 409 });
 
+  const referralCode = String(body.referralCode || '').trim().toUpperCase();
+  if (referralCode) {
+    const { data: referrer } = await admin.from('profiles').select('id').eq('stats->>referralCode', referralCode).maybeSingle();
+    if (!referrer) return NextResponse.json({ error: 'That referral code does not exist.' }, { status: 400 });
+  }
+
   const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
   const remoteIp = forwardedFor || request.headers.get('x-real-ip') || 'unknown';
   const ipSalt = process.env.SIGNUP_LIMIT_SALT || process.env.SUPABASE_SERVICE_ROLE_KEY || 'breadlet-signup-limit';
@@ -55,6 +61,11 @@ export async function POST(request: Request) {
       ? 'That email address is already registered. Log in with your username and password.'
       : error.message;
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+  if (referralCode) {
+    const { error: rewardError } = await admin.rpc('referral_reward', { p_code: referralCode });
+    if (rewardError) console.error('[REFERRAL] reward failed:', rewardError.message);
   }
 
   return NextResponse.json({ ok: true });

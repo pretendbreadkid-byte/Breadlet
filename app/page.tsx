@@ -52,6 +52,7 @@ type Tab =
   | "promo"
   | "resources"
   | "bank"
+  | "referrals"
   | "clan"
   | "crafting"
   | "settings"
@@ -414,6 +415,7 @@ function MainPage() {
   const [supabaseClient] = useState(() => createSupabaseClient());
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [forgotPassword, setForgotPassword] = useState(false);
@@ -723,7 +725,7 @@ function MainPage() {
         const signupResponse = await fetch("/api/auth/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), username: username.trim(), password }),
+          body: JSON.stringify({ email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim() }),
         });
         const signupBody = await signupResponse.json().catch(() => null);
         if (!signupResponse.ok) {
@@ -1408,6 +1410,8 @@ function MainPage() {
         password={password}
         setUsername={setUsername}
         setEmail={setEmail}
+        referralCode={referralCode}
+        setReferralCode={setReferralCode}
         setPassword={setPassword}
         authMode={authMode}
         setAuthMode={setAuthMode}
@@ -1663,6 +1667,7 @@ function MainPage() {
           {tab === "settings" && <SettingsTab username={player.username} isGuest={isGuest} onLogout={leaveSession} />}
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
+          {tab === "referrals" && <ReferralsTab isGuest={isGuest} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
@@ -1803,6 +1808,8 @@ function LoginScreen({
   password,
   setUsername,
   setEmail,
+  referralCode,
+  setReferralCode,
   setPassword,
   authMode,
   setAuthMode,
@@ -1821,6 +1828,8 @@ function LoginScreen({
   password: string;
   setUsername: (value: string) => void;
   setEmail: (value: string) => void;
+  referralCode: string;
+  setReferralCode: (value: string) => void;
   setPassword: (value: string) => void;
   authMode: "login" | "signup";
   setAuthMode: (value: "login" | "signup") => void;
@@ -1888,6 +1897,8 @@ function LoginScreen({
           placeholder="Skip to use username login only"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />}
+        {!forgotPassword && authMode === "signup" && <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]" htmlFor="referral">Referral code <span className="normal-case tracking-normal text-white/50">(optional)</span></label>}
+        {!forgotPassword && authMode === "signup" && <input id="referral" value={referralCode} maxLength={16} onChange={(event) => setReferralCode(event.target.value.toUpperCase())} placeholder="Got a friend's code?" className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]" />}
         {!forgotPassword && authMode === "signup" && <p className="mt-1 text-xs text-white/55">Without email, you can’t receive password reset links.</p>}
         {!forgotPassword && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
@@ -4127,10 +4138,11 @@ function PromoTab({
     </div>
   );
 }
-function ResourcesTab({ open }: { open: (tab: "promo" | "bank") => void }) {
+function ResourcesTab({ open }: { open: (tab: "promo" | "bank" | "referrals") => void }) {
   const resources = [
     { title: "Promo Codes", description: "Redeem a Breadlet code for its reward.", icon: <Percent size={22} />, tab: "promo" as const },
-    { title: "Bread Bucks Bank", description: "See a running total of your Bread Bucks spending.", icon: <img src="/assets/piggy bank.svg" alt="" className="h-7 w-7 object-contain" />, tab: "bank" as const },
+    { title: "Refer a Friend", description: "Share your code and earn 500 Bread Bucks per signup.", icon: <Gift size={22} />, tab: "referrals" as const },
+  { title: "Bread Bucks Bank", description: "See a running total of your Bread Bucks spending.", icon: <img src="/assets/piggy bank.svg" alt="" className="h-7 w-7 object-contain" />, tab: "bank" as const },
   ];
   return (
     <div className="resources-workspace mx-auto w-full max-w-5xl">
@@ -4155,6 +4167,75 @@ function ResourcesTab({ open }: { open: (tab: "promo" | "bank") => void }) {
   );
 }
 
+const referralRewards = [
+  { at: 1, label: "Every signup with your code", reward: "500 Bread Bucks each" },
+  { at: 25, label: "25 referrals", reward: "Verified badge" },
+  { at: 50, label: "50 referrals (max)", reward: "Your own custom code" },
+];
+
+function ReferralsTab({ isGuest }: { isGuest: boolean }) {
+  const [info, setInfo] = useState<{ code: string; count: number } | null>(null);
+  const [error, setError] = useState("");
+  const [custom, setCustom] = useState("");
+  const [message, setMessage] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (isGuest) return;
+    fetch("/api/referrals", { cache: "no-store" })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Referrals could not load.");
+        setInfo(result);
+      })
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Referrals could not load."));
+  }, [isGuest]);
+
+  const count = info?.count || 0;
+  const saveCustom = async () => {
+    setMessage("");
+    const response = await fetch("/api/referrals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customCode: custom }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) { setMessage(result.error || "Could not save your code."); return; }
+    setInfo(result);
+    setCustom("");
+    setMessage("Custom code saved!");
+  };
+
+  return (
+    <div className="resources-workspace mx-auto w-full max-w-3xl">
+      <p className="resources-eyebrow text-xs font-black uppercase tracking-[0.25em]">Resources / Refer a Friend</p>
+      <h1 className="mt-2 text-4xl font-black">Refer a Friend</h1>
+      <section className="bank-card mt-6 rounded-3xl border p-6 text-center sm:p-9">
+        <p className="text-xs font-black uppercase tracking-[0.2em]">Your referral code</p>
+        <p className="mt-2 text-4xl font-black tracking-widest">{isGuest ? "Sign in" : info?.code || "…"}</p>
+        {info && <button type="button" className="mt-3 rounded-xl bg-[#E77D22] px-5 py-2 font-black text-white" onClick={() => { void navigator.clipboard?.writeText(info.code); setCopied(true); window.setTimeout(() => setCopied(false), 1500); }}>{copied ? "Copied!" : "Copy code"}</button>}
+        <p className="mt-4 text-sm font-bold">{count} / 50 players invited</p>
+        <div className="mx-auto mt-2 h-3 w-full max-w-sm overflow-hidden rounded-full bg-black/40"><div className="h-full bg-[#E77D22]" style={{ width: `${Math.min(100, count * 2)}%` }} /></div>
+        <p className="bank-note mt-3 text-xs leading-5">New players type your code when they sign up. You get 500 Bread Bucks for each one, up to 50.</p>
+        {error && <p className="mt-2 text-sm font-bold text-[#ff5a4d]">{error}</p>}
+      </section>
+      <section className="bank-card mt-4 rounded-3xl border p-6">
+        <h2 className="text-lg font-black">Rewards</h2>
+        <div className="mt-3 space-y-2">
+          {referralRewards.map((entry) => (
+            <div key={entry.at} className={`flex items-center justify-between rounded-xl border p-3 ${count >= entry.at ? "opacity-100" : "opacity-60"}`}>
+              <span className="font-bold">{entry.label}</span>
+              <span className="font-black">{count >= entry.at ? "✓ " : ""}{entry.reward}</span>
+            </div>
+          ))}
+        </div>
+        {count >= 50 && (
+          <div className="mt-4 flex gap-2">
+            <input value={custom} maxLength={16} onChange={(event) => setCustom(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))} placeholder="Custom code (4-16 letters/numbers)" className="min-w-0 flex-1 rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-white" />
+            <button type="button" onClick={() => void saveCustom()} className="rounded-xl bg-[#E77D22] px-4 py-2 font-black text-white">Save</button>
+          </div>
+        )}
+        {message && <p className="mt-2 text-sm font-bold">{message}</p>}
+      </section>
+    </div>
+  );
+}
 function TokenBankTab({ isGuest }: { isGuest: boolean }) {
   const [bank, setBank] = useState<{ historicalEstimate: number; trackedSpent: number; totalSpent: number; bankBalance?: number } | null>(null);
   const [error, setError] = useState("");
