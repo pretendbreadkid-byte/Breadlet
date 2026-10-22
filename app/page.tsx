@@ -127,7 +127,7 @@ const playerKey = "breadlet-player";
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
 // Forces the maintenance screen without needing the database (the normal switch lives in
 // app_settings). Set back to false once Supabase is reachable again.
-const FORCE_MAINTENANCE = true;
+const FORCE_MAINTENANCE = false;
 const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
 const guestSessionPlayerKey = "breadlet-guest-session-player";
