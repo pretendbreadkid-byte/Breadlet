@@ -1702,10 +1702,7 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 /* Oozing Pickle: the body keeps the pickle's shape so drips line up with its tip and bump. */
 .pickle-body { position: relative; display: block; height: 100%; max-width: 100%; aspect-ratio: 154 / 276; }
 .pickle-drip { position: absolute; width: 17%; transform: translate(-50%, -18%); pointer-events: none; }
-.pickle-drip img { display: block; width: 100%; height: auto; max-width: none; transform-origin: 50% 0; animation: pickle-ooze-drip 3s ease-in infinite; opacity: 0; }
-.pickle-drip-tip { left: 90%; top: 93%; }
-.pickle-drip-bump { left: 86%; top: 70%; width: 13%; }
-.pickle-drip-bump img { animation-delay: 1.5s; }
+.pickle-drip img { display: block; width: 100%; height: auto; max-width: none; transform-origin: 50% 0; animation: pickle-ooze-drip var(--drip-length, 3s) ease-in var(--drip-delay, 0s) infinite; opacity: 0; }
 @keyframes pickle-ooze-drip {
   0% { opacity: 0; transform: translateY(0) scale(.15, .1); }
   12% { opacity: 1; transform: translateY(0) scale(.45, .35); }

@@ -302,14 +302,28 @@ function AnimatedArtFrame({ src, name, className }: { src: string; name: string;
     </span>
   );
 }
-// Pickle oozes: drops grow out of its tip and a bump, droop, then fall (pure CSS, no re-renders).
+// Every bump on the pickle art (as % of the pickle's box), each with its own size and timing.
+const PICKLE_DRIPS = [
+  { x: 90, y: 93, size: 17, delay: 0, length: 3 },
+  { x: 87, y: 70, size: 13, delay: 1.5, length: 3.4 },
+  { x: 67, y: 39, size: 11, delay: 0.7, length: 3.8 },
+  { x: 6, y: 28, size: 11, delay: 2.2, length: 3.6 },
+  { x: 8, y: 52, size: 12, delay: 0.3, length: 3.2 },
+  { x: 32, y: 84, size: 12, delay: 1.1, length: 3.5 },
+  { x: 53, y: 85, size: 12, delay: 2.6, length: 3.9 },
+];
+
+// Pickle oozes: drops grow out of every bump, droop, then fall (pure CSS, no re-renders).
 function OozingPickle({ className }: { className: string }) {
   return (
     <span className={`relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
       <span className="pickle-body">
         <img src="/assets/pickle-2.svg" alt="Pickle" decoding="async" className="h-full w-full object-contain" />
-        <span className="pickle-drip pickle-drip-tip" aria-hidden="true"><img src="/assets/pickle-ooze.svg" alt="" /></span>
-        <span className="pickle-drip pickle-drip-bump" aria-hidden="true"><img src="/assets/pickle-ooze.svg" alt="" /></span>
+        {PICKLE_DRIPS.map((drip, index) => (
+          <span key={index} className="pickle-drip" aria-hidden="true" style={{ left: `${drip.x}%`, top: `${drip.y}%`, width: `${drip.size}%`, "--drip-delay": `${drip.delay}s`, "--drip-length": `${drip.length}s` } as React.CSSProperties}>
+            <img src="/assets/pickle-ooze.svg" alt="" />
+          </span>
+        ))}
       </span>
     </span>
   );
@@ -795,7 +809,7 @@ function MainPage() {
         setNotice(result.error.message);
         return;
       }
-      await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 250, materials: emptyMaterials() }) });
+      await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 1000, materials: emptyMaterials() }) });
       const response = await fetch("/api/player");
       if (response.ok) {
         pendingGuestRef.current = null;
@@ -813,7 +827,7 @@ function MainPage() {
     save({
       username: username.trim(),
       password,
-      tokens: 250,
+      tokens: 1000,
       mined: 0,
       inventory: [],
       equipped: "",
@@ -848,7 +862,7 @@ function MainPage() {
     } : {
       username: "Guest",
       password: "",
-      tokens: 250,
+      tokens: 1000,
       mined: 0,
       inventory: [],
       equipped: "",

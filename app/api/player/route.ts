@@ -114,7 +114,7 @@ export async function POST(request: Request) {
   const { error } = await admin.from('profiles').upsert({
     id: user.id,
     username,
-    tokens: 250,
+    tokens: 1000,
     luck: 0,
     stats: { wheelSpun: false },
     materials: emptyMaterials(),
