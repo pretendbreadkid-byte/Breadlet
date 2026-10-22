@@ -14,6 +14,9 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return response;
+  // API routes check (and refresh) the session themselves; checking here too doubled the
+  // load on Supabase Auth and made every request hang whenever Auth was slow.
+  if (request.nextUrl.pathname.startsWith('/api/')) return response;
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -26,7 +29,8 @@ export async function middleware(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  // Refresh the session for page loads, but never let a slow Auth server hang the page.
+  await Promise.race([supabase.auth.getUser().catch(() => null), new Promise((resolve) => setTimeout(resolve, 4000))]);
   return response;
 }
 

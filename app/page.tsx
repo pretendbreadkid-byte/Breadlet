@@ -412,6 +412,9 @@ const upgrades = [
 ];
 const mineCapFor = (pickaxe: number) => [500, 1500, 2500, 3500, 4250, 5000][pickaxe] || 5000;
 
+// Give up on a stuck login instead of leaving the button hanging forever.
+const AUTH_TIMEOUT_MS = 25000;
+
 function MainPage() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [isGuest, setIsGuest] = useState(false);
@@ -531,12 +534,14 @@ function MainPage() {
       return true;
     };
     if (supabaseClient) {
-      supabaseClient.auth.getUser().then(async ({ data }) => {
-        if (!data.user) {
+      // getSession reads the saved session locally (no network); /api/player then verifies it,
+      // with a time limit so a slow login server can't leave the loading screen up forever.
+      supabaseClient.auth.getSession().then(async ({ data }) => {
+        if (!data.session) {
           restoreGuest();
           return;
         }
-        const response = await fetch("/api/player").catch(() => null);
+        const response = await fetch("/api/player", { signal: AbortSignal.timeout(AUTH_TIMEOUT_MS) }).catch(() => null);
         if (response?.ok) {
           setIsGuest(false);
           setPlayer(playerFromServer(await response.json()));
@@ -743,10 +748,19 @@ function MainPage() {
       return;
     }
     if (supabaseClient) {
+      try {
+        await finishAccountLogin();
+      } catch {
+        setNotice("Logging in is taking too long. Breadlet's login server may be having trouble, so try again in a few minutes.");
+      }
+      return;
+    }
+    async function finishAccountLogin() {
       let result: { error: { message: string } | null; data?: { session?: unknown } };
       if (authMode === "signup") {
         const signupResponse = await fetch("/api/auth/signup", {
           method: "POST",
+          signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim() }),
         });
@@ -756,6 +770,7 @@ function MainPage() {
         } else {
           const loginResponse = await fetch("/api/auth/login", {
             method: "POST",
+            signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username: username.trim(), password }),
           });
@@ -765,6 +780,7 @@ function MainPage() {
       } else {
         const loginResponse = await fetch("/api/auth/login", {
           method: "POST",
+          signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: username.trim(), password }),
         });
