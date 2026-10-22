@@ -5,20 +5,29 @@ import { createAdminClient } from '../../../lib/supabase/admin';
 export const dynamic = 'force-dynamic';
 const MAX_MARKETPLACE_PRICE = 2147483647;
 
+// Each seller's equipped Breadlet, shown next to their listings.
+async function sellerBlookNames(supabase: any, profiles: { id: string; equipped_blook_id?: string | null }[]) {
+  const equippedIds = Array.from(new Set(profiles.map((profile) => profile.equipped_blook_id).filter(Boolean)));
+  if (!equippedIds.length) return new Map<string, string>();
+  const { data } = await supabase.from('blooks').select('id, name').in('id', equippedIds);
+  const names = new Map((data || []).map((blook: any) => [blook.id, blook.name === 'Surgeon' ? 'Doctor' : blook.name]));
+  return new Map(profiles.map((profile) => [profile.id, String(names.get(profile.equipped_blook_id) || '')]));
+}
+
 export async function GET() {
   const supabase = await createClient();
   if (!supabase) return NextResponse.json([], { status: 200 });
 
   const { data: listings, error } = await supabase
     .from('marketplace_listings')
-    .select('id, price, quantity, status, profile_id, blook_id, shiny, blooks(name), profiles(username)')
+    .select('id, price, quantity, status, profile_id, blook_id, shiny, created_at, blooks(name), profiles(username)')
     .eq('status', 'active')
     .order('created_at', { ascending: false });
 
   if (error) {
     const fallback = await supabase
       .from('marketplace_listings')
-      .select('id, price, quantity, status, profile_id, blook_id, shiny')
+      .select('id, price, quantity, status, profile_id, blook_id, shiny, created_at')
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
@@ -28,12 +37,13 @@ export async function GET() {
     const blookIds = Array.from(new Set((fallback.data || []).map((l: any) => l.blook_id)));
     
     const [{ data: profs }, { data: blks }] = await Promise.all([
-      profileIds.length ? supabase.from('profiles').select('id, username').in('id', profileIds) : { data: [] },
+      profileIds.length ? supabase.from('profiles').select('id, username, equipped_blook_id').in('id', profileIds) : { data: [] },
       blookIds.length ? supabase.from('blooks').select('id, name').in('id', blookIds) : { data: [] },
     ]);
     
     const pMap = new Map((profs || []).map((p: any) => [p.id, p.username]));
     const bMap = new Map((blks || []).map((b: any) => [b.id, b.name]));
+    const sellerBlooks = await sellerBlookNames(supabase, profs || []);
 
     const formatted = (fallback.data || []).map((listing: any) => ({
       id: listing.id,
@@ -42,6 +52,8 @@ export async function GET() {
       blook: `${listing.shiny ? 'Shiny ' : ''}${bMap.get(listing.blook_id) || 'Bread Blook'}`,
       price: listing.price,
       quantity: listing.quantity,
+      listedAt: listing.created_at,
+      sellerBlook: sellerBlooks.get(listing.profile_id) || '',
     }));
     return NextResponse.json(formatted);
   }
@@ -49,11 +61,12 @@ export async function GET() {
   const profileIds = Array.from(new Set((listings || []).map((l: any) => l.profile_id)));
   const blookIds = Array.from(new Set((listings || []).map((l: any) => l.blook_id)));
   const [{ data: profs }, { data: blks }] = await Promise.all([
-    profileIds.length ? supabase.from('profiles').select('id, username').in('id', profileIds) : { data: [] },
+    profileIds.length ? supabase.from('profiles').select('id, username, equipped_blook_id').in('id', profileIds) : { data: [] },
     blookIds.length ? supabase.from('blooks').select('id, name').in('id', blookIds) : { data: [] },
   ]);
   const pMap = new Map((profs || []).map((p: any) => [p.id, p.username]));
   const bMap = new Map((blks || []).map((b: any) => [b.id, b.name]));
+  const sellerBlooks = await sellerBlookNames(supabase, profs || []);
 
   const formatted = (listings || []).map((listing: any) => {
     const profile = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
@@ -65,6 +78,8 @@ export async function GET() {
       blook: `${listing.shiny ? 'Shiny ' : ''}${blook?.name || bMap.get(listing.blook_id) || 'Bread Blook'}`,
       price: listing.price,
       quantity: listing.quantity,
+      listedAt: listing.created_at,
+      sellerBlook: sellerBlooks.get(listing.profile_id) || '',
     };
   });
 

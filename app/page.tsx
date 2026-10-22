@@ -62,7 +62,7 @@ type Tab =
   | "explore";
 
 
-type Listing = { id: number | string; seller: string; sellerId?: string; blook: string; price: number; quantity?: number };
+type Listing = { id: number | string; seller: string; sellerId?: string; blook: string; price: number; quantity?: number; listedAt?: string; sellerBlook?: string };
 type Player = {
   id?: string;
   username: string;
@@ -1679,7 +1679,8 @@ function MainPage() {
               createListing={createListing}
               cancelListing={cancelListing}
               openListing={setSelectedListing}
-                isGuest={isGuest}
+              buyListing={buyListing}
+              isGuest={isGuest}
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
             />
           )}
@@ -3029,6 +3030,7 @@ function Bazaar({
   createListing,
   cancelListing,
   openListing,
+  buyListing,
   setPlayerListings,
   isGuest,
 }: {
@@ -3036,6 +3038,7 @@ function Bazaar({
   createListing: (blook: string, price: number) => void;
   cancelListing: (listing: Listing) => void | Promise<void>;
   openListing: (listing: Listing) => void;
+  buyListing: (listing: Listing) => void | Promise<void>;
   setPlayerListings?: (listings: Listing[]) => void;
   isGuest: boolean;
 }) {
@@ -3050,7 +3053,6 @@ function Bazaar({
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState<"browse" | "mine">("browse");
   const [marketListings, setMarketListings] = useState<Listing[]>(player.listings);
-  const [pageStart, setPageStart] = useState(0);
   const [selectedBlook, setSelectedBlook] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const supabase = useMemo(() => createSupabaseClient(), []);
@@ -3112,59 +3114,36 @@ function Bazaar({
     return 0;
   });
   const blookGroups = Array.from(new Set(listings.map((listing) => listing.blook)));
-  const visibleBlooks = blookGroups.slice(pageStart, pageStart + 4);
-  const pageCount = Math.ceil(blookGroups.length / 4);
 
   useEffect(() => {
-    setPageStart(0);
     setSelectedBlook("");
     setDetailsOpen(false);
   }, [search, rarity, pack, view]);
 
-  const moveSelection = (direction: -1 | 1) => {
-    if (pageCount < 2) return;
-    setPageStart((start) => ((Math.floor(start / 4) + direction + pageCount) % pageCount) * 4);
-  };
-
   return (
     <div className="bazaar-market -m-3 min-h-full p-4 sm:-m-4 sm:p-6">
-      <div className="bazaar-header">
-        <div className="bazaar-title-block">
-          <p className="bazaar-eyebrow">Player marketplace</p>
-          <h1 className="bazaar-title">Bazaar</h1>
-        </div>
-        <div className="bazaar-controls">
-          <div className="bazaar-filter-row">
-            <select value={rarity} onChange={(event) => setRarity(event.target.value)} aria-label="Filter by rarity" className="bazaar-filter-control">
-              <option>All rarities</option>
-              {[
-                "Common",
-                "Uncommon",
-                "Rare",
-                "Epic",
-                "Legendary",
-                "Mythic",
-                "Unique",
-                "Breadled",
-              ].map((item) => (
-                <option key={item}>{item}</option>
-              ))}
-            </select>
-            <select value={pack} onChange={(event) => setPack(event.target.value)} aria-label="Filter by pack" className="bazaar-filter-control">
-              <option>All packs</option>
-              {packNames.map((item) => <option key={item}>{item}</option>)}
-            </select>
-            <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sort listings" className="bazaar-filter-control">
-              <option>Newest</option>
-              <option>Lowest price</option>
-              <option>Highest price</option>
-            </select>
-          </div>
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Blooks" className="bazaar-filter-control bazaar-search" />
-        </div>
+      <h1 className="bazaar-title">Bazaar</h1>
+      <div className="bazaar-toolbar">
+        <label className="bazaar-search-field">
+          <Search size={18} aria-hidden="true" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breadlets" aria-label="Search Breadlets" />
+        </label>
+        <select value={rarity} onChange={(event) => setRarity(event.target.value)} aria-label="Filter by rarity" className="bazaar-filter-control">
+          <option>All rarities</option>
+          {["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Unique", "Breadled"].map((item) => <option key={item}>{item}</option>)}
+        </select>
+        <select value={pack} onChange={(event) => setPack(event.target.value)} aria-label="Filter by pack" className="bazaar-filter-control">
+          <option>All packs</option>
+          {packNames.map((item) => <option key={item}>{item}</option>)}
+        </select>
+        <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sort listings" className="bazaar-filter-control">
+          <option>Newest</option>
+          <option>Lowest price</option>
+          <option>Highest price</option>
+        </select>
         <button onClick={() => setShowForm(!showForm)} className="bazaar-list-button">+ List an item</button>
       </div>
-      <div className="bazaar-view-tabs mt-6 flex rounded-2xl border p-1">
+      <div className="bazaar-view-tabs mt-4 flex rounded-2xl border p-1">
         <button aria-pressed={view === "browse"} onClick={() => setView("browse")} className="flex-1 rounded-xl px-4 py-3 font-black">Browse</button>
         <button aria-pressed={view === "mine"} onClick={() => setView("mine")} className="flex-1 rounded-xl px-4 py-3 font-bold">My listings</button>
       </div>
@@ -3175,13 +3154,9 @@ function Bazaar({
             createListing(blook, Number(price));
             setShowForm(false);
           }}
-          className="mt-5 grid gap-3 rounded-2xl border border-[#d49a4a]/25 bg-[#3a2415] p-5 md:grid-cols-[1fr_180px_auto]"
+          className="bazaar-list-form mt-4 grid gap-3 md:grid-cols-[1fr_180px_auto]"
         >
-          <select
-            value={blook}
-            onChange={(event) => setBlook(event.target.value)}
-            className="rounded-xl bg-[#24170f] px-3 py-3 text-white"
-          >
+          <select value={blook} onChange={(event) => setBlook(event.target.value)} aria-label="Breadlet to list" className="bazaar-filter-control">
             {ownedBlooks.map((name) => (
               <option key={name}>{name}</option>
             ))}
@@ -3193,106 +3168,135 @@ function Bazaar({
             min="1"
             max={MAX_MARKETPLACE_PRICE}
             step="1"
-            className="rounded-xl bg-[#24170f] px-3 py-3 text-white"
+            className="bazaar-filter-control"
             placeholder="Price"
             aria-label={`Listing price, maximum ${MAX_MARKETPLACE_PRICE.toLocaleString()} Bread Bucks`}
           />
-          <button className="rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c]">
-            List Bread
-          </button>
+          <button className="bazaar-buy-button px-6">List Breadlet</button>
         </form>
       )}
-      {visibleBlooks.length ? (
-        <section className="market-blook-carousel mt-5 flex items-center gap-2 sm:gap-3" aria-label="Browse Breadlets">
-          <button type="button" onClick={() => moveSelection(-1)} disabled={pageCount < 2} aria-label="Previous four Blooks" className="bazaar-arrow">‹</button>
-          <div className="bazaar-blook-grid">
-            {visibleBlooks.map((name, index) => {
-              const blookListings = listings.filter((listing) => listing.blook === name);
-              const quantity = blookListings.reduce((total, listing) => total + Math.max(1, Number(listing.quantity) || 1), 0);
-              return (
-                <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-blook-card">
-                  <div className="bazaar-art-stage">
-                    <BlookImg name={name} className="h-full w-full" />
-                  </div>
-                  <h2 className="mt-2 truncate text-sm font-black sm:text-base">{name}</h2>
-                  <p className="mt-1 text-xs font-bold text-[#ffd166]">{rarityFor(name)} · {quantity} listed</p>
-                  <p className="mt-2 text-[10px] font-bold text-white/60">{pageStart + index + 1} of {blookGroups.length}</p>
-                </button>
-              );
-            })}
-          </div>
-          <button type="button" onClick={() => moveSelection(1)} disabled={pageCount < 2} aria-label="Next four Blooks" className="bazaar-arrow">›</button>
+      {blookGroups.length ? (
+        <section className="bazaar-blook-grid mt-5" aria-label="Breadlets for sale">
+          {blookGroups.map((name) => {
+            const blookListings = listings.filter((listing) => listing.blook === name);
+            const quantity = blookListings.reduce((total, listing) => total + Math.max(1, Number(listing.quantity) || 1), 0);
+            const lowest = Math.min(...blookListings.map((listing) => listing.price));
+            return (
+              <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-blook-card">
+                <div className="bazaar-art-stage">
+                  <BlookImg name={name} className="h-full w-full" />
+                </div>
+                <h2 className="mt-2 truncate text-sm font-black sm:text-base">{name}</h2>
+                <p className="mt-0.5 text-xs font-bold opacity-75">{rarityFor(name)} · {quantity} listed</p>
+                <p className="bazaar-card-price"><img src="/assets/Bread%20bucks.svg" alt="" />from {lowest.toLocaleString()}</p>
+              </button>
+            );
+          })}
         </section>
       ) : (
-        <p className="mt-6 rounded-2xl border p-8 text-center text-[#d7b88c]">No listings match your search yet.</p>
+        <p className="bazaar-empty mt-6 rounded-2xl border p-8 text-center">{view === "mine" ? "You have no active listings." : "No listings match your search yet."}</p>
       )}
       {detailsOpen && <BlookListingsModal
         blook={selectedBlook}
         listings={listings.filter((listing) => listing.blook === selectedBlook)}
         close={() => setDetailsOpen(false)}
-        openListing={openListing}
-        ownUsername={view === "mine" ? player.username : undefined}
+        player={player}
+        buy={buyListing}
         cancelListing={cancelListing}
       />}
     </div>
   );
 }
 
+const listedAgo = (iso?: string) => {
+  if (!iso) return "Listed recently";
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutes < 1) return "Listed just now";
+  if (minutes < 60) return `Listed ${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Listed ${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "Listed yesterday" : `Listed ${days} days ago`;
+};
+
+// The best odds of pulling a Breadlet from any live pack, e.g. "Common (24%)".
+const rarityWithOdds = (blook: string) => {
+  const name = blook.replace(/^Shiny /, "");
+  const odds = liveCapsules.flatMap((capsule) => capsule.pool.filter((reward) => reward.name === name).map((reward) => chanceFor(capsule, reward)));
+  const best = odds.length ? Math.max(...odds) : 0;
+  return best ? `${rarityFor(blook)} (${best >= 1 ? Math.round(best) : +best.toFixed(2)}%)` : rarityFor(blook);
+};
+
 function BlookListingsModal({
   blook,
   listings,
   close,
-  openListing,
-  ownUsername,
+  player,
+  buy,
   cancelListing,
 }: {
   blook: string;
   listings: Listing[];
   close: () => void;
-  openListing: (listing: Listing) => void;
-  ownUsername?: string;
+  player: Player;
+  buy: (listing: Listing) => void | Promise<void>;
   cancelListing: (listing: Listing) => void | Promise<void>;
 }) {
-  const sellers = Array.from(listings.reduce((groups, listing) => {
-    const sellerKey = listing.sellerId || listing.seller;
-    const sellerListings = groups.get(sellerKey) || [];
-    sellerListings.push(listing);
-    groups.set(sellerKey, sellerListings);
-    return groups;
-  }, new Map<string, Listing[]>()));
+  const offers = [...listings].sort((left, right) => left.price - right.price);
+  const [selectedId, setSelectedId] = useState(offers[0]?.id);
+  const [busy, setBusy] = useState(false);
+  const selected = offers.find((offer) => offer.id === selectedId) || offers[0];
+  const listedCount = offers.reduce((total, offer) => total + Math.max(1, Number(offer.quantity) || 1), 0);
+  const ownListing = Boolean(selected && selected.seller === player.username);
+  const remaining = selected ? player.tokens - selected.price : player.tokens;
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [close]);
+  // Close once the last listing is bought or taken down.
+  useEffect(() => { if (!offers.length) close(); }, [offers.length, close]);
+
+  const act = async () => {
+    if (!selected || busy) return;
+    setBusy(true);
+    await (ownListing ? cancelListing(selected) : buy(selected));
+    setBusy(false);
+  };
 
   return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-      <section role="dialog" aria-modal="true" aria-labelledby="blook-listings-title" className="w-full max-w-2xl rounded-2xl border border-[#d49a4a]/40 bg-[#24170f] p-5 text-white shadow-2xl sm:p-6">
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <BlookImg name={blook} className="h-12 w-12 shrink-0" />
-            <div className="min-w-0"><h2 id="blook-listings-title" className="truncate text-xl font-black">{blook}</h2><p className="text-xs font-bold text-[#e9bd67]">{rarityFor(blook)} · {listings.length} offer{listings.length === 1 ? "" : "s"}</p></div>
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="blook-listings-title" className="bazaar-offers">
+        <div className="bazaar-offers-header">
+          <div className="bazaar-offers-art"><BlookImg name={blook} className="h-full w-full" /></div>
+          <div className="min-w-0 flex-1">
+            <h2 id="blook-listings-title" className="truncate text-3xl font-black">{blook}</h2>
+            <p className="text-base font-bold opacity-80">{rarityWithOdds(blook)}</p>
+            <p className="text-base font-black">{listedCount.toLocaleString()} listed</p>
           </div>
-          <button type="button" onClick={close} aria-label="Close listings" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>
+          <button type="button" onClick={close} aria-label="Close listings" className="bazaar-offers-close">×</button>
         </div>
-        <div className="mt-4 max-h-[65vh] space-y-3 overflow-y-auto">
-          {sellers.map(([sellerKey, offers]) => {
-            const amount = offers.reduce((total, offer) => total + Math.max(1, Number(offer.quantity) || 1), 0);
-            return (
-              <article key={sellerKey} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-black">{offers[0].seller}</h3><span className="text-xs font-bold text-[#d7b88c]">{amount} listed</span></div>
-                <div className="space-y-2">
-                  {offers.map((offer) => (
-                    <div key={offer.id} className="flex items-center justify-between gap-3 rounded-lg bg-black/20 px-3 py-2">
-                      <span className="text-sm font-black text-[#ffe2a0]">{offer.price.toLocaleString()} tokens</span>
-                      {ownUsername && offer.seller === ownUsername ? (
-                        <button type="button" onClick={async () => { await cancelListing(offer); if (offers.length === 1 && sellers.length === 1) close(); }} className="rounded-lg bg-red-500 px-3 py-2 text-xs font-black text-white">Take down</button>
-                      ) : (
-                        <button type="button" onClick={() => openListing(offer)} className="rounded-lg bg-[#e9bd67] px-3 py-2 text-xs font-black text-[#29170c]">View offer</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </article>
-            );
-          })}
+        <div className="bazaar-offers-list" role="listbox" aria-label={`${blook} listings`}>
+          {offers.map((offer) => (
+            <button key={offer.id} type="button" role="option" aria-selected={offer.id === selected?.id} onClick={() => setSelectedId(offer.id)} className="bazaar-offer-row">
+              <span className="bazaar-offer-avatar">{offer.sellerBlook ? <BlookImg name={offer.sellerBlook} className="h-full w-full" /> : <CircleUserRound size={28} />}</span>
+              <span className="min-w-0 flex-1 text-left">
+                <strong className="block truncate text-lg">{offer.seller}{offer.seller === player.username ? " (you)" : ""}</strong>
+                <small className="block text-sm opacity-75">{listedAgo(offer.listedAt)}{Number(offer.quantity) > 1 ? ` · ${offer.quantity} available` : ""}</small>
+              </span>
+              <span className="bazaar-offer-price"><img src="/assets/Bread%20bucks.svg" alt="Bread Bucks" />{offer.price.toLocaleString()}</span>
+            </button>
+          ))}
         </div>
+        {selected && (
+          <footer className="mt-4">
+            <button type="button" onClick={() => void act()} disabled={busy || (!ownListing && remaining < 0)} className={ownListing ? "bazaar-takedown-button" : "bazaar-buy-button"}>
+              {ownListing ? "Take down listing" : remaining < 0 ? "Not enough Bread Bucks" : <>Buy for <img src="/assets/Bread%20bucks.svg" alt="" />{selected.price.toLocaleString()}</>}
+            </button>
+            {!ownListing && <p className="mt-2 text-center text-sm font-bold opacity-80">From <b>{selected.seller}</b> · you&apos;ll have {Math.max(0, remaining).toLocaleString()} Bread Bucks left</p>}
+          </footer>
+        )}
       </section>
     </div>
   );
@@ -5191,20 +5195,19 @@ function CraftingTab({
           <h1 className="mt-1 text-4xl font-black">Crafting</h1>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <span className="crafting-material-hint">Your materials are shown above</span>
-          <button type="button" onClick={() => { setRecycleQuantities({}); setMassRecycleOpen(true); }} disabled={!recyclable.length} className="rounded-xl border-2 border-[#CC5500] bg-[#FFD9B3] px-4 py-3 text-sm font-black text-[#3B1F0E] hover:bg-white disabled:opacity-50">
+          <button type="button" onClick={() => { setRecycleQuantities({}); setMassRecycleOpen(true); }} disabled={!recyclable.length} className="crafting-dark-button rounded-xl px-4 py-3 text-sm font-black disabled:opacity-50">
             Mass recycle
           </button>
-          <button type="button" onClick={() => setShowRecycleStation(true)} className="rounded-xl border-2 border-[#CC5500] bg-[#CC5500] px-4 py-3 text-sm font-black text-white hover:bg-[#A94500]">
+          <button type="button" onClick={() => setShowRecycleStation(true)} className="crafting-dark-button rounded-xl px-4 py-3 text-sm font-black">
             Open Recycle Station
           </button>
         </div>
       </div>
       <div className="crafting-workbench mt-5 grid gap-5">
-        <div className="crafting-assembly-panel rounded-3xl border-2 border-[#CC5500] bg-[#D4701C] p-5 sm:p-7">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#3B1F0E]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Breadlets</h2>
+        <div className="crafting-assembly-panel">
+          <h2 className="text-2xl font-black">Craftable Breadlets</h2>
           <div className="crafting-recipe-grid mt-5 grid gap-3 sm:grid-cols-2">
-            {craftRecipes.map((recipe) => { const enough = isGuest || bundleEntries(recipe.ingredients).every(([material, amount]) => (player.materials[material] || 0) >= amount); return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className="craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left"><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{isGuest ? "Free to craft" : enough ? "Ready to craft" : "20 total materials"}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>→</span></button>; })}
+            {craftRecipes.map((recipe) => { const missing = bundleEntries(recipe.ingredients).reduce((sum, [material, amount]) => sum + Math.max(0, amount - (player.materials[material] || 0)), 0); const enough = isGuest || missing === 0; return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className={`craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left ${enough ? "craft-ready" : ""}`}><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{isGuest ? "Free to craft" : enough ? "Ready to craft" : `Need ${missing} more material${missing === 1 ? "" : "s"}`}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>→</span></button>; })}
           </div>
         </div>
       </div>
