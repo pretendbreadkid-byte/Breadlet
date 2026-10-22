@@ -3698,9 +3698,11 @@ function SimplePanel({
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis }: { emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; profileId?: string; createdAt?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
@@ -3727,8 +3729,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
             { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
           ]);
         } else {
-          setMessages(
-            rows.map((row: any) => {
+          setMessages((previous) => [
+            ...rows.map((row: any) => {
               const username = row.user || (Array.isArray(row.profiles) ? row.profiles[0]?.username : row.profiles?.username) || "Player";
               return {
                 id: row.id,
@@ -3743,8 +3745,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 replyTo: row.replyTo || null,
                 badges: row.badges || (username === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : []),
               };
-            })
-          );
+            }),
+            ...previous.filter((item) => item.pending),
+          ]);
         }
       }
     } catch (err) {
@@ -3764,8 +3767,38 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "global_chat_messages" },
         (payload) => {
+          const row = payload.new as { id: string; message: string; profile_id: string; created_at: string; reply_to_message_id: string | null; is_breadlet_bot?: boolean };
+          const me = playerRef.current;
+          // Decide from a snapshot: React may run the state updater below later, not right away.
+          const senderKnown = row?.is_breadlet_bot === true || row?.profile_id === me.id || messagesRef.current.some((item) => item.profileId === row?.profile_id && !item.isBreadletBot);
+          setMessages((current) => {
+            if (!row?.id || current.some((item) => item.id === row.id)) return current;
+            const isBot = row.is_breadlet_bot === true;
+            const mine = !isBot && row.profile_id === me.id;
+            // Reuse what we already know about the sender; unknown senders wait for the reload below.
+            const known = isBot || mine ? null : [...current].reverse().find((item) => item.profileId === row.profile_id && !item.isBreadletBot);
+            if (!isBot && !mine && !known) return current;
+            const target = row.reply_to_message_id ? current.find((item) => String(item.id) === String(row.reply_to_message_id)) : null;
+            const next = {
+              id: row.id,
+              user: isBot ? "Breadlet" : mine ? me.username : known!.user,
+              text: row.message,
+              equippedBlook: isBot ? "" : mine ? me.equipped : known!.equippedBlook,
+              isBreadletBot: isBot,
+              profileId: row.profile_id,
+              createdAt: row.created_at,
+              canDelete: mine,
+              badges: isBot ? [] : mine ? Array.from(new Set([...me.badges, ...tokenBadgesFor(me.tokens)])) : known!.badges,
+              replyTo: target ? { id: target.id, user: target.user, message: target.text } : null,
+            };
+            // Our own message: swap the "sending" copy for the real one.
+            const pendingIndex = mine ? current.findIndex((item) => item.pending && item.text === row.message) : -1;
+            if (pendingIndex >= 0) return current.map((item, index) => (index === pendingIndex ? { ...item, ...next, replyTo: item.replyTo, pending: false } : item));
+            return [...current, next].slice(-60);
+          });
+          // A quiet full reload afterwards fills in profiles, badges and moderator buttons.
           if (refreshTimer) window.clearTimeout(refreshTimer);
-          refreshTimer = window.setTimeout(loadMessages, 900);
+          refreshTimer = window.setTimeout(loadMessages, senderKnown ? 2500 : 150);
         }
       )
       .subscribe((status) => {
@@ -3781,6 +3814,10 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     if (!textToSend.trim()) return;
     if (textToSend.trim().startsWith("/")) window.dispatchEvent(new Event(GAMES_CHANGED_EVENT));
     if (supabase) {
+      const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const dropPending = () => setMessages((current) => current.filter((item) => item.id !== tempId));
+      setMessages((current) => [...current, { id: tempId, user: player.username, text: textToSend, equippedBlook: player.equipped, isBreadletBot: false, profileId: player.id, createdAt: new Date().toISOString(), replyTo: reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), pending: true }]);
+      setReplyTarget(null);
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
@@ -3790,20 +3827,18 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         if (response.ok) {
           const data = await response.json();
           setChatError("");
-          const username = data.user || (Array.isArray(data.profiles) ? data.profiles[0]?.username : data.profiles?.username) || player.username;
           setMessages((current) => {
-            if (data.id && current.some((m) => m.id === data.id)) return current;
-            return [
-              ...current,
-                    { id: data.id, user: username, text: data.message || textToSend, equippedBlook: player.equipped, isBreadletBot: false, replyTo: data.replyTo || reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) },
-            ];
+            // Realtime may have delivered the real message already.
+            if (data.id && current.some((item) => item.id === data.id)) return current.filter((item) => item.id !== tempId);
+            return current.map((item) => (item.id === tempId ? { ...item, id: data.id ?? tempId, text: data.message || textToSend, createdAt: data.created_at || item.createdAt, replyTo: data.replyTo || item.replyTo, canDelete: true, pending: false } : item));
           });
-                  setReplyTarget(null);
         } else {
+          dropPending();
           const result = await response.json().catch(() => ({}));
           setChatError(result.error || "Your message could not be sent.");
         }
       } catch (err) {
+        dropPending();
         console.error('[CLIENT_CHAT] Error sending message:', err);
         setChatError("Could not reach chat. Check your connection and try again.");
       }
@@ -3998,7 +4033,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           return (
             <div key={`${group.user}-${latest.index}`} className="chat-group">
               <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} aria-label={group.isBreadletBot ? "Breadlet chat bot" : `Open ${group.user}'s profile`} title={group.isBreadletBot ? "Breadlet" : `View ${group.user}'s profile`} className="chat-avatar disabled:cursor-default">
-                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <CircleUserRound size={52} />}
+                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <CircleUserRound size={36} />}
               </button>
               <div className="min-w-0 flex-1">
                 <div className="chat-group-header">
@@ -4021,7 +4056,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                     const messageId = String(item.id ?? `local-${item.user}-${index}`);
                     const canEdit = !item.isBreadletBot && item.user === player.username && (item.id != null || isGuest);
                     return (
-                      <div key={messageId} id={`chat-message-${messageId}`} className="chat-group-message">
+                      <div key={messageId} id={`chat-message-${messageId}`} className={`chat-group-message${item.pending ? " chat-pending" : ""}`}>
                         {firstUnreadId != null && item.id === firstUnreadId && (
                           <div className="chat-new-divider" role="separator"><span /><b>NEW MESSAGES</b></div>
                         )}

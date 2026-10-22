@@ -212,7 +212,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: sender } = await database.from('profiles').select('username, is_banned, account_status, stats').eq('id', user.id).maybeSingle();
+  // These lookups are independent, so run them together instead of one after another.
+  const [{ data: sender }, networkBanned, body] = await Promise.all([
+    database.from('profiles').select('username, is_banned, account_status, stats').eq('id', user.id).maybeSingle(),
+    isNetworkBanned(database, request),
+    request.json().catch(() => ({})),
+  ]);
   if (sender && (sender.is_banned || (sender.account_status && sender.account_status !== 'active'))) {
     return NextResponse.json({ error: 'Banned accounts cannot chat.' }, { status: 403 });
   }
@@ -220,12 +225,10 @@ export async function POST(request: Request) {
   if (Number.isFinite(mutedUntil) && mutedUntil > Date.now()) {
     return NextResponse.json({ error: `You are timed out from chat for ${Math.ceil((mutedUntil - Date.now()) / 60000)} more minute(s).` }, { status: 403 });
   }
-  if (await isNetworkBanned(database, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
+  if (networkBanned) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
   if (sender?.username && !isNameAllowed(sender.username)) {
     return NextResponse.json({ error: 'Your username is not allowed, so you cannot chat. Ask a moderator for help.' }, { status: 403 });
   }
-
-  const body = await request.json();
 
   const rawMessage = String(body.message || '').trim();
   // Image messages carry a base64 data URL (png, jpeg, gif, webp or svg) and need a larger limit.
@@ -329,10 +332,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // Keep only the newest 35 messages; older ones are deleted.
+  // Keep only the newest 35 messages; older ones are deleted in the background so sending never waits.
   if (Math.random() < 0.2) {
-  const { data: stale } = await database.from('global_chat_messages').select('id').order('created_at', { ascending: false }).range(35, 300);
-  if (stale?.length) await database.from('global_chat_messages').delete().in('id', stale.map((row: { id: string }) => row.id));
+    void (async () => {
+      const { data: stale } = await database.from('global_chat_messages').select('id').order('created_at', { ascending: false }).range(35, 300);
+      if (stale?.length) await database.from('global_chat_messages').delete().in('id', stale.map((row: { id: string }) => row.id));
+    })().catch(() => undefined);
   }
 
   void runAiModeration(database).catch(() => undefined);
