@@ -318,7 +318,7 @@ export const liveCapsules: Capsule[] = [
       Toaster: "/assets/toaster-bread.svg",
       Croissant: "/assets/croissant.svg",
       "Cinnamon Roll": "/assets/cinnamon-roll-refreshed.svg",
-      "Robo Bread": "/assets/robo-bread.svg",
+      "Robo Bread": "/assets/robo-bread-2.svg",
       "Slime Bread": "/assets/slime-bread.svg",
       "Gold Bread": "/assets/gold-bread-refreshed.svg",
       "Holy Bread": "/assets/holy-bread-refreshed.svg",

@@ -1698,3 +1698,21 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .breadlet-blue-theme .crafting-workspace .craft-process > span:first-child,
 .breadlet-blue-theme .crafting-workspace .craft-process > span:nth-child(3) { border-color: #3c3a34 !important; background: #13120F !important; }
 .breadlet-blue-theme .crafting-workspace .craft-process > span:nth-child(2) { max-width: 56px; background: #3c3a34; }
+
+/* Oozing Pickle: the body keeps the pickle's shape so drips line up with its tip and bump. */
+.pickle-body { position: relative; display: block; height: 100%; max-width: 100%; aspect-ratio: 154 / 276; }
+.pickle-drip { position: absolute; width: 17%; transform: translate(-50%, -18%); pointer-events: none; }
+.pickle-drip img { display: block; width: 100%; height: auto; max-width: none; transform-origin: 50% 0; animation: pickle-ooze-drip 3s ease-in infinite; opacity: 0; }
+.pickle-drip-tip { left: 90%; top: 93%; }
+.pickle-drip-bump { left: 86%; top: 70%; width: 13%; }
+.pickle-drip-bump img { animation-delay: 1.5s; }
+@keyframes pickle-ooze-drip {
+  0% { opacity: 0; transform: translateY(0) scale(.15, .1); }
+  12% { opacity: 1; transform: translateY(0) scale(.45, .35); }
+  40% { opacity: 1; transform: translateY(4%) scale(.7, .95); }
+  58% { opacity: 1; transform: translateY(14%) scale(.66, 1.35); }
+  66% { opacity: 1; transform: translateY(40%) scale(.85, 1.05); }
+  86% { opacity: 0; transform: translateY(190%) scale(.8, 1.1); }
+  100% { opacity: 0; transform: translateY(190%) scale(.8, 1.1); }
+}
+@media (prefers-reduced-motion: reduce) { .pickle-drip { display: none; } }

@@ -247,7 +247,7 @@ const artFor = (name: string) =>
     Donut: "/assets/bagel.svg",
     "Cinnamon Roll": "/assets/cinnamon-roll-refreshed.svg",
     Croissant: "/assets/croissant.svg",
-    "Robo Bread": "/assets/robo-bread.svg",
+    "Robo Bread": "/assets/robo-bread-2.svg",
     "Slime Bread": "/assets/slime-bread.svg",
     Toaster: "/assets/toaster-bread.svg",
     "Green Astronaut": "/assets/green-astronaut-blooktuber.png",
@@ -274,15 +274,15 @@ const artFor = (name: string) =>
     Tablet: "/assets/Lost and found + food pack/tablet.svg",
     Apple: "/assets/Lost and found + food pack/apple.svg",
     Avocado: "/assets/avocado.svg",
-    Potato: "/assets/potato.svg",
-    Carrot: "/assets/carrot.svg",
-    Fries: "/assets/Lost and found + food pack/fries.svg",
-    Egg: "/assets/Lost and found + food pack/egg.svg",
+    Potato: "/assets/potato-2.svg",
+    Carrot: "/assets/carrot-2.svg",
+    Fries: "/assets/fries-2.svg",
+    Egg: "/assets/egg-2.svg",
     "Candy Corn": "/assets/candy-corn-refreshed.svg",
     Caramel: "/assets/Lost and found + food pack/carmel.svg",
     "Sprinkle Bread": "/assets/Sprinkle bread improved.svg",
     "Ice Cream": "/assets/Lost and found + food pack/ice cream .svg",
-    Pickle: "/assets/Lost and found + food pack/pickel frame 1.svg",
+    Pickle: "/assets/pickle-2.svg",
     "The Bomb": "/assets/Lost and found + food pack/bomb.svg",
     Nunchucks: "/assets/Lost and found + food pack/nunchucks (rplacemnt for sheild..svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
@@ -291,9 +291,6 @@ const artForBlook = (name: string, artworkKey?: string) => {
   if (mappedArt !== "/assets/Bread.svg" || !artworkKey) return mappedArt;
   return `/assets/${artworkKey.split("/").map(encodeURIComponent).join("/")}`;
 };
-const pickleFrames = [1, 2, 4, 5, 6, 7, 8, 9, 10].map(
-  (n) => `/assets/Lost and found + food pack/pickel frame ${n}.svg`,
-);
 function AnimatedArtFrame({ src, name, className }: { src: string; name: string; className: string }) {
   return (
     <span className={`relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
@@ -301,13 +298,17 @@ function AnimatedArtFrame({ src, name, className }: { src: string; name: string;
     </span>
   );
 }
-function PickleFrameSwitcher({ className }: { className: string }) {
-  const [frame, setFrame] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => setFrame((f) => (f + 1) % pickleFrames.length), 150);
-    return () => clearInterval(timer);
-  }, []);
-  return <AnimatedArtFrame src={pickleFrames[frame]} name="Pickle" className={className} />;
+// Pickle oozes: drops grow out of its tip and a bump, droop, then fall (pure CSS, no re-renders).
+function OozingPickle({ className }: { className: string }) {
+  return (
+    <span className={`relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
+      <span className="pickle-body">
+        <img src="/assets/pickle-2.svg" alt="Pickle" decoding="async" className="h-full w-full object-contain" />
+        <span className="pickle-drip pickle-drip-tip" aria-hidden="true"><img src="/assets/pickle-ooze.svg" alt="" /></span>
+        <span className="pickle-drip pickle-drip-bump" aria-hidden="true"><img src="/assets/pickle-ooze.svg" alt="" /></span>
+      </span>
+    </span>
+  );
 }
 
 
@@ -2537,7 +2538,7 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
     return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{["/assets/Time glass first animation.svg", "/assets/Time glass second animation2.svg", "/assets/Time glass 3rd animation3.svg", "/assets/Time glass final animation.svg"].map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;
   }
   if (cleanName === "Pickle") {
-    return <PickleFrameSwitcher className={className} />;
+    return <OozingPickle className={className} />;
   }
   if (cleanName === "Pixel Sprinkle Bread") {
     return <PixelSprinkleFrameSwitcher className={className} />;
