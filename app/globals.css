@@ -1565,3 +1565,8 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 /* coin flip */
 @keyframes coin-flip-spin { from { transform: rotateY(0deg); } to { transform: rotateY(1800deg); } }
 .coin-flip-spinning { animation: coin-flip-spin 2.4s cubic-bezier(.2,.6,.3,1) both; }
+.breadlet-loading { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; background: #13120F; color: #e9bd67; font-weight: 900; z-index: 9999; }
+.breadlet-spinner { width: 44px; height: 44px; border-radius: 50%; border: 5px solid #3c3a34; border-top-color: #E77D22; animation: breadlet-spin 0.8s linear infinite; }
+.breadlet-spinner-small { width: 16px; height: 16px; border-width: 3px; }
+.network-indicator { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: #13120F; color: #e9bd67; font-size: 13px; font-weight: 900; z-index: 9998; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
+@keyframes breadlet-spin { to { transform: rotate(360deg); } }

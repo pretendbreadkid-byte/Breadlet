@@ -7,6 +7,7 @@ import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../li
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { SettingsTab } from "./components/settings-tab";
+import { NetworkIndicator } from "./components/network-indicator";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1784,6 +1785,7 @@ function MainPage() {
           close={() => setCraftReveal(null)}
         />
       )}
+      <NetworkIndicator />
       {badgeInfo && <BadgeModal badge={badgeInfo} close={() => setBadgeInfo(null)} />}
       {selectedListing && <ListingModal listing={selectedListing} close={() => setSelectedListing(null)} buy={buyListing} isGuest={isGuest} />}
     </main>
@@ -1798,6 +1800,7 @@ function SignupBlookPile() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
+      if (document.hidden) return;
       setItems((current) => current.map((item, index) => {
         if (item.dragging) return item;
         const nextVelocity = Math.min(1.8, item.velocity + 0.08);
@@ -3609,20 +3612,19 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
   const isVerified = player.badges?.includes("Verified");
 
+  const playerRef = useRef(player);
+  playerRef.current = player;
   const loadMessages = useCallback(async () => {
+    const player = playerRef.current;
     try {
-      console.log('[CLIENT_CHAT] Fetching messages from /api/chat...');
       const response = await fetch("/api/chat", { cache: "no-store" });
-      console.log('[CLIENT_CHAT] /api/chat HTTP status:', response.status);
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        console.error('[CLIENT_CHAT] /api/chat error payload:', err);
-        setChatError(err.error || "Chat could not load. Check your connection and Supabase setup.");
+          setChatError(err.error || "Chat could not load. Check your connection and Supabase setup.");
         return;
       }
       setChatError("");
       const rows = await response.json();
-      console.log('[CLIENT_CHAT] /api/chat received rows:', rows);
       if (Array.isArray(rows)) {
         if (rows.length === 0) {
           setMessages([
@@ -3651,32 +3653,29 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     } catch (err) {
       console.error('[CLIENT_CHAT] Error in loadMessages:', err);
     }
-  }, [player.badges, player.equipped, player.tokens, player.username]);
+  }, []);
 
   useEffect(() => {
     loadMessages();
     if (!supabase) {
-      console.warn('[CLIENT_CHAT] Supabase browser client not available for Realtime subscription');
       return;
     }
-
-    console.log('[CLIENT_CHAT] Subscribing to Realtime postgres_changes on global_chat_messages');
+    let refreshTimer: number | undefined;
     const channel = supabase
       .channel("global-chat")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "global_chat_messages" },
         (payload) => {
-          console.log('[CLIENT_CHAT] Realtime event received:', payload);
-          loadMessages();
+          if (refreshTimer) window.clearTimeout(refreshTimer);
+          refreshTimer = window.setTimeout(loadMessages, 250);
         }
       )
       .subscribe((status) => {
-        console.log('[CLIENT_CHAT] Realtime channel status:', status);
       });
 
     return () => {
-      console.log('[CLIENT_CHAT] Unsubscribing from Realtime global-chat');
+      if (refreshTimer) window.clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
   }, [loadMessages, supabase]);
