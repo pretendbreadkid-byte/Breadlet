@@ -41,17 +41,17 @@ export function aiAnswer(question: string) {
 }
 const SYSTEM_PROMPT = 'You are Breadlet, the friendly bot in the chat of Breadlet, a collectible game where players open packs, collect Breadlets, trade, craft, join clans and use Bread Bucks. Answer any question helpfully in 1-3 short sentences with a few emojis. Only mention Breadlet or its creator Breadblook when relevant or asked. Only add a joke occasionally. Keep it family-friendly and refuse rude or unsafe requests politely.';
 
-// Uses any OpenAI-compatible API when AI_API_KEY is set; otherwise falls back to the built-in answers.
+// Uses any OpenAI-compatible API (AI_API_KEY / AI_API_URL / AI_MODEL). With no key it uses the free Pollinations endpoint; the built-in answers are only a last resort if the AI is unreachable.
 export async function smartAnswer(question: string) {
   const q = filterProfanity(question).trim();
   const key = process.env.AI_API_KEY;
-  if (!key || !q || q.includes('*')) return aiAnswer(question);
+  if (!q || q.includes('*')) return aiAnswer(question);
   try {
-    const response = await fetch(process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(process.env.AI_API_URL || (key ? 'https://api.openai.com/v1/chat/completions' : 'https://text.pollinations.ai/openai'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      headers: { 'Content-Type': 'application/json', ...(key ? { Authorization: `Bearer ${key}` } : {}) },
       body: JSON.stringify({
-        model: process.env.AI_MODEL || 'gpt-4o-mini',
+        model: process.env.AI_MODEL || (key ? 'gpt-4o-mini' : 'openai-fast'),
         max_tokens: 200,
         messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: q.slice(0, 300) }],
       }),
