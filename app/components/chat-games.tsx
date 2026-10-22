@@ -101,7 +101,7 @@ export function CoinFlipPopup({ onFinished }: { onFinished: () => void }) {
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(), 3000);
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 3000);
     return () => window.clearInterval(timer);
   }, [load]);
 

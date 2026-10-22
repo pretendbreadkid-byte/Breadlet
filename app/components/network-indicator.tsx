@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from "react";
 
-// Shows a small loading pill when a non-background request is slow (over 1.2s).
+// Full-screen "Breadlet is loading" screen, used on first load and when the game is lagging.
+export function BreadletLoadingScreen({ overlay = false }: { overlay?: boolean }) {
+  return (
+    <div className={`breadlet-loading${overlay ? " breadlet-loading-overlay" : ""}`} role="status" aria-live="polite">
+      <img src="/assets/breadlet-logo.svg" alt="" className="breadlet-loading-logo" />
+      <p className="breadlet-loading-title">Breadlet is loading</p>
+      <span className="breadlet-loading-dots" aria-hidden="true"><span /><span /><span /></span>
+    </div>
+  );
+}
+
+// Darkens the screen with the loading screen when a non-background request is slow (over 1.2s).
 const BACKGROUND = ["/api/chat", "/api/games", "/api/online", "/api/notifications", "/api/trades"];
 
 export function NetworkIndicator() {
@@ -34,10 +45,5 @@ export function NetworkIndicator() {
   }, []);
 
   if (!slow) return null;
-  return (
-    <div className="network-indicator" role="status" aria-live="polite">
-      <span className="breadlet-spinner breadlet-spinner-small" />
-      Loading…
-    </div>
-  );
+  return <BreadletLoadingScreen overlay />;
 }

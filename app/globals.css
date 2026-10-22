@@ -103,7 +103,6 @@ h3,
 .breadlet-blue-theme [class*="text-[#9cc8e8"],
 .breadlet-blue-theme [class*="text-[#d9f3ff"] { color: #f3eff8 !important; }
 .breadlet-blue-theme header { background-color: rgba(12, 59, 112, 0.95) !important; border-color: rgba(61, 145, 205, 0.55) !important; }
-.workspace-island { backdrop-filter: blur(14px); }
 .workspace-island > div { white-space: nowrap; }
 .profile-dashboard { --profile-green: #45b912; --profile-lime: #54c918; --profile-deep: #103f0d; --profile-panel: #164b10; display: flex; min-height: calc(100vh - 2rem); flex-direction: column; gap: 1.15rem; overflow: hidden; border-radius: 1rem; background-color: var(--profile-green); background-image: linear-gradient(135deg, transparent 0 43%, #ffffff09 43% 57%, transparent 57%), linear-gradient(35deg, transparent 0 45%, #ffffff08 45% 60%, transparent 60%); padding: clamp(1rem, 2.5vw, 2rem); color: #f5fff0; }
 .profile-top-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(270px, .88fr); gap: 1rem; }
@@ -273,7 +272,8 @@ h3,
 @keyframes reveal-win-slam { 0% { transform: translateY(32px) scale(.42) rotate(-12deg); filter: brightness(2.2); opacity: 0; } 65% { transform: translateY(-6px) scale(1.14) rotate(3deg); opacity: 1; } 100% { transform: translateY(0) scale(1); filter: brightness(1); opacity: 1; } }
 @keyframes reward-particle-burst { 0% { transform: rotate(var(--burst-angle)) translateX(0) scale(0.4); opacity: 0; } 12% { opacity: 1; } 100% { transform: rotate(var(--burst-angle)) translateX(var(--burst-distance)) scale(0.1); opacity: 0; } }
 .auth-screen, .auth-screen form { font-family: Arial, Helvetica, sans-serif; }
-.modal-layer { position: fixed !important; inset: 0 !important; z-index: 9999 !important; }
+/* Live backdrop blur repaints every frame behind animated content; the dark scrim alone reads the same and is far cheaper. */
+.modal-layer { position: fixed !important; inset: 0 !important; z-index: 9999 !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 .signup-blook-layer { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
 .signup-blook { position: absolute; width: clamp(42px, 7vw, 86px); height: clamp(42px, 7vw, 86px); object-fit: contain; pointer-events: auto; cursor: grab; user-select: none; touch-action: none; }
 .signup-blook:active { cursor: grabbing; }
@@ -1565,8 +1565,14 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 /* coin flip */
 @keyframes coin-flip-spin { from { transform: rotateY(0deg); } to { transform: rotateY(1800deg); } }
 .coin-flip-spinning { animation: coin-flip-spin 2.4s cubic-bezier(.2,.6,.3,1) both; }
-.breadlet-loading { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; background: #13120F; color: #e9bd67; font-weight: 900; z-index: 9999; }
-.breadlet-spinner { width: 44px; height: 44px; border-radius: 50%; border: 5px solid #3c3a34; border-top-color: #E77D22; animation: breadlet-spin 0.8s linear infinite; }
-.breadlet-spinner-small { width: 16px; height: 16px; border-width: 3px; }
-.network-indicator { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; background: #13120F; color: #e9bd67; font-size: 13px; font-weight: 900; z-index: 9998; box-shadow: 0 6px 18px rgba(0,0,0,.4); }
-@keyframes breadlet-spin { to { transform: rotate(360deg); } }
+.breadlet-loading { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-content: center; justify-items: center; gap: clamp(14px, 3vh, 26px); padding: 16px; background: radial-gradient(circle at 50% 45%, #0b2747 0%, #030a14 70%); color: #fff; text-align: center; }
+.breadlet-loading-overlay { background: rgba(2, 8, 18, 0.86); animation: breadlet-loading-fade 220ms ease-out both; }
+.breadlet-loading-logo { width: clamp(110px, 22vw, 190px); height: auto; filter: drop-shadow(0 10px 30px rgba(57, 168, 245, 0.35)); animation: breadlet-loading-bob 1.4s ease-in-out infinite; }
+.breadlet-loading-title { font-size: clamp(2rem, 6vw, 4rem); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6); }
+.breadlet-loading-dots { display: flex; gap: 10px; }
+.breadlet-loading-dots span { width: 14px; height: 14px; border-radius: 50%; background: #39a8f5; animation: breadlet-loading-dot 1s ease-in-out infinite; }
+.breadlet-loading-dots span:nth-child(2) { animation-delay: 150ms; }
+.breadlet-loading-dots span:nth-child(3) { animation-delay: 300ms; }
+@keyframes breadlet-loading-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes breadlet-loading-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@keyframes breadlet-loading-dot { 0%, 100% { transform: scale(0.6); opacity: 0.4; } 50% { transform: scale(1); opacity: 1; } }

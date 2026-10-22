@@ -255,10 +255,11 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
       const response = await fetch(`/api/trades/messages?tradeId=${encodeURIComponent(trade.id)}`, { cache: "no-store" }).catch(() => null);
       if (!response || !response.ok || stopped) return;
       const rows = await response.json().catch(() => null);
-      if (Array.isArray(rows)) setMessages(rows);
+      // Skip identical polls so the chat doesn't re-render and re-scroll every 2 seconds.
+      if (Array.isArray(rows)) setMessages((current) => JSON.stringify(current) === JSON.stringify(rows) ? current : rows);
     };
     void loadMessages();
-    const timer = window.setInterval(loadMessages, 2000);
+    const timer = window.setInterval(() => { if (!document.hidden) void loadMessages(); }, 2000);
     return () => { stopped = true; window.clearInterval(timer); };
   }, [trade.id]);
 

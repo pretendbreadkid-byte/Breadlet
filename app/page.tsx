@@ -7,7 +7,7 @@ import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../li
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { SettingsTab } from "./components/settings-tab";
-import { NetworkIndicator } from "./components/network-indicator";
+import { BreadletLoadingScreen, NetworkIndicator } from "./components/network-indicator";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -290,7 +290,7 @@ const pickleFrames = [1, 2, 4, 5, 6, 7, 8, 9, 10].map(
 function AnimatedArtFrame({ src, name, className }: { src: string; name: string; className: string }) {
   return (
     <span className={`relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
-      <img src={src} alt={name} className="reward-art-frame absolute inset-0 h-full w-full object-contain" />
+      <img src={src} alt={name} decoding="async" className="reward-art-frame absolute inset-0 h-full w-full object-contain" />
     </span>
   );
 }
@@ -460,6 +460,7 @@ function MainPage() {
   const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
   const [maintenanceCodeInput, setMaintenanceCodeInput] = useState("");
   const [maintenanceError, setMaintenanceError] = useState("");
+  const [booting, setBooting] = useState(true);
 
   useEffect(() => {
     if (!player || isGuest) {
@@ -478,7 +479,7 @@ function MainPage() {
       })
       .catch(() => undefined);
     void load();
-    const timer = window.setInterval(load, 15000);
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 15000);
     return () => window.clearInterval(timer);
   }, [isGuest, player?.id, refreshPlayerFromServer]);
 
@@ -525,16 +526,17 @@ function MainPage() {
           restoreGuest();
           return;
         }
-        const response = await fetch("/api/player");
-        if (response.ok) {
+        const response = await fetch("/api/player").catch(() => null);
+        if (response?.ok) {
           setIsGuest(false);
           setPlayer(playerFromServer(await response.json()));
           return;
         }
         restoreGuest();
-      });
+      }).catch(() => restoreGuest()).finally(() => setBooting(false));
       return;
     }
+    setBooting(false);
     if (restoreGuest()) return;
     const saved = window.localStorage.getItem(playerKey);
     if (saved) {
@@ -1404,6 +1406,7 @@ function MainPage() {
         </div>
       </div>
     );
+  if (!player && booting) return <BreadletLoadingScreen />;
   if (!player)
     return (
       <LoginScreen
@@ -2212,10 +2215,13 @@ function CapsulesTab({
   const shopClickTimer = useRef<number | null>(null);
   const tedPopupTimer = useRef<number | null>(null);
   const tedClaimBusy = useRef(false);
+  // Only re-render the shop when the stock actually rotates; the countdown ticks on its own.
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    const timer = window.setTimeout(() => setNow(new Date()), Math.max(1000, nextMarketRefreshAt(now).getTime() - Date.now() + 250));
+    return () => window.clearTimeout(timer);
+  }, [now]);
+  useEffect(() => {
     return () => {
-      window.clearInterval(timer);
       if (shopClickTimer.current) window.clearTimeout(shopClickTimer.current);
       if (tedPopupTimer.current) window.clearTimeout(tedPopupTimer.current);
     };
@@ -2256,15 +2262,13 @@ function CapsulesTab({
   };
   const allCapsules = liveCapsules;
   const capsules = allCapsules;
-  const timeToRefresh = Math.max(0, nextMarketRefreshAt(now).getTime() - now.getTime());
-  const refreshLabel = `${String(Math.floor(timeToRefresh / 3600000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 3600000) / 60000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 60000) / 1000)).padStart(2, "0")}`;
   const stockOdds = new Map(marketPackStock.map(({ name, chance }) => [name, chance]));
 
   return (
     <div className="goodybags-page">
       <div className="legacy-countdown mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold">
         <span>Shop stock refreshes in</span>
-        <span className="font-mono text-lg tracking-widest">{refreshLabel}</span>
+        <MarketRefreshCountdown />
       </div>
       <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
         <span />
@@ -2333,6 +2337,17 @@ function CapsulesTab({
       )}
     </div>
   );
+}
+
+function MarketRefreshCountdown() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const timeToRefresh = Math.max(0, nextMarketRefreshAt(now).getTime() - now.getTime());
+  const refreshLabel = `${String(Math.floor(timeToRefresh / 3600000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 3600000) / 60000)).padStart(2, "0")}:${String(Math.floor((timeToRefresh % 60000) / 1000)).padStart(2, "0")}`;
+  return <span className="font-mono text-lg tracking-widest">{refreshLabel}</span>;
 }
 
 function PackDetailsModal({
@@ -2470,7 +2485,7 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   const cleanName = name.replace(/^Shiny /, "");
   if (cleanName === "Bitcoin") {
     return <span className={`bitcoin-art relative inline-flex items-center justify-center ${className}`}>
-      <img src={art} alt={name} className="max-h-full max-w-full object-contain" />
+      <img src={art} alt={name} decoding="async" className="max-h-full max-w-full object-contain" />
       {[-1, -0.5, 0.5, 1].map((direction, index) => <img key={direction} src="/assets/bitcoin pop out.svg" alt="" aria-hidden="true" className="bitcoin-popout" style={{ "--coin-direction": direction, "--coin-delay": `${index * 0.35}s` } as React.CSSProperties} />)}
     </span>;
   }
@@ -2500,7 +2515,7 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`}>
-      <img src={art} alt={name} className="max-h-full max-w-full object-contain" />
+      <img src={art} alt={name} decoding="async" className="max-h-full max-w-full object-contain" />
       {cleanName === "Caveman" && <img src="/assets/rock for caveman to throw.svg" alt="" className="caveman-accessory caveman-rock absolute bottom-0 right-0 h-1/3 w-1/3 object-contain" />}
     </span>
   );
@@ -2876,11 +2891,13 @@ function WheelTab({
   const [beltOffset, setBeltOffset] = useState(0);
   const winnerIndex = 54;
   const [now, setNow] = useState(() => Date.now());
+  const spunAtMs = player.wheelSpunAt ? new Date(player.wheelSpunAt).getTime() : 0;
+  const cooldownActive = !isGuest && spunAtMs + 3600000 > now;
   useEffect(() => {
+    if (!cooldownActive) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, []);
-  const spunAtMs = player.wheelSpunAt ? new Date(player.wheelSpunAt).getTime() : 0;
+  }, [cooldownActive]);
   const waitMs = isGuest ? 0 : Math.max(0, spunAtMs + 3600000 - now);
   const locked = waitMs > 0;
   const waitLabel = `${String(Math.floor(waitMs / 60000)).padStart(2, "0")}:${String(Math.floor((waitMs % 60000) / 1000)).padStart(2, "0")}`;
@@ -4055,7 +4072,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(), 30000);
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 30000);
     return () => window.clearInterval(timer);
   }, [load]);
 
