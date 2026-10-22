@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { hasAdminAccess } from '../../../lib/admin-access';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
-import { smartAnswer, filterProfanity } from '../../../lib/chat-ai';
+import { filterProfanity } from '../../../lib/chat-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -191,15 +191,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: sender } = await database.from('profiles').select('is_banned, account_status, stats').eq('id', user.id).maybeSingle();
+  const { data: sender } = await database.from('profiles').select('is_banned, account_status').eq('id', user.id).maybeSingle();
   if (sender && (sender.is_banned || (sender.account_status && sender.account_status !== 'active'))) {
     return NextResponse.json({ error: 'Banned accounts cannot chat.' }, { status: 403 });
   }
-  const mutedUntil = Date.parse(String(sender?.stats?.chatMutedUntil || ''));
-  if (Number.isFinite(mutedUntil) && mutedUntil > Date.now()) {
-    return NextResponse.json({ error: `Breadlet muted you for spamming. You can chat again in ${Math.ceil((mutedUntil - Date.now()) / 60000)} minute(s).` }, { status: 403 });
-  }
-
   const body = await request.json();
 
   const rawMessage = String(body.message || '').trim();
@@ -214,19 +209,6 @@ export async function POST(request: Request) {
       },
       { status: 400 }
     );
-  }
-
-  // The Breadlet bot mutes spammers from chat for 30 minutes (admins are exempt).
-  const sinceIso = new Date(Date.now() - 30000).toISOString();
-  const { data: recent } = await database.from('global_chat_messages').select('message, created_at').eq('profile_id', user.id).eq('is_breadlet_bot', false).gte('created_at', sinceIso);
-  const burst = (recent || []).filter((row: { created_at: string }) => Date.now() - Date.parse(row.created_at) < 10000).length;
-  const repeats = (recent || []).filter((row: { message: string }) => row.message === message).length;
-  if ((burst >= 6 || repeats >= 3) && !(await isChatAdmin(database, user.id))) {
-    const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-    await database.from('profiles').update({ stats: { ...(sender?.stats || {}), chatMutedUntil: until } }).eq('id', user.id);
-    const { data: who } = await database.from('profiles').select('username').eq('id', user.id).maybeSingle();
-    await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: `🔨 @${who?.username || 'Player'} was spamming and has been muted from chat for 30 minutes. Problem solved! ✅` });
-    return NextResponse.json({ error: 'Breadlet muted you for spamming. You can chat again in 30 minute(s).' }, { status: 403 });
   }
 
   const replyToMessageId =
@@ -323,10 +305,6 @@ export async function POST(request: Request) {
   if (!isImageMessage) {
     const { error: gameError } = await database.rpc('chat_game_action', { p_profile_id: user.id, p_action: 'check_answer', p_message: message });
     if (gameError) console.error('[CHAT_POST] Game check failed:', gameError.message);
-    if (/^\/ai(\s|$)/i.test(message)) {
-      const { error: aiError } = await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: await smartAnswer(message.slice(3)) });
-      if (aiError) console.error('[CHAT_POST] AI reply failed:', aiError.message);
-    }
   }
 
   const { data: profile } =
