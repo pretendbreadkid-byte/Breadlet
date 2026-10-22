@@ -1,4 +1,4 @@
-import { filterProfanity } from './chat-filter';
+import { filterProfanity, hasSevereSlur } from './chat-filter';
 
 const SYSTEM_PROMPT = 'You are Breadlet, the friendly bot in the chat of Breadlet, a collectible game where players open packs, collect Breadlets, trade, craft, join clans and use Bread Bucks. Answer any question helpfully in 1-2 short sentences with a few emojis. Only mention Breadlet when relevant. Keep it family-friendly and politely refuse rude requests.';
 
@@ -56,7 +56,9 @@ export async function answerQuestion(question: string): Promise<string> {
     });
     if (!response.ok) return '⏳ I am a bit busy right now, ask me again in a few seconds!';
     const data = await response.json();
-    const text = filterProfanity(String(data?.choices?.[0]?.message?.content || '').trim()).slice(0, 400);
+    const raw = String(data?.choices?.[0]?.message?.content || '').trim();
+    if (hasSevereSlur(raw)) return '😇 Let us keep it crumb-clean, friend!';
+    const text = filterProfanity(raw).slice(0, 400);
     if (!text) return '🤔 I could not think of an answer, try asking another way!';
     cache.set(key, { text, at: Date.now() });
     if (cache.size > 200) cache.delete(cache.keys().next().value as string);

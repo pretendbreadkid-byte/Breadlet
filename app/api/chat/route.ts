@@ -414,9 +414,24 @@ export async function PATCH(request: Request) {
   }
 
   const id = typeof body.id === 'string' ? body.id.trim() : '';
-  const message = typeof body.message === 'string'
+  const rawMessage = typeof body.message === 'string'
     ? body.message.trim().slice(0, 500)
     : '';
+
+  // Edits get the same timeout and slur checks as new messages.
+  const { data: editor } = await database.from('profiles').select('username, stats').eq('id', user.id).maybeSingle();
+  const editorMutedUntil = Date.parse(String(editor?.stats?.chatMutedUntil || ''));
+  if (Number.isFinite(editorMutedUntil) && editorMutedUntil > Date.now()) {
+    return NextResponse.json({ error: 'You are timed out from chat and cannot edit messages.' }, { status: 403 });
+  }
+  if (hasSevereSlur(rawMessage)) {
+    if (!isProtectedFromMute(editor?.username || '')) {
+      const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      await database.from('profiles').update({ stats: { ...(editor?.stats || {}), chatMutedUntil: until } }).eq('id', user.id);
+    }
+    return NextResponse.json({ error: 'That message has hate speech in it and was blocked. You are timed out from chat for 30 minutes.' }, { status: 400 });
+  }
+  const message = filterProfanity(rawMessage);
 
   if (!id || !message) {
     return NextResponse.json(
