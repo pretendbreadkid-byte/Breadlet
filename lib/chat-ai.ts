@@ -1,6 +1,6 @@
 import { filterProfanity, hasSevereSlur } from './chat-filter';
 
-const SYSTEM_PROMPT = 'You are Breadlet, the friendly bot in the chat of Breadlet, a collectible game where players open packs, collect Breadlets, trade, craft, join clans and use Bread Bucks. Answer any question helpfully in 1-2 short sentences with a few emojis. Only mention Breadlet when relevant. Keep it family-friendly and politely refuse rude requests.';
+const SYSTEM_PROMPT = 'You are Breadlet, the friendly bot in the chat of Breadlet, a collectible game where players open packs, collect Breadlets, trade, craft, join clans and use Bread Bucks. Answer any question helpfully in 1-3 short sentences with a few emojis. For questions about the game (packs, odds, items, stock, leaderboard, clans, staff) answer from the live game data below and never make up items or numbers. Only mention Breadlet when relevant. Keep it family-friendly and politely refuse rude requests.';
 
 // Instant answers for common game questions: no network call, so no lag.
 const faq: { match: RegExp; answer: string }[] = [
@@ -38,13 +38,14 @@ export async function callAiModel(options: { system: string; user: string; maxTo
 }
 
 const cache = new Map<string, { text: string; at: number }>();
-const CACHE_MS = 10 * 60 * 1000;
+// Short cache: answers can depend on live data like the leaderboard.
+const CACHE_MS = 60 * 1000;
 let lastFreeCall = 0;
 
 // Fast path: cached/instant answers return immediately. Otherwise one short model call (max 20s).
 // Configure a fast provider with AI_API_KEY (for example a free Groq key); without one, the free
 // Pollinations endpoint is used, which only allows 1 reply per 30s for the whole server.
-export async function answerQuestion(question: string): Promise<string> {
+export async function answerQuestion(question: string, knowledge = ''): Promise<string> {
   const q = filterProfanity(question).trim().slice(0, 300);
   if (!q) return '🤖 Ask me something after /ai, like /ai how do I trade?';
   if (q.includes('*')) return '😇 Let us keep it crumb-clean, friend!';
@@ -52,17 +53,20 @@ export async function answerQuestion(question: string): Promise<string> {
   const key = q.toLowerCase();
   const cached = cache.get(key);
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.text;
+  // Greetings answer instantly; other canned answers are only a fallback when the model is busy,
+  // so real questions get answers from the live game data.
   const quick = instantAnswer(q);
-  if (quick) return quick;
+  if (quick && /^(hi|hello|hey|sup|yo)\b/i.test(q)) return quick;
+  const busy = quick || '⏳ I am a bit busy right now, ask me again in a few seconds!';
 
   if (!process.env.AI_API_KEY) {
-    if (Date.now() - lastFreeCall < 30000) return '⏳ I am a bit busy right now, ask me again in a few seconds!';
+    if (Date.now() - lastFreeCall < 30000) return busy;
     lastFreeCall = Date.now();
   }
 
   try {
-    const raw = await callAiModel({ system: SYSTEM_PROMPT, user: q, maxTokens: 100, temperature: 0.7 });
-    if (raw === null) return '⏳ I am a bit busy right now, ask me again in a few seconds!';
+    const raw = await callAiModel({ system: knowledge ? `${SYSTEM_PROMPT}\n\n${knowledge}` : SYSTEM_PROMPT, user: q, maxTokens: 160, temperature: 0.4 });
+    if (raw === null) return busy;
     if (hasSevereSlur(raw)) return '😇 Let us keep it crumb-clean, friend!';
     const text = filterProfanity(raw).slice(0, 400);
     if (!text) return '🤔 I could not think of an answer, try asking another way!';
@@ -70,6 +74,6 @@ export async function answerQuestion(question: string): Promise<string> {
     if (cache.size > 200) cache.delete(cache.keys().next().value as string);
     return text;
   } catch {
-    return '🤔 I took too long thinking, try again!';
+    return quick || '🤔 I took too long thinking, try again!';
   }
 }

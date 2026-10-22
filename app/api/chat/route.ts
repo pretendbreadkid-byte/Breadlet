@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isChatModerator, isProtectedFromMute, moderatorBadges } from '../../../lib/admin-access';
 import { answerQuestion } from '../../../lib/chat-ai';
+import { gameKnowledge } from '../../../lib/game-knowledge';
 import { runAiModeration } from '../../../lib/ai-moderator';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
@@ -341,7 +342,8 @@ export async function POST(request: Request) {
   if (aiMatch) {
     const question = aiMatch[1];
     void (async () => {
-      const reply = await answerQuestion(question);
+      const knowledge = await gameKnowledge(database).catch(() => '');
+      const reply = await answerQuestion(question, knowledge);
       const { error: sayError } = await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: reply });
       if (sayError) console.error('[CHAT_POST] AI reply failed:', sayError.message);
     })();

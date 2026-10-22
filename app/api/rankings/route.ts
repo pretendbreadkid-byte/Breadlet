@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
+import { ADMIN_USERNAME } from '../../../lib/admin-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,8 @@ export async function GET() {
     .select('id, username, tokens, equipped_blook_id, stats')
     .eq('is_banned', false)
     .eq('account_status', 'active')
+    // The owner account is kept off the leaderboard.
+    .not('username', 'ilike', ADMIN_USERNAME)
     .order('tokens', { ascending: false })
     .limit(50);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
