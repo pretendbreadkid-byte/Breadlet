@@ -8,6 +8,7 @@ import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { SettingsTab } from "./components/settings-tab";
 import { BreadletLoadingScreen, NetworkIndicator } from "./components/network-indicator";
+import { BreadletExplore } from "./components/breadlet-explore";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -40,6 +41,7 @@ import {
   Pencil,
   Trash2,
   ShieldAlert,
+  Compass,
 } from "lucide-react";
 
 type Tab =
@@ -57,7 +59,8 @@ type Tab =
   | "clan"
   | "crafting"
   | "settings"
-  | "admin";
+  | "admin"
+  | "explore";
 
 
 type Listing = { id: number | string; seller: string; sellerId?: string; blook: string; price: number; quantity?: number };
@@ -82,6 +85,8 @@ type Player = {
   messagesSent?: number;
   completedTrades?: number;
   trainScore?: number;
+  exploreBeta?: boolean;
+  chatMutedUntil?: string;
 };
 type PublicProfile = {
   id: string;
@@ -370,6 +375,8 @@ function playerFromServer(data: any): Player {
     messagesSent: data.activity?.messagesSent || 0,
     completedTrades: data.activity?.completedTrades || 0,
     trainScore: data.mine?.total_tokens_mined || 0,
+    exploreBeta: Boolean(data.profile.stats?.exploreBeta),
+    chatMutedUntil: data.profile.stats?.chatMutedUntil || undefined,
   };
 }
 
@@ -1223,6 +1230,14 @@ function MainPage() {
       setPlayer((current) => current ? { ...current, tokens: current.tokens + Number(result.amount || 1000) } : current);
       setPromoCode("");
       setNotice("Promo redeemed: +1,000 Bread Bucks.");
+    } else if (code.toLowerCase() === "breadletislands32") {
+      const response = await fetch("/api/promo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) return setNotice(result.error || "Promo redemption failed.");
+      setPlayer((current) => current ? { ...current, exploreBeta: true } : current);
+      setPromoCode("");
+      setTab("explore");
+      setNotice("Breadlet Explore beta unlocked! 🏝️");
     } else if (code === MAINTENANCE_BYPASS_CODE) {
       const unlocked = await unlockAdminWithCode(code);
       if (unlocked) {
@@ -1471,6 +1486,7 @@ function MainPage() {
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
     { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
+    ...(player.exploreBeta && !isGuest ? [{ id: "explore" as const, label: "Explore (Beta)", icon: <Compass size={20} strokeWidth={2.2} /> }] : []),
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
@@ -1669,6 +1685,7 @@ function MainPage() {
             />
           )}
           {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
+          {tab === "explore" && player.exploreBeta && !isGuest && player.id && <BreadletExplore player={{ ...player, id: player.id }} artFor={artFor} />}
           {tab === "chat" && <ChatTab emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (

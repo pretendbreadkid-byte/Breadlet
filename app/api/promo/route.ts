@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { createClient } from "../../../lib/supabase/server";
 import { createAdminClient } from "../../../lib/supabase/admin";
 
+// Beta access code for Breadlet Explore; unlocks the Explore tab for the account.
+const EXPLORE_BETA_CODE = "breadletislands32";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const code = String(body.code || "").trim();
 
-    if (code !== "Breadlet2.0") {
+    if (code !== "Breadlet2.0" && code.toLowerCase() !== EXPLORE_BETA_CODE) {
       return NextResponse.json(
         { error: "That promo code is not active." },
         { status: 400 },
@@ -41,6 +44,14 @@ export async function POST(request: Request) {
         { error: "Promo redemption is not configured." },
         { status: 503 },
       );
+    }
+
+    if (code.toLowerCase() === EXPLORE_BETA_CODE) {
+      const { data: profile } = await admin.from("profiles").select("stats").eq("id", user.id).maybeSingle();
+      if (!profile) return NextResponse.json({ error: "Player not found." }, { status: 404 });
+      const { error: unlockError } = await admin.from("profiles").update({ stats: { ...(profile.stats || {}), exploreBeta: true } }).eq("id", user.id);
+      if (unlockError) return NextResponse.json({ error: unlockError.message }, { status: 500 });
+      return NextResponse.json({ ok: true, unlocked: "explore" });
     }
 
     const { error } = await admin.rpc("secure_builtin_promo", { p_profile_id: user.id });

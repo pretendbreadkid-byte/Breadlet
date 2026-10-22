@@ -1576,3 +1576,14 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 @keyframes breadlet-loading-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes breadlet-loading-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 @keyframes breadlet-loading-dot { 0%, 100% { transform: scale(0.6); opacity: 0.4; } 50% { transform: scale(1); opacity: 1; } }
+/* Breadlet Explore */
+.explore-viewport { cursor: pointer; touch-action: none; user-select: none; }
+.explore-walker-remote { transition: transform 110ms linear; }
+.explore-bubble { animation: explore-bubble-pop 180ms cubic-bezier(.2,.9,.3,1.3) both; }
+.explore-bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); border: 6px solid transparent; border-bottom: 0; border-top-color: rgba(255,255,255,.8); }
+.explore-island-card { transition: transform 160ms ease, box-shadow 160ms ease; }
+.explore-island-card:hover { transform: translateY(-4px); }
+.explore-island-card:hover .explore-island-blob { transform: translate(-50%, -54%); }
+.explore-island-blob { transition: transform 220ms ease; }
+@keyframes explore-bubble-pop { from { opacity: 0; transform: translate(-50%, 6px) scale(.85); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .explore-walker-remote, .explore-bubble, .explore-island-card, .explore-island-blob { transition: none; animation: none; } }
