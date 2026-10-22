@@ -23,7 +23,7 @@ const topics: { match: RegExp; answer: string }[] = [
   { match: /craft|material|recycle/i, answer: '🔨 Recycle extra Breadlets into materials, then use the Crafting tab to make new ones.' },
   { match: /clan/i, answer: '🛡️ Clans let you team up, donate to a treasury, upgrade your banner, and climb the clan leaderboard.' },
   { match: /game|coin ?flip|word ?race|unscramble|cancel/i, answer: '🎮 Hit the Games button for Coin Flip, Word Race and Unscramble. Use /accept to join a coin flip and /cancel to cancel your own game.' },
-  { match: /badge|og/i, answer: '🏅 Badges show next to your name. Everyone gets the OG badge, and there are Bread Bucks badges too.' },
+  { match: /badge|og/i, answer: '🏅 Badges show next to your name. The OG badge is only for original players, and there are Bread Bucks badges too.' },
   { match: /hello|hi\b|hey|sup/i, answer: '👋 Hey there, crumb! Ask me anything about Breadlet.' },
   { match: /joke|funny/i, answer: '' },
 ];
@@ -38,4 +38,30 @@ export function aiAnswer(question: string) {
   if (!topic) return `🤔 I am not sure about that one. Try asking about packs, trading, the Bazaar or clans!`;
   const withJoke = askedForJoke || Math.random() < 0.2;
   return `${topic.answer}${withJoke ? ` 😄 ${joke}` : ''}`.trim();
+}
+const SYSTEM_PROMPT = 'You are Breadlet, the friendly bot in the chat of Breadlet, a collectible game where players open packs, collect Breadlets, trade, craft, join clans and use Bread Bucks. Answer any question helpfully in 1-3 short sentences with a few emojis. Only mention Breadlet or its creator Breadblook when relevant or asked. Only add a joke occasionally. Keep it family-friendly and refuse rude or unsafe requests politely.';
+
+// Uses any OpenAI-compatible API when AI_API_KEY is set; otherwise falls back to the built-in answers.
+export async function smartAnswer(question: string) {
+  const q = filterProfanity(question).trim();
+  const key = process.env.AI_API_KEY;
+  if (!key || !q || q.includes('*')) return aiAnswer(question);
+  try {
+    const response = await fetch(process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: process.env.AI_MODEL || 'gpt-4o-mini',
+        max_tokens: 200,
+        messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: q.slice(0, 300) }],
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) return aiAnswer(question);
+    const data = await response.json();
+    const text = String(data?.choices?.[0]?.message?.content || '').trim();
+    return text ? filterProfanity(text).slice(0, 480) : aiAnswer(question);
+  } catch {
+    return aiAnswer(question);
+  }
 }

@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     profile: {
       ...profile,
       equipped_blook_name: equipped?.name || null,
-      badges: Array.from(new Set(['OG', ...(profile.stats?.badges || [])])),
+      badges: Array.from(new Set(profile.stats?.badges || [])),
       clan_tag: profile.stats?.clanTag || '',
       wheel_spun: Boolean(profile.stats?.wheelSpun) && wheelSpunToday,
       wheel_spun_at: typeof wheelSpunAt === 'string' ? wheelSpunAt : null,

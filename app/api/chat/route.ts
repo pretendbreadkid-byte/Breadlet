@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { hasAdminAccess } from '../../../lib/admin-access';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
-import { aiAnswer, filterProfanity } from '../../../lib/chat-ai';
+import { smartAnswer, filterProfanity } from '../../../lib/chat-ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -204,7 +204,6 @@ export async function GET() {
 
     const badges = Array.from(
       new Set([
-        'OG',
       ...(profile?.stats?.badges || []),
 
         ...(tokens >= 10000
@@ -410,7 +409,7 @@ export async function POST(request: Request) {
     const { error: gameError } = await database.rpc('chat_game_action', { p_profile_id: user.id, p_action: 'check_answer', p_message: message });
     if (gameError) console.error('[CHAT_POST] Game check failed:', gameError.message);
     if (/^\/ai(\s|$)/i.test(message)) {
-      const { error: aiError } = await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: aiAnswer(message.slice(3)) });
+      const { error: aiError } = await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: await smartAnswer(message.slice(3)) });
       if (aiError) console.error('[CHAT_POST] AI reply failed:', aiError.message);
     }
   }
