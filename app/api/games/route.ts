@@ -52,8 +52,14 @@ export async function POST(request: Request) {
     args.p_answer = game.answer;
     args.p_display = game.display;
     args.p_hint = game.hint;
-  } else if (action !== 'coinflip_accept') {
+  } else if (action !== 'coinflip_accept' && action !== 'cancel') {
     return NextResponse.json({ error: 'Unknown game action.' }, { status: 400 });
+  }
+
+  if (action === 'cancel') {
+    const { data: cancelled, error: cancelError } = await admin.rpc('chat_game_cancel', { p_profile_id: user.id });
+    if (cancelError) return NextResponse.json({ error: cancelError.message }, { status: 400 });
+    return NextResponse.json({ ok: true, result: cancelled });
   }
 
   const { data, error } = await admin.rpc('chat_game_action', args);

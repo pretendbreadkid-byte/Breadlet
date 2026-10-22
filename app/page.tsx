@@ -3726,6 +3726,11 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       setChatError(result.ok ? "" : result.error || "Could not join the coin flip.");
       return;
     }
+    if (text.toLowerCase() === "/cancel" && supabase) {
+      const result = await postGameAction({ action: "cancel" });
+      setChatError(result.ok ? "" : result.error || "Could not cancel the game.");
+      return;
+    }
     await sendMessageText(text);
   };
 
