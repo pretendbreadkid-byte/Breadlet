@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isChatModerator, isProtectedFromMute, moderatorBadges } from '../../../lib/admin-access';
 import { answerQuestion } from '../../../lib/chat-ai';
+import { runAiModeration } from '../../../lib/ai-moderator';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { filterProfanity, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
@@ -45,6 +46,8 @@ export async function GET() {
   }
 
   const messages = [...(data || [])].reverse();
+  // Reviews run in the background, at most once per interval across all servers.
+  void runAiModeration(database).catch(() => undefined);
   const profileIds = Array.from(new Set(messages.map((row: any) => row.profile_id).filter(Boolean)));
   const replyIds = Array.from(new Set(messages.map((row: any) => row.reply_to_message_id).filter(Boolean)));
 
@@ -324,6 +327,8 @@ export async function POST(request: Request) {
   const { data: stale } = await database.from('global_chat_messages').select('id').order('created_at', { ascending: false }).range(35, 300);
   if (stale?.length) await database.from('global_chat_messages').delete().in('id', stale.map((row: { id: string }) => row.id));
   }
+
+  void runAiModeration(database).catch(() => undefined);
 
   // Let word games (word race / unscramble) react to the message.
   if (!isImageMessage) {

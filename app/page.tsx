@@ -39,6 +39,7 @@ import {
   Reply,
   Pencil,
   Trash2,
+  ShieldAlert,
 } from "lucide-react";
 
 type Tab =
@@ -4334,6 +4335,61 @@ function TokenBankTab({ isGuest }: { isGuest: boolean }) {
   );
 }
 
+type AiModerationEntry = { id: string; created_at: string; action: "delete" | "timeout" | "ban_suggestion"; username: string; messages: string; reason: string; undone_at: string | null; resolution: "approved" | "dismissed" | null };
+
+// What the AI moderator did while nobody was watching, with undo and ban approval.
+function AiModerationPanel() {
+  const [entries, setEntries] = useState<AiModerationEntry[]>([]);
+  const [busyId, setBusyId] = useState("");
+  const [error, setError] = useState("");
+  const load = useCallback(async () => {
+    const response = await fetch("/api/admin/ai-log", { cache: "no-store" }).catch(() => null);
+    if (response?.ok) setEntries(await response.json());
+    else setError("Could not load the AI moderator log. Make sure migration 0053 is applied.");
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  const act = async (id: string, op: "undo" | "approve" | "dismiss") => {
+    setBusyId(id);
+    const response = await fetch("/api/admin/ai-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, op }) }).catch(() => null);
+    if (!response?.ok) setError((await response?.json().catch(() => null))?.error || "That action failed.");
+    setBusyId("");
+    void load();
+  };
+  const pending = entries.filter((entry) => entry.action === "ban_suggestion" && !entry.resolution);
+  const labels = { delete: "Deleted", timeout: "Timed out", ban_suggestion: "Ban suggested" };
+  return (
+    <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-black text-[#bde8ff] flex items-center gap-2"><ShieldAlert size={22} />AI Moderator</h2>
+        <button onClick={() => void load()} className="sidebar-dark-action rounded-lg px-4 py-2 text-sm font-bold">Refresh</button>
+      </div>
+      {error && <p className="mt-2 text-sm font-bold text-rose-200">{error}</p>}
+      {pending.length > 0 && <div className="mt-4 space-y-2">
+        <p className="text-sm font-black uppercase tracking-widest text-amber-200">Ban? ({pending.length} waiting for you)</p>
+        {pending.map((entry) => <div key={entry.id} className="rounded-xl border border-amber-300/50 bg-[#0c3b70] p-3">
+          <p className="font-black">{entry.username} <span className="font-bold text-amber-200">· {entry.reason}</span></p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-white/70">{entry.messages}</p>
+          <div className="mt-2 flex gap-2">
+            <button disabled={busyId === entry.id} onClick={() => void act(entry.id, "approve")} className="rounded-lg bg-rose-300 px-3 py-2 text-xs font-black text-rose-950 disabled:opacity-40">Ban 7 days</button>
+            <button disabled={busyId === entry.id} onClick={() => void act(entry.id, "dismiss")} className="rounded-lg border border-white/30 px-3 py-2 text-xs font-black disabled:opacity-40">Dismiss</button>
+          </div>
+        </div>)}
+      </div>}
+      <div className="mt-4 max-h-80 space-y-2 overflow-y-auto">
+        {entries.filter((entry) => !pending.includes(entry)).map((entry) => <div key={entry.id} className="flex items-start gap-3 rounded-xl bg-[#0c3b70] p-3 text-sm">
+          <div className="min-w-0 flex-1">
+            <p className="font-bold">{labels[entry.action]} <span className="font-black">{entry.username}</span> · {entry.reason}{entry.resolution ? ` · ban ${entry.resolution}` : ""}</p>
+            <p className="truncate text-white/60" title={entry.messages}>{entry.messages}</p>
+            <p className="text-xs text-white/40">{new Date(entry.created_at).toLocaleString()}</p>
+          </div>
+          {entry.undone_at ? <span className="text-xs font-bold text-white/50">Undone</span> : <button disabled={busyId === entry.id} onClick={() => void act(entry.id, "undo")} className="rounded-lg border border-rose-300/40 px-3 py-2 text-xs font-black text-rose-100 disabled:opacity-40">Undo</button>}
+        </div>)}
+        {!entries.length && !error && <p className="text-sm text-white/60">Nothing yet. The AI moderator logs every action here.</p>}
+      </div>
+    </div>
+  );
+}
+
 function AdminTab({
   player,
   grantReward,
@@ -4397,6 +4453,7 @@ function AdminTab({
 
   return (
     <div className="max-w-6xl space-y-6">
+      <AiModerationPanel />
       <div className="rounded-3xl border border-[#73c8ff]/50 bg-[#18558f] p-8 shadow-xl">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">
           Developer & Operator Controls

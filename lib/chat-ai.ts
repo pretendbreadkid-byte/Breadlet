@@ -19,6 +19,24 @@ export function instantAnswer(question: string): string | null {
   return faq.find((entry) => entry.match.test(question))?.answer || null;
 }
 
+// One chat-completion call to the configured provider. Returns null when the provider refuses.
+export async function callAiModel(options: { system: string; user: string; maxTokens: number; temperature: number }): Promise<string | null> {
+  const apiKey = process.env.AI_API_KEY;
+  const url = process.env.AI_API_URL
+    || (!apiKey ? 'https://text.pollinations.ai/openai' : apiKey.startsWith('gsk_') ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions');
+  const model = process.env.AI_MODEL
+    || (!apiKey ? 'openai-fast' : apiKey.startsWith('gsk_') ? 'llama-3.1-8b-instant' : 'gpt-4o-mini');
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
+    body: JSON.stringify({ model, max_tokens: options.maxTokens, temperature: options.temperature, messages: [{ role: 'system', content: options.system }, { role: 'user', content: options.user }] }),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return String(data?.choices?.[0]?.message?.content || '').trim();
+}
+
 const cache = new Map<string, { text: string; at: number }>();
 const CACHE_MS = 10 * 60 * 1000;
 let lastFreeCall = 0;
@@ -37,26 +55,14 @@ export async function answerQuestion(question: string): Promise<string> {
   const quick = instantAnswer(q);
   if (quick) return quick;
 
-  const apiKey = process.env.AI_API_KEY;
-  if (!apiKey) {
+  if (!process.env.AI_API_KEY) {
     if (Date.now() - lastFreeCall < 30000) return '⏳ I am a bit busy right now, ask me again in a few seconds!';
     lastFreeCall = Date.now();
   }
-  const url = process.env.AI_API_URL
-    || (!apiKey ? 'https://text.pollinations.ai/openai' : apiKey.startsWith('gsk_') ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions');
-  const model = process.env.AI_MODEL
-    || (!apiKey ? 'openai-fast' : apiKey.startsWith('gsk_') ? 'llama-3.1-8b-instant' : 'gpt-4o-mini');
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
-      body: JSON.stringify({ model, max_tokens: 100, temperature: 0.7, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: q }] }),
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!response.ok) return '⏳ I am a bit busy right now, ask me again in a few seconds!';
-    const data = await response.json();
-    const raw = String(data?.choices?.[0]?.message?.content || '').trim();
+    const raw = await callAiModel({ system: SYSTEM_PROMPT, user: q, maxTokens: 100, temperature: 0.7 });
+    if (raw === null) return '⏳ I am a bit busy right now, ask me again in a few seconds!';
     if (hasSevereSlur(raw)) return '😇 Let us keep it crumb-clean, friend!';
     const text = filterProfanity(raw).slice(0, 400);
     if (!text) return '🤔 I could not think of an answer, try asking another way!';
