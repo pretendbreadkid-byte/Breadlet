@@ -6,7 +6,7 @@ const SYSTEM_PROMPT = 'You are Breadlet, the friendly bot in the chat of Breadle
 const faq: { match: RegExp; answer: string }[] = [
   { match: /^(hi|hello|hey|sup|yo)\b/i, answer: '👋 Hey there, crumb! Ask me anything.' },
   { match: /\b(pack|bag|open)\b/i, answer: '📦 Spend Bread Bucks on packs in the Packs tab to open Breadlets. Rarer ones are harder to pull!' },
-  { match: /\b(bread ?bucks?|tokens?|claim)\b/i, answer: '💰 Claim 100-1500 Bread Bucks every hour, win some in chat games, or sell Breadlets in the Bazaar.' },
+  { match: /\b(bread ?bucks?|tokens?|claim)\b/i, answer: '💰 Claim 50-750 Bread Bucks every hour, win some in chat games, or sell Breadlets in the Bazaar (10% fee).' },
   { match: /\b(trade|trading)\b/i, answer: '🤝 Both players must be online. Open a trade room, add Breadlets and Bread Bucks, chat, then both confirm. A 20% fee applies to Bread Bucks.' },
   { match: /\b(bazaar|market|sell)\b/i, answer: '🛒 List Breadlets in the Bazaar. You can take your listings down any time in My Listings.' },
   { match: /\b(craft|crafting|material|recycle)\b/i, answer: '🔨 Recycle extra Breadlets into materials, then use the Crafting tab to make new ones.' },

@@ -42,6 +42,7 @@ import {
   Pencil,
   Trash2,
   ShieldAlert,
+  Coins,
 } from "lucide-react";
 
 type Tab =
@@ -125,6 +126,8 @@ type ClanMemberRecord = { profileId: string; username: string; role: string; tok
 
 const playerKey = "breadlet-player";
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
+// Share of each Bazaar sale that is destroyed (see migration 0057).
+const BAZAAR_FEE_RATE = 0.1;
 // Forces the maintenance screen without needing the database (the normal switch lives in
 // app_settings). Set back to false once Supabase is reachable again.
 const FORCE_MAINTENANCE = false;
@@ -2646,7 +2649,7 @@ function InventoryTab({
             <p className="mt-1 text-sm text-[#9cc8e8]">Click any Breadlet to view details, equip, or sell.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => { setSellQuantities({}); setMassSellOpen(true); }} disabled={!sellableBreads.length} className="rounded-xl bg-rose-300 px-3.5 py-2 text-xs font-black text-rose-950 disabled:cursor-not-allowed disabled:opacity-40">Mass sell</button>
+            <button onClick={() => { setSellQuantities({}); setMassSellOpen(true); }} disabled={!sellableBreads.length} className="dark-action-button disabled:cursor-not-allowed disabled:opacity-40"><Coins size={18} aria-hidden="true" />Mass sell</button>
           </div>
         </div>
 
@@ -2784,7 +2787,7 @@ function InventoryTab({
         </div>
       </div>
 
-      {massSellOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-[#9cc8e8]">Collection</p><h2 className="text-2xl font-black">Mass sell Breadlets</h2></div><button onClick={() => setMassSellOpen(false)} className="rounded-lg bg-[#18558f] px-3 py-2 font-bold">Close</button></div><p className="mt-2 text-sm text-[#9cc8e8]">Choose extra copies to sell. One copy of every Breadlet is always kept.</p><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{sellableBreads.map((bread) => <label key={bread.name} className="flex items-center gap-3 rounded-xl bg-[#0c3b70] p-3"><RewardArt name={bread.name} art={artFor(bread.name)} className="h-12 w-12 shrink-0" /><span className="min-w-0 flex-1 truncate font-bold">{bread.name}<small className="ml-2 text-[#9cc8e8]">up to {bread.available}</small></span><input aria-label={`${bread.name} sell quantity`} type="number" min="0" max={bread.available} value={sellQuantities[bread.name] || 0} onChange={(event) => setSellQuantities({ ...sellQuantities, [bread.name]: Math.min(bread.available, Math.max(0, Math.floor(Number(event.target.value) || 0))) })} className="w-20 rounded-lg bg-[#072a54] px-3 py-2 text-white" /></label>)}</div><button disabled={!massSellTotal} onClick={async () => { if (!window.confirm(`Sell the selected Breadlets for ${massSellTotal.toLocaleString()} Bread Bucks?`)) return; if (await massSell(sellQuantities)) setMassSellOpen(false); }} className="mt-4 w-full rounded-xl bg-rose-300 px-4 py-3 font-black text-rose-950 disabled:opacity-40">Sell for {massSellTotal.toLocaleString()} tokens</button></div></div>}
+      {massSellOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-[#9cc8e8]">Collection</p><h2 className="text-2xl font-black">Mass sell Breadlets</h2></div><button onClick={() => setMassSellOpen(false)} className="rounded-lg bg-[#18558f] px-3 py-2 font-bold">Close</button></div><p className="mt-2 text-sm text-[#9cc8e8]">Choose extra copies to sell. One copy of every Breadlet is always kept.</p><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{sellableBreads.map((bread) => <label key={bread.name} className="flex items-center gap-3 rounded-xl bg-[#0c3b70] p-3"><RewardArt name={bread.name} art={artFor(bread.name)} className="h-12 w-12 shrink-0" /><span className="min-w-0 flex-1 truncate font-bold">{bread.name}<small className="ml-2 text-[#9cc8e8]">up to {bread.available}</small></span><input aria-label={`${bread.name} sell quantity`} type="number" min="0" max={bread.available} value={sellQuantities[bread.name] || 0} onChange={(event) => setSellQuantities({ ...sellQuantities, [bread.name]: Math.min(bread.available, Math.max(0, Math.floor(Number(event.target.value) || 0))) })} className="w-20 rounded-lg bg-[#072a54] px-3 py-2 text-white" /></label>)}</div><button disabled={!massSellTotal} onClick={async () => { if (!window.confirm(`Sell the selected Breadlets for ${massSellTotal.toLocaleString()} Bread Bucks?`)) return; if (await massSell(sellQuantities)) setMassSellOpen(false); }} className="bazaar-buy-button mt-4 disabled:opacity-40">Sell for <img src="/assets/Bread%20bucks.svg" alt="" />{massSellTotal.toLocaleString()}</button></div></div>}
 
       {/* Selected Bread Detail Modal */}
       {selected && (
@@ -3211,6 +3214,7 @@ function Bazaar({
             aria-label={`Listing price, maximum ${MAX_MARKETPLACE_PRICE.toLocaleString()} Bread Bucks`}
           />
           <button className="bazaar-buy-button px-6">List Breadlet</button>
+          <p className="text-sm font-bold opacity-80 md:col-span-3">10% Bazaar fee: if it sells, you get {Math.max(0, Math.floor(Number(price) || 0) - Math.floor((Math.floor(Number(price) || 0)) * BAZAAR_FEE_RATE)).toLocaleString()} Bread Bucks.</p>
         </form>
       )}
       {blookGroups.length ? (

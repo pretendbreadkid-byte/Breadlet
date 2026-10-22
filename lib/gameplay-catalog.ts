@@ -92,16 +92,17 @@ export const materialNames = [
 
 export const dismantleMaterialNames = materialNames.filter((material) => material !== "Gold" && material !== "Gem");
 
+// Halved to slow inflation: the hourly claim was the biggest source of new Bread Bucks.
 export const wheelRewards = [
-  { label: "100 Bread Bucks", type: "tokens", amount: 100, chance: 8 },
-  { label: "200 Bread Bucks", type: "tokens", amount: 200, chance: 14 },
-  { label: "300 Bread Bucks", type: "tokens", amount: 300, chance: 19 },
-  { label: "400 Bread Bucks", type: "tokens", amount: 400, chance: 21 },
-  { label: "500 Bread Bucks", type: "tokens", amount: 500, chance: 17 },
-  { label: "600 Bread Bucks", type: "tokens", amount: 600, chance: 11 },
-  { label: "800 Bread Bucks", type: "tokens", amount: 800, chance: 4 },
-  { label: "1,000 Bread Bucks", type: "tokens", amount: 1000, chance: 2.5 },
-  { label: "1,500 Bread Bucks", type: "tokens", amount: 1500, chance: 1 },
+  { label: "50 Bread Bucks", type: "tokens", amount: 50, chance: 8 },
+  { label: "100 Bread Bucks", type: "tokens", amount: 100, chance: 14 },
+  { label: "150 Bread Bucks", type: "tokens", amount: 150, chance: 19 },
+  { label: "200 Bread Bucks", type: "tokens", amount: 200, chance: 21 },
+  { label: "250 Bread Bucks", type: "tokens", amount: 250, chance: 17 },
+  { label: "300 Bread Bucks", type: "tokens", amount: 300, chance: 11 },
+  { label: "400 Bread Bucks", type: "tokens", amount: 400, chance: 4 },
+  { label: "500 Bread Bucks", type: "tokens", amount: 500, chance: 2.5 },
+  { label: "750 Bread Bucks", type: "tokens", amount: 750, chance: 1 },
   { label: "5 Gold", type: "material", material: "Gold", amount: 5, chance: 1.25 },
   { label: "5 Gem", type: "material", material: "Gem", amount: 5, chance: 1.25 },
 ] as const;

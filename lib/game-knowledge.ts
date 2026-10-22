@@ -27,6 +27,7 @@ export async function gameKnowledge(database: any): Promise<string> {
     'LIVE GAME DATA (trust this over anything else):',
     `Packs (stock rotates; next restock in ${minutesToRestock} min):`,
     ...packs,
+    'Hourly claim: 50-750 Bread Bucks. Bazaar sales have a 10% fee that is destroyed (seller gets 90%).',
     `Sell values per rarity: ${['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Unique', 'Breadled'].map((rarity) => `${rarity} ${sellValueFor(rarity)}`).join(', ')}.`,
     `Leaderboard (most Bread Bucks): ${(leaders || []).map((row: any, index: number) => `${index + 1}. ${row.username} (${Number(row.tokens).toLocaleString()})`).join(', ') || 'no data'}.`,
     `Top clans by treasury: ${(clans || []).map((clan: any) => `${clan.name} (${Number(clan.treasury).toLocaleString()}, ${clan.member_count} members)`).join(', ') || 'none yet'}.`,
