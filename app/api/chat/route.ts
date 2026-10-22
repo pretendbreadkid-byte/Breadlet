@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { hasAdminAccess } from '../../../lib/admin-access';
+import { isChatModerator, isProtectedFromMute } from '../../../lib/admin-access';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { filterProfanity } from '../../../lib/chat-filter';
@@ -7,7 +7,7 @@ import { filterProfanity } from '../../../lib/chat-filter';
 export const dynamic = 'force-dynamic';
 
 async function isChatAdmin(database: any, userId: string) {
-  return hasAdminAccess(database, userId);
+  return isChatModerator(database, userId);
 }
 
 export async function GET() {
@@ -143,6 +143,7 @@ export async function GET() {
       equippedBlook,
       badges: isBreadletBot ? [] : badges,
       isBreadletBot,
+      canMute: viewerIsAdmin && !isBreadletBot && Boolean(profile) && row.profile_id !== viewer?.id && !isProtectedFromMute(profile?.username),
       canDelete: Boolean(viewer) && (viewerIsAdmin || row.profile_id === viewer?.id || (!isBreadletBot && !profile)),
 
       profiles: {
@@ -191,10 +192,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: sender } = await database.from('profiles').select('is_banned, account_status').eq('id', user.id).maybeSingle();
+  const { data: sender } = await database.from('profiles').select('is_banned, account_status, stats').eq('id', user.id).maybeSingle();
   if (sender && (sender.is_banned || (sender.account_status && sender.account_status !== 'active'))) {
     return NextResponse.json({ error: 'Banned accounts cannot chat.' }, { status: 403 });
   }
+  const mutedUntil = Date.parse(String(sender?.stats?.chatMutedUntil || ''));
+  if (Number.isFinite(mutedUntil) && mutedUntil > Date.now()) {
+    return NextResponse.json({ error: `You are timed out from chat for  more minute(s).` }, { status: 403 });
+  }
+
   const body = await request.json();
 
   const rawMessage = String(body.message || '').trim();

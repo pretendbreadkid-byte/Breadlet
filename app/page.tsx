@@ -3593,7 +3593,7 @@ function SimplePanel({
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis }: { emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; profileId?: string; createdAt?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; profileId?: string; createdAt?: string; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
@@ -3632,6 +3632,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 equippedBlook: row.equippedBlook || "",
                 isBreadletBot: row.isBreadletBot === true,
                 canDelete: row.canDelete === true,
+                canMute: row.canMute === true,
                 profileId: row.profile_id,
                 createdAt: row.created_at,
                 replyTo: row.replyTo || null,
@@ -3753,6 +3754,13 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       );
     }
     return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderEmojiText(text, [...emojis, ...blookEmojis()])}</p>;
+  };
+
+  const muteChatter = async (targetId: string, name: string) => {
+    if (!window.confirm(`Time out ${name} from chat for 30 minutes?`)) return;
+    const response = await fetch("/api/chat/mute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId }) }).catch(() => null);
+    const result = await response?.json().catch(() => ({}));
+    setChatError(response?.ok ? "" : result?.error || "Could not time out that player.");
   };
 
   const giveWalterWhite = async (targetId: string, name: string) => {
@@ -3894,6 +3902,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                       <img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" />
                     </button>
                   ))}
+                  {latestItem.canMute && latestItem.profileId && (
+                    <button type="button" onClick={() => void muteChatter(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Timeout 30m</button>
+                  )}
                   {canManageEmojis && !isGuest && !group.isBreadletBot && latestItem.profileId && latestItem.user !== player.username && (
                     <button type="button" onClick={() => void giveWalterWhite(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Give Walter White</button>
                   )}
