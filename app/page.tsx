@@ -41,7 +41,6 @@ import {
   Pencil,
   Trash2,
   ShieldAlert,
-  Compass,
 } from "lucide-react";
 
 type Tab =
@@ -1237,7 +1236,8 @@ function MainPage() {
       setPlayer((current) => current ? { ...current, exploreBeta: true } : current);
       setPromoCode("");
       setTab("explore");
-      setNotice("Breadlet Explore beta unlocked! 🏝️");
+      // Explore stays hidden from the sidebar; entering the code is the only way in.
+      setNotice("Welcome to Breadlet Explore! 🏝️");
     } else if (code === MAINTENANCE_BYPASS_CODE) {
       const unlocked = await unlockAdminWithCode(code);
       if (unlocked) {
@@ -1486,7 +1486,6 @@ function MainPage() {
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
     { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
-    ...(player.exploreBeta && !isGuest ? [{ id: "explore" as const, label: "Explore (Beta)", icon: <Compass size={20} strokeWidth={2.2} /> }] : []),
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
