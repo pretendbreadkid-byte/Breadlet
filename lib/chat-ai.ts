@@ -20,7 +20,9 @@ export function instantAnswer(question: string): string | null {
 }
 
 // One chat-completion call to the configured provider. Returns null when the provider refuses.
-export async function callAiModel(options: { system: string; user: string; maxTokens: number; temperature: number }): Promise<string | null> {
+// With waitForSlot, a "free limit, retry after Ns" reply (the free endpoint allows one reply per
+// 30s for the whole server) waits for the slot and tries once more instead of giving up.
+export async function callAiModel(options: { system: string; user: string; maxTokens: number; temperature: number; waitForSlot?: boolean }): Promise<string | null> {
   const apiKey = process.env.AI_API_KEY;
   const url = process.env.AI_API_URL
     || (!apiKey ? 'https://text.pollinations.ai/openai' : apiKey.startsWith('gsk_') ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions');
@@ -32,6 +34,13 @@ export async function callAiModel(options: { system: string; user: string; maxTo
     body: JSON.stringify({ model, max_tokens: options.maxTokens, temperature: options.temperature, messages: [{ role: 'system', content: options.system }, { role: 'user', content: options.user }] }),
     signal: AbortSignal.timeout(20000),
   });
+  if ((response.status === 402 || response.status === 429) && options.waitForSlot) {
+    const body = await response.text().catch(() => '');
+    const retrySeconds = Number(response.headers.get('retry-after')) || Number(body.match(/retry after (\d+)\s*s/i)?.[1]) || 30;
+    if (retrySeconds > 30) return null;
+    await new Promise((resolve) => setTimeout(resolve, (retrySeconds + 1) * 1000));
+    return callAiModel({ ...options, waitForSlot: false });
+  }
   if (!response.ok) return null;
   const data = await response.json();
   return String(data?.choices?.[0]?.message?.content || '').trim();
@@ -40,9 +49,8 @@ export async function callAiModel(options: { system: string; user: string; maxTo
 const cache = new Map<string, { text: string; at: number }>();
 // Short cache: answers can depend on live data like the leaderboard.
 const CACHE_MS = 60 * 1000;
-let lastFreeCall = 0;
 
-// Fast path: cached/instant answers return immediately. Otherwise one short model call (max 20s).
+// Fast path: cached/instant answers return immediately. Otherwise one short model call.
 // Configure a fast provider with AI_API_KEY (for example a free Groq key); without one, the free
 // Pollinations endpoint is used, which only allows 1 reply per 30s for the whole server.
 export async function answerQuestion(question: string, knowledge = ''): Promise<string> {
@@ -59,13 +67,8 @@ export async function answerQuestion(question: string, knowledge = ''): Promise<
   if (quick && /^(hi|hello|hey|sup|yo)\b/i.test(q)) return quick;
   const busy = quick || '⏳ I am a bit busy right now, ask me again in a few seconds!';
 
-  if (!process.env.AI_API_KEY) {
-    if (Date.now() - lastFreeCall < 30000) return busy;
-    lastFreeCall = Date.now();
-  }
-
   try {
-    const raw = await callAiModel({ system: knowledge ? `${SYSTEM_PROMPT}\n\n${knowledge}` : SYSTEM_PROMPT, user: q, maxTokens: 160, temperature: 0.4 });
+    const raw = await callAiModel({ system: knowledge ? `${SYSTEM_PROMPT}\n\n${knowledge}` : SYSTEM_PROMPT, user: q, maxTokens: 160, temperature: 0.4, waitForSlot: true });
     if (raw === null) return busy;
     if (hasSevereSlur(raw)) return '😇 Let us keep it crumb-clean, friend!';
     const text = filterProfanity(raw).slice(0, 400);

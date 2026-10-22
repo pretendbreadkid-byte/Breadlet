@@ -13,7 +13,9 @@ export async function GET() {
 
   const [{ data: clans, error: clansErr }, { data: membership, error: membershipError }, { data: blooks, error: blooksError }] = await Promise.all([
     supabase.from('clans').select('id, name, description, tags, treasury, member_count, member_capacity, owner_profile_id, thumbnail_url, profile_blook, banner_unlocked, banner_data, name_change_unlocked, colors_unlocked, theme, animated_profiles, created_at').order('treasury', { ascending: false }),
-    user ? supabase.from('clan_members').select('clan_id, role, token_contributions').eq('profile_id', user.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    // Older versions let a player end up in more than one clan; show the one they lead, else the newest.
+    user ? supabase.from('clan_members').select('clan_id, role, token_contributions, joined_at').eq('profile_id', user.id).order('joined_at', { ascending: false })
+      .then(({ data, error }) => ({ data: (data || []).find((row) => row.role === 'leader') || (data || [])[0] || null, error })) : Promise.resolve({ data: null, error: null }),
     catalog.from('blooks').select('name, rarity, artwork_key').order('name', { ascending: true }),
   ]);
 

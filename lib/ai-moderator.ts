@@ -42,7 +42,9 @@ function parseVerdicts(raw: string): { id: string; action: Verdict; reason: stri
 }
 
 export async function runAiModeration(database: any) {
-  const interval = process.env.AI_API_KEY ? 15 : 45;
+  // The free endpoint allows one reply per 30s for the whole server, so without a key the
+  // moderator runs rarely and leaves room for /ai questions.
+  const interval = process.env.AI_API_KEY ? 15 : 120;
   const { data: cursor, error: claimError } = await database.rpc('claim_ai_moderation_run', { p_min_interval_seconds: interval });
   if (claimError || !cursor) return;
 
