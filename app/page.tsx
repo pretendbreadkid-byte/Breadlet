@@ -49,11 +49,8 @@ type Tab =
   | "market"
   | "chat"
   | "leaderboard"
-  | "migration"
   | "promo"
-  | "info"
   | "resources"
-  | "assets"
   | "bank"
   | "clan"
   | "crafting"
@@ -1208,20 +1205,6 @@ function MainPage() {
       setPlayer((current) => current ? { ...current, tokens: current.tokens + Number(result.amount || 1000) } : current);
       setPromoCode("");
       setNotice("Promo redeemed: +1,000 Bread Bucks.");
-    } else if (code === "admin1234532!") {
-      const response = await fetch("/api/requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "unlock-reviewer", code }),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setNotice(result.error || "Request reviewer access could not be enabled.");
-        return;
-      }
-      setAdminUnlocked(true);
-      setTab("migration");
-      setNotice("Request review access enabled.");
     } else if (code === MAINTENANCE_BYPASS_CODE) {
       const unlocked = await unlockAdminWithCode(code);
       if (unlocked) {
@@ -1469,7 +1452,7 @@ function MainPage() {
     { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
   ];
   const visibleNav = isGuest
-    ? nav.filter((item) => !["clan", "market", "chat", "migration", "leaderboard"].includes(item.id))
+    ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
     : nav;
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
@@ -1670,7 +1653,6 @@ function MainPage() {
           {tab === "crafting" && (
             <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} massDismantle={massDismantle} craft={craft} isGuest={isGuest} />
           )}
-          {tab === "migration" && <RequestsTab isGuest={isGuest} />}
           {tab === "promo" && (
             <PromoTab
               code={promoCode}
@@ -1678,10 +1660,8 @@ function MainPage() {
               redeem={redeemPromo}
             />
           )}
-          {tab === "info" && <InfoTab />}
           {tab === "settings" && <SettingsTab username={player.username} isGuest={isGuest} onLogout={leaveSession} />}
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
-          {tab === "assets" && <AssetLibraryTab />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
@@ -4147,34 +4127,9 @@ function PromoTab({
     </div>
   );
 }
-function InfoTab() {
-  return (
-    <div className="max-w-4xl space-y-6">
-      <div className="rounded-3xl border border-[#73c8ff]/45 bg-[#bde8ff] p-7 text-[#062443]">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-[#17659c]">Breadlet guide</p>
-        <h1 className="mt-2 text-4xl font-black">How to play</h1>
-        <p className="mt-3 max-w-2xl leading-7">Build your collection, earn Bread Bucks, trade Breadlets, and turn materials into special craft-only Breadlets.</p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {[
-          ["Claim Bread Bucks", "Claim once every hour to win 100 to 1,500 Bread Bucks, five Gold, or five Gem."],
-          ["Goodybags", "Buy bags with Bread Bucks. Open a bag to roll from its listed Bread pool, or use Mass Open for typed quantities."],
-          ["Collection", "Locked Breadlets stay black silhouettes. Owned Breadlets can be equipped or sold from their detail view."],
-          ["Crafting", "Dismantle extra Breadlets into five-unit material bundles, then combine ingredients totaling 20 to craft approved Breadlets."],
-          ["Bazaar", "List Breadlets, browse listings, and open a listing card to buy one."],
-          ["Chat, Clans, Promo", "Chat is local, clan tags appear on profiles, and promo codes can grant prototype rewards."],
-        ].map(([title, body]) => <section key={title} className="rounded-2xl border border-[#247bc0] bg-[#18558f] p-5"><h2 className="text-xl font-black text-[#bde8ff]">{title}</h2><p className="mt-2 text-sm leading-6 text-[#d9f3ff]">{body}</p></section>)}
-      </div>
-    </div>
-  );
-}
-
-function ResourcesTab({ open }: { open: (tab: "promo" | "info" | "migration" | "assets" | "bank") => void }) {
+function ResourcesTab({ open }: { open: (tab: "promo" | "bank") => void }) {
   const resources = [
     { title: "Promo Codes", description: "Redeem a Breadlet code for its reward.", icon: <Percent size={22} />, tab: "promo" as const },
-    { title: "Info & Guide", description: "Learn how Goodybags, your Collection, crafting, and more work.", icon: <HelpCircle size={22} />, tab: "info" as const },
-    { title: "Migration", description: "Request a transfer from the old game and track its review.", icon: <Gift size={22} />, tab: "migration" as const },
-    { title: "Asset Library", description: "Browse and preview Breadlet artwork and image files.", icon: <ImageIcon size={22} />, tab: "assets" as const },
     { title: "Bread Bucks Bank", description: "See a running total of your Bread Bucks spending.", icon: <img src="/assets/piggy bank.svg" alt="" className="h-7 w-7 object-contain" />, tab: "bank" as const },
   ];
   return (
@@ -4243,184 +4198,6 @@ function TokenBankTab({ isGuest }: { isGuest: boolean }) {
   );
 }
 
-type PublicAsset = { name: string; path: string; extension: string };
-function isPublicAsset(value: unknown): value is PublicAsset {
-  return typeof value === "object" && value !== null
-    && "name" in value && typeof value.name === "string"
-    && "path" in value && typeof value.path === "string"
-    && "extension" in value && typeof value.extension === "string";
-}
-
-function AssetLibraryTab() {
-  const [assets, setAssets] = useState<PublicAsset[]>([]);
-  const [query, setQuery] = useState("");
-  const [format, setFormat] = useState("All");
-  const [loadAttempt, setLoadAttempt] = useState(0);
-  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
-  const [loadError, setLoadError] = useState("");
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoadState("loading");
-    setLoadError("");
-    fetch("/api/assets", { signal: controller.signal, cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`The asset library could not load (HTTP ${response.status}).`);
-        const payload: unknown = await response.json();
-        if (typeof payload !== "object" || payload === null || !("assets" in payload) || !Array.isArray(payload.assets) || !payload.assets.every(isPublicAsset)) {
-          throw new Error("The asset library returned an invalid response.");
-        }
-        setAssets(payload.assets);
-        setLoadState("ready");
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        setLoadError(error instanceof Error ? error.message : "The asset library could not load.");
-        setLoadState("error");
-      });
-    return () => controller.abort();
-  }, [loadAttempt]);
-
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredAssets = assets.filter((asset) => {
-    const matchesFormat = format === "All"
-      || (format === "Other" ? !["svg", "png", "jpg", "jpeg"].includes(asset.extension) : asset.extension.toUpperCase() === format || (format === "JPG" && asset.extension === "jpeg"));
-    return matchesFormat && (!normalizedQuery || asset.name.toLowerCase().includes(normalizedQuery) || asset.path.toLowerCase().includes(normalizedQuery));
-  });
-  const formats = ["All", "SVG", "PNG", "JPG", "Other"];
-
-  return (
-    <div className="resources-workspace mx-auto w-full max-w-7xl">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="resources-eyebrow text-xs font-black uppercase tracking-[0.25em]">Resources / Artwork</p>
-          <h1 className="mt-2 text-4xl font-black">Asset Library</h1>
-          <p className="resources-description mt-2 max-w-2xl text-sm leading-6">Explore the image assets used across Breadlet. Select any preview to open the original file.</p>
-        </div>
-        {loadState === "ready" && <span className="asset-count rounded-full border px-3 py-1.5 text-xs font-bold">{filteredAssets.length} of {assets.length} assets</span>}
-      </header>
-      <div className="asset-controls mb-5 flex flex-col gap-3 rounded-2xl border p-3 sm:flex-row sm:items-center">
-        <label className="relative min-w-0 flex-1">
-          <Search size={18} className="asset-search-icon pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search names or file paths" className="asset-search-input w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none" />
-        </label>
-        <div className="flex flex-wrap gap-1.5" aria-label="Filter assets by file type">
-          {formats.map((entry) => <button key={entry} type="button" onClick={() => setFormat(entry)} aria-pressed={format === entry} className={`asset-filter rounded-lg px-3 py-2 text-xs font-black transition ${format === entry ? "is-active" : ""}`}>{entry}</button>)}
-        </div>
-      </div>
-      {loadState === "loading" && <div role="status" className="asset-loading rounded-2xl border p-8 text-center text-sm font-bold">Loading Breadlet artwork…</div>}
-      {loadState === "error" && <div role="alert" className="rounded-2xl border border-red-300/30 bg-red-950/40 p-6 text-center"><p className="font-bold text-red-100">{loadError}</p><button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)} className="asset-retry mt-4 rounded-xl px-4 py-2 text-sm font-black transition">Try again</button></div>}
-      {loadState === "ready" && (filteredAssets.length ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {filteredAssets.map((asset, index) => (
-            <a key={asset.path} href={asset.path} target="_blank" rel="noreferrer" className="asset-card group overflow-hidden rounded-2xl border shadow-md shadow-[#031426]/10" style={{ "--asset-delay": `${Math.min(index, 12) * 18}ms` } as React.CSSProperties} title={`Open ${asset.name}`}>
-              <span className="asset-preview grid aspect-square place-items-center overflow-hidden p-3">
-                <img src={asset.path} alt={asset.name} loading="lazy" className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-110" />
-              </span>
-              <span className="asset-label block border-t px-3 py-2.5">
-                <strong className="asset-name block truncate text-xs font-bold" title={asset.name}>{asset.name}</strong>
-                <span className="asset-path mt-1 block truncate text-[10px] uppercase tracking-wider">{asset.extension} · {asset.path.replace(/^\/assets\//, "")}</span>
-              </span>
-            </a>
-          ))}
-        </div>
-      ) : <div className="rounded-2xl border border-[#3d91cd]/25 bg-[#072a54]/50 p-10 text-center"><p className="font-bold text-[#d9f3ff]">No assets match that search.</p><button type="button" onClick={() => { setQuery(""); setFormat("All"); }} className="mt-3 text-sm font-bold text-[#73c8ff] underline underline-offset-4">Clear filters</button></div>)}
-    </div>
-  );
-}
-
-function RequestsTab({ isGuest }: { isGuest: boolean }) {
-  const [canReview, setCanReview] = useState(false);
-  const [requests, setRequests] = useState<any[]>([]);
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [tokens, setTokens] = useState("0");
-  const [search, setSearch] = useState("");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const loadRequests = async () => {
-    const response = await fetch("/api/requests", { cache: "no-store" });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setMessage(body.error || "Could not load requests.");
-      return;
-    }
-    setCanReview(Boolean(body.canReview));
-    setRequests(Array.isArray(body.requests) ? body.requests : []);
-  };
-
-  useEffect(() => {
-    if (!isGuest) void loadRequests();
-  }, [isGuest]);
-
-  const catalog = [...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool)
-    .concat(craftRecipes.map((recipe) => ({ name: recipe.name, rarity: craftedRarityFor(recipe.name), weight: 0, art: artFor(recipe.name) })))
-    .filter((reward, index, all) => all.findIndex((candidate) => candidate.name === reward.name) === index)
-    .filter((reward) => reward.name.toLowerCase().includes(search.toLowerCase()));
-
-  const submitRequest = async () => {
-    setBusy(true);
-    setMessage("");
-    const response = await fetch("/api/requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tokens: Number(tokens) || 0,
-        blooks: Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([name, quantity]) => ({ name, quantity })),
-      }),
-    });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) {
-      setMessage(body.error || "Could not submit request.");
-      return;
-    }
-    setMessage("Request sent to reviewers.");
-    setQuantities({});
-    setTokens("0");
-    await loadRequests();
-  };
-
-  const reviewRequest = async (requestId: string, decision: "accept" | "decline") => {
-    setBusy(true);
-    setMessage("");
-    const response = await fetch("/api/requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "review", requestId, decision }),
-    });
-    const body = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) setMessage(body.error || "Could not review request.");
-    else setMessage(decision === "accept" ? "Request accepted and rewards granted." : "Request declined.");
-    await loadRequests();
-  };
-
-  const requestSummary = (request: any) => [
-    ...(request.requested_blooks || []).map((item: { name: string; quantity: number }) => `${item.name} ×${item.quantity}`),
-    Number(request.requested_tokens) > 0 ? `${Number(request.requested_tokens).toLocaleString()} Bread Bucks` : "",
-  ].filter(Boolean).join(" · ");
-
-  return <div className="max-w-6xl space-y-6">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-200">Old game transfer</p><h1 className="mt-1 text-4xl font-black">Migration</h1><p className="mt-2 max-w-2xl text-sm text-white/70">Use this page to request your Breadlets and Bread Bucks from the old game. A reviewer will accept or decline each request; rewards are added only after acceptance. Reviewers unlock request approvals with the admin code in Promo Codes.</p></div><button onClick={() => void loadRequests()} className="rounded-lg border border-white/15 px-3 py-2 text-sm font-bold text-white/75">Refresh</button></header>
-    {message && <p role="status" className="rounded-xl border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">{message}</p>}
-    {isGuest ? <p className="rounded-xl bg-black/20 p-4 text-sm text-white/65">Sign in to submit reward requests.</p> : <>
-      <section className="rounded-2xl border border-emerald-200/20 bg-[#10251f] p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-black">New request</h2><p className="mt-1 text-xs text-white/55">Items are only added if a reviewer accepts.</p></div><input value={tokens} onChange={(event) => setTokens(event.target.value)} type="number" min="0" max="100000" aria-label="Requested Bread Bucks" className="w-44 rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" placeholder="Tokens" /></div>
-        <div className="mt-4"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breadlets" className="w-full rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-white" /></div>
-        <div className="mt-4 grid max-h-[460px] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">{catalog.map((reward) => <div key={reward.name} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-black/20"><img src={reward.art || artFor(reward.name)} alt={reward.name} className="h-full w-full object-contain" /></div>
-          <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{reward.name}</p><p className="text-[10px] font-bold text-amber-200">{reward.rarity}</p><input aria-label={`${reward.name} requested quantity`} type="number" min="0" max="100" value={quantities[reward.name] || 0} onChange={(event) => setQuantities({ ...quantities, [reward.name]: Math.max(0, Math.min(100, Number(event.target.value) || 0)) })} className="mt-1 w-full rounded-md border border-white/10 bg-[#10251f] px-2 py-1 text-sm" /></div>
-        </div>)}</div>
-        <button disabled={busy} onClick={() => void submitRequest()} className="mt-4 rounded-xl bg-emerald-300 px-5 py-3 font-black text-emerald-950 disabled:opacity-50">{busy ? "Submitting..." : "Submit request"}</button>
-      </section>
-      {canReview && <section className="rounded-2xl border border-amber-200/20 bg-[#2a2413] p-5 sm:p-6"><div><p className="text-xs font-black uppercase tracking-widest text-amber-200">Reviewer</p><h2 className="mt-1 text-2xl font-black">Pending requests</h2></div>
-        <div className="mt-4 space-y-3">{requests.filter((request) => request.status === "pending").map((request) => <article key={request.id} className="rounded-xl border border-white/10 bg-black/20 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-black">{request.requester_username}</h3><p className="mt-1 text-sm text-white/70">{requestSummary(request)}</p><p className="mt-1 text-[10px] text-white/40">{new Date(request.created_at).toLocaleString()}</p></div><div className="flex gap-2"><button disabled={busy} onClick={() => void reviewRequest(request.id, "decline")} className="rounded-lg border border-rose-300/30 px-3 py-2 text-sm font-bold text-rose-100 disabled:opacity-50">Decline</button><button disabled={busy} onClick={() => void reviewRequest(request.id, "accept")} className="rounded-lg bg-emerald-300 px-3 py-2 text-sm font-black text-emerald-950 disabled:opacity-50">Accept & grant</button></div></div></article>)}{!requests.some((request) => request.status === "pending") && <p className="rounded-xl bg-black/20 p-4 text-sm text-white/55">No pending requests.</p>}</div>
-      </section>}
-      <section className="rounded-2xl border border-white/10 bg-[#10182b] p-5"><h2 className="text-lg font-black">My request history</h2><div className="mt-3 space-y-2">{requests.filter((request) => request.is_mine).map((request) => <div key={request.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-black/20 px-3 py-2"><span className="text-sm text-white/75">{requestSummary(request)}</span><span className={`rounded-full px-2.5 py-1 text-xs font-black ${request.status === "accepted" ? "bg-emerald-300/15 text-emerald-200" : request.status === "declined" ? "bg-rose-300/15 text-rose-200" : "bg-amber-300/15 text-amber-100"}`}>{request.status}</span></div>)}{!requests.some((request) => request.is_mine) && <p className="text-sm text-white/50">No requests yet.</p>}</div></section>
-    </>}
-  </div>;
-}
 function AdminTab({
   player,
   grantReward,

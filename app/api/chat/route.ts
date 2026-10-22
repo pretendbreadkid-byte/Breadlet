@@ -32,7 +32,7 @@ export async function GET() {
     .select('id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(35);
 
   console.log(
     '[CHAT_GET] Message query:',
@@ -52,7 +52,7 @@ export async function GET() {
       .from('global_chat_messages')
       .select('id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(35);
 
     if (plain.error) {
       console.error('[CHAT_GET] Plain SELECT error:', plain.error);
@@ -403,6 +403,10 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  // Keep only the newest 35 messages; older ones are deleted.
+  const { data: stale } = await database.from('global_chat_messages').select('id').order('created_at', { ascending: false }).range(35, 300);
+  if (stale?.length) await database.from('global_chat_messages').delete().in('id', stale.map((row: { id: string }) => row.id));
 
   // Let word games (word race / unscramble) react to the message.
   if (!isImageMessage) {
