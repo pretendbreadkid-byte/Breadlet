@@ -7,6 +7,9 @@ export type Capsule = {
   pool: Reward[];
   retired?: boolean;
   note?: string;
+  // Total % chance for a whole rarity tier, split evenly among its items. Other tiers
+  // keep their usual proportions and share whatever is left.
+  rarityChances?: Record<string, number>;
 };
 
 export const rarityBudget: Record<string, number> = {
@@ -42,19 +45,25 @@ export const rewards = (
 
 export const chanceFor = (capsule: Capsule, reward: Reward) => {
   if (reward.chance !== undefined) return reward.chance;
+  const rarityChances = capsule.rarityChances || {};
+  const tierSize = (rarity: string) => capsule.pool.filter((item) => item.rarity === rarity && item.chance === undefined).length;
+  if (rarityChances[reward.rarity] !== undefined) return rarityChances[reward.rarity] / tierSize(reward.rarity);
+  const mythicFixed = rarityChances.Mythic !== undefined;
   const mythicRewards = capsule.pool.filter((item) => item.rarity === "Mythic" && item.chance === undefined);
   const poolSizes = [...liveCapsules, ...legacyCapsules].map((item) => item.pool.length);
   const smallestPool = Math.min(...poolSizes);
   const largestPool = Math.max(...poolSizes);
   const mythicPoolChance =
     0.2 + ((capsule.pool.length - smallestPool) / (largestPool - smallestPool)) * 0.3;
-  if (reward.rarity === "Mythic" && reward.chance === undefined) {
+  if (reward.rarity === "Mythic" && !mythicFixed) {
     return mythicPoolChance / mythicRewards.length;
   }
   const fixedChance =
-    capsule.pool.reduce((sum, item) => sum + (item.chance || 0), 0) + mythicPoolChance;
+    capsule.pool.reduce((sum, item) => sum + (item.chance || 0), 0) +
+    (mythicFixed ? 0 : mythicPoolChance) +
+    Object.entries(rarityChances).reduce((sum, [rarity, chance]) => sum + (tierSize(rarity) ? chance : 0), 0);
   const weightedRewards = capsule.pool.filter(
-    (item) => item.chance === undefined && item.rarity !== "Mythic",
+    (item) => item.chance === undefined && item.rarity !== "Mythic" && rarityChances[item.rarity] === undefined,
   );
   const remainingWeight = weightedRewards.reduce((sum, item) => sum + item.weight, 0);
   return ((100 - fixedChance) * reward.weight) / remainingWeight;
@@ -152,6 +161,8 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Inventions Bag",
     price: 25,
+    // Average resale was above the price (open-and-sell printed tokens); now ~17.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.21 },
     art: "/assets/invetion goodie bag.svg",
     pool: rewards([
       ["Wheel", "Common"],
@@ -208,6 +219,8 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Food Bag",
     price: 25,
+    // Average resale was above the price (open-and-sell printed tokens); now ~17.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.35 },
     art: "/assets/food bag updated.svg",
     pool: rewards([
       ["Rock", "Common"],
@@ -227,6 +240,8 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Artifact Bag",
     price: 25,
+    // Average resale was above the price (open-and-sell printed tokens); now ~17.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.18 },
     art: "/assets/artifact bag.svg",
     pool: rewards([
       ["Aztec Coin", "Common"],
@@ -243,6 +258,8 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Combat Bag",
     price: 25,
+    // Average resale was above the price (open-and-sell printed tokens); now ~17.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
     art: "/assets/combat bag.svg",
     pool: rewards([
       ["Olive Grenade", "Common"],
@@ -259,6 +276,8 @@ export const liveCapsules: Capsule[] = [
   {
     name: "BlookTuber Bag",
     price: 25,
+    // Average resale was above the price (open-and-sell printed tokens); now ~17.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.32 },
     art: "/assets/blooktuber bag updatd.svg",
     pool: rewards([
       ["Bread Blook", "Mythic"],
