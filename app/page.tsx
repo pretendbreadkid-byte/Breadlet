@@ -125,6 +125,9 @@ type ClanMemberRecord = { profileId: string; username: string; role: string; tok
 
 const playerKey = "breadlet-player";
 const MAINTENANCE_BYPASS_CODE = "admincodeiscool32";
+// Forces the maintenance screen without needing the database (the normal switch lives in
+// app_settings). Set back to false once Supabase is reachable again.
+const FORCE_MAINTENANCE = true;
 const MAINTENANCE_BYPASS_KEY = "breadlet-maintenance-bypass";
 const guestPlayerKey = "breadlet-guest-player";
 const guestSessionPlayerKey = "breadlet-guest-session-player";
@@ -471,7 +474,7 @@ function MainPage() {
   const [giftChatNotice, setGiftChatNotice] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [maintenanceBypassed, setMaintenanceBypassed] = useState(false);
-  const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
+  const [maintenanceModeActive, setMaintenanceModeActive] = useState(FORCE_MAINTENANCE);
   const [maintenanceCodeInput, setMaintenanceCodeInput] = useState("");
   const [maintenanceError, setMaintenanceError] = useState("");
   const [booting, setBooting] = useState(true);
@@ -1370,7 +1373,7 @@ function MainPage() {
     }
     fetch("/api/maintenance")
       .then((response) => (response.ok ? response.json() : null))
-      .then((data) => { if (data) setMaintenanceModeActive(Boolean(data.maintenanceMode)); })
+      .then((data) => { if (data) setMaintenanceModeActive(FORCE_MAINTENANCE || Boolean(data.maintenanceMode)); })
       .catch(() => undefined);
   }, []);
   const unlockAdminWithCode = async (code: string) => {
