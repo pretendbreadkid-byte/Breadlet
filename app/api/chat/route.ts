@@ -10,8 +10,16 @@ import { NETWORK_BANNED_MESSAGE, isNetworkBanned } from '../../../lib/network-id
 
 export const dynamic = 'force-dynamic';
 
-const isImage = (message: string) => message.startsWith('[img]data:image/');
+const isImage = (message: string) => message.startsWith('[img]');
 const hideSlurs = (message: string) => !isImage(message) && hasSevereSlur(message) ? '[message removed]' : message;
+
+// Rows from the light select (migration 0055) carry text_body/is_image instead of the full
+// message, so embedded images are served once from /api/chat/image (cached) instead of
+// being downloaded from the database on every chat refresh.
+const LIGHT_SELECT = 'id, text_body, is_image, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
+const FULL_SELECT = 'id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
+const imageLink = (id: string) => `[img]/api/chat/image?id=${id}[/img]`;
+const messageText = (row: any) => (row.is_image === undefined ? String(row.message || '') : row.is_image ? imageLink(row.id) : String(row.text_body || ''));
 
 async function isChatAdmin(database: any, userId: string) {
   return isChatModerator(database, userId);
@@ -28,17 +36,21 @@ export async function GET() {
     );
   }
   const database = createAdminClient() || supabase;
-  const messageSelect = 'id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
+  const recent = (select: string) => database.from('global_chat_messages').select(select).is('deleted_at', null).order('created_at', { ascending: false }).limit(35);
   // Auth and the message query are independent, so run them together.
   const [{ data: { user: viewer } }, firstTry] = await Promise.all([
     supabase.auth.getUser(),
-    database.from('global_chat_messages').select(messageSelect).is('deleted_at', null).order('created_at', { ascending: false }).limit(35),
+    recent(LIGHT_SELECT),
   ]);
-  let { data, error } = firstTry;
+  let { data, error } = firstTry as { data: any[] | null; error: any };
+  const usedLight = !error;
+
+  // Before migration 0055 the light columns don't exist; fall back to the full message.
+  if (error) ({ data, error } = (await recent(FULL_SELECT)) as { data: any[] | null; error: any });
 
   // If deleted_at is causing the query to fail, try without that filter.
   if (error) {
-    const plain = await database.from('global_chat_messages').select(messageSelect).order('created_at', { ascending: false }).limit(35);
+    const plain = await database.from('global_chat_messages').select(FULL_SELECT).order('created_at', { ascending: false }).limit(35);
     if (plain.error) {
       console.error('[CHAT_GET] Plain SELECT error:', plain.error);
       return NextResponse.json({ error: plain.error.message }, { status: 500 });
@@ -47,8 +59,6 @@ export async function GET() {
   }
 
   const messages = [...(data || [])].reverse();
-  // Reviews run in the background, at most once per interval across all servers.
-  void runAiModeration(database).catch(() => undefined);
   const profileIds = Array.from(new Set(messages.map((row: any) => row.profile_id).filter(Boolean)));
   const replyIds = Array.from(new Set(messages.map((row: any) => row.reply_to_message_id).filter(Boolean)));
 
@@ -58,7 +68,7 @@ export async function GET() {
       ? database.from('profiles').select('id, username, tokens, stats, equipped_blook_id, blooks:equipped_blook_id(name)').in('id', profileIds)
       : Promise.resolve({ data: [] as any[], error: null }),
     replyIds.length > 0
-      ? database.from('global_chat_messages').select('id, message, profile_id, is_breadlet_bot').in('id', replyIds)
+      ? database.from('global_chat_messages').select(usedLight ? 'id, text_body, is_image, profile_id, is_breadlet_bot' : 'id, message, profile_id, is_breadlet_bot').in('id', replyIds)
       : Promise.resolve({ data: [] as any[], error: null }),
     viewer ? isChatAdmin(database, viewer.id) : Promise.resolve(false),
   ]);
@@ -81,7 +91,7 @@ export async function GET() {
       row.id,
       {
         id: row.id,
-        message: hideSlurs(row.message),
+        message: hideSlurs(messageText(row)),
         user:
           row.is_breadlet_bot
             ? 'Breadlet'
@@ -138,7 +148,7 @@ export async function GET() {
 
     return {
       id: row.id,
-      message: hideSlurs(row.message),
+      message: hideSlurs(messageText(row)),
       created_at: row.created_at,
       profile_id: row.profile_id,
 
@@ -290,10 +300,6 @@ export async function POST(request: Request) {
     };
   }
 
-  console.log(
-    '[CHAT_POST] Inserting message:',
-    message
-  );
 
   const { data, error } =
     await database
@@ -305,7 +311,7 @@ export async function POST(request: Request) {
           replyToMessageId
       })
       .select(
-        'id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot'
+        'id, created_at, profile_id, reply_to_message_id, is_breadlet_bot'
       )
       .maybeSingle();
 
@@ -349,22 +355,15 @@ export async function POST(request: Request) {
     })();
   }
 
-  const { data: profile } =
-    await database
-      .from('profiles')
-      .select('username')
-      .eq('id', user.id)
-      .maybeSingle();
-
   const username =
-    profile?.username ||
+    sender?.username ||
     user.user_metadata?.username ||
     'Player';
 
   const responsePayload = {
     id: data?.id,
     message:
-      data?.message || message,
+      isImageMessage && data?.id ? imageLink(data.id) : message,
     created_at:
       data?.created_at ||
       new Date().toISOString(),
@@ -379,10 +378,6 @@ export async function POST(request: Request) {
     isBreadletBot: data?.is_breadlet_bot === true,
   };
 
-  console.log(
-    '[CHAT_POST] Returning:',
-    responsePayload
-  );
 
   return NextResponse.json(
     responsePayload,

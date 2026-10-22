@@ -259,8 +259,17 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
       if (Array.isArray(rows)) setMessages((current) => JSON.stringify(current) === JSON.stringify(rows) ? current : rows);
     };
     void loadMessages();
-    const timer = window.setInterval(() => { if (!document.hidden) void loadMessages(); }, 2000);
-    return () => { stopped = true; window.clearInterval(timer); };
+    // New messages arrive through Realtime; the slow poll is only a safety net.
+    const supabase = createSupabaseClient();
+    const channel = supabase?.channel(`trade-messages-${trade.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "trade_messages", filter: `trade_id=eq.${trade.id}` }, () => void loadMessages())
+      .subscribe();
+    const timer = window.setInterval(() => { if (!document.hidden) void loadMessages(); }, 15000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+      if (channel) void supabase?.removeChannel(channel);
+    };
   }, [trade.id]);
 
   useEffect(() => {

@@ -5,14 +5,33 @@ import { hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+// Clan rows without the embedded images: thumbnails are linked (see /api/clans/image) and only
+// the viewer's own banner is fetched, instead of downloading every clan's images each time.
+const CLAN_FIELDS = 'id, name, description, tags, treasury, member_count, member_capacity, owner_profile_id, profile_blook, banner_unlocked, name_change_unlocked, colors_unlocked, theme, animated_profiles, created_at';
+
+async function listClans(supabase: any) {
+  const light = await supabase.from('clans').select(`${CLAN_FIELDS}, has_thumbnail, thumbnail_version`).order('treasury', { ascending: false });
+  if (!light.error) {
+    return { error: null, data: (light.data || []).map(({ has_thumbnail, thumbnail_version, ...clan }: any) => ({ ...clan, thumbnail_url: has_thumbnail ? `/api/clans/image?id=${clan.id}&v=${thumbnail_version}` : '' })) };
+  }
+  // Before migration 0055: fall back to the inline thumbnail (still skipping banners).
+  return supabase.from('clans').select(`${CLAN_FIELDS}, thumbnail_url`).order('treasury', { ascending: false });
+}
+
+export async function GET(request: Request) {
   const supabase = await createClient();
   if (!supabase) return NextResponse.json({ error: 'Clan service is not configured.' }, { status: 503 });
+  // The leaderboard only needs the clan list.
+  if (new URL(request.url).searchParams.get('summary') === '1') {
+    const { data, error } = await listClans(supabase);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ clans: data || [] });
+  }
   const { data: { user } } = await supabase.auth.getUser();
   const catalog = createAdminClient() || supabase;
 
   const [{ data: clans, error: clansErr }, { data: membership, error: membershipError }, { data: blooks, error: blooksError }] = await Promise.all([
-    supabase.from('clans').select('id, name, description, tags, treasury, member_count, member_capacity, owner_profile_id, thumbnail_url, profile_blook, banner_unlocked, banner_data, name_change_unlocked, colors_unlocked, theme, animated_profiles, created_at').order('treasury', { ascending: false }),
+    listClans(supabase),
     // Older versions let a player end up in more than one clan; show the one they lead, else the newest.
     user ? supabase.from('clan_members').select('clan_id, role, token_contributions, joined_at').eq('profile_id', user.id).order('joined_at', { ascending: false })
       .then(({ data, error }) => ({ data: (data || []).find((row) => row.role === 'leader') || (data || [])[0] || null, error })) : Promise.resolve({ data: null, error: null }),
@@ -57,7 +76,7 @@ export async function GET() {
         };
       });
     }
-    const ownedClanIds = (clans || []).filter((clan) => clan.owner_profile_id === user.id).map((clan) => clan.id);
+    const ownedClanIds = (clans || []).filter((clan: any) => clan.owner_profile_id === user.id).map((clan: any) => clan.id);
     const [requestResult, myRequestResult] = await Promise.all([
       ownedClanIds.length
         ? admin.from('clan_join_requests').select('id, clan_id, profile_id, created_at').in('clan_id', ownedClanIds).eq('status', 'pending').order('created_at', { ascending: true })
@@ -81,7 +100,11 @@ export async function GET() {
     }));
     myRequests = myRequestResult.data || [];
   }
-  const visibleClans = (clans || []).map((clan) => (clan.id === membership?.clan_id ? clan : { ...clan, banner_data: '' }));
+  const ownClan = (clans || []).find((clan: any) => clan.id === membership?.clan_id);
+  const { data: ownBanner } = ownClan?.banner_unlocked
+    ? await supabase.from('clans').select('banner_data').eq('id', ownClan.id).maybeSingle()
+    : { data: null };
+  const visibleClans = (clans || []).map((clan: any) => ({ ...clan, banner_data: clan.id === ownClan?.id ? ownBanner?.banner_data || '' : '' }));
   return NextResponse.json({ clans: visibleClans, blooks: blooks || [], membership: membership || null, members, requests, myRequests });
 }
 

@@ -92,7 +92,7 @@ function IslandWorld({ island, player, artFor, leave }: { island: Island; player
 
   const broadcastPosition = useCallback((force = false) => {
     const now = Date.now();
-    if (!force && now - lastSentRef.current < 100) return;
+    if (!force && now - lastSentRef.current < 150) return;
     lastSentRef.current = now;
     const { x, y, facing } = meRef.current;
     void channelRef.current?.send({ type: "broadcast", event: "move", payload: { id: player.id, x: Math.round(x), y: Math.round(y), facing } });

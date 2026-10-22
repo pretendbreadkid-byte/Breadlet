@@ -9,6 +9,7 @@ import { LiveTrade } from "./components/live-trade";
 import { SettingsTab } from "./components/settings-tab";
 import { BreadletLoadingScreen, NetworkIndicator } from "./components/network-indicator";
 import { BreadletExplore } from "./components/breadlet-explore";
+import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -492,7 +493,7 @@ function MainPage() {
       })
       .catch(() => undefined);
     void load();
-    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 15000);
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 60000);
     return () => window.clearInterval(timer);
   }, [isGuest, player?.id, refreshPlayerFromServer]);
 
@@ -2058,7 +2059,7 @@ function ProfileTab({
   useEffect(() => {
     if (isGuest) return;
     void loadTrades();
-    const fallback = window.setInterval(() => void loadTrades(), 30000);
+    const fallback = window.setInterval(() => { if (!document.hidden) void loadTrades(); }, 90000);
     if (!realtimeClient || !player.id) return () => window.clearInterval(fallback);
     const channel = realtimeClient.channel(`profile-trades-${player.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "trades", filter: `receiver_profile_id=eq.${player.id}` }, (payload) => {
@@ -3093,18 +3094,21 @@ function Bazaar({
     loadListings();
     if (!supabase) return;
 
+    let reloadTimer: number | undefined;
     const channel = supabase
       .channel("marketplace-sync")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "marketplace_listings" },
         () => {
-          loadListings();
+          window.clearTimeout(reloadTimer);
+          reloadTimer = window.setTimeout(() => void loadListings(), 2000);
         }
       )
       .subscribe();
 
     return () => {
+      window.clearTimeout(reloadTimer);
       supabase.removeChannel(channel);
     };
   }, [loadListings, supabase]);
@@ -3744,7 +3748,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         { event: "INSERT", schema: "public", table: "global_chat_messages" },
         (payload) => {
           if (refreshTimer) window.clearTimeout(refreshTimer);
-          refreshTimer = window.setTimeout(loadMessages, 250);
+          refreshTimer = window.setTimeout(loadMessages, 900);
         }
       )
       .subscribe((status) => {
@@ -3758,6 +3762,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
 
   const sendMessageText = async (textToSend: string, reply = replyTarget) => {
     if (!textToSend.trim()) return;
+    if (textToSend.trim().startsWith("/")) window.dispatchEvent(new Event(GAMES_CHANGED_EVENT));
     if (supabase) {
       try {
         const response = await fetch("/api/chat", {
@@ -4093,7 +4098,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
 
   const load = useCallback(async () => {
     try {
-      const [response, clanResponse] = await Promise.all([fetch("/api/rankings", { cache: "no-store" }), fetch("/api/clans", { cache: "no-store" }).catch(() => null)]);
+      const [response, clanResponse] = await Promise.all([fetch("/api/rankings", { cache: "no-store" }), fetch("/api/clans?summary=1", { cache: "no-store" }).catch(() => null)]);
       const data = await response.json().catch(() => null);
       if (!response.ok || !Array.isArray(data)) {
         setError((data && data.error) || "The leaderboard could not load.");
@@ -4121,7 +4126,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 30000);
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 120000);
     return () => window.clearInterval(timer);
   }, [load]);
 

@@ -13,11 +13,15 @@ type CoinGame = {
 };
 
 const seenKey = "breadlet-coinflip-seen";
+// Fired when this player starts, joins or acts in a game, so the coin flip popup starts watching.
+export const GAMES_CHANGED_EVENT = "breadlet:games-changed";
+const WATCH_MS = 150000;
 
 export async function postGameAction(body: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
   try {
     const response = await fetch("/api/games", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await response.json().catch(() => ({}));
+    if (response.ok) window.dispatchEvent(new Event(GAMES_CHANGED_EVENT));
     return response.ok ? { ok: true } : { ok: false, error: data.error || "That game action failed." };
   } catch {
     return { ok: false, error: "Could not reach the games server." };
@@ -69,6 +73,9 @@ export function CoinFlipPopup({ onFinished }: { onFinished: () => void }) {
   const [animating, setAnimating] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const handled = useRef<string | null>(null);
+  const watchUntil = useRef(0);
+  const activeGame = useRef(false);
+  useEffect(() => { activeGame.current = game?.status === "active"; }, [game]);
 
   const load = useCallback(async () => {
     try {
@@ -99,10 +106,22 @@ export function CoinFlipPopup({ onFinished }: { onFinished: () => void }) {
     }
   }, [onFinished]);
 
+  // Polling every 3s for every online player was the biggest source of requests. Now it only
+  // polls quickly while this player is in a coin flip or just started/joined one, with a slow
+  // safety check otherwise.
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 3000);
-    return () => window.clearInterval(timer);
+    const wake = () => { watchUntil.current = Date.now() + WATCH_MS; void load(); };
+    window.addEventListener(GAMES_CHANGED_EVENT, wake);
+    const fast = window.setInterval(() => {
+      if (!document.hidden && (activeGame.current || Date.now() < watchUntil.current)) void load();
+    }, 3000);
+    const slow = window.setInterval(() => { if (!document.hidden) void load(); }, 90000);
+    return () => {
+      window.removeEventListener(GAMES_CHANGED_EVENT, wake);
+      window.clearInterval(fast);
+      window.clearInterval(slow);
+    };
   }, [load]);
 
   const pick = async (choice: "heads" | "tails") => {
