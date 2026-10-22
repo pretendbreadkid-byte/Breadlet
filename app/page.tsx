@@ -3855,11 +3855,11 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         <img
           src={src}
           alt="Chat attachment"
-          className="mt-2 max-h-60 max-w-xs rounded-xl border border-[#3d91cd] object-contain bg-[#103f75] p-1 shadow-md"
+          className="mt-2 max-h-72 max-w-sm rounded-xl border border-[#3d91cd] object-contain bg-[#103f75] p-1 shadow-md"
         />
       );
     }
-    return <p className={isBreadletBot ? "chat-breadlet-fact" : "text-sm text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderEmojiText(text, [...emojis, ...blookEmojis()])}</p>;
+    return <p className={isBreadletBot ? "chat-breadlet-fact chat-message-text" : "chat-message-text text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderEmojiText(text, [...emojis, ...blookEmojis()])}</p>;
   };
 
   const muteChatter = async (targetId: string, name: string) => {
@@ -3991,23 +3991,24 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           </div>
         </div>
       )}
-      <div ref={chatListRef} onScroll={handleChatScroll} className="chat-message-list mt-6 min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
+      <div ref={chatListRef} onScroll={handleChatScroll} className="chat-message-list mt-6 min-h-0 flex-1 overflow-y-auto py-4">
         {messageGroups.map((group) => {
           const latest = group.items[group.items.length - 1];
           const latestItem = latest.item;
           return (
-            <div key={`${group.user}-${latest.index}`} className="flex gap-3">
-              <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} aria-label={group.isBreadletBot ? "Breadlet chat bot" : `Open ${group.user}'s profile`} title={group.isBreadletBot ? "Breadlet" : `View ${group.user}'s profile`} className="h-10 w-10 shrink-0 overflow-hidden disabled:cursor-default">
-                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <CircleUserRound size={30} />}
+            <div key={`${group.user}-${latest.index}`} className="chat-group">
+              <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} aria-label={group.isBreadletBot ? "Breadlet chat bot" : `Open ${group.user}'s profile`} title={group.isBreadletBot ? "Breadlet" : `View ${group.user}'s profile`} className="chat-avatar disabled:cursor-default">
+                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <CircleUserRound size={52} />}
               </button>
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 font-black">
-                  <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="hover:underline disabled:cursor-default disabled:no-underline">{group.user}{group.isBreadletBot ? " 🤖" : ""}</button>
+                <div className="chat-group-header">
+                  <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="chat-username hover:underline disabled:cursor-default disabled:no-underline">{group.user}{group.isBreadletBot ? " 🤖" : ""}</button>
                   {(group.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : latestItem.badges || []).map((badge) => (
-                    <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
-                      <img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" />
+                    <button key={badge} onClick={() => showBadge(badge)} title={badge} className="chat-badge">
+                      <img src={badgeIconFor(badge)} alt={badge} className="h-full w-full object-contain" />
                     </button>
                   ))}
+                  {group.items[0].item.createdAt && <time className="chat-time" dateTime={group.items[0].item.createdAt}>{new Date(group.items[0].item.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time>}
                   {latestItem.canMute && latestItem.profileId && (
                     <button type="button" onClick={() => void muteChatter(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Timeout 30m</button>
                   )}
@@ -4015,7 +4016,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                     <button type="button" onClick={() => void giveWalterWhite(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Give Walter White</button>
                   )}
                 </div>
-                <div className="mt-1 space-y-2">
+                <div className="mt-1">
                   {group.items.map(({ item, index }) => {
                     const messageId = String(item.id ?? `local-${item.user}-${index}`);
                     const canEdit = !item.isBreadletBot && item.user === player.username && (item.id != null || isGuest);
@@ -4023,6 +4024,11 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                       <div key={messageId} id={`chat-message-${messageId}`} className="chat-group-message">
                         {firstUnreadId != null && item.id === firstUnreadId && (
                           <div className="chat-new-divider" role="separator"><span /><b>NEW MESSAGES</b></div>
+                        )}
+                        {item.replyTo && (
+                          <button type="button" onClick={() => item.replyTo?.id != null && document.getElementById(`chat-message-${String(item.replyTo.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="chat-reply-preview">
+                            <Reply size={14} aria-hidden="true" /><b>@{item.replyTo.user}</b><span>{item.replyTo.message.startsWith("[img]") ? "📷 Image" : item.replyTo.message}</span>
+                          </button>
                         )}
                         {editingMessageId === messageId ? (
                           <div className="space-y-2">
@@ -4056,9 +4062,6 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                     );
                   })}
                 </div>
-                {group.items.filter(({ item }) => item.replyTo).map(({ item }) => (
-                  <button key={`reply-${item.id}`} type="button" onClick={() => item.replyTo?.id != null && document.getElementById(`chat-message-${String(item.replyTo.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-2 block max-w-md truncate rounded-md border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-left text-xs text-sky-100">↳ {item.replyTo?.user}: {item.replyTo?.message}</button>
-                ))}
               </div>
             </div>
           );
