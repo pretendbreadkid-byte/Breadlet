@@ -19,18 +19,17 @@ export async function GET(request: Request) {
   if (!inventoryAdmin) return NextResponse.json({ error: 'Server inventory saving is not configured.' }, { status: 503 });
 
   const [{ data: profile, error: profileError }, { data: inventory }, { data: mine }, { data: listings }, capsuleCount, messageCount, tradeCount] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('profiles').select('*, equipped:blooks!profiles_equipped_blook_fk(name)').eq('id', user.id).single(),
     inventoryAdmin.from('inventory').select('quantity, shiny, blooks(name)').eq('profile_id', user.id),
     supabase.from('mine_progress').select('*').eq('profile_id', user.id).maybeSingle(),
-    supabase.from('marketplace_listings').select('id, price, status, blooks(name), profiles(username)').eq('status', 'active').order('created_at', { ascending: false }),
+    supabase.from('marketplace_listings').select('id, price, status, blooks(name), profiles(username)').eq('status', 'active').order('created_at', { ascending: false }).limit(100),
     inventoryAdmin.from('chest_rolls').select('id', { count: 'exact', head: true }).eq('profile_id', user.id),
     inventoryAdmin.from('global_chat_messages').select('id', { count: 'exact', head: true }).eq('profile_id', user.id).eq('is_breadlet_bot', false).is('deleted_at', null),
     inventoryAdmin.from('trades').select('id', { count: 'exact', head: true }).or(`sender_profile_id.eq.${user.id},receiver_profile_id.eq.${user.id}`).eq('status', 'completed'),
   ]);
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
-  const { data: equipped } = profile.equipped_blook_id
-    ? await supabase.from('blooks').select('name').eq('id', profile.equipped_blook_id).maybeSingle()
-    : { data: null };
+  const { equipped: equippedRow, ...profileFields } = profile as any;
+  const equipped = (Array.isArray(equippedRow) ? equippedRow[0] : equippedRow) as { name: string } | null;
 
   const inventoryRows = (inventory || []) as unknown as Array<{ quantity: number; shiny: boolean; blooks: { name: string } | null }>;
 
@@ -39,7 +38,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     profile: {
-      ...profile,
+      ...profileFields,
       equipped_blook_name: equipped?.name || null,
       badges: Array.from(new Set(profile.stats?.badges || [])),
       clan_tag: profile.stats?.clanTag || '',

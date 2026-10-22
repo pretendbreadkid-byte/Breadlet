@@ -11,8 +11,6 @@ async function isChatAdmin(database: any, userId: string) {
 }
 
 export async function GET() {
-  console.log('[CHAT_GET] Starting GET /api/chat');
-
   const supabase = await createClient();
 
   if (!supabase) {
@@ -23,158 +21,52 @@ export async function GET() {
     );
   }
   const database = createAdminClient() || supabase;
-  const { data: { user: viewer } } = await supabase.auth.getUser();
-  const viewerIsAdmin = viewer ? await isChatAdmin(database, viewer.id) : false;
-
-  // Get the chat messages first.
-  let { data, error } = await database
-    .from('global_chat_messages')
-    .select('id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot')
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(35);
-
-  console.log(
-    '[CHAT_GET] Message query:',
-    data?.length ?? 0,
-    'Error:',
-    error
-  );
+  const messageSelect = 'id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
+  // Auth and the message query are independent, so run them together.
+  const [{ data: { user: viewer } }, firstTry] = await Promise.all([
+    supabase.auth.getUser(),
+    database.from('global_chat_messages').select(messageSelect).is('deleted_at', null).order('created_at', { ascending: false }).limit(35),
+  ]);
+  let { data, error } = firstTry;
 
   // If deleted_at is causing the query to fail, try without that filter.
   if (error) {
-    console.warn(
-      '[CHAT_GET] Filtered query failed, trying plain table read:',
-      error.message
-    );
-
-    const plain = await database
-      .from('global_chat_messages')
-      .select('id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot')
-      .order('created_at', { ascending: false })
-      .limit(35);
-
+    const plain = await database.from('global_chat_messages').select(messageSelect).order('created_at', { ascending: false }).limit(35);
     if (plain.error) {
       console.error('[CHAT_GET] Plain SELECT error:', plain.error);
-      return NextResponse.json(
-        { error: plain.error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: plain.error.message }, { status: 500 });
     }
-
     data = plain.data;
   }
 
   const messages = [...(data || [])].reverse();
+  const profileIds = Array.from(new Set(messages.map((row: any) => row.profile_id).filter(Boolean)));
+  const replyIds = Array.from(new Set(messages.map((row: any) => row.reply_to_message_id).filter(Boolean)));
 
-  // Get profile information for the people who sent messages.
-  const profileIds = Array.from(
-    new Set(
-      messages
-        .map((row: any) => row.profile_id)
-        .filter(Boolean)
-    )
-  );
+  // Profiles (with equipped blook), replies and the admin check are independent: fetch them together.
+  const [profileResult, replyResult, viewerIsAdmin] = await Promise.all([
+    profileIds.length > 0
+      ? database.from('profiles').select('id, username, tokens, stats, equipped_blook_id, blooks:equipped_blook_id(name)').in('id', profileIds)
+      : Promise.resolve({ data: [] as any[], error: null }),
+    replyIds.length > 0
+      ? database.from('global_chat_messages').select('id, message, profile_id, is_breadlet_bot').in('id', replyIds)
+      : Promise.resolve({ data: [] as any[], error: null }),
+    viewer ? isChatAdmin(database, viewer.id) : Promise.resolve(false),
+  ]);
 
-  let profiles: any[] = [];
+  const profiles: any[] = !profileResult.error && profileResult.data ? profileResult.data : [];
+  const replyRows: any[] = !replyResult.error && replyResult.data ? replyResult.data : [];
+  const profileMap = new Map(profiles.map((profile: any) => [profile.id, profile]));
+  const blookMap = new Map(profiles.map((profile: any) => [profile.equipped_blook_id, profile.blooks?.name || '']));
 
-  if (profileIds.length > 0) {
-    const profileResult = await database
-      .from('profiles')
-      .select('id, username, tokens, stats, equipped_blook_id')
-      .in('id', profileIds);
-
-    if (!profileResult.error && profileResult.data) {
-      profiles = profileResult.data;
-    }
+  // Only look up reply authors that were not already loaded above.
+  const missingReplyProfileIds = Array.from(new Set(replyRows.map((row: any) => row.profile_id).filter((id: string) => id && !profileMap.has(id))));
+  let extraProfiles: any[] = [];
+  if (missingReplyProfileIds.length > 0) {
+    const extra = await database.from('profiles').select('id, username').in('id', missingReplyProfileIds);
+    if (!extra.error && extra.data) extraProfiles = extra.data;
   }
-
-  const profileMap = new Map(
-    profiles.map((profile: any) => [
-      profile.id,
-      profile
-    ])
-  );
-
-  // Get equipped blook names.
-  const blookIds = Array.from(
-    new Set(
-      profiles
-        .map((profile: any) => profile.equipped_blook_id)
-        .filter(Boolean)
-    )
-  );
-
-  let blooks: any[] = [];
-
-  if (blookIds.length > 0) {
-    const blookResult = await database
-      .from('blooks')
-      .select('id, name')
-      .in('id', blookIds);
-
-    if (!blookResult.error && blookResult.data) {
-      blooks = blookResult.data;
-    }
-  }
-
-  const blookMap = new Map(
-    blooks.map((blook: any) => [
-      blook.id,
-      blook.name
-    ])
-  );
-
-  // Get reply information.
-  const replyIds = Array.from(
-    new Set(
-      messages
-        .map((row: any) => row.reply_to_message_id)
-        .filter(Boolean)
-    )
-  );
-
-  let replyRows: any[] = [];
-
-  if (replyIds.length > 0) {
-    const replyResult = await database
-      .from('global_chat_messages')
-      .select('id, message, profile_id, is_breadlet_bot')
-      .in('id', replyIds);
-
-    if (!replyResult.error && replyResult.data) {
-      replyRows = replyResult.data;
-    }
-  }
-
-  const replyProfileIds = Array.from(
-    new Set(
-      replyRows
-        .map((row: any) => row.profile_id)
-        .filter(Boolean)
-    )
-  );
-
-  let replyProfiles: any[] = [];
-
-  if (replyProfileIds.length > 0) {
-    const replyProfileResult = await database
-      .from('profiles')
-      .select('id, username')
-      .in('id', replyProfileIds);
-
-    if (!replyProfileResult.error && replyProfileResult.data) {
-      replyProfiles = replyProfileResult.data;
-    }
-  }
-
-  const replyUsernameMap = new Map(
-    replyProfiles.map((profile: any) => [
-      profile.id,
-      profile.username
-    ])
-  );
-
+  const replyUsernameMap = new Map([...profiles, ...extraProfiles].map((profile: any) => [profile.id, profile.username]));
   const replies = new Map(
     replyRows.map((row: any) => [
       row.id,
@@ -258,11 +150,6 @@ export async function GET() {
       }
     };
   });
-
-  console.log(
-    '[CHAT_GET] Returning messages:',
-    normalized.length
-  );
 
   return NextResponse.json(normalized);
 }
@@ -410,8 +297,10 @@ export async function POST(request: Request) {
   }
 
   // Keep only the newest 35 messages; older ones are deleted.
+  if (Math.random() < 0.2) {
   const { data: stale } = await database.from('global_chat_messages').select('id').order('created_at', { ascending: false }).range(35, 300);
   if (stale?.length) await database.from('global_chat_messages').delete().in('id', stale.map((row: { id: string }) => row.id));
+  }
 
   // Let word games (word race / unscramble) react to the message.
   if (!isImageMessage) {
