@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { createClient } from '../../../lib/supabase/server';
+import { hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -96,6 +97,7 @@ export async function POST(request: Request) {
   const profileBlook = String(body.profileBlook || '').trim();
 
   if (!name || name.length < 2) return NextResponse.json({ error: 'Clan name must be at least 2 characters.' }, { status: 400 });
+  if (!isNameAllowed(name) || !tags.every(isNameAllowed) || hasSevereSlur(description)) return NextResponse.json({ error: 'That clan name, description or tag is not allowed.' }, { status: 400 });
   if (!profileBlook) return NextResponse.json({ error: 'Choose a Blook for your clan profile.' }, { status: 400 });
   const catalog = createAdminClient() || supabase;
   const { data: selectedBlook, error: blookError } = await catalog.from('blooks').select('name').eq('name', profileBlook).maybeSingle();
@@ -148,6 +150,7 @@ export async function PATCH(request: Request) {
   }
 
   if (action === 'upgrade') {
+    if (body.feature === 'rename' && !isNameAllowed(String(body.value || ''))) return NextResponse.json({ error: 'That name is not allowed.' }, { status: 400 });
     const admin = createAdminClient();
     if (!admin) return NextResponse.json({ error: 'Clan upgrades are not configured.' }, { status: 503 });
     const { data, error } = await admin.rpc('secure_clan_upgrade', {

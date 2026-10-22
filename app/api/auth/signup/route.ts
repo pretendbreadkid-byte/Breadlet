@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createHash, randomUUID } from 'node:crypto';
 import { createAdminClient } from '../../../../lib/supabase/admin';
+import { isNameAllowed } from '../../../../lib/chat-filter';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
   }
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(username) || password.length < 4) {
     return NextResponse.json({ error: 'Use a 3-20 character username (letters, numbers, underscores) and a password with at least 4 characters.' }, { status: 400 });
+  }
+  if (!isNameAllowed(username)) {
+    return NextResponse.json({ error: 'That username is not allowed. Please pick a different one.' }, { status: 400 });
   }
   if (suppliedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(suppliedEmail)) {
     return NextResponse.json({ error: 'Enter a valid email address or leave it blank.' }, { status: 400 });

@@ -3,9 +3,12 @@ import { isChatModerator, isProtectedFromMute, moderatorBadges } from '../../../
 import { answerQuestion } from '../../../lib/chat-ai';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
-import { filterProfanity } from '../../../lib/chat-filter';
+import { filterProfanity, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
 
 export const dynamic = 'force-dynamic';
+
+const isImage = (message: string) => message.startsWith('[img]data:image/');
+const hideSlurs = (message: string) => !isImage(message) && hasSevereSlur(message) ? '[message removed]' : message;
 
 async function isChatAdmin(database: any, userId: string) {
   return isChatModerator(database, userId);
@@ -73,7 +76,7 @@ export async function GET() {
       row.id,
       {
         id: row.id,
-        message: row.message,
+        message: hideSlurs(row.message),
         user:
           row.is_breadlet_bot
             ? 'Breadlet'
@@ -130,7 +133,7 @@ export async function GET() {
 
     return {
       id: row.id,
-      message: row.message,
+      message: hideSlurs(row.message),
       created_at: row.created_at,
       profile_id: row.profile_id,
 
@@ -194,13 +197,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: sender } = await database.from('profiles').select('is_banned, account_status, stats').eq('id', user.id).maybeSingle();
+  const { data: sender } = await database.from('profiles').select('username, is_banned, account_status, stats').eq('id', user.id).maybeSingle();
   if (sender && (sender.is_banned || (sender.account_status && sender.account_status !== 'active'))) {
     return NextResponse.json({ error: 'Banned accounts cannot chat.' }, { status: 403 });
   }
   const mutedUntil = Date.parse(String(sender?.stats?.chatMutedUntil || ''));
   if (Number.isFinite(mutedUntil) && mutedUntil > Date.now()) {
-    return NextResponse.json({ error: `You are timed out from chat for  more minute(s).` }, { status: 403 });
+    return NextResponse.json({ error: `You are timed out from chat for ${Math.ceil((mutedUntil - Date.now()) / 60000)} more minute(s).` }, { status: 403 });
+  }
+  if (sender?.username && !isNameAllowed(sender.username)) {
+    return NextResponse.json({ error: 'Your username is not allowed, so you cannot chat. Ask a moderator for help.' }, { status: 403 });
   }
 
   const body = await request.json();
@@ -208,6 +214,14 @@ export async function POST(request: Request) {
   const rawMessage = String(body.message || '').trim();
   // Image messages carry a base64 data URL (png, jpeg, gif, webp or svg) and need a larger limit.
   const isImageMessage = /^\[img\]data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+\/=]+\[\/img\]$/.test(rawMessage) && rawMessage.length <= 600000;
+  // Slurs are blocked outright and earn an automatic 30-minute timeout.
+  if (!isImageMessage && hasSevereSlur(rawMessage)) {
+    if (!isProtectedFromMute(sender?.username || '')) {
+      const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      await database.from('profiles').update({ stats: { ...(sender?.stats || {}), chatMutedUntil: until } }).eq('id', user.id);
+    }
+    return NextResponse.json({ error: 'That message has hate speech in it and was blocked. You are timed out from chat for 30 minutes.' }, { status: 400 });
+  }
   const message = isImageMessage ? rawMessage : filterProfanity(rawMessage.slice(0, 500));
 
   if (!message) {
