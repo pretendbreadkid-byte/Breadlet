@@ -14,26 +14,28 @@ const jokes = [
 ];
 
 const topics: { match: RegExp; answer: string }[] = [
-  { match: /(who|what).*(breadblook)|breadblook/i, answer: 'Breadblook is the legendary creator and keeper of the Bread Bucks bank. All hail Breadblook!' },
-  { match: /pack|open|crate/i, answer: 'Spend Bread Bucks on packs in the Packs tab to open Breadlets. Rarer ones are harder to pull, so keep rolling!' },
-  { match: /bread ?buck|token|money|currency|claim/i, answer: 'Bread Bucks are the currency. Claim between 100 and 1500 every hour, win some in chat games, or sell Breadlets in the Bazaar.' },
-  { match: /trade|trading/i, answer: 'Both players need to be online for a trade. Open the trade room, add Breadlets and Bread Bucks, chat, and both confirm. A 20% fee applies to Bread Bucks.' },
-  { match: /bazaar|market|sell/i, answer: 'The Bazaar is where you list Breadlets for sale. You can take your listings down any time in My Listings.' },
-  { match: /craft|material|recycle/i, answer: 'Recycle extra Breadlets into materials, then use the Crafting tab to make new ones.' },
-  { match: /clan/i, answer: 'Clans let you team up, donate to a treasury, upgrade your banner, and climb the clan leaderboard.' },
-  { match: /game|coin ?flip|word ?race|unscramble|cancel/i, answer: 'Hit the Games button for Coin Flip, Word Race and Unscramble. Use /accept to join a coin flip and /cancel to cancel a game you started.' },
-  { match: /badge|og/i, answer: 'Badges show next to your name. The OG badge is for everyone who was here early, and there are Bread Bucks badges too.' },
-  { match: /hello|hi\b|hey|sup/i, answer: 'Hey there, crumb! Ask me anything about Breadlet.' },
+  { match: /breadblook/i, answer: '🍞👑 Breadblook is the legendary creator of Breadlet and keeper of the Bread Bucks bank. Absolute legend!' },
+  { match: /(what|who|about).*breadlet|breadlet.*(game|about|is)\b/i, answer: '🥖✨ Breadlet is a great game where you open packs, collect Breadlets, trade, craft, join clans and climb the leaderboards. Come for the bread, stay for the fun!' },
+  { match: /pack|open|crate/i, answer: '📦 Spend Bread Bucks on packs in the Packs tab to open Breadlets. Rarer ones are harder to pull, so keep rolling! 🎲' },
+  { match: /bread ?buck|token|money|currency|claim/i, answer: '💰 Bread Bucks are the currency. Claim 100-1500 every hour, win some in chat games, or sell Breadlets in the Bazaar.' },
+  { match: /trade|trading/i, answer: '🤝 Both players need to be online. Open the trade room, add Breadlets and Bread Bucks, chat, and both confirm. A 20% fee applies to Bread Bucks.' },
+  { match: /bazaar|market|sell/i, answer: '🛒 The Bazaar is where you list Breadlets for sale. You can take listings down any time in My Listings.' },
+  { match: /craft|material|recycle/i, answer: '🔨 Recycle extra Breadlets into materials, then use the Crafting tab to make new ones.' },
+  { match: /clan/i, answer: '🛡️ Clans let you team up, donate to a treasury, upgrade your banner, and climb the clan leaderboard.' },
+  { match: /game|coin ?flip|word ?race|unscramble|cancel/i, answer: '🎮 Hit the Games button for Coin Flip, Word Race and Unscramble. Use /accept to join a coin flip and /cancel to cancel your own game.' },
+  { match: /badge|og/i, answer: '🏅 Badges show next to your name. Everyone gets the OG badge, and there are Bread Bucks badges too.' },
+  { match: /hello|hi\b|hey|sup/i, answer: '👋 Hey there, crumb! Ask me anything about Breadlet.' },
   { match: /joke|funny/i, answer: '' },
 ];
 
 export function aiAnswer(question: string) {
   const joke = jokes[Math.floor(Math.random() * jokes.length)];
   const q = filterProfanity(question).trim();
-  if (!q) return 'Ask me something after /ai, like /ai how do I trade? Breadlet is the best game ever.';
-  if (q.includes('*')) return 'Let us keep it crumb-clean, friend. Breadlet is a cozy place! ' + joke;
+  if (!q) return '🤖 Ask me something after /ai, like /ai how do I trade?';
+  if (q.includes('*')) return '😇 Let us keep it crumb-clean, friend. Breadlet is a cozy place!';
   const topic = topics.find((entry) => entry.match.test(q));
-  const praise = 'Breadlet is the best game and Breadblook is a legend. ';
-  if (!topic) return praise + "I am not sure about that one, but here is a joke: " + joke;
-  return `${topic.answer ? topic.answer + ' ' : ''}${praise}${joke}`.trim();
+  const askedForJoke = /joke|funny/i.test(q);
+  if (!topic) return `🤔 I am not sure about that one. Try asking about packs, trading, the Bazaar or clans!`;
+  const withJoke = askedForJoke || Math.random() < 0.2;
+  return `${topic.answer}${withJoke ? ` 😄 ${joke}` : ''}`.trim();
 }
