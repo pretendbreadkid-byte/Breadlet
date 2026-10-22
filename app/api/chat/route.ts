@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { isChatModerator, isProtectedFromMute } from '../../../lib/admin-access';
+import { isChatModerator, isProtectedFromMute, moderatorBadges } from '../../../lib/admin-access';
+import { answerQuestion } from '../../../lib/chat-ai';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { filterProfanity } from '../../../lib/chat-filter';
@@ -97,6 +98,7 @@ export async function GET() {
     const badges = Array.from(
       new Set([
       ...(profile?.stats?.badges || []),
+        ...moderatorBadges(profile?.username),
 
         ...(tokens >= 10000
           ? ['10K Tokens']
@@ -311,6 +313,17 @@ export async function POST(request: Request) {
   if (!isImageMessage) {
     const { error: gameError } = await database.rpc('chat_game_action', { p_profile_id: user.id, p_action: 'check_answer', p_message: message });
     if (gameError) console.error('[CHAT_POST] Game check failed:', gameError.message);
+  }
+
+  // /ai replies in the background so posting never waits on the model.
+  const aiMatch = !isImageMessage ? message.match(/^\/ai\b\s*([\s\S]*)$/i) : null;
+  if (aiMatch) {
+    const question = aiMatch[1];
+    void (async () => {
+      const reply = await answerQuestion(question);
+      const { error: sayError } = await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: reply });
+      if (sayError) console.error('[CHAT_POST] AI reply failed:', sayError.message);
+    })();
   }
 
   const { data: profile } =

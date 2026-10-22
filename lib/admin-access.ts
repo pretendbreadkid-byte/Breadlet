@@ -18,3 +18,7 @@ export function isProtectedFromMute(username: string) {
   const name = String(username || '').trim().toLowerCase();
   return name === ADMIN_USERNAME || MODERATOR_USERNAMES.includes(name);
 }
+
+export function moderatorBadges(username?: string | null): string[] {
+  return MODERATOR_USERNAMES.includes(String(username || '').toLowerCase()) ? ['Moderator'] : [];
+}

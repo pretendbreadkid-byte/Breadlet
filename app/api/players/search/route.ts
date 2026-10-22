@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
+import { moderatorBadges } from '../../../../lib/admin-access';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
       messagesSent: messagesByProfile.get(profile.id) || 0,
       badges: Array.from(new Set([
         ...(profile.stats?.badges || []),
-        'OG',
+        ...moderatorBadges(profile.username),
         ...(tokens >= 10000 ? ['10K Tokens'] : []),
         ...(tokens >= 100000 ? ['100K Tokens'] : []),
         ...(tokens >= 1000000 ? ['1M Tokens'] : []),

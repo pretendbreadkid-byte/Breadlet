@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
+import { moderatorBadges } from '../../../lib/admin-access';
 
 const materialNames = ['Gold', 'Cloth', 'Gem', 'Sugar', 'Flower', 'Metal'];
 
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
     profile: {
       ...profileFields,
       equipped_blook_name: equipped?.name || null,
-      badges: Array.from(new Set(profile.stats?.badges || [])),
+      badges: Array.from(new Set([...(profile.stats?.badges || []), ...moderatorBadges(profile.username)])),
       clan_tag: profile.stats?.clanTag || '',
       wheel_spun: Boolean(profile.stats?.wheelSpun) && wheelSpunToday,
       wheel_spun_at: typeof wheelSpunAt === 'string' ? wheelSpunAt : null,
