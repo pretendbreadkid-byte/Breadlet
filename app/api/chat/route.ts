@@ -304,6 +304,11 @@ export async function POST(request: Request) {
     );
   }
 
+  const { data: sender } = await database.from('profiles').select('is_banned, account_status').eq('id', user.id).maybeSingle();
+  if (sender && (sender.is_banned || (sender.account_status && sender.account_status !== 'active'))) {
+    return NextResponse.json({ error: 'Banned accounts cannot chat.' }, { status: 403 });
+  }
+
   const body = await request.json();
 
   const rawMessage = String(body.message || '').trim();
