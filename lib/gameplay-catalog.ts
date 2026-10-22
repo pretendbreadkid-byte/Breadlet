@@ -282,7 +282,7 @@ export const liveCapsules: Capsule[] = [
   },
   {
     name: "Bread Bag",
-    price: 25,
+    price: 30,
     art: "/assets/refreshed-bread-bag.svg",
     pool: rewards([
       ["Sour Dough", "Common"],
@@ -304,7 +304,20 @@ export const liveCapsules: Capsule[] = [
       "Gold Bread": "/assets/gold-bread-refreshed.svg",
       "Holy Bread": "/assets/holy-bread-refreshed.svg",
       "Golden Toaster": "/assets/goldenToaster frame 1.svg",
-    }, { "Golden Toaster": 0.004 }),
+    },
+    // Fixed odds keep the average resale value (~16) well under the price, so opening
+    // and reselling Bread Bags can't print tokens.
+    {
+      "Sour Dough": 24,
+      Croissant: 24,
+      "Cinnamon Roll": 25.246,
+      Toaster: 9,
+      "Slime Bread": 9,
+      "Robo Bread": 7,
+      "Gold Bread": 1.5,
+      "Holy Bread": 0.25,
+      "Golden Toaster": 0.004,
+    }),
   },
 ];
 

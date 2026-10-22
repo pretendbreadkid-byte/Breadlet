@@ -91,7 +91,7 @@ export const CHEST_DEFINITIONS = [
   {
     id: 'bread-chest',
     name: 'Bread Bag',
-    price: 25,
+    price: 30,
     description: 'Freshly baked Breadlets from Ted.',
     pool: ['Sour Dough', 'Toaster', 'Golden Toaster', 'Croissant', 'Cinnamon Roll', 'Robo Bread', 'Slime Bread', 'Gold Bread', 'Holy Bread'],
     rarity: 'Mythic',

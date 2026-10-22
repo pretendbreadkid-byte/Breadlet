@@ -19,6 +19,9 @@ export function isProtectedFromMute(username: string) {
   return name === ADMIN_USERNAME || MODERATOR_USERNAMES.includes(name);
 }
 
+// Staff badges are tied to usernames, so they can't be granted or removed by editing stats.
 export function moderatorBadges(username?: string | null): string[] {
-  return MODERATOR_USERNAMES.includes(String(username || '').toLowerCase()) ? ['Moderator'] : [];
+  const name = String(username || '').trim().toLowerCase();
+  if (name === ADMIN_USERNAME) return ['Owner'];
+  return MODERATOR_USERNAMES.includes(name) ? ['Moderator'] : [];
 }

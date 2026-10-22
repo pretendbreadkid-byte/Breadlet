@@ -133,6 +133,7 @@ const badgeDescriptions: Record<string, string> = {
   "1M Tokens": "Reach a balance of 1,000,000 Bread Bucks.",
   OG: "Awarded to every original Breadlet player.",
   Moderator: "Trusted community moderator who keeps the chat friendly.",
+  Owner: "The creator and owner of Breadlet.",
 };
 const tokenBadgesFor = (tokens: number) => [
   "OG",
@@ -149,6 +150,7 @@ const badgeIconFor = (badge: string) => ({
   "1M Tokens": "/assets/token-badge-1m.svg",
   OG: "/assets/og-badge.svg",
   Moderator: "/assets/moderator-badge.svg",
+  Owner: "/assets/owner-badge.svg",
 })[badge] || "/assets/verified-badge.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>
