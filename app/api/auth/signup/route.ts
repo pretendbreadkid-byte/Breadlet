@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { isNameAllowed } from '../../../../lib/chat-filter';
+import { NETWORK_BANNED_MESSAGE, deviceHasAccount, isNetworkBanned, networkIdentity, recordAccountDevice } from '../../../../lib/network-identity';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -41,10 +42,12 @@ export async function POST(request: Request) {
     if (!referrer) return NextResponse.json({ error: 'That referral code does not exist.' }, { status: 400 });
   }
 
-  const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-  const remoteIp = forwardedFor || request.headers.get('x-real-ip') || 'unknown';
-  const ipSalt = process.env.SIGNUP_LIMIT_SALT || process.env.SUPABASE_SERVICE_ROLE_KEY || 'breadlet-signup-limit';
-  const ipHash = createHash('sha256').update(`${ipSalt}:${remoteIp}`).digest('hex');
+  if (await isNetworkBanned(admin, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
+  if (await deviceHasAccount(admin, request)) {
+    return NextResponse.json({ error: 'This device already has a Breadlet account. Log in to it instead.' }, { status: 409 });
+  }
+
+  const { ipHash } = networkIdentity(request);
   const { data: allowed, error: limitError } = await admin.rpc('allow_signup_attempt', { p_ip_hash: ipHash });
   if (limitError) {
     return NextResponse.json({ error: 'Account protection is not installed yet. Apply the latest Supabase migration and retry.' }, { status: 503 });
@@ -53,7 +56,7 @@ export async function POST(request: Request) {
 
   const email = suppliedEmail || `breadlet-${randomUUID()}@accounts.breadlet.com`;
 
-  const { error } = await admin.auth.admin.createUser({
+  const { data: created, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
@@ -66,6 +69,8 @@ export async function POST(request: Request) {
       : error.message;
     return NextResponse.json({ error: message }, { status: 400 });
   }
+
+  if (created?.user) await recordAccountDevice(admin, request, created.user.id);
 
   if (referralCode) {
     const { error: rewardError } = await admin.rpc('referral_reward', { p_code: referralCode });

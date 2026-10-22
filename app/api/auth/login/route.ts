@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
+import { NETWORK_BANNED_MESSAGE, isNetworkBanned, recordAccountDevice } from '../../../../lib/network-identity';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -15,6 +16,8 @@ export async function POST(request: Request) {
   if (!username || !password) {
     return NextResponse.json({ error: 'Username and password are required.' }, { status: 400 });
   }
+
+  if (await isNetworkBanned(admin, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
 
   const { data: profile, error: profileError } = await admin
     .from('profiles')
@@ -55,6 +58,7 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    await recordAccountDevice(admin, request, user.id);
   }
 
   return NextResponse.json({ ok: true });

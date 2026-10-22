@@ -561,6 +561,15 @@ function MainPage() {
     }
   }, [supabaseClient]);
   useEffect(() => {
+    // Mirror the device ID cookie into localStorage so clearing cookies doesn't make a "new" device.
+    try {
+      const cookieId = document.cookie.match(/(?:^|; )breadlet_device=([0-9a-f-]{36})/i)?.[1];
+      const savedId = window.localStorage.getItem("breadlet-device");
+      if (savedId && /^[0-9a-f-]{36}$/i.test(savedId) && savedId !== cookieId) document.cookie = `breadlet_device=${savedId}; path=/; max-age=315360000; samesite=lax`;
+      else if (!savedId && cookieId) window.localStorage.setItem("breadlet-device", cookieId);
+    } catch {}
+  }, []);
+  useEffect(() => {
     if (!supabaseClient) return;
     fetch("/api/admin").then((response) => setAdminUnlocked(response.ok)).catch(() => setAdminUnlocked(false));
   }, [supabaseClient]);

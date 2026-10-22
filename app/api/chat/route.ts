@@ -4,6 +4,7 @@ import { answerQuestion } from '../../../lib/chat-ai';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { filterProfanity, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
+import { NETWORK_BANNED_MESSAGE, isNetworkBanned } from '../../../lib/network-identity';
 
 export const dynamic = 'force-dynamic';
 
@@ -205,6 +206,7 @@ export async function POST(request: Request) {
   if (Number.isFinite(mutedUntil) && mutedUntil > Date.now()) {
     return NextResponse.json({ error: `You are timed out from chat for ${Math.ceil((mutedUntil - Date.now()) / 60000)} more minute(s).` }, { status: 403 });
   }
+  if (await isNetworkBanned(database, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
   if (sender?.username && !isNameAllowed(sender.username)) {
     return NextResponse.json({ error: 'Your username is not allowed, so you cannot chat. Ask a moderator for help.' }, { status: 403 });
   }
@@ -419,6 +421,7 @@ export async function PATCH(request: Request) {
     : '';
 
   // Edits get the same timeout and slur checks as new messages.
+  if (await isNetworkBanned(database, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
   const { data: editor } = await database.from('profiles').select('username, stats').eq('id', user.id).maybeSingle();
   const editorMutedUntil = Date.parse(String(editor?.stats?.chatMutedUntil || ''));
   if (Number.isFinite(editorMutedUntil) && editorMutedUntil > Date.now()) {
