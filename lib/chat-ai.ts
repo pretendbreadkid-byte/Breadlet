@@ -23,7 +23,7 @@ const cache = new Map<string, { text: string; at: number }>();
 const CACHE_MS = 10 * 60 * 1000;
 let lastFreeCall = 0;
 
-// Fast path: cached/instant answers return immediately. Otherwise one short model call (max 7s).
+// Fast path: cached/instant answers return immediately. Otherwise one short model call (max 20s).
 // Configure a fast provider with AI_API_KEY (for example a free Groq key); without one, the free
 // Pollinations endpoint is used, which only allows 1 reply per 30s for the whole server.
 export async function answerQuestion(question: string): Promise<string> {
@@ -52,7 +52,7 @@ export async function answerQuestion(question: string): Promise<string> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
       body: JSON.stringify({ model, max_tokens: 100, temperature: 0.7, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: q }] }),
-      signal: AbortSignal.timeout(7000),
+      signal: AbortSignal.timeout(20000),
     });
     if (!response.ok) return '⏳ I am a bit busy right now, ask me again in a few seconds!';
     const data = await response.json();

@@ -1609,7 +1609,7 @@ function MainPage() {
         <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
           {player && !isGuest && <CoinFlipPopup onFinished={refreshPlayerFromServer} />}
           {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} BlookArt={BlookImg} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
-          {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode Ãƒâ€šÃ‚Â· all game actions are free Ãƒâ€šÃ‚Â· {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
+          {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
               <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">
@@ -1690,7 +1690,7 @@ function MainPage() {
                 }, { inventory: true });
                 const giftText = `${gift.title || "Admin gift"}: ${gift.message || "Gift received"}`;
                 setGiftChatNotice(giftText);
-                setNotice(`${giftText} Ãƒâ€šÃ‚Â· gift sent.`);
+                setNotice(`${giftText} · gift sent.`);
               }}
             />
           )}
@@ -1901,7 +1901,7 @@ function LoginScreen({
         />}
         {!forgotPassword && authMode === "signup" && <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]" htmlFor="referral">Referral code <span className="normal-case tracking-normal text-white/50">(optional)</span></label>}
         {!forgotPassword && authMode === "signup" && <input id="referral" value={referralCode} maxLength={16} onChange={(event) => setReferralCode(event.target.value.toUpperCase())} placeholder="Got a friend's code?" className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]" />}
-        {!forgotPassword && authMode === "signup" && <p className="mt-1 text-xs text-white/55">Without email, you canÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢t receive password reset links.</p>}
+        {!forgotPassword && authMode === "signup" && <p className="mt-1 text-xs text-white/55">Without email, you can’t receive password reset links.</p>}
         {!forgotPassword && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="password"
@@ -1933,7 +1933,7 @@ function LoginScreen({
         {authFeedback && <p role="status" className="mt-3 text-center text-xs leading-5 text-emerald-200">{authFeedback}</p>}
         {authMode === "login" && !forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(true); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Forgot password?</button>}
         {forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(false); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Back to log in</button>}
-        {!forgotPassword && authMode === "login" && <button type="button" onClick={startGuest} className="mt-4 w-full rounded-xl border border-emerald-300/50 bg-emerald-300/10 px-4 py-3 font-black text-emerald-100 hover:bg-emerald-300/20">Play as guest Ãƒâ€šÃ‚Â· free</button>}
+        {!forgotPassword && authMode === "login" && <button type="button" onClick={startGuest} className="mt-4 w-full rounded-xl border border-emerald-300/50 bg-emerald-300/10 px-4 py-3 font-black text-emerald-100 hover:bg-emerald-300/20">Play as guest · free</button>}
         {!forgotPassword && <button type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">
           {authMode === "login" ? "Need an account? Sign up" : "Already have an account? Log in"}
         </button>}
@@ -2091,7 +2091,7 @@ function ProfileTab({
   const offerSummary = (offer: any) => {
     const blooks = Array.isArray(offer?.blooks) ? offer.blooks : [];
     const tokens = Number(offer?.tokens) || 0;
-    return [tokens ? `${tokens.toLocaleString()} Bread Bucks` : "", ...blooks.map((item: any) => `${item.name} ÃƒÆ’Ã¢â‚¬â€${item.quantity}`)].filter(Boolean).join(" Ãƒâ€šÃ‚Â· ") || "No items or Bread Bucks offered";
+    return [tokens ? `${tokens.toLocaleString()} Bread Bucks` : "", ...blooks.map((item: any) => `${item.name} ×${item.quantity}`)].filter(Boolean).join(" · ") || "No items or Bread Bucks offered";
   };
   const tokenBadges = tokenBadgesFor(profileTokens);
   const displayedBadges = Array.from(new Set([...profileBadges, ...tokenBadges]));
@@ -2102,12 +2102,12 @@ function ProfileTab({
       <div className="profile-top-grid">
         <section className="profile-player-panel">
           <div className="profile-avatar-frame profile-avatar-float">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <CircleUserRound size={52} />}</div>
-          <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} Ãƒâ€šÃ‚Â· ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
+          <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
             <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
           </div>
         </section>
-        <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{tokenBadges.at(-1) || "Token milestones: 10K Ãƒâ€šÃ‚Â· 100K Ãƒâ€šÃ‚Â· 1M"}</div></section>
+        <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{tokenBadges.at(-1) || "Token milestones: 10K · 100K · 1M"}</div></section>
       </div>
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/Bread%20bucks.svg" />
@@ -2130,7 +2130,7 @@ function ProfileTab({
           return <article key={trade.id} className="profile-trade-row"><div className="profile-trade-head"><strong>{otherName}</strong><span className={`profile-trade-status status-${trade.status}`}>{trade.status}</span></div><p>You: {offerSummary(myOffer)}</p><p>Them: {offerSummary(theirOffer)}</p><div className="profile-trade-actions">{trade.status === "pending" && <span className="profile-empty">Open in the live trade window</span>}{trade.status === "completed" && <button className="profile-action-primary" onClick={() => { setChatTrade(trade); setTradeMessages([]); }}>Open live chat</button>}</div></article>;
         })}{!trades.length && <p className="profile-empty">No trades yet. Find a player to send a trade request.</p>}</div></section>}
       </div>}
-      {profileLookupOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"><section role="dialog" aria-modal="true" className="profile-popup"><div className="profile-list-heading"><h2>Find a Player</h2><button aria-label="Close player lookup" onClick={() => setProfileLookupOpen(false)}>ÃƒÆ’Ã¢â‚¬â€</button></div><div className="profile-search-row"><input value={lookup} onChange={(event) => setLookup(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchPlayers()} placeholder="Search username" /><button onClick={() => void searchPlayers()}>Search</button></div><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{matches.map((match) => <div key={match.id} className="profile-friend-row"><button onClick={() => { setProfileLookupOpen(false); void openPlayerProfile(match.username); }} className="min-w-0 flex-1 truncate text-left font-bold">{match.username}</button><button onClick={() => addFriend(match.username)}>Add</button><button disabled={isGuest} onClick={() => { setProfileLookupOpen(false); void requestTrade(match.id, match.username); }}>Trade</button></div>)}{!matches.length && <p className="profile-empty">Search for a username to add, trade, or view.</p>}</div></section></div>}
+      {profileLookupOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"><section role="dialog" aria-modal="true" className="profile-popup"><div className="profile-list-heading"><h2>Find a Player</h2><button aria-label="Close player lookup" onClick={() => setProfileLookupOpen(false)}>×</button></div><div className="profile-search-row"><input value={lookup} onChange={(event) => setLookup(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchPlayers()} placeholder="Search username" /><button onClick={() => void searchPlayers()}>Search</button></div><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{matches.map((match) => <div key={match.id} className="profile-friend-row"><button onClick={() => { setProfileLookupOpen(false); void openPlayerProfile(match.username); }} className="min-w-0 flex-1 truncate text-left font-bold">{match.username}</button><button onClick={() => addFriend(match.username)}>Add</button><button disabled={isGuest} onClick={() => { setProfileLookupOpen(false); void requestTrade(match.id, match.username); }}>Trade</button></div>)}{!matches.length && <p className="profile-empty">Search for a username to add, trade, or view.</p>}</div></section></div>}
       {chatTrade && <TradeChatModal trade={chatTrade} playerId={player.id || ""} username={player.username} messages={tradeMessages} input={tradeChatInput} setInput={setTradeChatInput} close={() => setChatTrade(null)} send={sendTradeMessage} />}
       {tradeErrorPopup && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 px-4"><section role="alertdialog" aria-modal="true" className="profile-popup w-full max-w-sm"><h2 className="text-xl font-black">Trade unavailable</h2><p className="mt-3 text-sm">{tradeErrorPopup}</p><button autoFocus onClick={() => setTradeErrorPopup("")} className="profile-action-primary mt-5 w-full rounded-lg px-4 py-3 font-black">OK</button></section></div>}
     </div>
@@ -2169,7 +2169,7 @@ function TradeChatModal({
   const offerCard = (label: string, offer: any, usernameLabel: string) => <div className="rounded-2xl border border-[#9a3f08] bg-[#6f2e08] p-3"><p className="text-xs font-black uppercase tracking-widest text-orange-200">{label}</p><h3 className="mt-1 font-black text-orange-50">{usernameLabel}</h3><p className="mt-2 text-sm text-orange-100">Tokens: {Number(offer?.tokens || 0).toLocaleString()}</p><div className="mt-2 space-y-1">{(offer?.blooks || []).map((item: any) => <div key={item.name} className="flex items-center gap-2 rounded-lg bg-black/20 px-2 py-1 text-xs text-orange-50"><img src={artFor(item.name)} alt="" className="h-8 w-8 object-contain" /><span>{item.name} x{item.quantity}</span></div>)}</div></div>;
   return <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-5 backdrop-blur-sm">
     <section role="dialog" aria-modal="true" aria-label={`Trade chat with ${otherName}`} className="profile-popup flex max-h-[92vh] flex-col">
-      <div className="profile-list-heading"><div><p className="profile-section-label">Accepted trade</p><h2>Chat with {otherName}</h2></div><button onClick={close} aria-label="Close trade chat">ÃƒÆ’Ã¢â‚¬â€</button></div>
+      <div className="profile-list-heading"><div><p className="profile-section-label">Accepted trade</p><h2>Chat with {otherName}</h2></div><button onClick={close} aria-label="Close trade chat">×</button></div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">{offerCard("Your offer", ownOffer, username)}{offerCard("Their offer", otherOffer, otherName)}</div>
       <div className="trade-chat-messages mt-4 flex-1 space-y-2 overflow-y-auto">{messages.map((item) => <div key={item.id} className={`trade-chat-message ${item.profile_id === playerId ? "trade-chat-mine" : ""}`}><b>{item.username || (item.profile_id === playerId ? username : otherName)}</b><p>{item.message}</p><time>{new Date(item.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></div>)}{!messages.length && <p className="profile-empty">Trade accepted. Say hello!</p>}</div>
       <form onSubmit={send} className="profile-search-row mt-4"><input value={input} maxLength={1000} onChange={(event) => setInput(event.target.value)} placeholder="Message this player" /><button type="submit">Send</button></form>
@@ -2362,7 +2362,7 @@ function PackDetailsModal({
             <p className="text-xs font-black uppercase tracking-widest text-[#e9bd67]">Ted&apos;s Shop</p>
             <h2 id="pack-details-heading" className="mt-1 text-2xl font-black">{capsule.name}</h2>
           </div>
-          <button type="button" onClick={close} aria-label="Close Goodybag details" className="rounded-lg bg-[#6c4328] px-3 py-1 font-black">ÃƒÆ’Ã¢â‚¬â€</button>
+          <button type="button" onClick={close} aria-label="Close Goodybag details" className="rounded-lg bg-[#6c4328] px-3 py-1 font-black">×</button>
         </div>
         <img src={capsule.art} alt="" className={`mx-auto my-5 h-40 w-40 object-contain ${inStock ? "" : "grayscale brightness-75"}`} />
         <div className="space-y-3 rounded-xl bg-[#24170f] p-4 text-sm">
@@ -2400,7 +2400,7 @@ function StockOddsModal({ close }: { close: () => void }) {
             <p className="text-xs font-black uppercase tracking-widest text-[#e9bd67]">Hourly stock</p>
             <h2 id="stock-odds-heading" className="mt-1 text-2xl font-black">Chance to be in stock</h2>
           </div>
-          <button type="button" onClick={close} aria-label="Close stock chances" className="rounded-lg bg-[#6c4328] px-3 py-1 font-black">ÃƒÆ’Ã¢â‚¬â€</button>
+          <button type="button" onClick={close} aria-label="Close stock chances" className="rounded-lg bg-[#6c4328] px-3 py-1 font-black">×</button>
         </div>
         <div className="mt-5 grid gap-2">
           {marketPackStock.map(({ name, chance }) => (
@@ -2619,7 +2619,7 @@ function InventoryTab({
                       {/* Equipped badge */}
                       {player.equipped === reward.name && (
                         <span className="absolute top-1.5 right-1.5 rounded-md bg-[#e9bd67] px-1 text-[9px] font-black text-[#031426]">
-                          ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“
+                          ✓
                         </span>
                       )}
                     </button>
@@ -2644,14 +2644,14 @@ function InventoryTab({
                       <button
                         key={name}
                         type="button"
-                        title={`${name} Ãƒâ€šÃ‚Â· ${reward.rarity} (x${quantity})`}
+                        title={`${name} · ${reward.rarity} (x${quantity})`}
                         onClick={() => setSelected(reward)}
                         className="blook-tilt relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-black/25 p-2"
                       >
                         <RewardArt name={name} art={reward.art || artFor(name)} className={`h-full w-full ${rewardEffectClassFor(name, reward.rarity)}`} />
                         <span className="absolute bottom-1 left-1 rounded-md bg-[#e9bd67] px-1.5 py-0.5 text-[9px] font-black text-[#29170c]">{reward.rarity}</span>
                         <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{quantity}</span>
-                        {player.equipped === name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</span>}
+                        {player.equipped === name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
                       </button>
                     );
                   })}
@@ -2662,7 +2662,7 @@ function InventoryTab({
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
                   <button
                     type="button"
-                    title={tedQuantity ? `Ted Ãƒâ€šÃ‚Â· Unique (x${tedQuantity})` : "Ted Ãƒâ€šÃ‚Â· Unique (Secret)"}
+                    title={tedQuantity ? `Ted · Unique (x${tedQuantity})` : "Ted · Unique (Secret)"}
                     onClick={() => tedQuantity && setSelected(tedReward)}
                     className={`relative flex aspect-square flex-col items-center justify-center rounded-2xl p-2 transition ${tedQuantity ? "bg-fuchsia-950/40 hover:-translate-y-1" : "cursor-not-allowed bg-black/40 opacity-60"}`}
                   >
@@ -2676,7 +2676,7 @@ function InventoryTab({
                     )}
                     <span className="absolute bottom-1 left-1 rounded-md bg-fuchsia-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">Unique</span>
                     {tedQuantity > 0 && <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{tedQuantity}</span>}
-                    {player.equipped === tedReward.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</span>}
+                    {player.equipped === tedReward.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
                   </button>
                 </div>
               </div>
@@ -2688,14 +2688,14 @@ function InventoryTab({
                     const quantity = owned(recipe.name);
                     return <button
                       key={recipe.name}
-                      title={quantity ? `${recipe.name} Ãƒâ€šÃ‚Â· ${reward.rarity} (x${quantity})` : `${recipe.name} Ãƒâ€šÃ‚Â· ${reward.rarity} (Locked)`}
+                      title={quantity ? `${recipe.name} · ${reward.rarity} (x${quantity})` : `${recipe.name} · ${reward.rarity} (Locked)`}
                       onClick={() => quantity && setSelected(reward)}
                       className={`relative flex aspect-square flex-col items-center justify-center p-2 transition ${quantity ? "hover:-translate-y-1" : "cursor-not-allowed opacity-55"}`}
                     >
                       {quantity ? <RewardArt name={recipe.name} art={reward.art || artFor(recipe.name)} className={`h-full w-full ${rewardEffectClassFor(recipe.name, reward.rarity)}`} /> : <div className="relative flex h-full w-full items-center justify-center"><span className="h-full w-full rounded-xl bg-black/80" /><Lock size={16} className="absolute text-white/80" /></div>}
                       <span className={`absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[9px] font-black ${reward.rarity === "Mythic" ? "bg-fuchsia-300 text-slate-950" : "bg-amber-300 text-slate-950"}`}>{reward.rarity}</span>
                       {quantity > 0 && <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{quantity}</span>}
-                      {player.equipped === recipe.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</span>}
+                      {player.equipped === recipe.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
                     </button>;
                   })}
                 </div>
@@ -2760,7 +2760,7 @@ function BlookDetail({
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Stat label="Rarity" value={reward.rarity} />
           <Stat label="Quantity" value={String(quantity)} />
-          <Stat label="Shiny" value={shinyEligibleNames.has(reward.name.replace(/^Shiny /, "")) ? "Eligible Ãƒâ€šÃ‚Â· 1/100" : "Not eligible"} />
+          <Stat label="Shiny" value={shinyEligibleNames.has(reward.name.replace(/^Shiny /, "")) ? "Eligible · 1/100" : "Not eligible"} />
           <Stat
             label="Sell value"
             value={`${sellValueFor(reward.rarity)} Bread Bucks`}
@@ -2911,7 +2911,7 @@ function WheelTab({
     <div className="max-w-6xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Claim Bread Bucks Ãƒâ€šÃ‚Â· unlimited free claims" : "Claim Bread Bucks Ãƒâ€šÃ‚Â· once every hour"}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Claim Bread Bucks · unlimited free claims" : "Claim Bread Bucks · once every hour"}</p>
           <h1 className="mt-2 text-4xl font-black">Claim Bread Bucks</h1>
         </div>
         <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
@@ -2946,7 +2946,7 @@ function WheelTab({
               <RewardBurst rarity={wheelRarityFor(result)} />
               <img src={resultIcon} alt="" className="reveal-win-slam relative z-10 mx-auto h-28 w-28 object-contain" />
               <div className="reveal-win-slam relative z-10 mt-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/50">You won Ãƒâ€šÃ‚Â· {wheelRarityFor(result)}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/50">You won · {wheelRarityFor(result)}</p>
                 <h2 id="crate-result-title" className="mt-2 text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} Bread Bucks` : `${result.amount} ${result.material}`}</h2>
               </div>
               <button onClick={() => { setResult(null); setPhase("ready"); }} className="relative z-10 mt-6 w-full rounded-xl bg-sky-400 px-5 py-3 font-black text-slate-950 hover:bg-sky-300">Collect reward</button>
@@ -2959,7 +2959,7 @@ function WheelTab({
         <section role="dialog" aria-modal="true" aria-labelledby="crate-odds-title" className="w-full max-w-md rounded-2xl border border-sky-300/30 bg-[#10182b] p-5 text-white shadow-2xl sm:p-6">
           <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">Claim Bread Bucks</p><h2 id="crate-odds-title" className="mt-1 text-2xl font-black">Possible prizes</h2></div>
-            <button onClick={() => setOddsOpen(false)} aria-label="Close prize chances" className="flex h-10 w-10 items-center justify-center rounded-lg text-xl text-white/60 hover:bg-white/10 hover:text-white">ÃƒÆ’Ã¢â‚¬â€</button>
+            <button onClick={() => setOddsOpen(false)} aria-label="Close prize chances" className="flex h-10 w-10 items-center justify-center rounded-lg text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>
           </div>
           <div className="mt-4 space-y-2">
             {wheelRewards.map((reward) => {
@@ -3159,7 +3159,7 @@ function Bazaar({
       )}
       {visibleBlooks.length ? (
         <section className="market-blook-carousel mt-5 flex items-center gap-2 sm:gap-3" aria-label="Browse Breadlets">
-          <button type="button" onClick={() => moveSelection(-1)} disabled={pageCount < 2} aria-label="Previous four Blooks" className="bazaar-arrow">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹</button>
+          <button type="button" onClick={() => moveSelection(-1)} disabled={pageCount < 2} aria-label="Previous four Blooks" className="bazaar-arrow">‹</button>
           <div className="bazaar-blook-grid">
             {visibleBlooks.map((name, index) => {
               const blookListings = listings.filter((listing) => listing.blook === name);
@@ -3170,13 +3170,13 @@ function Bazaar({
                     <BlookImg name={name} className="h-full w-full" />
                   </div>
                   <h2 className="mt-2 truncate text-sm font-black sm:text-base">{name}</h2>
-                  <p className="mt-1 text-xs font-bold text-[#ffd166]">{rarityFor(name)} Ãƒâ€šÃ‚Â· {quantity} listed</p>
+                  <p className="mt-1 text-xs font-bold text-[#ffd166]">{rarityFor(name)} · {quantity} listed</p>
                   <p className="mt-2 text-[10px] font-bold text-white/60">{pageStart + index + 1} of {blookGroups.length}</p>
                 </button>
               );
             })}
           </div>
-          <button type="button" onClick={() => moveSelection(1)} disabled={pageCount < 2} aria-label="Next four Blooks" className="bazaar-arrow">ÃƒÂ¢Ã¢â€šÂ¬Ã‚Âº</button>
+          <button type="button" onClick={() => moveSelection(1)} disabled={pageCount < 2} aria-label="Next four Blooks" className="bazaar-arrow">›</button>
         </section>
       ) : (
         <p className="mt-6 rounded-2xl border p-8 text-center text-[#d7b88c]">No listings match your search yet.</p>
@@ -3222,9 +3222,9 @@ function BlookListingsModal({
         <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div className="flex min-w-0 items-center gap-3">
             <BlookImg name={blook} className="h-12 w-12 shrink-0" />
-            <div className="min-w-0"><h2 id="blook-listings-title" className="truncate text-xl font-black">{blook}</h2><p className="text-xs font-bold text-[#e9bd67]">{rarityFor(blook)} Ãƒâ€šÃ‚Â· {listings.length} offer{listings.length === 1 ? "" : "s"}</p></div>
+            <div className="min-w-0"><h2 id="blook-listings-title" className="truncate text-xl font-black">{blook}</h2><p className="text-xs font-bold text-[#e9bd67]">{rarityFor(blook)} · {listings.length} offer{listings.length === 1 ? "" : "s"}</p></div>
           </div>
-          <button type="button" onClick={close} aria-label="Close listings" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">ÃƒÆ’Ã¢â‚¬â€</button>
+          <button type="button" onClick={close} aria-label="Close listings" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>
         </div>
         <div className="mt-4 max-h-[65vh] space-y-3 overflow-y-auto">
           {sellers.map(([sellerKey, offers]) => {
@@ -3289,7 +3289,7 @@ function RevealModal({
               <h2 className="truncate text-xl font-black text-white sm:text-2xl">{reveal.capsule.name}</h2>
             </div>
           </div>
-          {reveal.phase === "result" && <button onClick={close} aria-label="Close" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">ÃƒÆ’Ã¢â‚¬â€</button>}
+          {reveal.phase === "result" && <button onClick={close} aria-label="Close" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>}
         </div>
         <div ref={viewportRef} className={`roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44 ${reveal.phase === "charging" ? "roulette-charge" : reveal.phase === "result" ? "roulette-win-flash" : ""}`}>
           {reveal.phase !== "charging" && <><div className="roulette-pointer" />
@@ -3334,7 +3334,7 @@ function ListingModal({ listing, close, buy, isGuest }: { listing: Listing; clos
           <BlookImg name={listing.blook} className="h-full w-full" />
         </div>
         <h2 className="mt-4 text-2xl font-black text-white">{listing.blook}</h2>
-        <p className="mt-1 text-sm text-[#9cc8e8]">{rarityFor(listing.blook)} Ãƒâ€šÃ‚Â· Seller: {listing.seller}</p>
+        <p className="mt-1 text-sm text-[#9cc8e8]">{rarityFor(listing.blook)} · Seller: {listing.seller}</p>
         <p className="mt-3 text-xl font-black text-[#ffe2a0]">{isGuest ? "FREE" : `${listing.price} Bread Bucks`}</p>
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-3 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
@@ -3486,11 +3486,11 @@ function MassResultsModal({
             <div key={`${result.reward.name}-${result.reward.rarity}`} className="relative flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/30">
               <div className="relative h-14 w-14 shrink-0 bg-[#072a54] rounded-xl p-1 flex items-center justify-center">
                 <RewardArt name={result.reward.name} art={result.reward.art || artFor(result.reward.name)} className={`h-full w-full ${rewardEffectClassFor(result.reward.name, result.reward.rarity)}`} />
-                {result.count > 1 && <span className="absolute -right-2 -top-2 rounded-full border-2 border-[#103f75] bg-amber-300 px-2 py-1 text-xs font-black text-slate-950">ÃƒÆ’Ã¢â‚¬â€{result.count}</span>}
+                {result.count > 1 && <span className="absolute -right-2 -top-2 rounded-full border-2 border-[#103f75] bg-amber-300 px-2 py-1 text-xs font-black text-slate-950">×{result.count}</span>}
               </div>
               <div className="min-w-0 text-left">
                 <p className="truncate font-black text-white text-base">{result.reward.name}</p>
-                <p className="text-xs font-bold text-[#e9bd67]">{result.reward.rarity}{result.count > 1 ? ` Ãƒâ€šÃ‚Â· ÃƒÆ’Ã¢â‚¬â€${result.count}` : ""}</p>
+                <p className="text-xs font-bold text-[#e9bd67]">{result.reward.rarity}{result.count > 1 ? ` · ×${result.count}` : ""}</p>
               </div>
             </div>
           ))}
@@ -3914,7 +3914,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
               </button>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 font-black">
-                  <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="hover:underline disabled:cursor-default disabled:no-underline">{group.user}{group.isBreadletBot ? " ÃƒÂ°Ã…Â¸Ã‚Â¤Ã¢â‚¬â€œ" : ""}</button>
+                  <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="hover:underline disabled:cursor-default disabled:no-underline">{group.user}{group.isBreadletBot ? " 🤖" : ""}</button>
                   {(group.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : latestItem.badges || []).map((badge) => (
                     <button key={badge} onClick={() => showBadge(badge)} title={badge} className="h-5 w-5">
                       <img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" />
@@ -3969,7 +3969,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                   })}
                 </div>
                 {group.items.filter(({ item }) => item.replyTo).map(({ item }) => (
-                  <button key={`reply-${item.id}`} type="button" onClick={() => item.replyTo?.id != null && document.getElementById(`chat-message-${String(item.replyTo.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-2 block max-w-md truncate rounded-md border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-left text-xs text-sky-100">ÃƒÂ¢Ã¢â‚¬Â Ã‚Â³ {item.replyTo?.user}: {item.replyTo?.message}</button>
+                  <button key={`reply-${item.id}`} type="button" onClick={() => item.replyTo?.id != null && document.getElementById(`chat-message-${String(item.replyTo.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="mt-2 block max-w-md truncate rounded-md border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-left text-xs text-sky-100">↳ {item.replyTo?.user}: {item.replyTo?.message}</button>
                 ))}
               </div>
             </div>
@@ -3977,7 +3977,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         })}
       </div>
       <div className="relative z-10 h-0 shrink-0">
-        {!chatAtBottom && <button type="button" onClick={scrollChatToBottom} className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border-2 border-[#CC5500] bg-[#3B1F0E] px-4 py-2 text-sm font-black text-white shadow-lg hover:bg-[#5a2f16]">Scroll to most recent message ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Å“</button>}
+        {!chatAtBottom && <button type="button" onClick={scrollChatToBottom} className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border-2 border-[#CC5500] bg-[#3B1F0E] px-4 py-2 text-sm font-black text-white shadow-lg hover:bg-[#5a2f16]">Scroll to most recent message ↓</button>}
       </div>
       <form onSubmit={send} className="mt-4 flex shrink-0 items-center gap-3">
         {isVerified && (
@@ -3996,7 +3996,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         )}
         <EmojiPicker emojis={emojis} canManage={canManageEmojis} onPick={(text) => setMessage((current) => `${current}${text}`.slice(0, 500))} onChanged={reloadEmojis} />
         <div className="min-w-0 flex-1">
-        {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {replyTarget.message}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">ÃƒÆ’Ã¢â‚¬â€</button></div>}
+        {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {replyTarget.message}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">×</button></div>}
         <input
           value={message}
           onChange={(event) => setMessage(event.target.value)}
@@ -4187,7 +4187,7 @@ function ResourcesTab({ open }: { open: (tab: "promo" | "bank" | "referrals") =>
             <span className="min-w-0 flex-1">
               <strong className="resource-title block text-lg font-black">{resource.title}</strong>
               <span className="resource-description mt-1 block text-sm leading-6">{resource.description}</span>
-              <span className="resource-open mt-4 inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider">Open <span aria-hidden="true">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span></span>
+              <span className="resource-open mt-4 inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider">Open <span aria-hidden="true">→</span></span>
             </span>
           </button>
         ))}
@@ -4237,7 +4237,7 @@ function ReferralsTab({ isGuest }: { isGuest: boolean }) {
       <h1 className="mt-2 text-4xl font-black">Refer a Friend</h1>
       <section className="bank-card mt-6 rounded-3xl border p-6 text-center sm:p-9">
         <p className="text-xs font-black uppercase tracking-[0.2em]">Your referral code</p>
-        <p className="mt-2 text-4xl font-black tracking-widest">{isGuest ? "Sign in" : info?.code || "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦"}</p>
+        <p className="mt-2 text-4xl font-black tracking-widest">{isGuest ? "Sign in" : info?.code || "…"}</p>
         {info && <button type="button" className="mt-3 rounded-xl bg-[#E77D22] px-5 py-2 font-black text-white" onClick={() => { void navigator.clipboard?.writeText(info.code); setCopied(true); window.setTimeout(() => setCopied(false), 1500); }}>{copied ? "Copied!" : "Copy code"}</button>}
         <p className="mt-4 text-sm font-bold">{count} / 50 players invited</p>
         <div className="mx-auto mt-2 h-3 w-full max-w-sm overflow-hidden rounded-full bg-black/40"><div className="h-full bg-[#E77D22]" style={{ width: `${Math.min(100, count * 2)}%` }} /></div>
@@ -4250,7 +4250,7 @@ function ReferralsTab({ isGuest }: { isGuest: boolean }) {
           {referralRewards.map((entry) => (
             <div key={entry.at} className={`flex items-center justify-between rounded-xl border p-3 ${count >= entry.at ? "opacity-100" : "opacity-60"}`}>
               <span className="font-bold">{entry.label}</span>
-              <span className="font-black">{count >= entry.at ? "ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ " : ""}{entry.reward}</span>
+              <span className="font-black">{count >= entry.at ? "✓ " : ""}{entry.reward}</span>
             </div>
           ))}
         </div>
@@ -4293,14 +4293,14 @@ function TokenBankTab({ isGuest }: { isGuest: boolean }) {
       <section className="bank-card mt-6 overflow-hidden rounded-3xl border p-6 sm:p-9">
         <div className="bank-total-block text-center">
           <p className="text-xs font-black uppercase tracking-[0.2em]">Total Bread Bucks spent</p>
-          <p className="mt-2 text-4xl font-black tabular-nums sm:text-5xl">{loading ? "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : isGuest ? "0" : bank?.totalSpent.toLocaleString() || "0"}</p>
+          <p className="mt-2 text-4xl font-black tabular-nums sm:text-5xl">{loading ? "…" : isGuest ? "0" : bank?.totalSpent.toLocaleString() || "0"}</p>
           <p className="mt-1 text-sm font-bold">Bread Bucks</p>
-          <p className="mt-3 text-sm font-black">Shared bank balance: {loading ? "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : (bank?.bankBalance || 0).toLocaleString()} Bread Bucks</p>
+          <p className="mt-3 text-sm font-black">Shared bank balance: {loading ? "…" : (bank?.bankBalance || 0).toLocaleString()} Bread Bucks</p>
         </div>
         <img src="/assets/piggy bank.svg" alt="Piggy bank" className="mx-auto mt-5 h-48 w-48 object-contain drop-shadow-xl sm:h-56 sm:w-56" />
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="bank-breakdown rounded-xl border p-4"><p className="text-xs font-bold uppercase tracking-wide">Estimated past spending</p><p className="mt-1 text-2xl font-black tabular-nums">{loading ? "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : (bank?.historicalEstimate || 0).toLocaleString()}</p></div>
-          <div className="bank-breakdown rounded-xl border p-4"><p className="text-xs font-bold uppercase tracking-wide">Tracked since update</p><p className="mt-1 text-2xl font-black tabular-nums">{loading ? "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦" : (bank?.trackedSpent || 0).toLocaleString()}</p></div>
+          <div className="bank-breakdown rounded-xl border p-4"><p className="text-xs font-bold uppercase tracking-wide">Estimated past spending</p><p className="mt-1 text-2xl font-black tabular-nums">{loading ? "…" : (bank?.historicalEstimate || 0).toLocaleString()}</p></div>
+          <div className="bank-breakdown rounded-xl border p-4"><p className="text-xs font-bold uppercase tracking-wide">Tracked since update</p><p className="mt-1 text-2xl font-black tabular-nums">{loading ? "…" : (bank?.trackedSpent || 0).toLocaleString()}</p></div>
         </div>
         <p className="bank-note mt-4 text-center text-xs leading-5">{isGuest ? "Sign in to keep a persistent spending total." : error || "Past spending is estimated from recorded bag openings and clan contributions. Every future token balance decrease is tracked automatically."}</p>
       </section>
@@ -4386,7 +4386,7 @@ function AdminTab({
           </select>
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span className={`text-xs font-bold ${players.find((profile) => profile.id === targetId)?.is_banned ? "text-rose-200" : "text-emerald-200"}`}>{players.find((profile) => profile.id === targetId)?.is_banned ? `Banned Ãƒâ€šÃ‚Â· ${players.find((profile) => profile.id === targetId)?.ban_reason || "No reason recorded"}` : "Active account"}</span>
+          <span className={`text-xs font-bold ${players.find((profile) => profile.id === targetId)?.is_banned ? "text-rose-200" : "text-emerald-200"}`}>{players.find((profile) => profile.id === targetId)?.is_banned ? `Banned · ${players.find((profile) => profile.id === targetId)?.ban_reason || "No reason recorded"}` : "Active account"}</span>
           <button disabled={!targetId || targetId === player.id} onClick={async () => {
             const selected = players.find((profile) => profile.id === targetId);
             if (!selected || !window.confirm(`Permanently delete ${selected.username}? Their username will become available again.`)) return;
@@ -4924,7 +4924,7 @@ function ClanTab({
 
   return (
     <div className="clan-workspace space-y-6">
-      {createError && <div role="alert" className="clan-error fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm font-bold shadow-2xl"><span>{createError}</span><button type="button" onClick={() => setCreateError("")} aria-label="Dismiss clan error">ÃƒÆ’Ã¢â‚¬â€</button></div>}
+      {createError && <div role="alert" className="clan-error fixed bottom-5 left-1/2 z-[10001] flex w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 items-center justify-between gap-4 rounded-xl border px-4 py-3 text-sm font-bold shadow-2xl"><span>{createError}</span><button type="button" onClick={() => setCreateError("")} aria-label="Dismiss clan error">×</button></div>}
       {clan ? (
         <div className="clan-header">
           <div className="clan-identity">
@@ -4962,7 +4962,7 @@ function ClanTab({
       {showCreate && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto bg-black/75 px-5 py-6 backdrop-blur-sm">
         <div className="clan-panel w-full max-w-2xl rounded-3xl border p-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black">Create a clan Ãƒâ€šÃ‚Â· {isGuest ? "FREE" : "5,000 Bread Bucks"}</h2>
+            <h2 className="text-xl font-black">Create a clan · {isGuest ? "FREE" : "5,000 Bread Bucks"}</h2>
             <button type="button" onClick={() => setShowCreate(false)} className="clan-text-muted">Close</button>
           </div>
           <label className="clan-text-muted mt-4 block text-sm font-bold" htmlFor="clan-profile-blook-search">Choose any Blook as your clan profile</label>
@@ -4986,7 +4986,7 @@ function ClanTab({
               <span className="clan-text-muted text-[10px]">{blook.rarity}</span>
             </button>)}
             {!selectableBlooks.length && <p className="clan-text-muted col-span-full py-6 text-center text-sm">No Blooks match that search.</p>}
-          </div> : <p className="clan-text-muted mt-3 rounded-xl border border-white/10 p-4 text-sm">Loading the Blook collectionÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</p>}
+          </div> : <p className="clan-text-muted mt-3 rounded-xl border border-white/10 p-4 text-sm">Loading the Blook collection…</p>}
           <div className="mt-4 grid gap-3">
             <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Clan name" className="clan-input rounded-xl border px-3 py-3" />
             <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Description" className="clan-input rounded-xl border px-3 py-3" />
@@ -5031,11 +5031,11 @@ function ClanTab({
           <section id="clan-upgrades" className="clan-panel scroll-mt-6 rounded-3xl border p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Chapter 2</p><h2 className="mt-1 text-2xl font-black">Clan upgrades</h2><p className="clan-text-muted mt-1 text-sm">Owners spend the shared treasury to unlock clan features.</p></div><span className="clan-treasury rounded-full px-3 py-1.5 text-sm font-black">{clan.treasury.toLocaleString()} tokens</span></div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {upgradeOptions.map((upgrade) => <article key={upgrade.feature} className="clan-upgrade-card rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black">{upgrade.title}{upgrade.level ? <span className="clan-eyebrow ml-2 text-xs">{upgrade.level}</span> : null}</h3><p className="clan-text-muted mt-1 text-sm leading-5">{upgrade.detail}</p></div>{upgrade.owned && <span className="clan-owned-badge rounded-full px-2.5 py-1 text-[10px] font-black uppercase">Unlocked</span>}</div><button type="button" disabled={isGuest || upgrade.owned || clan.treasury < upgrade.price} onClick={() => void upgradeClan(upgrade.feature)} className="clan-upgrade-button mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{upgrade.owned ? "Purchased" : `Unlock Ãƒâ€šÃ‚Â· ${upgrade.price.toLocaleString()} Bread Bucks`}</button></article>)}
+              {upgradeOptions.map((upgrade) => <article key={upgrade.feature} className="clan-upgrade-card rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black">{upgrade.title}{upgrade.level ? <span className="clan-eyebrow ml-2 text-xs">{upgrade.level}</span> : null}</h3><p className="clan-text-muted mt-1 text-sm leading-5">{upgrade.detail}</p></div>{upgrade.owned && <span className="clan-owned-badge rounded-full px-2.5 py-1 text-[10px] font-black uppercase">Unlocked</span>}</div><button type="button" disabled={isGuest || upgrade.owned || clan.treasury < upgrade.price} onClick={() => void upgradeClan(upgrade.feature)} className="clan-upgrade-button mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{upgrade.owned ? "Purchased" : `Unlock · ${upgrade.price.toLocaleString()} Bread Bucks`}</button></article>)}
             </div>
             {clan.nameChangeUnlocked && <div className="mt-5 flex flex-col gap-2 sm:flex-row"><input aria-label="New clan name" value={renamedClan} onChange={(event) => setRenamedClan(event.target.value)} maxLength={30} className="clan-input min-w-0 flex-1 rounded-xl border px-3 py-2.5" /><button type="button" onClick={() => void renameClan()} disabled={renamedClan.trim().length < 2 || renamedClan.trim() === clan.name} className="clan-primary-button rounded-xl px-4 py-2.5 font-black disabled:opacity-45">Save clan name</button></div>}
             {clan.colorsUnlocked && <div className="mt-5"><label htmlFor="clan-theme" className="clan-text-muted mb-2 block text-sm font-bold">Clan color theme</label><select id="clan-theme" value={clan.theme} onChange={(event) => void upgradeClan("theme", event.target.value)} className="clan-input rounded-xl border px-4 py-3">{themeOptions.map((theme) => <option key={theme} value={theme}>{themeNames[theme]}</option>)}</select></div>}
-            {clan.bannerUnlocked && <div className="mt-5"><label className="clan-text-muted mb-2 block text-sm font-bold">Clan banner Ãƒâ€šÃ‚Â· wide image visible to all members</label><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadClanBanner(file); event.currentTarget.value = ""; }} className="clan-input block max-w-full text-sm" /></div>}
+            {clan.bannerUnlocked && <div className="mt-5"><label className="clan-text-muted mb-2 block text-sm font-bold">Clan banner · wide image visible to all members</label><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadClanBanner(file); event.currentTarget.value = ""; }} className="clan-input block max-w-full text-sm" /></div>}
           </section>
         </>
       )}
@@ -5049,7 +5049,7 @@ function ClanTab({
         const theme = item.colorsUnlocked ? item.theme : "breadlet";
         return <article key={item.id || item.name} className={`clan-discover-card clan-theme-${theme} overflow-hidden rounded-2xl border ${item.animatedProfiles ? "clan-profile-animated" : ""}`}>
           {item.bannerData && ownClan ? <img src={item.bannerData} alt={`${item.name} clan banner`} className="clan-discover-banner" /> : item.profileBlook ? <div className="clan-discover-banner clan-profile-blook-banner"><img src={clanBlookArt(item.profileBlook)} alt={`${item.profileBlook} clan profile`} /></div> : item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="clan-discover-banner" /> : <div className="clan-discover-banner clan-banner-placeholder"><Users size={30} /></div>}
-          <div className="p-4"><div className="flex items-start justify-between gap-2"><h3 className="break-words text-xl font-black">{item.name}</h3><span className="clan-stats shrink-0 rounded-full px-2.5 py-1 text-xs font-bold">{item.members}/{item.memberCapacity}</span></div><p className="clan-text-muted mt-2 text-sm leading-5">{item.description || "A Breadlet community."}</p><div className="mt-3 flex flex-wrap gap-1.5">{item.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-2.5 py-1 text-xs">#{tag}</span>)}</div><p className="clan-text-muted mt-3 text-xs">{item.treasury.toLocaleString()} treasury tokens Ãƒâ€šÃ‚Â· {themeNames[theme]} colors</p><button type="button" disabled={isGuest || ownClan || pending || full || Boolean(membershipClanId)} onClick={() => void handleRequestClan(item)} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{ownClan ? "Your clan" : pending ? "Request pending" : full ? "Clan full" : membershipClanId ? "Leave your clan before requesting" : isGuest ? "Sign in to request" : "Request to join"}</button></div>
+          <div className="p-4"><div className="flex items-start justify-between gap-2"><h3 className="break-words text-xl font-black">{item.name}</h3><span className="clan-stats shrink-0 rounded-full px-2.5 py-1 text-xs font-bold">{item.members}/{item.memberCapacity}</span></div><p className="clan-text-muted mt-2 text-sm leading-5">{item.description || "A Breadlet community."}</p><div className="mt-3 flex flex-wrap gap-1.5">{item.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-2.5 py-1 text-xs">#{tag}</span>)}</div><p className="clan-text-muted mt-3 text-xs">{item.treasury.toLocaleString()} treasury tokens · {themeNames[theme]} colors</p><button type="button" disabled={isGuest || ownClan || pending || full || Boolean(membershipClanId)} onClick={() => void handleRequestClan(item)} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{ownClan ? "Your clan" : pending ? "Request pending" : full ? "Clan full" : membershipClanId ? "Leave your clan before requesting" : isGuest ? "Sign in to request" : "Request to join"}</button></div>
         </article>;
       }) : <p className="col-span-full py-10 text-center clan-text-muted">No clans match that search.</p>}</div></section>}
     </div>
@@ -5103,7 +5103,7 @@ function CraftingTab({
         <div className="crafting-assembly-panel rounded-3xl border-2 border-[#CC5500] bg-[#D4701C] p-5 sm:p-7">
           <p className="text-xs font-bold uppercase tracking-widest text-[#3B1F0E]">Assembly line</p><h2 className="mt-1 text-2xl font-black">Craftable Breadlets</h2>
           <div className="crafting-recipe-grid mt-5 grid gap-3 sm:grid-cols-2">
-            {craftRecipes.map((recipe) => { const enough = isGuest || bundleEntries(recipe.ingredients).every(([material, amount]) => (player.materials[material] || 0) >= amount); return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className="craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left"><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{isGuest ? "Free to craft" : enough ? "Ready to craft" : "20 total materials"}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span></button>; })}
+            {craftRecipes.map((recipe) => { const enough = isGuest || bundleEntries(recipe.ingredients).every(([material, amount]) => (player.materials[material] || 0) >= amount); return <button key={recipe.name} onClick={() => craft(recipe.name)} title={`Craft ${recipe.name}`} aria-label={`Craft ${recipe.name}`} className="craft-process group flex w-full items-center gap-3 rounded-2xl bg-[#24170f] p-3 text-left"><span className="flex min-h-12 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl bg-[#6c4328] p-1">{bundleEntries(recipe.ingredients).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-7 w-7 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span><span className="h-px flex-1 bg-[#8e623c]" /><span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#d49a4a]/40 bg-[#3a2415]"><img src={artFor(recipe.name)} alt={recipe.name} className="h-14 w-14 object-contain" /></span><span className="min-w-0 flex-1"><strong className="block truncate">{recipe.name}</strong><small className={enough ? "text-[#e9bd67]" : "text-[#b58d68]"}>{isGuest ? "Free to craft" : enough ? "Ready to craft" : "20 total materials"}</small></span><span className={`text-2xl transition group-hover:translate-x-1 ${enough ? "text-[#ffe2a0]" : "text-[#8e623c]"}`}>→</span></button>; })}
           </div>
         </div>
       </div>
@@ -5115,7 +5115,7 @@ function CraftingTab({
                 <h2 className="text-2xl font-black">Mass recycle</h2>
                 <p className="mt-1 text-sm">Recycle extra copies into materials. One of each Breadlet is always kept.</p>
               </div>
-              <button type="button" onClick={() => setMassRecycleOpen(false)} aria-label="Close mass recycle" className="rounded-lg px-3 py-2 text-xl hover:bg-[#FFB066]">ÃƒÆ’Ã¢â‚¬â€</button>
+              <button type="button" onClick={() => setMassRecycleOpen(false)} aria-label="Close mass recycle" className="rounded-lg px-3 py-2 text-xl hover:bg-[#FFB066]">×</button>
             </div>
             <div className="mt-3 flex gap-2">
               <button type="button" onClick={() => setRecycleQuantities(Object.fromEntries(recyclable.map(([name, count]) => [name, count - 1])))} className="rounded-lg bg-[#CC5500] px-3 py-1.5 text-xs font-black text-white hover:bg-[#A94500]">Max all</button>
@@ -5125,14 +5125,14 @@ function CraftingTab({
               {recyclable.map(([name, count]) => (
                 <div key={name} className="flex items-center gap-3 rounded-xl border-2 border-[#CC5500] bg-[#ED7117] p-2">
                   <BlookImg name={name} className="h-10 w-10" />
-                  <span className="min-w-0 flex-1 truncate text-sm font-black">{name} <span className="font-bold">Ãƒâ€šÃ‚Â· {count - 1} extra</span></span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-black">{name} <span className="font-bold">· {count - 1} extra</span></span>
                   <input type="number" min={0} max={count - 1} value={recycleQuantities[name] || 0} onChange={(event) => setRecycleQuantities((current) => ({ ...current, [name]: Math.min(count - 1, Math.max(0, Math.floor(Number(event.target.value) || 0))) }))} aria-label={`Recycle ${name}`} className="w-20 rounded-lg border-2 border-[#CC5500] bg-[#FFF0E0] px-2 py-1 text-right font-black text-[#3B1F0E]" />
                   <button type="button" onClick={() => setRecycleQuantities((current) => ({ ...current, [name]: count - 1 }))} className="rounded-lg bg-[#CC5500] px-2 py-1 text-xs font-black text-white">Max</button>
                 </div>
               ))}
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-[#FFF0E0] p-3">
-              <span className="text-sm font-black">{recycleCount} Breadlets ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span>
+              <span className="text-sm font-black">{recycleCount} Breadlets →</span>
               {Object.entries(recycleTotals).filter(([, amount]) => amount > 0).map(([material, amount]) => <span key={material} className="flex items-center gap-1 text-sm font-black"><img src={materialArtFor(material)} alt={material} className="h-6 w-6 object-contain" />{amount}</span>)}
             </div>
             <button type="button" disabled={!recycleCount} onClick={async () => { if (await massDismantle(recycleQuantities)) { setMassRecycleOpen(false); setRecycleQuantities({}); } }} className="mt-4 rounded-xl bg-[#CC5500] px-4 py-3 font-black text-white hover:bg-[#A94500] disabled:opacity-50">Recycle {recycleCount} Breadlets</button>
@@ -5148,14 +5148,14 @@ function CraftingTab({
                 <h2 id="recycle-station-title" className="mt-1 text-2xl font-black">Dismantle Breadlets</h2>
                 <p className="mt-1 text-sm text-[#3B1F0E]">Choose a Breadlet to preview the returned materials.</p>
               </div>
-              <button type="button" onClick={() => setShowRecycleStation(false)} aria-label="Close recycle station" className="rounded-lg px-3 py-2 text-xl text-[#3B1F0E] hover:bg-[#FFB066]">ÃƒÆ’Ã¢â‚¬â€</button>
+              <button type="button" onClick={() => setShowRecycleStation(false)} aria-label="Close recycle station" className="rounded-lg px-3 py-2 text-xl text-[#3B1F0E] hover:bg-[#FFB066]">×</button>
             </div>
-            <div className="mt-4 flex items-center gap-3 rounded-xl border-2 border-[#CC5500] bg-[#FFF0E0] px-3 py-2"><span className="text-[#CC5500]">ÃƒÂ¢Ã…â€™Ã¢â‚¬Â¢</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a Bread" className="min-w-0 flex-1 bg-transparent text-[#3B1F0E] outline-none" /></div>
+            <div className="mt-4 flex items-center gap-3 rounded-xl border-2 border-[#CC5500] bg-[#FFF0E0] px-3 py-2"><span className="text-[#CC5500]">⌕</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a Bread" className="min-w-0 flex-1 bg-transparent text-[#3B1F0E] outline-none" /></div>
             <div className="mt-4 grid grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4">
               {unique.map((name) => (
                 <div key={name} className="dismantle-item rounded-2xl p-3">
                   <BlookImg name={name} className="mx-auto h-16 w-16" />
-                  <span className="mt-1 block truncate text-center text-[10px] font-bold text-[#3B1F0E]">{name} Ãƒâ€šÃ‚Â· ÃƒÆ’Ã¢â‚¬â€{player.inventory.filter((item) => item === name).length}</span>
+                  <span className="mt-1 block truncate text-center text-[10px] font-bold text-[#3B1F0E]">{name} · ×{player.inventory.filter((item) => item === name).length}</span>
                   <span className="mt-2 flex justify-center gap-1">{bundleEntries(dismantleBundleFor(name, rarityFor(name))).map(([material, amount]) => <span key={material} title={`${amount} ${material}`} className="relative"><img src={materialArtFor(material)} alt="" className="h-5 w-5 object-contain" /><b className="absolute -right-1 -top-1 rounded-full bg-[#e9bd67] px-1 text-[8px] text-[#29170c]">{amount}</b></span>)}</span>
                   <button type="button" disabled={player.inventory.length <= 1} onClick={() => { setShowRecycleStation(false); salvage(name); }} title={player.inventory.length <= 1 ? "Keep at least one Bread in your collection" : `Dismantle ${name}`} className="dismantle-item-action mt-3 w-full rounded-lg px-2 py-2 text-xs font-black disabled:cursor-not-allowed disabled:opacity-35">Dismantle</button>
                 </div>
