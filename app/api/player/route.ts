@@ -3,6 +3,7 @@ import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { isNameAllowed } from '../../../lib/chat-filter';
 import { recordAccountDevice } from '../../../lib/network-identity';
+import { autoBanDeviceAlts } from '../../../lib/alt-bans';
 import { isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 
 const materialNames = ['Gold', 'Cloth', 'Gem', 'Sugar', 'Flower', 'Metal'];
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   const inventoryAdmin = createAdminClient();
   if (!inventoryAdmin) return NextResponse.json({ error: 'Server inventory saving is not configured.' }, { status: 503 });
-  void recordAccountDevice(inventoryAdmin, request, user.id);
+  void recordAccountDevice(inventoryAdmin, request, user.id).then(() => autoBanDeviceAlts(inventoryAdmin, request)).catch(() => undefined);
 
   const [{ data: profile, error: profileError }, { data: inventory }, { data: mine }, { data: listings }, capsuleCount, messageCount, tradeCount] = await Promise.all([
     supabase.from('profiles').select('*, equipped:blooks!profiles_equipped_blook_fk(name)').eq('id', user.id).single(),

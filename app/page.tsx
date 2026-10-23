@@ -1863,6 +1863,33 @@ function SignupBlookPile() {
   return null;
 }
 
+// Shown under a "banned" login error: the player explains themselves and an admin accepts or denies.
+// Not a <form>: it sits inside the login form.
+function BanAppealForm({ username, password }: { username: string; password: string }) {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true);
+    const response = await fetch("/api/appeals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), password, message }) }).catch(() => null);
+    const result = await response?.json().catch(() => ({}));
+    setBusy(false);
+    setStatus(response?.ok ? { ok: true, text: "Appeal sent! An admin will read it and accept or deny it. Try logging in again later." } : { ok: false, text: result?.error || "Could not send your appeal." });
+  };
+  if (status?.ok) return <p className="mt-4 rounded-xl bg-emerald-400/15 p-3 text-sm font-bold text-emerald-100">{status.text}</p>;
+  if (!open) return <button type="button" onClick={() => setOpen(true)} className="mt-4 w-full rounded-xl border border-[#73c8ff] px-4 py-3 font-black text-[#bde8ff]">Appeal ban</button>;
+  return (
+    <div className="mt-4 text-left">
+      <label htmlFor="ban-appeal" className="text-xs font-bold uppercase tracking-widest text-[#eac477]">Why should your ban be lifted?</label>
+      <textarea id="ban-appeal" value={message} onChange={(event) => setMessage(event.target.value.slice(0, 1000))} rows={4} placeholder="Explain what happened. Admins will read this." className="mt-2 w-full resize-y rounded-xl bg-[#0c3b70] px-3 py-2 text-sm text-white outline-none" />
+      <p className="text-right text-xs text-white/50">{message.length}/1000</p>
+      {status && <p role="alert" className="mt-1 text-sm font-bold text-rose-200">{status.text}</p>}
+      <button type="button" disabled={busy || message.trim().length < 10} onClick={() => void submit()} className="mt-2 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] disabled:opacity-50">{busy ? "Sending..." : "Send appeal"}</button>
+    </div>
+  );
+}
+
 function LoginScreen({
   username,
   email,
@@ -1982,7 +2009,8 @@ function LoginScreen({
             <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
               <p className="text-lg font-black text-[#bde8ff]">Breadlet update</p>
               <p className="mt-3 text-sm text-[#d9f3ff]">{notice}</p>
-              <button onClick={closeNotice} className="mt-5 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Close</button>
+              {/\bbanned\b/i.test(notice) && <BanAppealForm username={username} password={password} />}
+              <button type="button" onClick={closeNotice} className="mt-5 w-full rounded-xl bg-[#39a8f5] px-4 py-3 font-black text-[#031426]">Close</button>
             </div>
           </div>
         )}
@@ -4380,6 +4408,62 @@ function AiModerationPanel() {
   );
 }
 
+type BanAppeal = { id: string; username: string; banReason: string; message: string; status: "pending" | "approved" | "declined"; note: string; createdAt: string };
+
+// Ban appeals sent from the login screen; accepting one unbans the player.
+function BanAppealsPanel() {
+  const [appeals, setAppeals] = useState<BanAppeal[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState("");
+  const load = useCallback(async () => {
+    const response = await fetch("/api/admin/appeals", { cache: "no-store" }).catch(() => null);
+    const result = await response?.json().catch(() => null);
+    if (response?.ok && Array.isArray(result)) { setAppeals(result); setError(""); } else setError(result?.error || "Could not load appeals.");
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  const decide = async (appeal: BanAppeal, decision: "approve" | "deny") => {
+    setBusyId(appeal.id);
+    const response = await fetch("/api/admin/appeals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: appeal.id, decision, note: notes[appeal.id] || "" }) }).catch(() => null);
+    const result = await response?.json().catch(() => null);
+    setBusyId("");
+    if (!response?.ok) return setError(result?.error || "Could not save that decision.");
+    void load();
+  };
+  const pending = appeals.filter((appeal) => appeal.status === "pending");
+  const decided = appeals.filter((appeal) => appeal.status !== "pending").slice(0, 10);
+  return (
+    <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-black text-[#bde8ff]">⚖️ Ban Appeals {pending.length > 0 && <span className="ml-1 rounded-full bg-rose-500 px-2 py-0.5 text-sm">{pending.length}</span>}</h2>
+        <button type="button" onClick={() => void load()} className="sidebar-dark-action rounded-lg px-4 py-2 text-sm font-bold">Refresh</button>
+      </div>
+      {error && <p className="mt-2 text-sm font-bold text-rose-200">{error}</p>}
+      <div className="mt-3 space-y-3">
+        {pending.map((appeal) => (
+          <div key={appeal.id} className="rounded-xl bg-[#0c3b70] p-4">
+            <p className="font-black">{appeal.username} <small className="font-bold opacity-60">· {new Date(appeal.createdAt).toLocaleString()}</small></p>
+            {appeal.banReason && <p className="mt-1 text-xs font-bold opacity-75">Banned for: {appeal.banReason}</p>}
+            <p className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-black/30 p-3 text-sm">{appeal.message}</p>
+            <input value={notes[appeal.id] || ""} onChange={(event) => setNotes((current) => ({ ...current, [appeal.id]: event.target.value.slice(0, 300) }))} placeholder="Note to the player (optional, shown if denied)" className="mt-2 w-full rounded-lg bg-[#103f75] px-3 py-2 text-sm outline-none" />
+            <div className="mt-2 flex gap-2">
+              <button type="button" disabled={busyId === appeal.id} onClick={() => void decide(appeal, "approve")} className="flex-1 rounded-lg bg-emerald-300 px-4 py-2 text-sm font-black text-emerald-950 disabled:opacity-50">Accept · unban</button>
+              <button type="button" disabled={busyId === appeal.id} onClick={() => void decide(appeal, "deny")} className="flex-1 rounded-lg bg-rose-300 px-4 py-2 text-sm font-black text-rose-950 disabled:opacity-50">Deny</button>
+            </div>
+          </div>
+        ))}
+        {!pending.length && <p className="text-sm opacity-70">No appeals waiting.</p>}
+      </div>
+      {decided.length > 0 && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm font-black">Recent decisions</summary>
+          <div className="mt-2 space-y-1">{decided.map((appeal) => <p key={appeal.id} className="text-sm">{appeal.status === "approved" ? "✅" : "❌"} <b>{appeal.username}</b>: {appeal.message.slice(0, 80)}{appeal.message.length > 80 ? "…" : ""}</p>)}</div>
+        </details>
+      )}
+    </div>
+  );
+}
+
 type AltAccount = { id: string; username: string; created_at: string; is_banned: boolean; tokens: number; staff: boolean };
 
 // Accounts seen on the same device / network (see /api/admin/alts), with ban buttons.
@@ -4397,7 +4481,6 @@ function AltSuspectsPanel() {
   const ban = async (accounts: AltAccount[]) => {
     const targets = accounts.filter((account) => !account.is_banned && !account.staff);
     if (!targets.length) return;
-    if (!window.confirm(`Ban ${targets.map((account) => account.username).join(", ")} permanently as alt account${targets.length === 1 ? "" : "s"}? This also bans every device they used.`)) return;
     setBusy(true);
     for (const account of targets) {
       const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ban", targetId: account.id, reason: "Suspected alt account", permanent: true }) }).catch(() => null);
@@ -4430,7 +4513,7 @@ function AltSuspectsPanel() {
         <h2 className="text-xl font-black text-[#bde8ff]">🕵️ Suspected Alts</h2>
         <button type="button" onClick={() => void load()} className="sidebar-dark-action rounded-lg px-4 py-2 text-sm font-bold">Refresh</button>
       </div>
-      <p className="mt-1 text-sm opacity-80">Banning an account also bans every device it used, so a main account on the same device gets blocked too. Staff (⭐) can't be banned here.</p>
+      <p className="mt-1 text-sm opacity-80">Accounts sharing a device are banned automatically the next time one of them logs in or loads the game (unless a staff ⭐ account is in the group or their appeal was accepted). Same-network groups are never auto-banned, since they could be a school or family.</p>
       {error && <p className="mt-2 text-sm font-bold text-rose-200">{error}</p>}
       {groups && (
         <>
@@ -4560,6 +4643,7 @@ function AdminTab({
   return (
     <div className="max-w-6xl space-y-6">
       <AdminAbusePanel />
+      <BanAppealsPanel />
       <AltSuspectsPanel />
       <AiModerationPanel />
       <div className="rounded-3xl border border-[#73c8ff]/50 bg-[#18558f] p-8 shadow-xl">
