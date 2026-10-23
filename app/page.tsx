@@ -1,7 +1,6 @@
 "use client";
 
 import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueFor, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
-import { MAX_MASS_OPEN_COUNT } from "../lib/gameplay-actions";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -43,6 +42,8 @@ import {
   Trash2,
   ShieldAlert,
   Coins,
+  Zap,
+  Repeat,
 } from "lucide-react";
 
 type Tab =
@@ -436,6 +437,9 @@ const mineCapFor = (pickaxe: number) => [500, 1500, 2500, 3500, 4250, 5000][pick
 // Pack opening timeline (ms): the bag pops in, then drops off the screen, then the result shows.
 const REVEAL_DROP_AT_MS = 1500;
 const REVEAL_DONE_AT_MS = 2700;
+// Auto open keeps going until Bread Bucks run out or the player stops it; these are only safety caps.
+const AUTO_OPEN_LIMIT = 1000;
+const AUTO_OPEN_GUEST_LIMIT = 100;
 
 // Give up on a stuck login instead of leaving the button hanging forever.
 const AUTH_TIMEOUT_MS = 25000;
@@ -450,6 +454,10 @@ function MainPage() {
   const pendingGuestRef = useRef<Player | null>(null);
   const playerSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const gameplayBusyRef = useRef(false);
+  const autoRef = useRef(false);
+  const quickRef = useRef(false);
+  const revealClickRef = useRef<(() => void) | null>(null);
+  const latestPlayerRef = useRef<Player | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [authFeedback, setAuthFeedback] = useState("");
   const [supabaseClient] = useState(() => createSupabaseClient());
@@ -485,10 +493,20 @@ function MainPage() {
   const [oddsCapsule, setOddsCapsule] = useState<Capsule | null>(null);
   const [badgeInfo, setBadgeInfo] = useState<string | null>(null);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-  const [massOpen, setMassOpen] = useState(false);
-  const [massQuantities, setMassQuantities] = useState<Record<string, number>>({});
   const [stockOddsOpen, setStockOddsOpen] = useState(false);
-  const [massResults, setMassResults] = useState<{ capsule: string; reward: Reward }[]>([]);
+  // Quick open (faster animation) and auto open (keeps opening until out of Bread Bucks or stopped).
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [autoOpen, setAutoOpen] = useState(false);
+  const [autoCount, setAutoCount] = useState<number | null>(null);
+  quickRef.current = quickOpen;
+  latestPlayerRef.current = player;
+  useEffect(() => {
+    try { setQuickOpen(window.localStorage.getItem("breadlet-quick-open") === "1"); } catch {}
+  }, []);
+  const setQuickOpenSaved = (value: boolean) => {
+    setQuickOpen(value);
+    try { window.localStorage.setItem("breadlet-quick-open", value ? "1" : "0"); } catch {}
+  };
   const [pendingDismantle, setPendingDismantle] = useState<string | null>(null);
   const [craftReveal, setCraftReveal] = useState<{ name: string; ingredients: MaterialBundle; phase: "processing" | "charging" | "output" } | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -960,118 +978,97 @@ function MainPage() {
     await save(nextPlayer);
     return reward;
   };
-  const openCapsule = async (capsule: Capsule) => {
-    if (!player) return;
+  // How long each step of the pack opening lasts (ms); Quick open makes it much shorter.
+  const revealTimes = () => quickRef.current
+    ? { drop: 500, done: 1000, dwell: 450 }
+    : { drop: REVEAL_DROP_AT_MS, done: REVEAL_DONE_AT_MS, dwell: 1500 };
+  // Plays the bag animation. Resolves once it's dismissed: by a click, or by itself during auto open.
+  const playReveal = (capsule: Capsule, reward: Reward) => new Promise<void>((resolve) => {
+    const timers: number[] = [];
+    const times = revealTimes();
+    let phase: "charging" | "spinning" | "result" = "charging";
+    const setPhase = (next: typeof phase) => {
+      phase = next;
+      setReveal((current) => (current ? { ...current, phase: next } : null));
+    };
+    const finish = () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      revealClickRef.current = null;
+      setReveal(null);
+      resolve();
+    };
+    // A click skips ahead to the result, then closes it. During auto open it stops auto open.
+    revealClickRef.current = () => {
+      if (autoRef.current) {
+        autoRef.current = false;
+        finish();
+        return;
+      }
+      if (phase !== "result") {
+        timers.forEach((timer) => window.clearTimeout(timer));
+        setPhase("result");
+        return;
+      }
+      finish();
+    };
+    setReveal({ capsule, reward, track: [], winnerIndex: 0, phase: "charging" });
+    timers.push(window.setTimeout(() => setPhase("spinning"), times.drop));
+    timers.push(window.setTimeout(() => {
+      setPhase("result");
+      if (autoRef.current) timers.push(window.setTimeout(finish, times.dwell));
+    }, times.done));
+  });
+  const openCapsule = async (capsule: Capsule): Promise<boolean> => {
+    const current = latestPlayerRef.current;
+    if (!current) return false;
     if (!isMarketPackInStock(capsule.name)) {
       setNotice(`${capsule.name} is out of stock. Check back after the next hourly refresh.`);
-      return;
+      return false;
     }
     if (!isGuest) {
       const result = await playAction({ action: "open", quantities: { [capsule.name]: 1 } });
       const reward = result?.results[0]?.reward;
-      if (!reward) return;
-      const winnerIndex = 54;
-      const track = Array.from({ length: 62 }, (_, index) => index === winnerIndex ? reward : capsule.pool[Math.floor(Math.random() * capsule.pool.length)]);
-      setReveal({ capsule, reward, track, winnerIndex, phase: "charging" });
-      window.setTimeout(() => setReveal((current) => current ? { ...current, phase: "spinning" } : null), REVEAL_DROP_AT_MS);
-      window.setTimeout(() => setReveal((current) => current ? { ...current, phase: "result" } : null), REVEAL_DONE_AT_MS);
-      return;
+      if (!reward) return false;
+      await playReveal(capsule, reward);
+      return true;
     }
-    if (!isGuest && player.tokens < capsule.price) {
-      setNotice("You need more Bread Bucks for that bag.");
-      return;
-    }
-    const total = capsule.pool.reduce(
-      (sum, reward) => sum + chanceFor(capsule, reward),
-      0,
-    );
+    const total = capsule.pool.reduce((sum, reward) => sum + chanceFor(capsule, reward), 0);
     let roll = Math.random() * total;
-      const reward = capsule.pool.find((item) => {
-        roll -= chanceFor(capsule, item);
-        return roll <= 0;
-      }) || capsule.pool[0];
+    const reward = capsule.pool.find((item) => {
+      roll -= chanceFor(capsule, item);
+      return roll <= 0;
+    }) || capsule.pool[0];
     const finalReward = { ...reward, name: shinyNameFor(reward.name) };
-    const winnerIndex = 54;
-    const track = Array.from({ length: 62 }, (_, index) =>
-      index === winnerIndex
-        ? finalReward
-        : capsule.pool[Math.floor(Math.random() * capsule.pool.length)],
-    );
-    const next = {
-      ...player,
-      tokens: isGuest ? player.tokens : player.tokens - capsule.price,
-      inventory: [...player.inventory, finalReward.name],
-    };
-    setReveal({ capsule, reward: finalReward, track, winnerIndex, phase: "charging" });
-    void save(next, { inventory: true }).then((saved) => {
-      if (!saved) {
-        setReveal(null);
-        return;
-      }
-      window.setTimeout(() => {
-        setReveal((current) => current ? { ...current, phase: "spinning" } : null);
-      }, REVEAL_DROP_AT_MS);
-      window.setTimeout(() => {
-        setReveal((current) => current ? { ...current, phase: "result" } : null);
-      }, REVEAL_DONE_AT_MS);
-    });
+    const saved = await save({ ...current, inventory: [...current.inventory, finalReward.name] }, { inventory: true });
+    if (!saved) return false;
+    await playReveal(capsule, finalReward);
+    return true;
   };
-  const openMassCapsules = async (quantities: Record<string, number>) => {
-    if (!player) return;
-    const selectedTotal = Object.values(quantities).reduce(
-      (total, quantity) => total + (Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 0),
-      0,
-    );
-    if (!selectedTotal || selectedTotal > MAX_MASS_OPEN_COUNT) {
-      setNotice(`Choose between 1 and ${MAX_MASS_OPEN_COUNT.toLocaleString()} bags to mass open.`);
-      return;
+  // Opens the same pack again and again until Bread Bucks run out, it sells out, or the player clicks.
+  const startAutoOpen = async (capsule: Capsule) => {
+    if (autoRef.current) return;
+    autoRef.current = true;
+    setAutoOpen(true);
+    setAutoCount(0);
+    let opened = 0;
+    let reason = "";
+    let failed = false;
+    while (autoRef.current) {
+      const current = latestPlayerRef.current;
+      if (!current) break;
+      if (!isMarketPackInStock(capsule.name)) { reason = `${capsule.name} sold out`; break; }
+      if (!isGuest && current.tokens < capsule.price) { reason = "you ran out of Bread Bucks"; break; }
+      if (opened >= (isGuest ? AUTO_OPEN_GUEST_LIMIT : AUTO_OPEN_LIMIT)) { reason = "that's the most for one session"; break; }
+      if (!(await openCapsule(capsule))) { failed = true; break; }
+      opened += 1;
+      setAutoCount(opened);
     }
-    if (!isGuest) {
-      const selected = Object.fromEntries(Object.entries(quantities).filter(([, quantity]) => quantity > 0));
-      const result = await playAction({ action: "open", quantities: selected });
-      if (!result) return;
-      setMassOpen(false);
-      setMassQuantities({});
-      setMassResults(result.results);
-      return;
-    }
-    const openableCapsules = liveCapsules
-      .filter((capsule) => isMarketPackInStock(capsule.name));
-    const selected = openableCapsules.flatMap((capsule) =>
-      Array.from({ length: quantities[capsule.name] || 0 }, () => capsule),
-    );
-    const cost = selected.reduce((total, capsule) => total + capsule.price, 0);
-    if (!selected.length) {
-      setNotice("Choose at least one bag to mass open.");
-      return;
-    }
-    if (!isGuest && player.tokens < cost) {
-      setNotice("You need more Bread Bucks for that mass opening.");
-      return;
-    }
-    const results = selected.map((capsule) => {
-      const total = capsule.pool.reduce(
-        (sum, reward) => sum + chanceFor(capsule, reward),
-        0,
-      );
-      let roll = Math.random() * total;
-      const reward =
-        capsule.pool.find((item) => {
-          roll -= chanceFor(capsule, item);
-          return roll <= 0;
-        }) || capsule.pool[0];
-      return { capsule: capsule.name, reward: { ...reward, name: shinyNameFor(reward.name) } };
-    });
-    void save({
-      ...player,
-      tokens: isGuest ? player.tokens : player.tokens - cost,
-      inventory: [...player.inventory, ...results.map((result) => result.reward.name)],
-    }, { inventory: true }).then((saved) => {
-      if (!saved) return;
-      setMassOpen(false);
-      setMassQuantities({});
-      setMassResults(results);
-    });
+    reason = reason || (autoRef.current ? "" : "you stopped it");
+    autoRef.current = false;
+    setAutoOpen(false);
+    setAutoCount(null);
+    // When an open itself failed, its own error message is already showing.
+    if (!failed) setNotice(`Auto open stopped${reason ? `: ${reason}` : ""}. Opened ${opened} bag${opened === 1 ? "" : "s"}.`);
   };
   const equip = (name: string) => {
     if (player) {
@@ -1713,9 +1710,12 @@ function MainPage() {
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
-              openCapsule={(capsule) => setCapsuleToConfirm(capsule)}
+              openCapsule={(capsule) => (autoOpen ? void startAutoOpen(capsule) : setCapsuleToConfirm(capsule))}
               showOdds={setOddsCapsule}
-              openMass={() => setMassOpen(true)}
+              quickOpen={quickOpen}
+              setQuickOpen={setQuickOpenSaved}
+              autoOpen={autoOpen}
+              setAutoOpen={setAutoOpen}
               showStockOdds={() => setStockOddsOpen(true)}
               isGuest={isGuest}
               claimTed={claimTedSecret}
@@ -1795,7 +1795,7 @@ function MainPage() {
           </div>
         </div>
       )}
-      {reveal && <RevealModal reveal={reveal} close={() => setReveal(null)} />}
+      {reveal && <RevealModal reveal={reveal} quick={quickOpen} autoCount={autoCount} onClick={() => (revealClickRef.current ? revealClickRef.current() : setReveal(null))} />}
       {capsuleToConfirm && <ConfirmOpenModal
         title={capsuleToConfirm.name}
         description={`Are you sure you want to open ${capsuleToConfirm.name}?`}
@@ -1811,30 +1811,6 @@ function MainPage() {
         <OddsModal capsule={oddsCapsule} close={() => setOddsCapsule(null)} />
       )}
       {stockOddsOpen && <StockOddsModal close={() => setStockOddsOpen(false)} />}
-      {massOpen && (
-        <MassOpenModal
-          quantities={massQuantities}
-          setQuantity={(name, quantity) =>
-            setMassQuantities((current) => {
-              const otherSelected = Object.entries(current).reduce(
-                (total, [currentName, currentQuantity]) =>
-                  total + (currentName === name ? 0 : currentQuantity),
-                0,
-              );
-              return {
-                ...current,
-                [name]: Math.max(0, Math.min(MAX_MASS_OPEN_COUNT - otherSelected, quantity)),
-              };
-            })
-          }
-          close={() => setMassOpen(false)}
-          open={openMassCapsules}
-          isGuest={isGuest}
-        />
-      )}
-      {massResults.length > 0 && (
-        <MassResultsModal results={massResults} close={() => setMassResults([])} />
-      )}
       {pendingDismantle && (
         <DismantleConfirmModal
           name={pendingDismantle}
@@ -2274,14 +2250,20 @@ function rarityFor(name: string) {
 function CapsulesTab({
   openCapsule,
   showOdds,
-  openMass,
+  quickOpen,
+  setQuickOpen,
+  autoOpen,
+  setAutoOpen,
   showStockOdds,
   isGuest,
   claimTed,
 }: {
   openCapsule: (capsule: Capsule) => void;
   showOdds: (capsule: Capsule) => void;
-  openMass: () => void;
+  quickOpen: boolean;
+  setQuickOpen: (value: boolean) => void;
+  autoOpen: boolean;
+  setAutoOpen: (value: boolean) => void;
   showStockOdds: () => void;
   isGuest: boolean;
   claimTed: () => Promise<{ triggered: boolean; claimed: boolean } | null>;
@@ -2354,13 +2336,9 @@ function CapsulesTab({
         <button type="button" onClick={clickShopHeading} className="teds-shop-heading mx-auto flex justify-center bg-transparent p-0" title="Ted's Shop">
           Ted's Shop
         </button>
-        <div className="flex justify-end">
-          <button
-            onClick={openMass}
-            className="rounded-xl bg-[#e9bd67] px-4 py-3 text-sm font-black text-[#29170c]"
-          >
-            Mass open
-          </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button type="button" aria-pressed={quickOpen} onClick={() => setQuickOpen(!quickOpen)} title="Faster opening animation" className="open-toggle"><Zap size={16} aria-hidden="true" />Quick open</button>
+          <button type="button" aria-pressed={autoOpen} onClick={() => setAutoOpen(!autoOpen)} title="Keeps opening the pack you pick until you run out of Bread Bucks or click the screen" className="open-toggle"><Repeat size={16} aria-hidden="true" />Auto open</button>
         </div>
       </div>
       <div className="teds-shop-layout">
@@ -2404,6 +2382,7 @@ function CapsulesTab({
           inStock={isMarketPackInStock(selectedCapsule.name, now)}
           stockChance={stockOdds.get(selectedCapsule.name) ?? 0}
           isGuest={isGuest}
+          auto={autoOpen}
           close={() => setSelectedCapsule(null)}
           showStockOdds={showStockOdds}
           showRewardOdds={() => showOdds(selectedCapsule)}
@@ -2434,6 +2413,7 @@ function PackDetailsModal({
   inStock,
   stockChance,
   isGuest,
+  auto,
   close,
   showStockOdds,
   showRewardOdds,
@@ -2443,6 +2423,7 @@ function PackDetailsModal({
   inStock: boolean;
   stockChance: number;
   isGuest: boolean;
+  auto: boolean;
   close: () => void;
   showStockOdds: () => void;
   showRewardOdds: () => void;
@@ -2478,7 +2459,7 @@ function PackDetailsModal({
         </div>
         <button type="button" onClick={showRewardOdds} className="mt-4 w-full rounded-xl border border-[#d49a4a]/60 px-4 py-2.5 text-sm font-bold text-[#ffe2a0]">View reward chances</button>
         <button type="button" disabled={!inStock} onClick={open} className="mt-3 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] disabled:cursor-not-allowed disabled:opacity-50">
-          {inStock ? (isGuest ? "Open for free" : `Open for ${capsule.price} Bread Bucks`) : "Currently sold out"}
+          {!inStock ? "Currently sold out" : auto ? (isGuest ? "Start auto open (free)" : `Start auto open · ${capsule.price} each`) : isGuest ? "Open for free" : `Open for ${capsule.price} Bread Bucks`}
         </button>
       </section>
     </div>
@@ -3356,10 +3337,16 @@ function BlookListingsModal({
   );
 }
 
-// Pack opening: the bag pops in, shakes, then drops off the bottom of the screen to reveal the Breadlet.
+const REVEAL_GLOW: Record<string, string> = { Common: "#cbd5e1", Uncommon: "#4ade80", Rare: "#38bdf8", Epic: "#c084fc", Legendary: "#fbbf24", Mythic: "#f472b6", Unique: "#fb923c", Breadled: "#f43f5e", Chroma: "#22d3ee" };
+
+// Pack opening over a blurred copy of the shop: the bag pops in, shakes, then drops off the bottom of
+// the screen to reveal the Breadlet, which stands on a soft ground shadow in a rarity-colored glow.
+// Click anywhere to skip ahead, then to close (or to stop auto open).
 function RevealModal({
   reveal,
-  close,
+  quick,
+  autoCount,
+  onClick,
 }: {
   reveal: {
     capsule: Capsule;
@@ -3368,13 +3355,35 @@ function RevealModal({
     winnerIndex: number;
     phase: "charging" | "spinning" | "result";
   };
-  close: () => void;
+  quick: boolean;
+  autoCount: number | null;
+  onClick: () => void;
 }) {
   const { capsule, reward, phase } = reveal;
   const done = phase === "result";
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onClick();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClick]);
   return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen flex-col items-center justify-center gap-4 overflow-hidden bg-[#050916]/90 px-4 py-6">
+    <div
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-label="Pack opening. Click to continue."
+      className="modal-layer reveal-overlay fixed inset-0 z-[9999] flex min-h-screen cursor-pointer select-none flex-col items-center justify-center gap-4 overflow-hidden px-4 py-6"
+      style={{ "--rs": quick ? 0.4 : 1, "--glow": REVEAL_GLOW[reward.rarity] || "#cbd5e1" } as React.CSSProperties}
+    >
+      {autoCount !== null && <p className="reveal-hud">🔁 Auto opening · {autoCount} opened · click anywhere to stop</p>}
       <div className="reveal-stage">
+        <span className={`reveal-glow ${phase === "charging" ? "" : "reveal-glow-on"}`} aria-hidden="true" />
+        <span className="reveal-shadow" aria-hidden="true" />
         <div className={`reveal-prize reveal-prize-${phase}`}>
           {done && <RewardBurst rarity={reward.rarity} />}
           <RewardArt name={reward.name} art={reward.art || artFor(reward.name)} className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
@@ -3386,11 +3395,11 @@ function RevealModal({
         )}
       </div>
       <div className={`reveal-result ${done ? "reveal-result-in" : ""}`} aria-hidden={!done}>
-        <p className="text-xs font-black uppercase tracking-widest text-white/60">{capsule.name}</p>
+        <p className="text-xs font-black uppercase tracking-widest text-white/70">{capsule.name}</p>
         <h1 className="text-4xl font-black text-white">{reward.name}</h1>
-        <p className="mt-1 text-base font-black text-sky-300">{reward.rarity} rarity</p>
-        <button type="button" onClick={close} tabIndex={done ? 0 : -1} className="bazaar-buy-button mt-4 max-w-xs">Add to collection</button>
+        <span className="reveal-rarity">{reward.rarity}</span>
       </div>
+      {done && autoCount === null && <p className="reveal-hint">Click anywhere to continue</p>}
     </div>
   );
 }
@@ -3461,114 +3470,6 @@ function OddsModal({
   );
 }
 
-function MassOpenModal({
-  quantities,
-  setQuantity,
-  close,
-  open,
-  isGuest,
-}: {
-  quantities: Record<string, number>;
-  setQuantity: (name: string, quantity: number) => void;
-  close: () => void;
-  open: (quantities: Record<string, number>) => void;
-  isGuest: boolean;
-}) {
-  const availableCapsules = liveCapsules
-    .filter((capsule) => isMarketPackInStock(capsule.name));
-  const total = availableCapsules.reduce(
-    (sum, capsule) => sum + (quantities[capsule.name] || 0) * capsule.price,
-    0,
-  );
-  const count = availableCapsules.reduce(
-    (sum, capsule) => sum + (quantities[capsule.name] || 0),
-    0,
-  );
-  const maxForCapsule = (name: string) =>
-    Math.max(0, MAX_MASS_OPEN_COUNT - count + (quantities[name] || 0));
-  return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-start justify-between gap-4 pb-3 border-b border-[#3d91cd]/30">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Batch opening</p>
-            <h2 className="mt-1 text-2xl font-black text-white">Mass open bags</h2>
-          </div>
-          <button onClick={close} className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]">Close</button>
-        </div>
-        <div className="mt-4 space-y-3 overflow-y-auto pr-1 flex-1">
-          {!availableCapsules.length && <p className="rounded-xl bg-[#0c3b70] p-4 text-center text-sm text-[#bde8ff]">No bags are currently in stock.</p>}
-          {availableCapsules.map((capsule) => (
-            <div key={capsule.name} className="flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/20">
-              <img src={capsule.art} alt={capsule.name} className="h-12 w-12 object-contain" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-black text-white">{capsule.name}</p>
-                <p className="text-xs text-[#9cc8e8]">{isGuest ? "FREE" : `${capsule.price} Bread Bucks each`}</p>
-              </div>
-              <button onClick={() => setQuantity(capsule.name, Math.max(0, (quantities[capsule.name] || 0) - 1))} className="h-9 w-9 rounded-xl bg-[#18558f] text-lg font-black text-white hover:bg-[#24649c]">-</button>
-              <input
-                type="number"
-                min="0"
-                max={maxForCapsule(capsule.name)}
-                value={quantities[capsule.name] || 0}
-                onChange={(event) => {
-                  const value = Number.parseInt(event.target.value, 10);
-                  setQuantity(capsule.name, Number.isFinite(value) ? Math.min(maxForCapsule(capsule.name), Math.max(0, value)) : 0);
-                }}
-                className="h-9 w-14 rounded-xl bg-[#072a54] text-center font-black text-white outline-none border border-[#3d91cd]/30"
-                aria-label={`${capsule.name} quantity`}
-              />
-              <button disabled={count >= MAX_MASS_OPEN_COUNT} onClick={() => setQuantity(capsule.name, (quantities[capsule.name] || 0) + 1)} className="h-9 w-9 rounded-xl bg-[#18558f] text-lg font-black text-white hover:bg-[#24649c] disabled:cursor-not-allowed disabled:opacity-40">+</button>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#3d91cd]/30 text-sm font-bold text-white">
-          <span>{count.toLocaleString()} / {MAX_MASS_OPEN_COUNT.toLocaleString()} bags</span>
-          <b className="text-lg text-[#ffe2a0]">{isGuest ? "FREE" : `${total.toLocaleString()} Bread Bucks`}</b>
-        </div>
-        <button onClick={() => open(quantities)} className="mt-4 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Open selected bags</button>
-      </div>
-    </div>
-  );
-}
-
-function MassResultsModal({
-  results,
-  close,
-}: {
-  results: { capsule: string; reward: Reward }[];
-  close: () => void;
-}) {
-  const groupedResults = results.reduce<{ capsule: string; reward: Reward; count: number }[]>((groups, result) => {
-    const existing = groups.find((group) => group.reward.name === result.reward.name && group.reward.rarity === result.reward.rarity);
-    if (existing) existing.count += 1;
-    else groups.push({ ...result, count: 1 });
-    return groups;
-  }, []);
-  return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col text-center">
-        <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">Opening complete</p>
-        <h2 className="mt-1 text-3xl font-black text-white">Your Breadlets</h2>
-        <div className="mt-5 grid max-h-[60vh] gap-3 overflow-y-auto sm:grid-cols-2 pr-1">
-          {groupedResults.map((result) => (
-            <div key={`${result.reward.name}-${result.reward.rarity}`} className="relative flex items-center gap-3 rounded-2xl bg-[#0c3b70] p-3 border border-[#3d91cd]/30">
-              <div className="relative h-14 w-14 shrink-0 bg-[#072a54] rounded-xl p-1 flex items-center justify-center">
-                <RewardArt name={result.reward.name} art={result.reward.art || artFor(result.reward.name)} className={`h-full w-full ${rewardEffectClassFor(result.reward.name, result.reward.rarity)}`} />
-                {result.count > 1 && <span className="absolute -right-2 -top-2 rounded-full border-2 border-[#103f75] bg-amber-300 px-2 py-1 text-xs font-black text-slate-950">×{result.count}</span>}
-              </div>
-              <div className="min-w-0 text-left">
-                <p className="truncate font-black text-white text-base">{result.reward.name}</p>
-                <p className="text-xs font-bold text-[#e9bd67]">{result.reward.rarity}{result.count > 1 ? ` · ×${result.count}` : ""}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <button onClick={close} className="mt-6 w-full rounded-2xl bg-[#39a8f5] px-4 py-3.5 font-black text-[#031426] text-lg hover:bg-[#73c8ff] shadow-lg transition">Add to collection</button>
-      </div>
-    </div>
-  );
-}
 function DismantleConfirmModal({
   name,
   bundle,
