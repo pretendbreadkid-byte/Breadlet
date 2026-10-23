@@ -433,6 +433,10 @@ const upgrades = [
 ];
 const mineCapFor = (pickaxe: number) => [500, 1500, 2500, 3500, 4250, 5000][pickaxe] || 5000;
 
+// Pack opening timeline (ms): the bag pops in, then drops off the screen, then the result shows.
+const REVEAL_DROP_AT_MS = 1500;
+const REVEAL_DONE_AT_MS = 2700;
+
 // Give up on a stuck login instead of leaving the button hanging forever.
 const AUTH_TIMEOUT_MS = 25000;
 
@@ -969,8 +973,8 @@ function MainPage() {
       const winnerIndex = 54;
       const track = Array.from({ length: 62 }, (_, index) => index === winnerIndex ? reward : capsule.pool[Math.floor(Math.random() * capsule.pool.length)]);
       setReveal({ capsule, reward, track, winnerIndex, phase: "charging" });
-      window.setTimeout(() => setReveal((current) => current ? { ...current, phase: "spinning" } : null), 950);
-      window.setTimeout(() => setReveal((current) => current ? { ...current, phase: "result" } : null), 8000);
+      window.setTimeout(() => setReveal((current) => current ? { ...current, phase: "spinning" } : null), REVEAL_DROP_AT_MS);
+      window.setTimeout(() => setReveal((current) => current ? { ...current, phase: "result" } : null), REVEAL_DONE_AT_MS);
       return;
     }
     if (!isGuest && player.tokens < capsule.price) {
@@ -1006,10 +1010,10 @@ function MainPage() {
       }
       window.setTimeout(() => {
         setReveal((current) => current ? { ...current, phase: "spinning" } : null);
-      }, 950);
+      }, REVEAL_DROP_AT_MS);
       window.setTimeout(() => {
         setReveal((current) => current ? { ...current, phase: "result" } : null);
-      }, 8000);
+      }, REVEAL_DONE_AT_MS);
     });
   };
   const openMassCapsules = async (quantities: Record<string, number>) => {
@@ -3352,6 +3356,7 @@ function BlookListingsModal({
   );
 }
 
+// Pack opening: the bag pops in, shakes, then drops off the bottom of the screen to reveal the Breadlet.
 function RevealModal({
   reveal,
   close,
@@ -3365,61 +3370,26 @@ function RevealModal({
   };
   close: () => void;
 }) {
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const [beltOffset, setBeltOffset] = useState(0);
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport || reveal.phase !== "spinning") return;
-    const timer = window.setTimeout(() => {
-      setBeltOffset(viewport.clientWidth / 2 - reveal.winnerIndex * 120 - 56);
-    }, 80);
-    return () => window.clearTimeout(timer);
-  }, [reveal.phase, reveal.winnerIndex]);
-
+  const { capsule, reward, phase } = reveal;
+  const done = phase === "result";
   return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center overflow-y-auto bg-[#050916]/90 px-4 py-6 backdrop-blur-md">
-      <div className="w-full max-w-6xl rounded-2xl border border-white/10 bg-[#10182b] p-4 text-center shadow-2xl sm:p-7">
-        <div className="flex items-center justify-between gap-4 text-left">
-          <div className="flex min-w-0 items-center gap-3">
-            <img src={reveal.capsule.art} alt="" className={`h-14 w-14 object-contain ${reveal.phase === "charging" ? "reveal-crate-charge" : reveal.phase === "spinning" ? "reveal-crate-rattle" : ""}`} />
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-300">{reveal.phase === "result" ? "Crate opened" : reveal.phase === "charging" ? "Crate energy building" : "Opening crate"}</p>
-              <h2 className="truncate text-xl font-black text-white sm:text-2xl">{reveal.capsule.name}</h2>
-            </div>
-          </div>
-          {reveal.phase === "result" && <button onClick={close} aria-label="Close" className="rounded-lg px-3 py-2 text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>}
+    <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen flex-col items-center justify-center gap-4 overflow-hidden bg-[#050916]/90 px-4 py-6">
+      <div className="reveal-stage">
+        <div className={`reveal-prize reveal-prize-${phase}`}>
+          {done && <RewardBurst rarity={reward.rarity} />}
+          <RewardArt name={reward.name} art={reward.art || artFor(reward.name)} className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
         </div>
-        <div ref={viewportRef} className={`roulette-viewport relative mt-6 h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44 ${reveal.phase === "charging" ? "roulette-charge" : reveal.phase === "result" ? "roulette-win-flash" : ""}`}>
-          {reveal.phase !== "charging" && <><div className="roulette-pointer" />
-          <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: reveal.phase === "result" ? "0ms" : "6.9s" }}>
-            {reveal.track.map((reward, index) => (
-              <div key={`${index}-${reward.name}`} className={`roulette-prize ${rarityTileClass(reward.rarity)}`}>
-                <RewardArt name={reward.name} art={reward.art || artFor(reward.name)} className="h-16 w-16 shrink-0 sm:h-20 sm:w-20" />
-                <span className="max-w-full truncate text-[10px] font-black sm:text-xs">{reward.name}</span>
-                <span className="text-[9px] font-bold opacity-70">{reward.rarity}</span>
-              </div>
-            ))}
-          </div>
-          </>}
-          {reveal.phase === "charging" && <div className="absolute inset-0 flex items-center justify-center"><span className="reveal-scanline" /><span className="text-sm font-black uppercase tracking-[0.28em] text-sky-100">Locked in...</span></div>}
-        </div>
-        {reveal.phase !== "result" ? (
-          <p className="mt-5 text-sm font-bold text-white/60">{reveal.phase === "charging" ? "Crate is powering up..." : "Good luck. Your reward is on the way..."}</p>
-        ) : (
-          <div className="relative mt-5 flex flex-col items-center gap-3 overflow-visible rounded-xl border border-white/10 bg-[#090e1b] p-4 sm:flex-row sm:justify-between sm:text-left">
-            <RewardBurst rarity={reveal.reward.rarity} />
-            <div className="reveal-win-slam relative z-10 flex items-center gap-4">
-              <RewardArt name={reveal.reward.name} art={reveal.reward.art || artFor(reveal.reward.name)} className={`h-28 w-28 shrink-0 ${rewardEffectClassFor(reveal.reward.name, reveal.reward.rarity)}`} />
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-white/60">Prize unlocked</p>
-                <h1 className="text-3xl font-black text-white">{reveal.reward.name}</h1>
-                <p className="mt-1 text-sm font-black text-sky-300">{reveal.reward.rarity} rarity</p>
-              </div>
-            </div>
-            <button onClick={close} className="w-full rounded-xl bg-sky-400 px-6 py-3 font-black text-slate-950 transition hover:bg-sky-300 sm:w-auto">Add to collection</button>
+        {!done && (
+          <div className={`reveal-bag ${phase === "spinning" ? "reveal-bag-drop" : "reveal-bag-appear"}`}>
+            <img src={capsule.art} alt={capsule.name} className="reveal-bag-wiggle" />
           </div>
         )}
+      </div>
+      <div className={`reveal-result ${done ? "reveal-result-in" : ""}`} aria-hidden={!done}>
+        <p className="text-xs font-black uppercase tracking-widest text-white/60">{capsule.name}</p>
+        <h1 className="text-4xl font-black text-white">{reward.name}</h1>
+        <p className="mt-1 text-base font-black text-sky-300">{reward.rarity} rarity</p>
+        <button type="button" onClick={close} tabIndex={done ? 0 : -1} className="bazaar-buy-button mt-4 max-w-xs">Add to collection</button>
       </div>
     </div>
   );
