@@ -7,7 +7,6 @@ import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../li
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { SettingsTab } from "./components/settings-tab";
-import { BreadletLoadingScreen, NetworkIndicator } from "./components/network-indicator";
 import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
@@ -1480,7 +1479,7 @@ function MainPage() {
         </div>
       </div>
     );
-  if (!player && booting) return <BreadletLoadingScreen />;
+  if (!player && booting) return <div className="fixed inset-0 bg-[#0b2a4d]" />;
   if (!player)
     return (
       <LoginScreen
@@ -1852,7 +1851,6 @@ function MainPage() {
           close={() => setCraftReveal(null)}
         />
       )}
-      <NetworkIndicator />
       {badgeInfo && <BadgeModal badge={badgeInfo} close={() => setBadgeInfo(null)} />}
       {selectedListing && <ListingModal listing={selectedListing} close={() => setSelectedListing(null)} buy={buyListing} isGuest={isGuest} />}
     </main>
