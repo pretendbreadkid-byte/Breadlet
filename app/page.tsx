@@ -4495,6 +4495,70 @@ function AiModerationPanel() {
   );
 }
 
+type AltAccount = { id: string; username: string; created_at: string; is_banned: boolean; tokens: number; staff: boolean };
+
+// Accounts seen on the same device / network (see /api/admin/alts), with ban buttons.
+function AltSuspectsPanel() {
+  const [groups, setGroups] = useState<{ sameDevice: AltAccount[][]; sameNetwork: AltAccount[][] } | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => {
+    const response = await fetch("/api/admin/alts", { cache: "no-store" }).catch(() => null);
+    const result = await response?.json().catch(() => null);
+    if (response?.ok) { setGroups(result); setError(""); } else setError(result?.error || "Could not load suspected alts.");
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const ban = async (accounts: AltAccount[]) => {
+    const targets = accounts.filter((account) => !account.is_banned && !account.staff);
+    if (!targets.length) return;
+    if (!window.confirm(`Ban ${targets.map((account) => account.username).join(", ")} permanently as alt account${targets.length === 1 ? "" : "s"}? This also bans every device they used.`)) return;
+    setBusy(true);
+    for (const account of targets) {
+      const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ban", targetId: account.id, reason: "Suspected alt account", permanent: true }) }).catch(() => null);
+      if (!response?.ok) setError((await response?.json().catch(() => null))?.error || `Could not ban ${account.username}.`);
+    }
+    setBusy(false);
+    void load();
+  };
+
+  const renderGroup = (group: AltAccount[], index: number, strong: boolean) => (
+    <div key={index} className="rounded-xl bg-[#0c3b70] p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {group.map((account, position) => (
+          <span key={account.id} className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-bold ${account.is_banned ? "bg-rose-900/60 line-through opacity-70" : "bg-[#103f75]"}`}>
+            {account.username}{position === 0 ? " (oldest)" : ""}{account.staff ? " ⭐" : ""}
+            <small className="opacity-60">{new Date(account.created_at).toLocaleDateString()}</small>
+            {!account.is_banned && !account.staff && <button type="button" disabled={busy} onClick={() => void ban([account])} className="rounded bg-rose-500 px-1.5 text-xs font-black disabled:opacity-40">Ban</button>}
+          </span>
+        ))}
+        {strong && group.slice(1).some((account) => !account.is_banned && !account.staff) && (
+          <button type="button" disabled={busy} onClick={() => void ban(group.slice(1))} className="dark-action-button !py-1 text-xs disabled:opacity-40">Ban all alts (keep oldest)</button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-black text-[#bde8ff]">🕵️ Suspected Alts</h2>
+        <button type="button" onClick={() => void load()} className="sidebar-dark-action rounded-lg px-4 py-2 text-sm font-bold">Refresh</button>
+      </div>
+      <p className="mt-1 text-sm opacity-80">Banning an account also bans every device it used, so a main account on the same device gets blocked too. Staff (⭐) can't be banned here.</p>
+      {error && <p className="mt-2 text-sm font-bold text-rose-200">{error}</p>}
+      {groups && (
+        <>
+          <h3 className="mt-4 font-black">Same device <span className="text-sm font-bold opacity-70">· strong sign of alts</span></h3>
+          <div className="mt-2 space-y-2">{groups.sameDevice.length ? groups.sameDevice.map((group, index) => renderGroup(group, index, true)) : <p className="text-sm opacity-70">None found.</p>}</div>
+          <h3 className="mt-4 font-black">Same network <span className="text-sm font-bold opacity-70">· could just be a school or family, check before banning</span></h3>
+          <div className="mt-2 space-y-2">{groups.sameNetwork.length ? groups.sameNetwork.map((group, index) => renderGroup(group, index, false)) : <p className="text-sm opacity-70">None found.</p>}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function AdminTab({
   player,
   grantReward,
@@ -4559,6 +4623,7 @@ function AdminTab({
   return (
     <div className="max-w-6xl space-y-6">
       <AdminAbusePanel />
+      <AltSuspectsPanel />
       <AiModerationPanel />
       <div className="rounded-3xl border border-[#73c8ff]/50 bg-[#18558f] p-8 shadow-xl">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">

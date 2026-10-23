@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { NEW_ACCOUNT_MESSAGE, tooNewAccount } from '../../../lib/account-age';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
@@ -104,6 +105,8 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
   }
   if (action !== 'create' && action !== 'buy') return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
+  const ageCheckAdmin = createAdminClient();
+  if (ageCheckAdmin && await tooNewAccount(ageCheckAdmin, [user.id])) return NextResponse.json({ error: NEW_ACCOUNT_MESSAGE }, { status: 403 });
   const price = Number(body.price || 0);
   if (action === 'create' && (!Number.isSafeInteger(price) || price < 1 || price > MAX_MARKETPLACE_PRICE)) return NextResponse.json({ error: 'Invalid listing price.' }, { status: 400 });
   const admin = createAdminClient();

@@ -225,7 +225,7 @@ export async function POST(request: Request) {
   if (Number.isFinite(mutedUntil) && mutedUntil > Date.now()) {
     return NextResponse.json({ error: `You are timed out from chat for ${Math.ceil((mutedUntil - Date.now()) / 60000)} more minute(s).` }, { status: 403 });
   }
-  if (networkBanned) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
+  if (networkBanned && !isProtectedFromMute(sender?.username || '')) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
   // Accounts named to look like staff (e.g. breadbIook) can't chat, so they can't impersonate.
   if (sender?.username && isStaffLookalike(sender.username)) {
     return NextResponse.json({ error: 'Your username looks like a staff account, so you cannot chat. Ask a moderator to help you change it.' }, { status: 403 });

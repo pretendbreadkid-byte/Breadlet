@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { NETWORK_BANNED_MESSAGE, isNetworkBanned, recordAccountDevice } from '../../../../lib/network-identity';
+import { isProtectedFromMute } from '../../../../lib/admin-access';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Username and password are required.' }, { status: 400 });
   }
 
-  if (await isNetworkBanned(admin, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
+  // Staff skip device/IP bans so banning a test alt made on the owner's computer can't lock them out.
+  if (!isProtectedFromMute(username) && await isNetworkBanned(admin, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
 
   const { data: profile, error: profileError } = await admin
     .from('profiles')

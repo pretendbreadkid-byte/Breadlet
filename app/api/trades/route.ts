@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { NEW_ACCOUNT_HOURS, NEW_ACCOUNT_MESSAGE, tooNewAccount } from '../../../lib/account-age';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
@@ -95,6 +96,8 @@ export async function POST(request: Request) {
     const { data: receiver, error: receiverError } = await session.admin.from('profiles').select('id, username').ilike('username', receiverUsername).maybeSingle();
     if (receiverError || !receiver) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
     if (receiver.id === session.userId) return NextResponse.json({ error: 'You cannot trade with yourself.' }, { status: 400 });
+    const young = await tooNewAccount(session.admin, [session.userId, receiver.id]);
+    if (young) return NextResponse.json({ error: young.id === session.userId ? NEW_ACCOUNT_MESSAGE : `${young.username}'s account is too new to trade (under ${NEW_ACCOUNT_HOURS} hours old).` }, { status: 403 });
     const { data: busyTrades } = await session.admin.from('trades').select('id').eq('status', 'pending').or(`sender_profile_id.in.(${session.userId},${receiver.id}),receiver_profile_id.in.(${session.userId},${receiver.id})`).limit(1);
     if (busyTrades?.length) return NextResponse.json({ error: 'One of you is already in a trade. Finish or cancel it first.' }, { status: 409 });
     const offer = parseOffer(body.offer);
