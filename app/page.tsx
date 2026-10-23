@@ -563,12 +563,20 @@ function MainPage() {
           restoreGuest();
           return;
         }
-        const response = await fetch("/api/player", { signal: AbortSignal.timeout(AUTH_TIMEOUT_MS) }).catch(() => null);
+        // A hiccup (e.g. the site restarting during a deploy) must not look like being signed out:
+        // retry, and only show the login screen when the server actually says the session is gone.
+        let response: Response | null = null;
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          if (attempt) await new Promise((resolve) => window.setTimeout(resolve, attempt * 2000));
+          response = await fetch("/api/player", { signal: AbortSignal.timeout(AUTH_TIMEOUT_MS) }).catch(() => null);
+          if (response?.ok || response?.status === 401) break;
+        }
         if (response?.ok) {
           setIsGuest(false);
           setPlayer(playerFromServer(await response.json()));
           return;
         }
+        if (response?.status !== 401) setNotice("Breadlet couldn't load your account right now. Refresh the page in a moment; you're still logged in.");
         restoreGuest();
       }).catch(() => restoreGuest()).finally(() => setBooting(false));
       return;
