@@ -2370,7 +2370,7 @@ function CapsulesTab({
   );
 
   return (
-    <div className="goodybags-page shop-scene -m-3 min-h-full sm:-m-4">
+    <div className="goodybags-page shop-scene min-h-full">
       <div className="shop-awning" aria-hidden="true" />
       <div className="shop-header">
         <button type="button" onClick={clickShopHeading} className="teds-shop-heading shop-title bg-transparent p-0" title="Ted's Shop">
@@ -3930,8 +3930,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
 
   return (
     <div className="global-chat flex h-full min-h-0 w-full flex-col">
-      <div className="flex items-center justify-between gap-4"><h1 className="text-4xl font-black">Global Chat</h1><span className="rounded-full bg-[#0c3b70] px-3 py-1 text-xs font-black text-[#73c8ff]">{onlinePlayers.length} players</span></div>
-      {chatError && <p role="alert" className="mt-3 rounded-lg border border-orange-300/40 bg-black/20 px-3 py-2 text-sm text-orange-100">{chatError}</p>}
+      <h1 className="sr-only">Global Chat</h1>
+      {chatError && <p role="alert" className="mb-3 rounded-lg border border-orange-300/40 bg-black/20 px-3 py-2 text-sm text-orange-100">{chatError}</p>}
       {giftNotice && (
         <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
@@ -3941,7 +3941,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           </div>
         </div>
       )}
-      <div ref={chatListRef} onScroll={handleChatScroll} className="chat-message-list mt-6 min-h-0 flex-1 overflow-y-auto py-4">
+      <div ref={chatListRef} onScroll={handleChatScroll} className="chat-message-list min-h-0 flex-1 overflow-y-auto py-4">
         {messageGroups.map((group) => {
           const latest = group.items[group.items.length - 1];
           const latestItem = latest.item;

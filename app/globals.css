@@ -647,6 +647,9 @@ section button[class*="h-20"]:hover:not(:disabled) {
 .legacy-countdown-open { background: #ED7117; }
 .legacy-countdown-closed { background: #E77D22; }
 .goodybags-page { min-width: 0; }
+/* Ted's Shop fills the whole workspace edge to edge, with no bounce that shows the page behind it. */
+.breadlet-blue-theme .game-workspace[data-tab="capsules"] { padding: 0; overscroll-behavior: none; }
+.breadlet-blue-theme .game-workspace[data-tab="capsules"] .guest-mode-banner { margin: 0; border-radius: 0; }
 /* Ted's Shop: a bakery storefront — awning, striped wall, wooden cabinets on a plank floor. */
 .shop-scene {
   --shelf-row: 178px;
@@ -676,7 +679,10 @@ section button[class*="h-20"]:hover:not(:disabled) {
   mask: radial-gradient(35px 22px at 35px 74px, #000 98%, transparent) 0 0 / 70px 100% repeat-x, linear-gradient(#000 0 0) 0 0 / 100% 74px no-repeat;
   filter: drop-shadow(0 6px 0 rgba(59, 31, 14, .18));
 }
-.shop-header { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 0 0; min-height: 96px; }
+/* The account box floats in the top-right corner, so the header keeps clear of it. */
+.shop-header { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 22rem 0 0; min-height: 96px; }
+.shop-header .shop-header-right { margin-left: 0; }
+@media (max-width: 767px) { .shop-header { padding: 5.5rem 0 0; } }
 .shop-scene .shop-title {
   margin-right: 6px;
   font-size: clamp(36px, 5vw, 58px);
@@ -1676,6 +1682,15 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 @keyframes auth-fall { from { transform: translateY(-10vh) rotate(-12deg); } to { transform: translateY(115vh) rotate(18deg); } }
 .profile-avatar-float img, .profile-avatar-float svg { animation: profile-float 3s ease-in-out infinite; }
 @keyframes profile-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+/* The frame clipped the Breadlet's top while it floated up; let it rise out of the frame. */
+.profile-avatar-frame, .profile-avatar-float { overflow: visible !important; }
+/* Black accents on the orange profile for contrast: borders, drop shadows, headings and stat tiles. */
+.profile-player-panel,.profile-badges-panel,.profile-stats-panel,.profile-list-panel,.profile-popup { border-color: #13120F !important; box-shadow: 0 7px 0 #13120F !important; }
+.profile-list-heading { border-color: #13120F !important; background: #13120F !important; }
+.profile-metric { background: #13120F !important; box-shadow: 0 6px 0 #000 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon,
+main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ffcb73 !important; }
+.profile-trade-row,.profile-search-row input { background: #27251F !important; }
 .chat-new-divider { display: flex; align-items: center; gap: .75rem; margin: .5rem 0; color: #ff5a5a; }
 .chat-new-divider span { height: 1px; flex: 1; background: #ff5a5a; }
 .chat-new-divider b { font-family: "DynaPuff", Impact, sans-serif; font-size: .8rem; letter-spacing: .02em; }
@@ -1882,17 +1897,17 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 @media (prefers-reduced-motion: reduce) { .pickle-drip { display: none; } }
 
 /* Global chat: big avatars, names and text, like Blooket's chat. */
-.global-chat .chat-group { display: flex; gap: 14px; padding: 8px 4px; }
+.global-chat .chat-group { display: flex; gap: 16px; padding: 9px 4px; }
 /* Flex (not grid) so the Breadlet's 100% size resolves and tall art like Carrot shrinks to fit;
    overflow stays visible so rarity glows aren't clipped. */
-.global-chat .chat-avatar { display: flex; width: 64px; height: 64px; flex: none; align-items: center; justify-content: center; overflow: visible; }
+.global-chat .chat-avatar { display: flex; width: 76px; height: 76px; flex: none; align-items: center; justify-content: center; overflow: visible; }
 .global-chat .chat-avatar > * { width: 100%; height: 100%; }
 .global-chat .chat-avatar img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .global-chat .chat-group-header { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
-.global-chat .chat-username { font-size: 22px; font-weight: 900; line-height: 1.2; }
-.global-chat .chat-badge { width: 25px; height: 25px; flex: none; }
-.global-chat .chat-time { font-size: 13px; font-weight: 700; opacity: .7; }
-.global-chat .chat-message-text { font-size: 18px; line-height: 1.4; }
+.global-chat .chat-username { font-size: 24px; font-weight: 900; line-height: 1.2; }
+.global-chat .chat-badge { width: 28px; height: 28px; flex: none; }
+.global-chat .chat-time { font-size: 14px; font-weight: 700; opacity: .7; }
+.global-chat .chat-message-text { font-size: 20px; line-height: 1.4; }
 .global-chat .chat-message-content-row { align-items: center; gap: 6px; }
 .global-chat .chat-group-message + .chat-group-message { margin-top: 3px; }
 .global-chat .chat-reply-preview { display: flex; max-width: min(36rem, 100%); align-items: center; gap: 6px; margin: 2px 0 3px; font-size: 14px; opacity: .85; text-align: left; }
@@ -1900,10 +1915,10 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .global-chat .chat-reply-preview:hover:not(:disabled) { transform: none; box-shadow: none; opacity: 1; }
 @media (max-width: 640px) {
   .global-chat .chat-group { gap: 10px; padding: 5px 2px; }
-  .global-chat .chat-avatar { width: 46px; height: 46px; }
-  .global-chat .chat-username { font-size: 17px; }
-  .global-chat .chat-badge { width: 18px; height: 18px; }
-  .global-chat .chat-message-text { font-size: 15px; }
+  .global-chat .chat-avatar { width: 54px; height: 54px; }
+  .global-chat .chat-username { font-size: 18px; }
+  .global-chat .chat-badge { width: 20px; height: 20px; }
+  .global-chat .chat-message-text { font-size: 16px; }
 }
 .global-chat .chat-pending { opacity: .55; }
 
