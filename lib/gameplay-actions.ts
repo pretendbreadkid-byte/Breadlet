@@ -1,4 +1,4 @@
-import { chanceFor, craftRecipeFor, dismantleBundleFor, liveCapsules, sellValueFor, wheelRewards } from './gameplay-catalog';
+import { chanceFor, craftRecipeFor, dismantleBundleFor, liveCapsules, sellValueForBlook, wheelRewards } from './gameplay-catalog';
 import { isMarketPackInStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 
@@ -102,7 +102,7 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       if (!owned || quantity >= owned.quantity) throw new Error(`Keep one copy of ${name}.`);
       addItem(name, -quantity);
       plan.sold[name] = quantity;
-      plan.tokensEarned += quantity * sellValueFor(owned.rarity);
+      plan.tokensEarned += quantity * sellValueForBlook(name, owned.rarity);
     }
     plan.tokenDelta = plan.tokensEarned;
   } else throw new Error('Unknown gameplay action.');

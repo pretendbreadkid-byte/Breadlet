@@ -1,6 +1,6 @@
 "use client";
 
-import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueFor, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
+import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -147,7 +147,11 @@ const badgeDescriptions: Record<string, string> = {
   OG: "Awarded to every original Breadlet player.",
   Moderator: "Trusted community moderator who keeps the chat friendly.",
   Owner: "The creator and owner of Breadlet.",
+  Contributor: "Helped build Breadlet with art, ideas or code.",
 };
+// Badges an admin can hand out. Token milestones are automatic from the balance, and Owner /
+// Moderator are tied to the staff usernames, so granting those by hand would only fake them.
+const grantableBadges = Object.keys(badgeDescriptions).filter((badge) => !["10K Tokens", "100K Tokens", "1M Tokens", "Owner", "Moderator"].includes(badge));
 const tokenBadgesFor = (tokens: number) => [
   "OG",
   ...(tokens >= 10000 ? ["10K Tokens"] : []),
@@ -164,6 +168,7 @@ const badgeIconFor = (badge: string) => ({
   OG: "/assets/og-badge.svg",
   Moderator: "/assets/moderator-badge.svg",
   Owner: "/assets/owner-badge.svg",
+  Contributor: "/assets/contributer.svg",
 })[badge] || "/assets/verified-badge.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>
@@ -1101,7 +1106,7 @@ function MainPage() {
     }
     const index = player.inventory.indexOf(name);
     const inventory = player.inventory.filter((_, itemIndex) => itemIndex !== index);
-    const value = sellValueFor(rarityFor(name));
+    const value = sellValueForBlook(name, rarityFor(name));
     save({
       ...player,
       tokens: player.tokens + value,
@@ -1130,7 +1135,7 @@ function MainPage() {
         const ownedCount = remaining.filter((item) => item === name).length;
         const amount = Math.min(requestedAmount, Math.max(0, ownedCount - 1));
         for (let sold = 0; sold < amount; sold += 1) remaining.splice(remaining.indexOf(name), 1);
-        tokensEarned += amount * sellValueFor(rarityFor(name));
+        tokensEarned += amount * sellValueForBlook(name, rarityFor(name));
       });
       if (!tokensEarned) return false;
       save({ ...player, tokens: player.tokens + tokensEarned, inventory: remaining }, { inventory: true });
@@ -2689,7 +2694,7 @@ function InventoryTab({
     name,
     available: Math.max(0, owned(name) - 1),
   })).filter((bread) => bread.available > 0);
-  const massSellTotal = sellableBreads.reduce((total, bread) => total + (sellQuantities[bread.name] || 0) * sellValueFor(rarityFor(bread.name)), 0);
+  const massSellTotal = sellableBreads.reduce((total, bread) => total + (sellQuantities[bread.name] || 0) * sellValueForBlook(bread.name, rarityFor(bread.name)), 0);
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -2897,7 +2902,7 @@ function BlookDetail({
           <Stat label="Shiny" value={shinyEligibleNames.has(reward.name.replace(/^Shiny /, "")) ? "Eligible · 1/100" : "Not eligible"} />
           <Stat
             label="Sell value"
-            value={`${sellValueFor(reward.rarity)} Bread Bucks`}
+            value={`${sellValueForBlook(reward.name, reward.rarity)} Bread Bucks`}
           />
         </div>
         <div className="mt-6 grid grid-cols-2 gap-3">
@@ -2916,7 +2921,7 @@ function BlookDetail({
             onClick={() => {
               if (
                 window.confirm(
-                  `Sell ${reward.name} for ${sellValueFor(reward.rarity)} Bread Bucks?`,
+                  `Sell ${reward.name} for ${sellValueForBlook(reward.name, reward.rarity)} Bread Bucks?`,
                 )
               ) {
                 sell(reward.name);
@@ -4842,11 +4847,7 @@ function AdminTab({
         <h2 className="text-2xl font-black text-[#bde8ff]">Badge Controls</h2>
         <p className="mt-1 text-sm text-[#9cc8e8]">Add or remove badges from the selected player.</p>
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { name: "First 50", icon: "/assets/first-50-badge.svg", desc: "First 50 pioneers" },
-            { name: "Verified", icon: "/assets/verified-badge.svg", desc: "Verified trusted badge (Unlocks Chat Image Upload)" },
-            { name: "BlookTuber", icon: "/assets/blooktuber-badge.svg", desc: "Creator badge" },
-          ].map((b) => (
+          {grantableBadges.map((name) => ({ name, icon: badgeIconFor(name), desc: name === "Verified" ? `${badgeDescriptions[name]} (Unlocks Chat Image Upload)` : badgeDescriptions[name] })).map((b) => (
             <div key={b.name} className="flex items-center gap-3 rounded-2xl border border-[#3d91cd]/40 bg-[#18558f] p-4 text-left">
               <img src={b.icon} alt={b.name} className="h-12 w-12 object-contain" />
               <div className="min-w-0 flex-1">

@@ -158,6 +158,14 @@ export const craftRecipeFor = (name: string) =>
 export const craftedRarityFor = (name: string) =>
   name === "Rainbow Astro" || name === "Phantom King" ? "Mythic" : "Legendary";
 
+// Crafted Breadlets only cost materials, so selling them at full rarity value printed Bread Bucks.
+// They sell for a tenth of normal (Legendary 15, Mythic 30).
+export const CRAFTED_SELL_RATE = 0.1;
+export const sellValueForBlook = (name: string, rarity: string) =>
+  craftRecipeFor(name.replace(/^Shiny /, ""))
+    ? Math.max(1, Math.floor(sellValueFor(rarity) * CRAFTED_SELL_RATE))
+    : sellValueFor(rarity);
+
 export const liveCapsules: Capsule[] = [
   {
     name: "Inventions Bag",
