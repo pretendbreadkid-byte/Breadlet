@@ -1,5 +1,6 @@
 import { isProtectedFromMute } from './admin-access';
 import { callAiModel } from './chat-ai';
+import { evilUntil } from './evil-ai';
 
 // The AI moderator reviews new chat in batches. It can delete messages and give
 // 30-minute timeouts on its own; anything ban-worthy is only *suggested* and waits
@@ -95,16 +96,18 @@ export async function runAiModeration(database: any) {
     let deleteIds = entry.messageIds;
     const timedOut = entry.action !== 'delete' && timeouts < MAX_TIMEOUTS_PER_RUN;
 
+    // Anyone the moderator catches also gets evil AI mode: /ai is rude to them for 30 minutes.
+    const stats = { ...(profile.stats || {}), evilAiUntil: evilUntil() };
     if (timedOut) {
       timeouts += 1;
       // A timeout also wipes all of the player's messages still in chat.
       const { data: theirs } = await database.from('global_chat_messages').select('id')
         .eq('profile_id', profileId).eq('is_breadlet_bot', false).is('deleted_at', null);
       deleteIds = Array.from(new Set([...deleteIds, ...(theirs || []).map((row: any) => row.id)]));
-      const until = new Date(Date.now() + TIMEOUT_MINUTES * 60 * 1000).toISOString();
-      await database.from('profiles').update({ stats: { ...(profile.stats || {}), chatMutedUntil: until } }).eq('id', profileId);
-      await database.rpc('chat_game_bot_say', { p_profile_id: profileId, p_message: `⏱️ ${profile.username} was timed out for ${entry.reason}.` });
+      stats.chatMutedUntil = new Date(Date.now() + TIMEOUT_MINUTES * 60 * 1000).toISOString();
+      await database.rpc('chat_game_bot_say', { p_profile_id: profileId, p_message: `⏱️ ${profile.username} was timed out for ${entry.reason}. 😈 Breadlet has turned evil on them.` });
     }
+    await database.from('profiles').update({ stats }).eq('id', profileId);
 
     if (deleteIds.length) await database.from('global_chat_messages').update({ deleted_at: new Date().toISOString() }).in('id', deleteIds);
     await database.from('ai_moderation_log').insert({

@@ -28,10 +28,22 @@ export async function postGameAction(body: Record<string, unknown>): Promise<{ o
   }
 }
 
-export function GamesMenu({ onError }: { onError: (message: string) => void }) {
+export function GamesMenu({ onError, onAsk }: { onError: (message: string) => void; onAsk: (question: string) => void | Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [bet, setBet] = useState("100");
+  const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Posts "/ai <question>" in chat; Breadlet answers there for everyone to see.
+  const ask = async () => {
+    const text = question.trim();
+    if (!text) return;
+    setBusy(true);
+    await onAsk(text);
+    setBusy(false);
+    setQuestion("");
+    setOpen(false);
+  };
 
   const run = async (body: Record<string, unknown>) => {
     setBusy(true);
@@ -50,6 +62,14 @@ export function GamesMenu({ onError }: { onError: (message: string) => void }) {
       {open && (
         <div className="mb-2 w-[min(18rem,calc(100vw-1.5rem))] space-y-2 rounded-2xl border border-[#3c3a34] bg-[#13120F] p-3 text-white shadow-2xl">
           <h2 className="font-black text-[#e9bd67]">Chat games</h2>
+          <form onSubmit={(event) => { event.preventDefault(); void ask(); }} className="rounded-xl bg-[#27251F] p-2">
+            <p className="px-1 text-sm font-black">Ask the AI</p>
+            <p className="px-1 pb-2 text-xs font-bold text-white/60">Breadlet answers your question in chat</p>
+            <div className="flex gap-2">
+              <input value={question} onChange={(event) => setQuestion(event.target.value.slice(0, 300))} placeholder="How do I trade?" aria-label="Question for the AI" className="min-w-0 flex-1 rounded-lg bg-[#13120F] px-3 py-2 text-sm font-bold text-white outline-none" />
+              <button type="submit" disabled={busy || !question.trim()} className="rounded-lg bg-[#e9bd67] px-3 py-2 text-sm font-black text-[#13120F] disabled:opacity-50">Ask</button>
+            </div>
+          </form>
           <button disabled={busy} className={option} onClick={() => void run({ action: "wordrace_start" })}>Word Race<span className="block text-xs font-bold text-white/60">First to type the word wins 5 Bread Bucks</span></button>
           <button disabled={busy} className={option} onClick={() => void run({ action: "unscramble_start" })}>Unscramble<span className="block text-xs font-bold text-white/60">Unscramble the word for 5 Bread Bucks</span></button>
           <div className="rounded-xl bg-[#27251F] p-2">

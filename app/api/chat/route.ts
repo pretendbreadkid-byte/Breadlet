@@ -3,6 +3,7 @@ import { isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges
 import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
 import { runAiModeration } from '../../../lib/ai-moderator';
+import { evilUntil, isEvilActive, isEvilFor } from '../../../lib/evil-ai';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { filterProfanity, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
@@ -164,6 +165,7 @@ export async function GET() {
       badges: isBreadletBot ? [] : badges,
       isBreadletBot,
       canMute: viewerIsAdmin && !isBreadletBot && Boolean(profile) && row.profile_id !== viewer?.id && !isProtectedFromMute(profile?.username),
+      evilAi: !isBreadletBot && isEvilActive(profile?.stats),
       canDelete: Boolean(viewer) && (viewerIsAdmin || row.profile_id === viewer?.id || (!isBreadletBot && !profile)),
 
       profiles: {
@@ -241,7 +243,7 @@ export async function POST(request: Request) {
   if (!isImageMessage && hasSevereSlur(rawMessage)) {
     if (!isProtectedFromMute(sender?.username || '')) {
       const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-      await database.from('profiles').update({ stats: { ...(sender?.stats || {}), chatMutedUntil: until } }).eq('id', user.id);
+      await database.from('profiles').update({ stats: { ...(sender?.stats || {}), chatMutedUntil: until, evilAiUntil: evilUntil() } }).eq('id', user.id);
     }
     return NextResponse.json({ error: 'That message has hate speech in it and was blocked. You are timed out from chat for 30 minutes.' }, { status: 400 });
   }
@@ -357,8 +359,11 @@ export async function POST(request: Request) {
   if (aiMatch) {
     const question = aiMatch[1];
     void (async () => {
-      const knowledge = await gameKnowledge(database).catch(() => '');
-      const reply = await answerQuestion(question, knowledge);
+      const [knowledge, evil] = await Promise.all([
+        gameKnowledge(database).catch(() => ''),
+        isEvilFor(database, user.id).catch(() => false),
+      ]);
+      const reply = await answerQuestion(question, knowledge, evil);
       const { error: sayError } = await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: reply });
       if (sayError) console.error('[CHAT_POST] AI reply failed:', sayError.message);
     })();
@@ -441,7 +446,7 @@ export async function PATCH(request: Request) {
   if (hasSevereSlur(rawMessage)) {
     if (!isProtectedFromMute(editor?.username || '')) {
       const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-      await database.from('profiles').update({ stats: { ...(editor?.stats || {}), chatMutedUntil: until } }).eq('id', user.id);
+      await database.from('profiles').update({ stats: { ...(editor?.stats || {}), chatMutedUntil: until, evilAiUntil: evilUntil() } }).eq('id', user.id);
     }
     return NextResponse.json({ error: 'That message has hate speech in it and was blocked. You are timed out from chat for 30 minutes.' }, { status: 400 });
   }

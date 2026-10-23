@@ -3574,7 +3574,7 @@ function SimplePanel({
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis }: { emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; evilAi?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const messagesRef = useRef(messages);
@@ -3616,6 +3616,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 isBreadletBot: row.isBreadletBot === true,
                 canDelete: row.canDelete === true,
                 canMute: row.canMute === true,
+                evilAi: row.evilAi === true,
                 profileId: row.profile_id,
                 createdAt: row.created_at,
                 replyTo: row.replyTo || null,
@@ -3780,6 +3781,16 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     setChatError(response?.ok ? "" : result?.error || "Could not time out that player.");
   };
 
+  // Admin only: turns a player's 30-minute evil AI mode on or off (works on yourself too).
+  const toggleEvilAi = async (targetId: string, name: string) => {
+    const response = await fetch("/api/chat/evil", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope: "player", targetId }) }).catch(() => null);
+    const result = await response?.json().catch(() => ({}));
+    if (!response?.ok) return setChatError(result?.error || "Could not change evil AI mode.");
+    setChatError("");
+    setMessages((current) => current.map((item) => (item.profileId === targetId ? { ...item, evilAi: result.active } : item)));
+    window.alert(result.active ? `😈 Evil AI mode is on for ${name} for 30 minutes.` : `😇 Evil AI mode is off for ${name}.`);
+  };
+
   const giveWalterWhite = async (targetId: string, name: string) => {
     const response = await fetch("/api/admin", {
       method: "POST",
@@ -3920,8 +3931,12 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                     </button>
                   ))}
                   {group.items[0].item.createdAt && <time className="chat-time" dateTime={group.items[0].item.createdAt}>{new Date(group.items[0].item.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time>}
+                  {latestItem.evilAi && <span title="Evil AI mode: Breadlet is rude to this player" className="text-sm" aria-label="Evil AI mode">😈</span>}
                   {latestItem.canMute && latestItem.profileId && (
                     <button type="button" onClick={() => void muteChatter(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Timeout 30m</button>
+                  )}
+                  {canManageEmojis && !isGuest && !group.isBreadletBot && latestItem.profileId && (
+                    <button type="button" onClick={() => void toggleEvilAi(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#7a1f1f] bg-[#3a1512] px-2 py-0.5 text-[10px] font-black text-[#fca5a5] hover:bg-[#5a1f1a]">{latestItem.evilAi ? "😇 Stop evil AI" : "😈 Evil AI"}</button>
                   )}
                   {canManageEmojis && !isGuest && !group.isBreadletBot && latestItem.profileId && latestItem.user !== player.username && (
                     <button type="button" onClick={() => void giveWalterWhite(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Give Walter White</button>
@@ -4011,7 +4026,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         </button>
       </form>
       <aside aria-label="Online players" className={`chat-online-panel fixed right-3 z-40 ${onlinePanelOpen ? "chat-online-panel-open" : ""}`}>
-        {!isGuest && <GamesMenu onError={setChatError} />}
+        {!isGuest && <GamesMenu onError={setChatError} onAsk={(question) => sendMessageText(`/ai ${question}`, null)} />}
         {onlinePanelOpen && <div className="chat-online-list mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <RewardArt name={online.equippedBlook} art={artFor(online.equippedBlook)} className="h-8 w-8" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
         <button type="button" aria-expanded={onlinePanelOpen} onClick={() => setOnlinePanelOpen((open) => !open)} className="flex items-center gap-3 rounded-2xl border border-sky-300/45 bg-[#0c2947]/95 px-5 py-3 text-white shadow-xl backdrop-blur-md hover:bg-[#103f75]"><CircleUserRound size={24} fill="currentColor" strokeWidth={1.5} /><span className="text-xl font-black">{onlinePlayers.length} online</span></button>
       </aside>
@@ -4429,6 +4444,58 @@ function AltSuspectsPanel() {
   );
 }
 
+// Evil AI mode for everyone for a set time, plus a quick toggle for the admin's own account.
+function EvilAiAdminPanel() {
+  const [globalUntil, setGlobalUntil] = useState<string | null>(null);
+  const [selfActive, setSelfActive] = useState(false);
+  const [minutes, setMinutes] = useState("30");
+  const [status, setStatus] = useState("");
+  const [now, setNow] = useState(() => Date.now());
+  const load = useCallback(async () => {
+    const response = await fetch("/api/chat/evil", { cache: "no-store" }).catch(() => null);
+    const data = await response?.json().catch(() => null);
+    if (response?.ok && data) {
+      setGlobalUntil(data.globalUntil);
+      setSelfActive(Boolean(data.selfActive));
+    }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const post = async (body: Record<string, unknown>) => {
+    const response = await fetch("/api/chat/evil", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    const data = await response?.json().catch(() => ({}));
+    if (!response?.ok) return setStatus(data?.error || "Could not change evil AI mode.");
+    setStatus("");
+    if (body.scope === "global") setGlobalUntil(data.globalUntil);
+    else setSelfActive(Boolean(data.active));
+  };
+  const remaining = globalUntil ? Math.max(0, Date.parse(globalUntil) - now) : 0;
+  const globalOn = remaining > 0;
+  return (
+    <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+      <h2 className="text-2xl font-black text-[#bde8ff]">😈 Evil AI Mode</h2>
+      <p className="mt-1 text-sm text-[#9cc8e8]">While it's on, Breadlet answers /ai questions rudely. The AI moderator turns it on for 30 minutes for anyone it catches breaking the rules.</p>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${globalOn ? "bg-rose-500/20 text-rose-200" : "bg-emerald-500/20 text-emerald-200"}`}>
+          {globalOn ? `On for everyone · ${Math.floor(remaining / 60000)}:${String(Math.floor((remaining % 60000) / 1000)).padStart(2, "0")} left` : "Off for everyone"}
+        </span>
+        <label className="flex items-center gap-2 text-sm font-bold text-[#bde8ff]">
+          <input value={minutes} onChange={(event) => setMinutes(event.target.value.replace(/[^0-9]/g, ""))} inputMode="numeric" aria-label="Minutes of evil AI mode for everyone" className="w-20 rounded-xl bg-[#0c3b70] px-3 py-2 text-white outline-none" />
+          minutes
+        </label>
+        <button onClick={() => void post({ scope: "global", minutes: Number(minutes) })} disabled={!Number(minutes)} className="rounded-xl bg-rose-300 px-5 py-3 text-sm font-black text-rose-950 hover:bg-rose-200 disabled:opacity-50">{globalOn ? "Restart for everyone" : "Turn on for everyone"}</button>
+        {globalOn && <button onClick={() => void post({ scope: "global", minutes: 0 })} className="rounded-xl bg-emerald-300 px-5 py-3 text-sm font-black text-emerald-950 hover:bg-emerald-200">Turn off for everyone</button>}
+        <button onClick={() => void post({ scope: "player" })} className="rounded-xl border border-[#3d91cd] px-5 py-3 text-sm font-black text-[#bde8ff] hover:bg-[#18558f]">{selfActive ? "😇 Turn off for me" : "😈 Turn on for me (30m)"}</button>
+      </div>
+      {status && <p role="alert" className="mt-3 text-sm font-bold text-rose-200">{status}</p>}
+      <p className="mt-3 text-xs text-[#9cc8e8]">To turn it on for one player, use the 😈 Evil AI button next to their name in chat.</p>
+    </div>
+  );
+}
+
 function AdminTab({
   player,
   grantReward,
@@ -4605,6 +4672,8 @@ function AdminTab({
           ))}
         </div>
       </div>
+
+      <EvilAiAdminPanel />
 
       {/* Maintenance Mode */}
       <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
