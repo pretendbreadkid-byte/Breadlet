@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
-import { ADMIN_USERNAME } from '../../../lib/admin-access';
+import { ADMIN_USERNAME, isStaffLookalike } from '../../../lib/admin-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +23,8 @@ export async function GET() {
     .limit(50);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const rows = profiles || [];
+  // Impersonation names (like "breadlet" or "breadbIook") never show on the leaderboard.
+  const rows = (profiles || []).filter((row: any) => !isStaffLookalike(row.username));
   const blookIds = Array.from(new Set(rows.map((row: any) => row.equipped_blook_id).filter(Boolean)));
   const { data: blooks } = blookIds.length
     ? await database.from('blooks').select('id, name').in('id', blookIds)

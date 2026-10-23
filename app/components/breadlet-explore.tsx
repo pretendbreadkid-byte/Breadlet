@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { ArrowLeft, Send, Users } from "lucide-react";
 import { createClient as createSupabaseClient } from "../../lib/supabase/client";
 import { filterProfanity, hasSevereSlur } from "../../lib/chat-filter";
+import { isStaffLookalike } from "../../lib/admin-access";
 
 // Breadlet Explore (beta): pick an island, walk around as your equipped Breadlet and chat.
 // Positions and chat bubbles are shared live through a Supabase Realtime channel per island.
@@ -227,6 +228,7 @@ function IslandWorld({ island, player, artFor, leave }: { island: Island; player
     const text = draft.trim();
     if (!text) return;
     if (player.chatMutedUntil && Date.parse(player.chatMutedUntil) > Date.now()) return setNotice("You are timed out from chat right now.");
+    if (isStaffLookalike(player.username)) return setNotice("Your username looks like a staff account, so you cannot chat.");
     const clean = cleanBubble(text);
     if (!clean) return setNotice("That message isn't allowed.");
     setDraft("");

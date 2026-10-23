@@ -46,9 +46,22 @@ function withinOneEdit(a: string, b: string) {
   return edits + (a.length - i) + (b.length - j) <= 1;
 }
 
-// True for names made to look like a staff account but that aren't it (impersonation).
+// Names nobody may take, because they pass for the chat bot or for official staff. Matched
+// even with swaps like "breadIet" or "adm1n". The long ones also match one typo away.
+const RESERVED_NAMES = ['breadlet', 'breadletbot', 'breadletofficial', 'breadletadmin', 'admin', 'administrator', 'owner', 'moderator', 'mod', 'staff', 'support', 'system', 'official', 'bot'];
+
+function isReservedName(name: string) {
+  const key = lookalikeKey(name);
+  return RESERVED_NAMES.some((reserved) => {
+    const reservedKey = lookalikeKey(reserved);
+    return key === reservedKey || (reservedKey.length >= 7 && withinOneEdit(key, reservedKey));
+  });
+}
+
+// True for names made to look like a staff account or the Breadlet bot (impersonation).
 export function isStaffLookalike(username: string) {
   const name = String(username || '').trim().toLowerCase();
+  if (isReservedName(name)) return true;
   return [ADMIN_USERNAME, ...MODERATOR_USERNAMES].some((staff) => name !== staff && withinOneEdit(lookalikeKey(name), lookalikeKey(staff)));
 }
 
