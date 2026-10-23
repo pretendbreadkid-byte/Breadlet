@@ -44,6 +44,7 @@ import {
   Coins,
   Zap,
   Repeat,
+  Clock,
 } from "lucide-react";
 
 type Tab =
@@ -2321,49 +2322,43 @@ function CapsulesTab({
       tedClaimBusy.current = false;
     });
   };
-  const allCapsules = liveCapsules;
-  const capsules = allCapsules;
   const stockOdds = new Map(marketPackStock.map(({ name, chance }) => [name, chance]));
+  // In-stock bags first; the catalog order is kept within each group.
+  const capsules = [...liveCapsules].sort((left, right) => Number(isMarketPackInStock(right.name, now)) - Number(isMarketPackInStock(left.name, now)));
+  const inStockCount = capsules.filter((capsule) => isMarketPackInStock(capsule.name, now)).length;
 
   return (
-    <div className="goodybags-page">
-      <div className="legacy-countdown mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold">
-        <span>Shop stock refreshes in</span>
-        <MarketRefreshCountdown />
-      </div>
-      <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <span />
-        <button type="button" onClick={clickShopHeading} className="teds-shop-heading mx-auto flex justify-center bg-transparent p-0" title="Ted's Shop">
-          Ted's Shop
-        </button>
-        <div className="flex flex-wrap justify-end gap-2">
-          <button type="button" aria-pressed={quickOpen} onClick={() => setQuickOpen(!quickOpen)} title="Faster opening animation" className="open-toggle"><Zap size={16} aria-hidden="true" />Quick open</button>
-          <button type="button" aria-pressed={autoOpen} onClick={() => setAutoOpen(!autoOpen)} title="Keeps opening the pack you pick until you run out of Bread Bucks or click the screen" className="open-toggle"><Repeat size={16} aria-hidden="true" />Auto open</button>
+    <div className="goodybags-page shop-market -m-3 min-h-full p-4 sm:-m-4 sm:p-6">
+      <button type="button" onClick={clickShopHeading} className="teds-shop-heading shop-title bg-transparent p-0" title="Ted's Shop">
+        Ted's Shop
+      </button>
+      <div className="shop-toolbar">
+        <div className="shop-restock">
+          <Clock size={18} aria-hidden="true" />
+          <span>New stock in</span>
+          <MarketRefreshCountdown />
         </div>
+        <span className="shop-stock-count">{inStockCount} of {capsules.length} in stock</span>
+        <button type="button" onClick={showStockOdds} className="open-toggle"><Info size={16} aria-hidden="true" />Stock chances</button>
+        <button type="button" aria-pressed={quickOpen} onClick={() => setQuickOpen(!quickOpen)} title="Faster opening animation" className="open-toggle"><Zap size={16} aria-hidden="true" />Quick open</button>
+        <button type="button" aria-pressed={autoOpen} onClick={() => setAutoOpen(!autoOpen)} title="Keeps opening the pack you pick until you run out of Bread Bucks or click the screen" className="open-toggle"><Repeat size={16} aria-hidden="true" />Auto open</button>
       </div>
-      <div className="teds-shop-layout">
-        <section className="teds-shelf-scene" aria-label="Ted's Shop Goodybag shelves">
-          <div className="teds-shelf-items">
-            <div className="teds-shelf-content">
-              {capsules.map((capsule) => {
-                const inStock = isMarketPackInStock(capsule.name, now);
-                return (
-                  <article key={capsule.name} className={`teds-shelf-item ${inStock ? "" : "is-sold-out"}`}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCapsule(capsule)}
-                      className="teds-pack-open"
-                      aria-label={`View ${capsule.name}`}
-                    >
-                      <img src={capsule.art} alt={capsule.name} className="teds-pack-art" />
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      </div>
+      <section className="shop-pack-grid mt-5" aria-label="Ted's Shop Goodybags">
+        {capsules.map((capsule) => {
+          const inStock = isMarketPackInStock(capsule.name, now);
+          return (
+            <button key={capsule.name} type="button" onClick={() => setSelectedCapsule(capsule)} className={`shop-pack-card ${inStock ? "" : "is-sold-out"}`} aria-label={`View ${capsule.name}`}>
+              <span className={`shop-stock-pill ${inStock ? "is-in" : "is-out"}`}>{inStock ? "In stock" : "Sold out"}</span>
+              <div className="shop-art-stage">
+                <img src={capsule.art} alt="" className="shop-pack-art" />
+              </div>
+              <h2 className="mt-2 truncate text-sm font-black sm:text-base">{capsule.name}</h2>
+              <p className="mt-0.5 text-xs font-bold opacity-75">{capsule.pool.length} Breadlets inside</p>
+              <p className="bazaar-card-price"><img src="/assets/Bread%20bucks.svg" alt="" />{isGuest ? "Free" : capsule.price.toLocaleString()}</p>
+            </button>
+          );
+        })}
+      </section>
       {tedVisible && <div className="ted-secret-appearance" aria-hidden="true"><img src="/assets/ted-shopkeeper.svg" alt="" /></div>}
       {tedCongrats && (
         <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
@@ -2431,34 +2426,31 @@ function PackDetailsModal({
 }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-      <section className="w-full max-w-sm rounded-3xl border border-[#d49a4a] bg-[#3a2415] p-6 text-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="pack-details-heading">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-widest text-[#e9bd67]">Ted&apos;s Shop</p>
-            <h2 id="pack-details-heading" className="mt-1 text-2xl font-black">{capsule.name}</h2>
+      <section className="bazaar-offers shop-pack-modal" role="dialog" aria-modal="true" aria-labelledby="pack-details-heading">
+        <div className="bazaar-offers-header">
+          <div className="bazaar-offers-art"><img src={capsule.art} alt="" className={`h-full w-full object-contain ${inStock ? "" : "grayscale brightness-75"}`} /></div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black uppercase tracking-widest opacity-70">Ted&apos;s Shop</p>
+            <h2 id="pack-details-heading" className="truncate text-2xl font-black">{capsule.name}</h2>
+            <span className={`shop-stock-pill is-static mt-1 ${inStock ? "is-in" : "is-out"}`}>{inStock ? "In stock" : "Sold out"}</span>
           </div>
-          <button type="button" onClick={close} aria-label="Close Goodybag details" className="rounded-lg bg-[#6c4328] px-3 py-1 font-black">×</button>
+          <button type="button" onClick={close} aria-label="Close Goodybag details" className="bazaar-offers-close">×</button>
         </div>
-        <img src={capsule.art} alt="" className={`mx-auto my-5 h-40 w-40 object-contain ${inStock ? "" : "grayscale brightness-75"}`} />
-        <div className="space-y-3 rounded-xl bg-[#24170f] p-4 text-sm">
-          <p className="flex items-center justify-between gap-3">
-            <span>Stock</span><b className={inStock ? "text-green-300" : "text-red-300"}>{inStock ? "In stock" : "Sold out"}</b>
-          </p>
-          <p className="flex items-center justify-between gap-3">
-            <span>Price</span><b>{isGuest ? "Free" : `${capsule.price} Bread Bucks`}</b>
-          </p>
-          <p className="flex items-center justify-between gap-3">
+        <div className="shop-pack-facts">
+          <p><span>Price</span><b className="bazaar-offer-price">{isGuest ? "Free" : <><img src="/assets/Bread%20bucks.svg" alt="" />{capsule.price.toLocaleString()}</>}</b></p>
+          <p><span>Breadlets inside</span><b>{capsule.pool.length}</b></p>
+          <p>
             <span>Chance to be in stock</span>
             <span className="flex items-center gap-2">
               <b>{Number((stockChance * 100).toFixed(2))}%</b>
-              <button type="button" onClick={showStockOdds} title="Show all stock chances" aria-label="Show all stock chances" className="grid h-6 w-6 place-items-center rounded-full bg-[#103f75] text-xs font-black text-[#ffe2a0]">
+              <button type="button" onClick={showStockOdds} title="Show all stock chances" aria-label="Show all stock chances" className="shop-info-button">
                 <Info size={14} />
               </button>
             </span>
           </p>
         </div>
-        <button type="button" onClick={showRewardOdds} className="mt-4 w-full rounded-xl border border-[#d49a4a]/60 px-4 py-2.5 text-sm font-bold text-[#ffe2a0]">View reward chances</button>
-        <button type="button" disabled={!inStock} onClick={open} className="mt-3 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" onClick={showRewardOdds} className="open-toggle mt-4 w-full justify-center">View reward chances</button>
+        <button type="button" disabled={!inStock} onClick={open} className="bazaar-buy-button mt-3">
           {!inStock ? "Currently sold out" : auto ? (isGuest ? "Start auto open (free)" : `Start auto open · ${capsule.price} each`) : isGuest ? "Open for free" : `Open for ${capsule.price} Bread Bucks`}
         </button>
       </section>
@@ -2469,22 +2461,22 @@ function PackDetailsModal({
 function StockOddsModal({ close }: { close: () => void }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
-      <section className="w-full max-w-md rounded-3xl border border-[#d49a4a] bg-[#3a2415] p-6 text-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="stock-odds-heading">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-widest text-[#e9bd67]">Hourly stock</p>
-            <h2 id="stock-odds-heading" className="mt-1 text-2xl font-black">Chance to be in stock</h2>
+      <section className="bazaar-offers" role="dialog" aria-modal="true" aria-labelledby="stock-odds-heading">
+        <div className="bazaar-offers-header">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-black uppercase tracking-widest opacity-70">Hourly stock</p>
+            <h2 id="stock-odds-heading" className="text-2xl font-black">Chance to be in stock</h2>
           </div>
-          <button type="button" onClick={close} aria-label="Close stock chances" className="rounded-lg bg-[#6c4328] px-3 py-1 font-black">×</button>
+          <button type="button" onClick={close} aria-label="Close stock chances" className="bazaar-offers-close">×</button>
         </div>
-        <div className="mt-5 grid gap-2">
+        <div className="bazaar-offers-list">
           {marketPackStock.map(({ name, chance }) => (
-            <div key={name} className="flex items-center justify-between rounded-lg bg-[#24170f] px-3 py-2 text-sm">
-              <span>{name}</span><b className="text-[#ffe2a0]">{chance < 0.01 ? "0.5%" : `${chance * 100}%`}</b>
+            <div key={name} className="bazaar-offer-row justify-between text-sm font-bold">
+              <span>{name}</span><b className="text-[#ffcb73]">{chance < 0.01 ? "0.5%" : `${chance * 100}%`}</b>
             </div>
           ))}
         </div>
-        <p className="mt-4 text-xs text-[#d7b88c]">Stock rolls again every hour on the UTC hour.</p>
+        <p className="mt-4 text-xs font-bold opacity-70">Stock rolls again every hour on the UTC hour.</p>
       </section>
     </div>
   );

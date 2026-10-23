@@ -647,69 +647,78 @@ section button[class*="h-20"]:hover:not(:disabled) {
 .legacy-countdown-open { background: #ED7117; }
 .legacy-countdown-closed { background: #E77D22; }
 .goodybags-page { min-width: 0; }
-.teds-shop-layout {
-  position: relative;
-  width: min(100%, 1080px);
-  margin: 0 auto;
-  padding-bottom: 1rem;
+/* Ted's Shop: same look as the Bazaar — title in the corner, one toolbar, grid of cards. */
+.shop-market { color: #FFFFFF; }
+.shop-market .shop-title {
+  display: block;
+  margin: 0 0 16px;
+  font-size: clamp(42px, 6vw, 72px);
+  letter-spacing: -.055em;
+  line-height: .98;
+  text-shadow: 0 4px 0 #71330f, 0 8px 18px #6f2f0b66;
 }
-.teds-shelf-scene {
-  position: relative;
-  width: min(100%, 860px);
-  aspect-ratio: 229.7087 / 335.41889;
-  margin: 0 auto;
-  background: url("/assets/Shelf%20but%20longer.svg") center / 100% 100% no-repeat;
+.shop-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.shop-toolbar .open-toggle { min-height: 46px; }
+.shop-restock {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid #090908;
+  border-radius: 12px;
+  background: #27251F;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 #090908;
 }
-.teds-shelf-items {
-  position: absolute;
-  inset: 0;
-}
-.teds-shelf-content {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: 25% 23% 22% 21%;
-  padding-inline: 9%;
-}
-.teds-shelf-item {
+.shop-restock .font-mono { color: #ffcb73; font-size: 16px; font-weight: 900; }
+.shop-stock-count { margin-right: auto; font-size: 14px; font-weight: 900; opacity: .85; }
+.shop-pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.shop-market .shop-pack-card {
   position: relative;
   min-width: 0;
-  min-height: 0;
-  margin: 0 1%;
+  border: 1px solid #0d0d0c;
+  border-radius: 12px;
+  background: #22211e;
+  padding: 10px;
+  color: #fff;
+  box-shadow: 0 4px 0 #090908;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
 }
-.teds-pack-open {
+.shop-market .shop-pack-card:hover:not(:disabled) { transform: translateY(-3px); border-color: #ffcb73; background: #302d27; box-shadow: 0 4px 0 #090908; }
+.shop-market .shop-pack-card:focus-visible { outline: 3px solid #fff1b7; outline-offset: 2px; }
+.shop-art-stage { display: flex; width: 100%; height: 150px; align-items: center; justify-content: center; border-radius: 9px; background: #13120F; padding: 14px; }
+.shop-pack-art { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 6px 6px #0008); transition: transform 220ms ease; }
+.shop-pack-card:hover .shop-pack-art { transform: translateY(-4px) rotate(-4deg); }
+.shop-pack-card.is-sold-out { opacity: .7; }
+.shop-pack-card.is-sold-out .shop-pack-art { filter: grayscale(.85) brightness(.6); }
+.shop-stock-pill {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  color: #fff2d8;
+  top: 16px;
+  left: 16px;
+  z-index: 1;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
 }
-.teds-pack-open:hover:not(:disabled) {
-  transform: none;
-  filter: none;
-  box-shadow: none;
+.shop-stock-pill.is-static { position: static; display: inline-block; }
+.shop-stock-pill.is-in { background: #14301f; color: #4ade80; box-shadow: inset 0 0 0 1px #4ade8066; }
+.shop-stock-pill.is-out { background: #3a1512; color: #fca5a5; box-shadow: inset 0 0 0 1px #fca5a566; }
+.shop-pack-modal { max-width: 440px; }
+.shop-pack-facts { display: grid; gap: 10px; border-radius: 14px; background: #13120F; padding: 14px 16px; font-size: 14px; }
+.shop-pack-facts p { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.shop-pack-facts .bazaar-offer-price { font-size: 16px; }
+.shop-pack-facts .bazaar-offer-price img { width: 20px; height: 20px; }
+.shop-info-button { display: grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #27251F; color: #ffcb73; }
+@media (max-width: 540px) {
+  .shop-pack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .shop-art-stage { height: 110px; padding: 10px; }
+  .shop-stock-count { width: 100%; order: -1; }
 }
-.teds-pack-open:focus-visible {
-  outline: 2px solid #fff2d8;
-  outline-offset: -3px;
-}
-.teds-pack-art {
-  position: absolute;
-  bottom: 12%;
-  left: 50%;
-  width: 94%;
-  height: 66%;
-  object-fit: contain;
-  object-position: bottom center;
-  filter: drop-shadow(0 5px 3px #321b0c99);
-  transform: translate(-50%, -7%);
-  transition: filter 150ms ease, transform 220ms ease;
-}
-.teds-pack-open:hover .teds-pack-art { transform: translate(-50%, -9%) rotate(-4deg); }
-.teds-shelf-item.is-sold-out .teds-pack-art { filter: grayscale(.85) brightness(.58) drop-shadow(0 5px 3px #321b0c99); }
 .ted-secret-appearance {
   position: fixed;
   right: clamp(1rem, 8vw, 7rem);
@@ -724,13 +733,6 @@ section button[class*="h-20"]:hover:not(:disabled) {
   0% { opacity: 0; transform: translateY(35px) scale(.65); }
   12%, 82% { opacity: 1; transform: translateY(0) scale(1); }
   100% { opacity: 0; transform: translateY(-15px) scale(.95); }
-}
-@media (max-width: 760px) {
-  .teds-shop-layout { padding-bottom: 0; }
-  .teds-shelf-scene { width: 100%; }
-  .teds-shelf-content { padding-inline: 10%; }
-  .teds-shelf-item { margin-inline: 1%; }
-  .teds-pack-art { width: 94%; height: 64.5%; }
 }
 .guest-mode-banner { border: 1px solid #CC5500; background: #ED7117; color: #3B1F0E; }
 .guest-mode-banner button { color: #3B1F0E; }
