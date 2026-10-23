@@ -164,7 +164,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.21 },
-    art: "/assets/invetion goodie bag.svg",
+    art: "/assets/invntions bag.svg",
     pool: rewards([
       ["Wheel", "Common"],
       ["Magnifying Glass", "Common"],
@@ -181,7 +181,7 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Space Bag",
     price: 25,
-    art: "/assets/space bag updated again.svg",
+    art: "/assets/space bag updated again (1).svg",
     pool: rewards([
       ["Mars", "Common"],
       ["Earth", "Uncommon"],
@@ -204,7 +204,7 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Bag",
     price: 25,
-    art: "/assets/lost-and-found-bag-updated.png",
+    art: "/assets/lost and found.svg",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Comb", "Common"],
@@ -222,7 +222,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.35 },
-    art: "/assets/food bag updated.svg",
+    art: "/assets/food bag updated (1).svg",
     pool: rewards([
       ["Rock", "Common"],
       ["Apple", "Common"],
@@ -243,7 +243,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.18 },
-    art: "/assets/artifact bag.svg",
+    art: "/assets/artifact bag2.svg",
     pool: rewards([
       ["Aztec Coin", "Common"],
       ["Clay Vase", "Common"],
@@ -261,7 +261,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
-    art: "/assets/combat bag.svg",
+    art: "/assets/combat bag (1).svg",
     pool: rewards([
       ["Olive Grenade", "Common"],
       ["The Bomb", "Uncommon"],
@@ -279,7 +279,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.32 },
-    art: "/assets/blooktuber bag updatd.svg",
+    art: "/assets/blooktuber bag updatd (1).svg",
     pool: rewards([
       ["Bread Blook", "Mythic"],
       ["Blooket Life", "Uncommon"],
@@ -303,7 +303,7 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Bread Bag",
     price: 30,
-    art: "/assets/refreshed-bread-bag.svg",
+    art: "/assets/Bread bag Updated for refresh3.svg",
     pool: rewards([
       ["Sour Dough", "Common"],
       ["Toaster", "Rare"],
