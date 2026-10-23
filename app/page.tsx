@@ -3115,6 +3115,26 @@ function WheelTab({
   );
 }
 
+// String lights across the top of the Bazaar: two sagging wires, 14 bulbs each, placed on a curve
+// that matches the wire drawn in CSS (.bazaar-lights::before/::after).
+const bazaarBulbs = Array.from({ length: 28 }, (_, index) => {
+  const swag = Math.floor(index / 14);
+  const t = ((index % 14) + 0.5) / 14;
+  return { x: swag * 50 + t * 50, y: 6 + 34 * (1 - (2 * t - 1) ** 2) };
+});
+
+// Bazaar stall roof color for each rarity.
+const stallColors: Record<string, string> = {
+  Common: "#8a8f98",
+  Uncommon: "#3fae5a",
+  Rare: "#2f7fe0",
+  Epic: "#9b4fd8",
+  Legendary: "#f0a020",
+  Mythic: "#e2364a",
+  Unique: "#17b8b0",
+  Breadled: "#ff6fb5",
+};
+
 function Bazaar({
   player,
   createListing,
@@ -3214,8 +3234,9 @@ function Bazaar({
   }, [search, rarity, pack, view]);
 
   return (
-    <div className="bazaar-market -m-3 min-h-full p-4 sm:-m-4 sm:p-6">
-      <h1 className="bazaar-title">Bazaar</h1>
+    <div className="bazaar-market bazaar-scene min-h-full">
+      <div className="bazaar-lights" aria-hidden="true">{bazaarBulbs.map((bulb, index) => <span key={index} style={{ left: `${bulb.x}%`, top: bulb.y, animationDelay: `${(index % 7) * 0.4}s` }} />)}</div>
+      <h1 className="bazaar-title bazaar-sign"><span>Bazaar</span></h1>
       <div className="bazaar-toolbar">
         <label className="bazaar-search-field">
           <Search size={18} aria-hidden="true" />
@@ -3276,13 +3297,16 @@ function Bazaar({
             const quantity = blookListings.reduce((total, listing) => total + Math.max(1, Number(listing.quantity) || 1), 0);
             const lowest = Math.min(...blookListings.map((listing) => listing.price));
             return (
-              <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-blook-card">
-                <div className="bazaar-art-stage">
-                  <BlookImg name={name} className="h-full w-full" />
-                </div>
-                <h2 className="mt-2 truncate text-sm font-black sm:text-base">{name}</h2>
-                <p className="mt-0.5 text-xs font-bold opacity-75">{rarityFor(name)} · {quantity} listed</p>
-                <p className="bazaar-card-price"><img src="/assets/Bread%20bucks.svg" alt="" />from {lowest.toLocaleString()}</p>
+              <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-stall" style={{ "--stall": stallColors[rarityFor(name)] || stallColors.Common } as React.CSSProperties}>
+                <span className="bazaar-stall-roof" aria-hidden="true" />
+                <span className="bazaar-stall-body">
+                  <span className="bazaar-stall-art"><BlookImg name={name} className="h-full w-full" /></span>
+                  <span className="bazaar-stall-counter">
+                    <span className="bazaar-stall-name">{name}</span>
+                    <span className="bazaar-stall-meta">{rarityFor(name)} · {quantity} listed</span>
+                  </span>
+                </span>
+                <span className="bazaar-price-sign"><img src="/assets/Bread%20bucks.svg" alt="" />from {lowest.toLocaleString()}</span>
               </button>
             );
           })}
@@ -3290,6 +3314,7 @@ function Bazaar({
       ) : (
         <p className="bazaar-empty mt-6 rounded-2xl border p-8 text-center">{view === "mine" ? "You have no active listings." : "No listings match your search yet."}</p>
       )}
+      <div className="bazaar-street" aria-hidden="true" />
       {detailsOpen && <BlookListingsModal
         blook={selectedBlook}
         listings={listings.filter((listing) => listing.blook === selectedBlook)}

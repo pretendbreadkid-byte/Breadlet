@@ -2028,3 +2028,174 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 .breadlet-blue-theme .open-toggle { display: inline-flex; align-items: center; gap: 7px; border: 2px solid #090908; border-radius: 12px; background: #13120F; padding: 9px 14px; color: #fff; font-size: 14px; font-weight: 900; box-shadow: 0 3px 0 #090908; }
 .breadlet-blue-theme .open-toggle:hover:not(:disabled) { background: #27251F; }
 .breadlet-blue-theme .open-toggle[aria-pressed="true"] { border-color: #4ade80; background: #14301f; box-shadow: 0 3px 0 #0a1a10, 0 0 0 2px rgba(74, 222, 128, .35); }
+
+/* Bazaar: an evening outdoor market. Dusk sky with string lights, a hanging wooden sign,
+   one market stall per Breadlet (roof colored by rarity) and a cobblestone street. */
+.breadlet-blue-theme .game-workspace[data-tab="market"] { padding: 0; overscroll-behavior: none; }
+.breadlet-blue-theme .bazaar-market.bazaar-scene {
+  --scene-pad: clamp(14px, 3vw, 40px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 var(--scene-pad);
+  background:
+    radial-gradient(1.5px 1.5px at 12% 18%, #fff9 50%, transparent),
+    radial-gradient(1.5px 1.5px at 33% 9%, #fff8 50%, transparent),
+    radial-gradient(2px 2px at 58% 22%, #fffa 50%, transparent),
+    radial-gradient(1.5px 1.5px at 76% 12%, #fff7 50%, transparent),
+    radial-gradient(1.5px 1.5px at 91% 26%, #fff8 50%, transparent),
+    linear-gradient(180deg, #1b1538 0%, #33205a 30%, #6e3463 62%, #c9604a 88%, #e98a4c 100%) !important;
+}
+.bazaar-lights { position: absolute; inset: 0 0 auto; z-index: 0; height: 60px; pointer-events: none; }
+.bazaar-lights::before, .bazaar-lights::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 40px;
+  border-bottom: 2px solid #120d1f;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+}
+.bazaar-lights::before { left: 0; }
+.bazaar-lights::after { left: 50%; }
+.bazaar-lights span {
+  position: absolute;
+  width: 11px;
+  height: 15px;
+  margin-left: -5px;
+  border-radius: 50% 50% 45% 45%;
+  background: #ffd75e;
+  box-shadow: 0 0 10px 3px #ffd75e99;
+  animation: bazaar-twinkle 2.8s ease-in-out infinite;
+}
+.bazaar-lights span:nth-child(4n + 2) { background: #ff7eb6; box-shadow: 0 0 10px 3px #ff7eb699; }
+.bazaar-lights span:nth-child(4n + 3) { background: #6ee7d8; box-shadow: 0 0 10px 3px #6ee7d899; }
+.bazaar-lights span:nth-child(4n) { background: #ffa04d; box-shadow: 0 0 10px 3px #ffa04d99; }
+@keyframes bazaar-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .bazaar-lights span { animation: none; } }
+.breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign {
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  margin: 66px 0 22px;
+  font-size: clamp(36px, 5vw, 56px);
+  letter-spacing: -.03em;
+  text-shadow: none;
+}
+.bazaar-sign span {
+  display: block;
+  border: 4px solid #2a1708;
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 9px, rgba(42, 23, 8, .18) 9px 11px),
+    linear-gradient(180deg, #a86a35, #7d4a22);
+  padding: 4px 26px 8px;
+  text-shadow: 0 4px 0 #2a1708;
+  box-shadow: 0 6px 0 #2a1708, 0 10px 24px rgba(0, 0, 0, .35);
+  transform: rotate(-2deg);
+}
+.bazaar-sign::before, .bazaar-sign::after { content: ""; position: absolute; top: -54px; width: 3px; height: 56px; background: #2a1708; }
+.bazaar-sign::before { left: 22%; }
+.bazaar-sign::after { right: 22%; }
+.breadlet-blue-theme .bazaar-scene .bazaar-toolbar,
+.breadlet-blue-theme .bazaar-scene .bazaar-view-tabs,
+.breadlet-blue-theme .bazaar-scene .bazaar-list-form { position: relative; z-index: 1; }
+.breadlet-blue-theme .bazaar-scene .bazaar-blook-grid {
+  position: relative;
+  z-index: 1;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 30px 20px;
+}
+.bazaar-stall { position: relative; display: flex; min-width: 0; flex-direction: column; border: 0; background: transparent; padding: 0; color: #fff; text-align: center; transition: transform 200ms cubic-bezier(.3, 1.5, .5, 1); }
+.bazaar-scene .bazaar-stall:hover:not(:disabled) { transform: translateY(-5px); box-shadow: none; filter: none; }
+.bazaar-stall:focus-visible { outline: 3px solid #fff1b7; outline-offset: 4px; border-radius: 12px; }
+.bazaar-stall-roof {
+  position: relative;
+  z-index: 2;
+  height: 32px;
+  border: 3px solid #13120F;
+  border-radius: 12px 12px 4px 4px;
+  background: repeating-linear-gradient(90deg, var(--stall) 0 18px, #fff3df 18px 36px);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .18);
+}
+.bazaar-stall-roof::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 4px;
+  right: 4px;
+  height: 11px;
+  background: radial-gradient(circle at 9px 0, var(--stall) 8px, #13120F 8.5px 10px, transparent 10.5px) 0 0 / 18px 11px repeat-x;
+}
+.bazaar-stall-body {
+  display: flex;
+  flex-direction: column;
+  margin: 0 9px;
+  overflow: hidden;
+  border: 3px solid #13120F;
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, .35);
+}
+.bazaar-stall-art {
+  display: flex;
+  height: 124px;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 20px 14px 6px;
+  background: radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--stall) 38%, transparent), transparent 70%), #1d1611;
+}
+.bazaar-stall-art > * { transition: transform 220ms cubic-bezier(.3, 1.6, .5, 1); }
+.bazaar-stall:hover .bazaar-stall-art > * { transform: translateY(-5px) rotate(-4deg) scale(1.05); }
+.bazaar-stall-counter {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  border-top: 3px solid #13120F;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 30px, rgba(42, 23, 8, .22) 30px 32px),
+    linear-gradient(180deg, #a86a35, #7d4a22);
+  padding: 7px 8px 16px;
+}
+.bazaar-stall-name { overflow: hidden; font-size: 15px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 0 #2a1708; }
+.bazaar-stall-meta { font-size: 12px; font-weight: 800; opacity: .88; }
+.bazaar-price-sign {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: 5px;
+  margin-top: -12px;
+  border: 3px solid #8b5a2b;
+  border-radius: 8px;
+  background: #1f2b25;
+  padding: 3px 12px;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 3px 0 #13120F;
+  transform: rotate(-2deg);
+}
+.bazaar-stall:nth-child(even) .bazaar-price-sign { transform: rotate(2deg); }
+.bazaar-price-sign img { width: 18px; height: 18px; object-fit: contain; }
+.bazaar-street {
+  flex: 1 0 70px;
+  margin: 34px calc(-1 * var(--scene-pad)) 0;
+  border-top: 6px solid #2a2431;
+  background-color: #463f4d;
+  background-image:
+    radial-gradient(ellipse 20px 11px at 50% 50%, #635a6b 62%, transparent 66%),
+    radial-gradient(ellipse 20px 11px at 50% 50%, #5a5162 62%, transparent 66%);
+  background-size: 48px 26px;
+  background-position: 0 0, 24px 13px;
+}
+.breadlet-blue-theme .bazaar-scene > p.bazaar-empty { position: relative; z-index: 1; border-color: #13120F; background: rgba(19, 18, 15, .75); }
+@media (max-width: 540px) {
+  .breadlet-blue-theme .bazaar-scene .bazaar-blook-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 10px; }
+  .bazaar-stall-art { height: 96px; padding: 16px 10px 4px; }
+  .bazaar-stall-body { margin: 0 6px; }
+}
+@media (max-width: 767px) { .breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign { margin-top: 5.5rem; } }
