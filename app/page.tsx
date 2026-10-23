@@ -444,6 +444,7 @@ const AUTO_OPEN_GUEST_LIMIT = 100;
 
 // Give up on a stuck login instead of leaving the button hanging forever.
 const AUTH_TIMEOUT_MS = 25000;
+const UPDATING_MESSAGE = "🔨 Quick maintenance: Breadlet is updating right now. Try again in a minute.";
 
 function MainPage() {
   const [player, setPlayer] = useState<Player | null>(null);
@@ -567,6 +568,12 @@ function MainPage() {
     };
   }, [userMenuOpen]);
 
+  // Tells the update-recovery script in layout.tsx that the game's scripts loaded and React is running.
+  useEffect(() => {
+    (window as Window & { __breadletReady?: boolean }).__breadletReady = true;
+    try { window.sessionStorage.removeItem("breadlet-update-reloads"); } catch {}
+  }, []);
+
   useEffect(() => {
     const restoreGuest = () => {
       const persistentGuest = window.localStorage.getItem(guestPlayerKey);
@@ -580,7 +587,10 @@ function MainPage() {
     if (supabaseClient) {
       // getSession reads the saved session locally (no network); /api/player then verifies it,
       // with a time limit so a slow login server can't leave the loading screen up forever.
-      supabaseClient.auth.getSession().then(async ({ data }) => {
+      // getSession can wait on the network to refresh an old token; never let it hang startup.
+      // If it's slow, ask /api/player anyway: it reads the login cookie on the server.
+      const slowSession = new Promise<{ data: { session: unknown } }>((resolve) => window.setTimeout(() => resolve({ data: { session: "unknown" } }), 8000));
+      Promise.race([supabaseClient.auth.getSession(), slowSession]).then(async ({ data }) => {
         if (!data.session) {
           restoreGuest();
           return;
@@ -590,7 +600,7 @@ function MainPage() {
         let response: Response | null = null;
         for (let attempt = 0; attempt < 4; attempt += 1) {
           if (attempt) await new Promise((resolve) => window.setTimeout(resolve, attempt * 2000));
-          response = await fetch("/api/player", { signal: AbortSignal.timeout(AUTH_TIMEOUT_MS) }).catch(() => null);
+          response = await fetch("/api/player", { signal: AbortSignal.timeout(12000) }).catch(() => null);
           if (response?.ok || response?.status === 401) break;
         }
         if (response?.ok) {
@@ -803,7 +813,7 @@ function MainPage() {
       try {
         await finishAccountLogin();
       } catch {
-        setNotice("Logging in is taking too long. Breadlet's login server may be having trouble, so try again in a few minutes.");
+        setNotice(UPDATING_MESSAGE);
       }
       return;
     }
@@ -818,7 +828,7 @@ function MainPage() {
         });
         const signupBody = await signupResponse.json().catch(() => null);
         if (!signupResponse.ok) {
-          result = { error: { message: signupBody?.error || "Could not create your account." } };
+          result = { error: { message: signupBody?.error || (signupResponse.status >= 500 ? UPDATING_MESSAGE : "Could not create your account.") } };
         } else {
           const loginResponse = await fetch("/api/auth/login", {
             method: "POST",
@@ -837,22 +847,28 @@ function MainPage() {
           body: JSON.stringify({ username: username.trim(), password }),
         });
         const loginBody = await loginResponse.json().catch(() => null);
-        result = { error: loginResponse.ok ? null : { message: loginBody?.error || "Log in failed. Check your username and password, then try again." } };
+        // A 5xx with no JSON body means the server is restarting for an update, not a wrong password.
+        result = { error: loginResponse.ok ? null : { message: loginBody?.error || (loginResponse.status >= 500 ? UPDATING_MESSAGE : "Log in failed. Check your username and password, then try again.") } };
       }
       if (result.error) {
         setNotice(result.error.message);
         return;
       }
-      await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 1000, materials: emptyMaterials() }) });
-      const response = await fetch("/api/player");
-      if (response.ok) {
+      await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 1000, materials: emptyMaterials() }) }).catch(() => null);
+      // Retry while the server finishes restarting instead of silently doing nothing.
+      let response: Response | null = null;
+      for (let attempt = 0; attempt < 4 && !response?.ok; attempt += 1) {
+        if (attempt) await new Promise((resolve) => window.setTimeout(resolve, attempt * 2000));
+        response = await fetch("/api/player", { signal: AbortSignal.timeout(12000) }).catch(() => null);
+      }
+      if (response?.ok) {
         pendingGuestRef.current = null;
         setIsGuest(false);
         setPlayer(playerFromServer(await response.json()));
         setViewedProfile(null);
         setNotice("");
         setTourOpen(true);
-      }
+      } else setNotice(UPDATING_MESSAGE);
       return;
     }
     const firstFiftyCount = Number(window.localStorage.getItem(firstFiftyKey) || "0");
@@ -1481,7 +1497,7 @@ function MainPage() {
         </div>
       </div>
     );
-  if (!player && booting) return <div className="fixed inset-0 bg-[#0b2a4d]" />;
+  if (!player && booting) return <BootScreen />;
   if (!player)
     return (
       <LoginScreen
@@ -1861,6 +1877,28 @@ function SignupBlookPile() {
   }, []);
 
   return null;
+}
+
+// Startup: blank for a moment (normal loads finish before anything shows), then, if the server
+// is slow because an update is going out, a "quick maintenance" card instead of a blank screen.
+function BootScreen() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSlow(true), 3000);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-[#E77D22] px-5">
+      {slow && (
+        <div role="status" className="w-full max-w-sm rounded-[22px] border-4 border-[#13120F] bg-[#27251F] p-7 text-center text-white shadow-[0_8px_0_#13120F]">
+          <Hammer size={52} className="maintenance-hammer mx-auto text-[#ffcb73]" />
+          <h1 className="mt-3 text-2xl font-black">Quick maintenance</h1>
+          <p className="mt-1 text-sm opacity-85">Breadlet is starting up. If an update just went out, this can take a few seconds.</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-5 w-full rounded-[14px] bg-[#ED7117] px-4 py-3 font-black">Reload</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Shown under a "banned" login error: the player explains themselves and an admin accepts or denies.
