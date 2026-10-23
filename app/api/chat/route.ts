@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isChatModerator, isProtectedFromMute, moderatorBadges } from '../../../lib/admin-access';
+import { isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
 import { runAiModeration } from '../../../lib/ai-moderator';
@@ -226,6 +226,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `You are timed out from chat for ${Math.ceil((mutedUntil - Date.now()) / 60000)} more minute(s).` }, { status: 403 });
   }
   if (networkBanned) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
+  // Accounts named to look like staff (e.g. breadbIook) can't chat, so they can't impersonate.
+  if (sender?.username && isStaffLookalike(sender.username)) {
+    return NextResponse.json({ error: 'Your username looks like a staff account, so you cannot chat. Ask a moderator to help you change it.' }, { status: 403 });
+  }
   if (sender?.username && !isNameAllowed(sender.username)) {
     return NextResponse.json({ error: 'Your username is not allowed, so you cannot chat. Ask a moderator for help.' }, { status: 403 });
   }

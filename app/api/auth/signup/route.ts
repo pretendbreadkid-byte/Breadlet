@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { isNameAllowed } from '../../../../lib/chat-filter';
+import { isStaffLookalike } from '../../../../lib/admin-access';
 import { NETWORK_BANNED_MESSAGE, deviceHasAccount, isNetworkBanned, networkIdentity, recordAccountDevice } from '../../../../lib/network-identity';
 
 export async function POST(request: Request) {
@@ -19,6 +20,9 @@ export async function POST(request: Request) {
   }
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(username) || password.length < 4) {
     return NextResponse.json({ error: 'Use a 3-20 character username (letters, numbers, underscores) and a password with at least 4 characters.' }, { status: 400 });
+  }
+  if (isStaffLookalike(username)) {
+    return NextResponse.json({ error: 'That username looks too much like a staff account. Please pick a different one.' }, { status: 400 });
   }
   if (!isNameAllowed(username)) {
     return NextResponse.json({ error: 'That username is not allowed. Please pick a different one.' }, { status: 400 });

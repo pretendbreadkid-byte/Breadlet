@@ -3,7 +3,7 @@ import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { isNameAllowed } from '../../../lib/chat-filter';
 import { recordAccountDevice } from '../../../lib/network-identity';
-import { moderatorBadges } from '../../../lib/admin-access';
+import { isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 
 const materialNames = ['Gold', 'Cloth', 'Gem', 'Sugar', 'Flower', 'Metal'];
 
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   const body = await request.json();
   const username = String(body.username || user.user_metadata?.username || user.email?.split('@')[0] || 'BreadletPlayer').trim().slice(0, 20);
-  if (!isNameAllowed(username)) return NextResponse.json({ error: 'That username is not allowed. Please pick a different one.' }, { status: 400 });
+  if (!isNameAllowed(username) || isStaffLookalike(username)) return NextResponse.json({ error: 'That username is not allowed. Please pick a different one.' }, { status: 400 });
 
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: 'Player setup is not configured.' }, { status: 503 });
