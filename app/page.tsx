@@ -1759,7 +1759,7 @@ function MainPage() {
           )}
           {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
           {tab === "explore" && player.exploreBeta && !isGuest && player.id && <BreadletExplore player={{ ...player, id: player.id }} artFor={artFor} />}
-          {tab === "chat" && <ChatTab emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
+          {tab === "chat" && <ChatTab refreshPlayer={refreshPlayerFromServer} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (
             <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} massDismantle={massDismantle} craft={craft} isGuest={isGuest} />
@@ -3667,7 +3667,7 @@ function SimplePanel({
   );
 }
 
-function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis }: { emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
+function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis, refreshPlayer }: { refreshPlayer: () => void | Promise<void>; emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; evilAi?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
@@ -3675,6 +3675,22 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   ]);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
+  // Word game prizes are paid on the server; when the bot announces that this player won,
+  // reload the balance so the Bread Bucks show up right away instead of after a refresh.
+  // Messages already in chat when it opens are only marked as seen.
+  const seenWinMessages = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const winText = `@${player.username.toLowerCase()} won`;
+    const wins = messages.filter((item) => item.isBreadletBot && item.id != null && item.text.toLowerCase().includes(winText)).map((item) => String(item.id));
+    if (!seenWinMessages.current) {
+      if (messages.some((item) => item.id != null)) seenWinMessages.current = new Set(wins);
+      return;
+    }
+    const fresh = wins.filter((id) => !seenWinMessages.current!.has(id));
+    if (!fresh.length) return;
+    fresh.forEach((id) => seenWinMessages.current!.add(id));
+    void refreshPlayer();
+  }, [messages, player.username, refreshPlayer]);
   const [replyTarget, setReplyTarget] = useState<{ id?: string | number; user: string; message: string } | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
