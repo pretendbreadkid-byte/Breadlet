@@ -2323,42 +2323,43 @@ function CapsulesTab({
     });
   };
   const stockOdds = new Map(marketPackStock.map(({ name, chance }) => [name, chance]));
-  // In-stock bags first; the catalog order is kept within each group.
-  const capsules = [...liveCapsules].sort((left, right) => Number(isMarketPackInStock(right.name, now)) - Number(isMarketPackInStock(left.name, now)));
-  const inStockCount = capsules.filter((capsule) => isMarketPackInStock(capsule.name, now)).length;
+  const freshBags = liveCapsules.filter((capsule) => isMarketPackInStock(capsule.name, now));
+  const soldOutBags = liveCapsules.filter((capsule) => !isMarketPackInStock(capsule.name, now));
+  const cabinet = (label: string, bags: Capsule[], soldOut: boolean) => (
+    <section className={`shop-cabinet ${soldOut ? "is-sold-out" : ""}`} aria-label={label}>
+      <div className="shop-cabinet-sign"><span>{label}</span></div>
+      <div className="shop-cabinet-shelves">
+        {bags.map((capsule) => (
+          <button key={capsule.name} type="button" onClick={() => setSelectedCapsule(capsule)} className="shop-shelf-bag" data-name={capsule.name} aria-label={`View ${capsule.name}`}>
+            <img src={capsule.art} alt="" className="shop-shelf-art" />
+            {soldOut && <span className="shop-sold-stamp" aria-hidden="true">Sold out</span>}
+            <span className="shop-price-tag"><img src="/assets/Bread%20bucks.svg" alt="" />{isGuest ? "Free" : capsule.price.toLocaleString()}</span>
+          </button>
+        ))}
+        {!bags.length && <p className="shop-cabinet-empty">Ted is restocking. Check back soon!</p>}
+      </div>
+    </section>
+  );
 
   return (
-    <div className="goodybags-page shop-market -m-3 min-h-full p-4 sm:-m-4 sm:p-6">
-      <button type="button" onClick={clickShopHeading} className="teds-shop-heading shop-title bg-transparent p-0" title="Ted's Shop">
-        Ted's Shop
-      </button>
-      <div className="shop-toolbar">
-        <div className="shop-restock">
-          <Clock size={18} aria-hidden="true" />
-          <span>New stock in</span>
-          <MarketRefreshCountdown />
+    <div className="goodybags-page shop-scene -m-3 min-h-full sm:-m-4">
+      <div className="shop-awning" aria-hidden="true" />
+      <div className="shop-header">
+        <button type="button" onClick={clickShopHeading} className="teds-shop-heading shop-title bg-transparent p-0" title="Ted's Shop">
+          Ted's Shop
+        </button>
+        <button type="button" aria-pressed={quickOpen} onClick={() => setQuickOpen(!quickOpen)} title="Faster opening animation" className="shop-switch"><span className="shop-switch-track"><Zap size={13} aria-hidden="true" /></span>Quick open</button>
+        <button type="button" aria-pressed={autoOpen} onClick={() => setAutoOpen(!autoOpen)} title="Keeps opening the pack you pick until you run out of Bread Bucks or click the screen" className="shop-switch"><span className="shop-switch-track"><Repeat size={13} aria-hidden="true" /></span>Auto open</button>
+        <div className="shop-header-right">
+          <div className="shop-restock" title="Stock rolls again every hour on the UTC hour"><Clock size={18} aria-hidden="true" /><span>Restock in</span><MarketRefreshCountdown /></div>
+          <button type="button" onClick={showStockOdds} className="shop-chip-button" title="Chance for each bag to be in stock" aria-label="Show stock chances"><Info size={18} /></button>
         </div>
-        <span className="shop-stock-count">{inStockCount} of {capsules.length} in stock</span>
-        <button type="button" onClick={showStockOdds} className="open-toggle"><Info size={16} aria-hidden="true" />Stock chances</button>
-        <button type="button" aria-pressed={quickOpen} onClick={() => setQuickOpen(!quickOpen)} title="Faster opening animation" className="open-toggle"><Zap size={16} aria-hidden="true" />Quick open</button>
-        <button type="button" aria-pressed={autoOpen} onClick={() => setAutoOpen(!autoOpen)} title="Keeps opening the pack you pick until you run out of Bread Bucks or click the screen" className="open-toggle"><Repeat size={16} aria-hidden="true" />Auto open</button>
       </div>
-      <section className="shop-pack-grid mt-5" aria-label="Ted's Shop Goodybags">
-        {capsules.map((capsule) => {
-          const inStock = isMarketPackInStock(capsule.name, now);
-          return (
-            <button key={capsule.name} type="button" onClick={() => setSelectedCapsule(capsule)} className={`shop-pack-card ${inStock ? "" : "is-sold-out"}`} aria-label={`View ${capsule.name}`}>
-              <span className={`shop-stock-pill ${inStock ? "is-in" : "is-out"}`}>{inStock ? "In stock" : "Sold out"}</span>
-              <div className="shop-art-stage">
-                <img src={capsule.art} alt="" className="shop-pack-art" />
-              </div>
-              <h2 className="mt-2 truncate text-sm font-black sm:text-base">{capsule.name}</h2>
-              <p className="mt-0.5 text-xs font-bold opacity-75">{capsule.pool.length} Breadlets inside</p>
-              <p className="bazaar-card-price"><img src="/assets/Bread%20bucks.svg" alt="" />{isGuest ? "Free" : capsule.price.toLocaleString()}</p>
-            </button>
-          );
-        })}
-      </section>
+      <div className="shop-cabinets">
+        {cabinet("Fresh stock", freshBags, false)}
+        {soldOutBags.length > 0 && cabinet("Sold out", soldOutBags, true)}
+      </div>
+      <div className="shop-floor" aria-hidden="true" />
       {tedVisible && <div className="ted-secret-appearance" aria-hidden="true"><img src="/assets/ted-shopkeeper.svg" alt="" /></div>}
       {tedCongrats && (
         <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
