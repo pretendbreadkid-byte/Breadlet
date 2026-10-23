@@ -770,7 +770,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
 .shop-cabinet-shelves {
   display: grid;
   min-height: calc(var(--shelf-row) * 3);
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-auto-rows: var(--shelf-row);
   border-radius: 8px;
   background:
@@ -828,12 +828,16 @@ section button[class*="h-20"]:hover:not(:disabled) {
   font-size: 15px;
   font-weight: 900;
   box-shadow: 0 3px 0 rgba(59, 31, 14, .35);
-  transform: translateX(-50%) rotate(-3deg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -6px) rotate(-3deg);
+  transition: opacity 150ms ease, transform 200ms ease;
 }
+/* The price only shows while hovering (or keyboard-focusing) a bag. */
+.shop-shelf-bag:hover .shop-price-tag, .shop-shelf-bag:focus-visible .shop-price-tag { opacity: 1; transform: translate(-50%, 0) rotate(-3deg); }
+.shop-shelf-bag:nth-child(even):hover .shop-price-tag, .shop-shelf-bag:nth-child(even):focus-visible .shop-price-tag { transform: translate(-50%, 0) rotate(3deg); }
 .shop-price-tag img { width: 18px; height: 18px; object-fit: contain; }
-.shop-shelf-bag:nth-child(even) .shop-price-tag { transform: translateX(-50%) rotate(3deg); }
 .shop-cabinet.is-sold-out .shop-shelf-art { filter: grayscale(.9) brightness(.62) drop-shadow(0 4px 2px rgba(30, 12, 2, .45)); }
-.shop-cabinet.is-sold-out .shop-price-tag { opacity: .75; }
 .shop-sold-stamp {
   position: absolute;
   bottom: 58px;
@@ -851,11 +855,23 @@ section button[class*="h-20"]:hover:not(:disabled) {
   transform: translateX(-50%) rotate(-14deg);
 }
 .shop-cabinet-empty { grid-column: 1 / -1; align-self: center; color: #fff3df; font-weight: 900; text-align: center; }
+/* The page forces all main text white; the shop's light signs, switches and tags need dark text. */
+main.breadlet-blue-theme.breadlet-blue-theme .shop-switch,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-switch *,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-chip-button,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-chip-button *,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-cabinet-sign span,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-price-tag { color: #3B1F0E !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-switch-track svg { color: #8a6a48 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-switch[aria-pressed="true"] .shop-switch-track svg { color: #2e7d32 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-cabinet.is-sold-out .shop-cabinet-sign span { color: #FFFFFF !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-sold-stamp { color: #c62f24 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-restock .font-mono { color: #ffcb73 !important; }
 @media (max-width: 640px) {
   .shop-scene { --shelf-row: 150px; }
   .shop-header-right { width: 100%; margin-left: 0; }
   .shop-cabinet { flex-basis: 100%; }
-  .shop-cabinet-shelves { min-height: calc(var(--shelf-row) * 2); grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 4px; }
+  .shop-cabinet-shelves { min-height: calc(var(--shelf-row) * 2); padding: 0 4px; }
   .shop-shelf-art { height: 96px; }
 }
 .shop-stock-pill {
