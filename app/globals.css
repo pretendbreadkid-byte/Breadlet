@@ -1661,7 +1661,7 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 
 /* Page titles sit in the top row beside the account island (not on Ted's shop, Bazaar or Profile). */
 @media (min-width: 768px) {
-  .breadlet-blue-theme .game-workspace:not([data-tab="capsules"]):not([data-tab="profile"]) {
+  .breadlet-blue-theme .game-workspace:not([data-tab="capsules"]):not([data-tab="market"]):not([data-tab="profile"]) {
     padding-top: 1.25rem;
   }
   .breadlet-blue-theme .game-workspace:not([data-tab="capsules"]):not([data-tab="market"]):not([data-tab="profile"]) h1 {
@@ -2029,7 +2029,8 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 .breadlet-blue-theme .open-toggle:hover:not(:disabled) { background: #27251F; }
 .breadlet-blue-theme .open-toggle[aria-pressed="true"] { border-color: #4ade80; background: #14301f; box-shadow: 0 3px 0 #0a1a10, 0 0 0 2px rgba(74, 222, 128, .35); }
 
-/* Bazaar: an evening outdoor market. Dusk sky with string lights, a hanging wooden sign,
+/* Bazaar: an outdoor market at sunset. Warm amber sky (close to the app's orange, so switching
+   tabs isn't jarring) with string lights, a hanging wooden sign,
    one market stall per Breadlet (roof colored by rarity) and a cobblestone street. */
 .breadlet-blue-theme .game-workspace[data-tab="market"] { padding: 0; overscroll-behavior: none; }
 .breadlet-blue-theme .bazaar-market.bazaar-scene {
@@ -2040,12 +2041,8 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
   overflow: hidden;
   padding: 0 var(--scene-pad);
   background:
-    radial-gradient(1.5px 1.5px at 12% 18%, #fff9 50%, transparent),
-    radial-gradient(1.5px 1.5px at 33% 9%, #fff8 50%, transparent),
-    radial-gradient(2px 2px at 58% 22%, #fffa 50%, transparent),
-    radial-gradient(1.5px 1.5px at 76% 12%, #fff7 50%, transparent),
-    radial-gradient(1.5px 1.5px at 91% 26%, #fff8 50%, transparent),
-    linear-gradient(180deg, #1b1538 0%, #33205a 30%, #6e3463 62%, #c9604a 88%, #e98a4c 100%) !important;
+    radial-gradient(ellipse 60% 40% at 50% 100%, #ffd08a66, transparent 70%),
+    linear-gradient(180deg, #5c2a12 0%, #8c3d16 22%, #c2561b 50%, #e56f1d 76%, #f39a4a 100%) !important;
 }
 .bazaar-lights { position: absolute; inset: 0 0 auto; z-index: 0; height: 60px; pointer-events: none; }
 .bazaar-lights::before, .bazaar-lights::after {
@@ -2054,7 +2051,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
   top: 0;
   width: 50%;
   height: 40px;
-  border-bottom: 2px solid #120d1f;
+  border-bottom: 2px solid #2a1708;
   border-radius: 0 0 50% 50% / 0 0 100% 100%;
 }
 .bazaar-lights::before { left: 0; }
@@ -2184,11 +2181,11 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 .bazaar-street {
   flex: 1 0 70px;
   margin: 34px calc(-1 * var(--scene-pad)) 0;
-  border-top: 6px solid #2a2431;
-  background-color: #463f4d;
+  border-top: 6px solid #4a2f1d;
+  background-color: #6e4f3a;
   background-image:
-    radial-gradient(ellipse 20px 11px at 50% 50%, #635a6b 62%, transparent 66%),
-    radial-gradient(ellipse 20px 11px at 50% 50%, #5a5162 62%, transparent 66%);
+    radial-gradient(ellipse 20px 11px at 50% 50%, #94705a 62%, transparent 66%),
+    radial-gradient(ellipse 20px 11px at 50% 50%, #876450 62%, transparent 66%);
   background-size: 48px 26px;
   background-position: 0 0, 24px 13px;
 }
