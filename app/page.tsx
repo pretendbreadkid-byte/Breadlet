@@ -524,6 +524,7 @@ function MainPage() {
   const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
   const seenNotificationIds = useRef(new Set<string>());
   const [inboxToast, setInboxToast] = useState<{ type: string; title: string; message: string } | null>(null);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const [onlineProfileIds, setOnlineProfileIds] = useState<string[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState<{ id: string; username: string; equippedBlook: string }[]>([]);
   const [presenceReady, setPresenceReady] = useState(false);
@@ -591,7 +592,7 @@ function MainPage() {
         if (freshInbox.length) {
           const latest = freshInbox[freshInbox.length - 1];
           if (settings.popups) setInboxToast(firstLoad && freshInbox.length > 1
-            ? { type: "summary", title: `You have ${freshInbox.length} new notifications`, message: "Open your Inbox on your profile to read them." }
+            ? { type: "summary", title: `You have ${freshInbox.length} new notifications`, message: "Click here to open your Inbox." }
             : { type: latest.type, title: latest.payload.title || "New notification", message: latest.payload.message || "" });
           if (settings.sounds) playChime();
         }
@@ -1797,12 +1798,13 @@ function MainPage() {
             </div>
           )}
           {inboxToast && (
-            <button type="button" role="status" onClick={() => { setInboxToast(null); setViewedProfile(null); setTab("profile"); }} className="inbox-toast" title="Open your Inbox">
+            <button type="button" role="status" onClick={() => { setInboxToast(null); setInboxOpen(true); }} className="inbox-toast" title="Open your Inbox">
               <span className="inbox-toast-icon" aria-hidden="true">{inboxIcons[inboxToast.type] || "🔔"}</span>
               <span className="min-w-0 text-left"><b>{inboxToast.title}</b>{inboxToast.message && <span>{inboxToast.message}</span>}</span>
             </button>
           )}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} markInboxRead={markNotificationsRead} />}
+          {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} />}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} />}
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
@@ -2146,8 +2148,9 @@ function LoginScreen({
   );
 }
 
-// Inbox on your own profile: @mentions, Bazaar sales, completed trades and gifts, newest first.
-function InboxPanel({ unreadCount, markRead }: { unreadCount: number; markRead: (body: { id: string } | { all: true }) => Promise<void> }) {
+// Inbox pop-up (from the Inbox button on your profile, or a toast): @mentions, Bazaar sales,
+// completed trades and gifts, newest first.
+function InboxModal({ unreadCount, markRead, close }: { unreadCount: number; markRead: (body: { id: string } | { all: true }) => Promise<void>; close: () => void }) {
   const [items, setItems] = useState<PlayerNotification[] | null>(null);
   const load = useCallback(async () => {
     const response = await fetch("/api/notifications?inbox=1", { cache: "no-store" }).catch(() => null);
@@ -2167,9 +2170,10 @@ function InboxPanel({ unreadCount, markRead }: { unreadCount: number; markRead: 
   };
   const unread = items?.filter((item) => !item.is_read).length || 0;
   return (
-    <section className="profile-list-panel inbox-panel" id="profile-inbox">
-      <div className="profile-list-heading"><h2>📬 Inbox{unread ? ` (${unread} new)` : ""}</h2>{unread > 0 && <button type="button" onClick={() => void readAll()}>Mark all read</button>}</div>
-      <div className="profile-list-body inbox-list">
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
+    <section className="inbox-modal" role="dialog" aria-modal="true" aria-labelledby="inbox-heading">
+      <div className="inbox-modal-header"><h2 id="inbox-heading">📬 Inbox{unread ? ` (${unread} new)` : ""}</h2>{unread > 0 && <button type="button" onClick={() => void readAll()} className="inbox-read-all">Mark all read</button>}<button type="button" onClick={close} aria-label="Close inbox" className="bazaar-offers-close">×</button></div>
+      <div className="inbox-list">
         {items === null && <span className="profile-empty">Loading your inbox...</span>}
         {items?.length === 0 && <span className="profile-empty">Nothing yet. @mentions, Bazaar sales and finished trades show up here.</span>}
         {items?.map((item) => (
@@ -2181,6 +2185,7 @@ function InboxPanel({ unreadCount, markRead }: { unreadCount: number; markRead: 
         ))}
       </div>
     </section>
+    </div>
   );
 }
 
@@ -2197,7 +2202,7 @@ function ProfileTab({
   openPlayerProfile,
   closeViewedProfile,
   inboxUnreadCount,
-  markInboxRead,
+  openInbox,
 }: {
   player: Player;
   setTab: (tab: Tab) => void;
@@ -2211,7 +2216,7 @@ function ProfileTab({
   openPlayerProfile: (username: string) => void | Promise<void>;
   closeViewedProfile: () => void;
   inboxUnreadCount: number;
-  markInboxRead: (body: { id: string } | { all: true }) => Promise<void>;
+  openInbox: () => void;
 }) {
   const [lookup, setLookup] = useState("");
   const [matches, setMatches] = useState<PublicProfile[]>([]);
@@ -2351,7 +2356,7 @@ function ProfileTab({
           <div className="profile-avatar-frame profile-avatar-float">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <CircleUserRound size={52} />}</div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
-            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button></div>
+            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
           </div>
         </section>
         <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{tokenBadges.at(-1) || "Token milestones: 10K · 100K · 1M"}</div></section>
@@ -2363,7 +2368,6 @@ function ProfileTab({
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
         <ProfileMetric label="Account Age" value={accountAgeLabel(profileCreatedAt)} icon={<CalendarDays size={38} strokeWidth={2.4} />} />
       </div></section>
-      {!viewingOther && !isGuest && <InboxPanel unreadCount={inboxUnreadCount} markRead={markInboxRead} />}
       <div className="profile-lower-grid"><section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends{friendsData.friends.length ? ` (${friendsData.friends.length})` : ""}</h2>{!viewingOther ? <button onClick={openLookup}>Find Player</button> : !isGuest && (friendsData.relation === "none" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Add Friend</button> : friendsData.relation === "pending-in" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Accept</button> : friendsData.relation === "pending-out" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Request Sent (Cancel)</button> : friendsData.relation === "friends" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Unfriend</button> : null)}</div><div className="profile-list-body">
         {!viewingOther && friendsData.incoming.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} wants to be friends</span><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "accept" })}>Accept</button><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "decline" })}>Decline</button></div>)}
         {friendsData.friends.length ? friendsData.friends.map((friend) => <div key={friend.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><button onClick={() => void openPlayerProfile(friend.username)} className="min-w-0 flex-1 truncate text-left font-bold">{friend.username}</button>{!viewingOther && <button onClick={() => void friendAction("DELETE", { friendProfileId: friend.id })}>Remove</button>}</div>) : !friendsData.incoming.length && <p className="profile-empty">{isGuest ? "Sign in to add friends." : "No friends yet."}</p>}
