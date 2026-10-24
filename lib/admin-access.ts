@@ -6,7 +6,7 @@ export async function hasAdminAccess(database: any, userId: string): Promise<boo
   return String(profile?.username || '').trim().toLowerCase() === ADMIN_USERNAME;
 }
 // Chat moderators can delete messages and time players out for 30 minutes.
-export const MODERATOR_USERNAMES = ['ethan32'];
+export const MODERATOR_USERNAMES = ['ethan32', 'xyl1x'];
 
 export async function isChatModerator(database: any, userId: string): Promise<boolean> {
   const { data: profile } = await database.from('profiles').select('username').eq('id', userId).maybeSingle();
