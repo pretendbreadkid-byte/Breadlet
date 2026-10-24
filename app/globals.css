@@ -2378,3 +2378,6 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 }
 main.breadlet-blue-theme.breadlet-blue-theme .shop-soon-stamp { color: #12507d !important; }
 .shop-stock-pill.is-soon { background: #102a3d; color: #8fd3ff; box-shadow: inset 0 0 0 1px #8fd3ff66; }
+.boot-logo { animation: boot-bob 1.4s ease-in-out infinite; }
+@keyframes boot-bob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .boot-logo { animation: none; } }

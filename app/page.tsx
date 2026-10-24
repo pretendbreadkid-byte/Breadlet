@@ -2000,22 +2000,24 @@ function SignupBlookPile() {
   return null;
 }
 
-// Startup: blank for a moment (normal loads finish before anything shows), then, if the server
-// is slow because an update is going out, a "quick maintenance" card instead of a blank screen.
+// Startup: blank for a moment (normal loads finish before anything shows), then a loading card.
+// It never says "maintenance": a slow load isn't an update. That card only comes from the
+// update-recovery script in layout.tsx, when a script file the page needs has been deleted.
 function BootScreen() {
-  const [slow, setSlow] = useState(false);
+  const [stage, setStage] = useState<"blank" | "loading" | "slow">("blank");
   useEffect(() => {
-    const timer = window.setTimeout(() => setSlow(true), 3000);
-    return () => window.clearTimeout(timer);
+    const loading = window.setTimeout(() => setStage("loading"), 3000);
+    const slow = window.setTimeout(() => setStage("slow"), 20000);
+    return () => { window.clearTimeout(loading); window.clearTimeout(slow); };
   }, []);
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[#E77D22] px-5">
-      {slow && (
+      {stage !== "blank" && (
         <div role="status" className="w-full max-w-sm rounded-[22px] border-4 border-[#13120F] bg-[#27251F] p-7 text-center text-white shadow-[0_8px_0_#13120F]">
-          <Hammer size={52} className="maintenance-hammer mx-auto text-[#ffcb73]" />
-          <h1 className="mt-3 text-2xl font-black">Quick maintenance</h1>
-          <p className="mt-1 text-sm opacity-85">Breadlet is starting up. If an update just went out, this can take a few seconds.</p>
-          <button type="button" onClick={() => window.location.reload()} className="mt-5 w-full rounded-[14px] bg-[#ED7117] px-4 py-3 font-black">Reload</button>
+          <img src="/assets/breadlet-logo.svg" alt="" className="boot-logo mx-auto h-16 w-16 object-contain" />
+          <h1 className="mt-3 text-2xl font-black">Loading Breadlet...</h1>
+          <p className="mt-1 text-sm opacity-85">{stage === "slow" ? "This is taking longer than usual. Your connection or our server might be slow." : "Getting your Breadlets ready."}</p>
+          {stage === "slow" && <button type="button" onClick={() => window.location.reload()} className="mt-5 w-full rounded-[14px] bg-[#ED7117] px-4 py-3 font-black">Reload</button>}
         </div>
       )}
     </div>

@@ -16,13 +16,17 @@ export const metadata: Metadata = {
 // blank blue screen until the cached copy expired.
 export const dynamic = 'force-dynamic';
 
-// Runs before React. If the game's scripts fail to load (an update just went out) or the app
-// never starts, show a "quick maintenance" screen and reload, backing off if it keeps failing.
+// Runs before React. When one of the game's script files fails to load, it asks the server for
+// that file again: a 404 means an update just went out and deleted it, so it shows the
+// "quick maintenance" card and reloads (backing off if that keeps happening). Any other failure
+// (a network blip, an ad blocker) is not an update: before the game has started it retries once
+// quietly, and once the game is running it leaves the page alone.
 // The page sets window.__breadletReady once React is running.
 const updateRecovery = `(function () {
   var shown = false;
-  function recover() {
-    if (shown || window.__breadletReady) return;
+  var checking = false;
+  function showMaintenance() {
+    if (shown) return;
     shown = true;
     var key = 'breadlet-update-reloads';
     var now = Date.now();
@@ -46,18 +50,35 @@ const updateRecovery = `(function () {
     if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
     setTimeout(function () { location.reload(); }, wait);
   }
-  window.__breadletRecover = recover;
+  function quietRetry() {
+    if (window.__breadletReady) return;
+    var key = 'breadlet-quiet-retry';
+    var last = 0;
+    try { last = Number(sessionStorage.getItem(key)) || 0; } catch (e) {}
+    if (Date.now() - last < 60000) return;
+    try { sessionStorage.setItem(key, String(Date.now())); } catch (e) {}
+    location.reload();
+  }
+  function scriptFailed(url) {
+    if (shown || checking) return;
+    if (!url) return quietRetry();
+    checking = true;
+    fetch(url, { method: 'HEAD', cache: 'no-store' })
+      .then(function (response) { checking = false; if (response.status === 404) showMaintenance(); else quietRetry(); })
+      .catch(function () { checking = false; quietRetry(); });
+  }
   window.addEventListener('error', function (event) {
     var target = event.target;
     var url = target && (target.src || target.href);
-    if (url && String(url).indexOf('/_next/') !== -1) recover();
+    if (url && String(url).indexOf('/_next/') !== -1) scriptFailed(String(url));
   }, true);
   window.addEventListener('unhandledrejection', function (event) {
     var reason = event.reason;
     var text = String((reason && (reason.name + ' ' + reason.message)) || reason);
-    if (/ChunkLoadError|Loading chunk|Loading CSS chunk|Failed to fetch dynamically imported module/i.test(text)) recover();
+    if (!/ChunkLoadError|Loading chunk|Loading CSS chunk|Failed to fetch dynamically imported module/i.test(text)) return;
+    var match = text.match(/(https?:[^\\s)]+|\\/_next\\/[^\\s)]+)/);
+    scriptFailed(match ? match[1] : '');
   });
-  setTimeout(recover, 15000);
 })();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
