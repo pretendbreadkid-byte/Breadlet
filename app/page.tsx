@@ -755,6 +755,24 @@ function MainPage() {
       setOnlineProfileIds([]);
     };
   }, [isGuest, player?.equipped, player?.id, player?.username, supabaseClient]);
+  // Most-players-online record: report who's online only when it beats the record we know of,
+  // at most once every 30s, so this costs almost nothing.
+  const knownOnlineRecord = useRef<number | null>(null);
+  const lastRecordReport = useRef(0);
+  useEffect(() => {
+    if (!player?.id || isGuest) return;
+    fetch("/api/online-record", { cache: "no-store" }).then((response) => (response.ok ? response.json() : null)).then((data) => {
+      if (data) knownOnlineRecord.current = Number(data.record) || 0;
+    }).catch(() => undefined);
+  }, [isGuest, player?.id]);
+  useEffect(() => {
+    if (knownOnlineRecord.current === null || onlinePlayers.length <= knownOnlineRecord.current || Date.now() - lastRecordReport.current < 30000) return;
+    lastRecordReport.current = Date.now();
+    fetch("/api/online-record", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: onlinePlayers.map((entry) => entry.id) }) })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => { if (data) knownOnlineRecord.current = Number(data.record) || knownOnlineRecord.current; })
+      .catch(() => undefined);
+  }, [onlinePlayers]);
   useEffect(() => {
     const logo = document.querySelector('header img[alt="Breadlet logo"]');
     if (!logo) return;
@@ -1854,6 +1872,7 @@ function MainPage() {
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
+              onlineNow={onlinePlayers.length}
               grantReward={grantReward}
               moderateAccount={moderateAccount}
               announcement={announcement}
@@ -4782,6 +4801,39 @@ function AltSuspectsPanel() {
   );
 }
 
+// Most players online at once (see /api/online-record), next to how many are on right now.
+function OnlineRecordPanel({ onlineNow }: { onlineNow: number }) {
+  const [record, setRecord] = useState<{ record: number; at: string | null } | null>(null);
+  const [error, setError] = useState("");
+  const load = useCallback(async () => {
+    const response = await fetch("/api/online-record", { cache: "no-store" }).catch(() => null);
+    const data = await response?.json().catch(() => null);
+    if (response?.ok && data) { setRecord(data); setError(""); } else setError(data?.error || "Could not load the record.");
+  }, []);
+  // Reload when the online count changes, so a new record shows up while you watch.
+  useEffect(() => { void load(); }, [load, onlineNow]);
+  const best = Math.max(record?.record || 0, onlineNow);
+  return (
+    <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
+      <h2 className="text-2xl font-black text-[#bde8ff]">🏆 Most Players Online</h2>
+      <p className="mt-1 text-sm text-[#9cc8e8]">The record for the most players online at the same time.</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl bg-[#13120F] p-4">
+          <p className="text-xs font-black uppercase tracking-widest opacity-70">Record</p>
+          <p className="mt-1 text-4xl font-black text-[#ffcb73]">{best.toLocaleString()}</p>
+          <p className="mt-1 text-sm font-bold opacity-80">{record?.at ? `Set ${new Date(record.at).toLocaleString()}` : "Not set yet"}</p>
+        </div>
+        <div className="rounded-2xl bg-[#13120F] p-4">
+          <p className="text-xs font-black uppercase tracking-widest opacity-70">Online right now</p>
+          <p className="mt-1 text-4xl font-black text-emerald-300">{onlineNow.toLocaleString()}</p>
+          <p className="mt-1 text-sm font-bold opacity-80">{best > 0 ? `${Math.round((onlineNow / best) * 100)}% of the record` : ""}</p>
+        </div>
+      </div>
+      {error && <p role="alert" className="mt-3 text-sm font-bold text-rose-200">{error}</p>}
+    </div>
+  );
+}
+
 // Evil AI mode for everyone for a set time, plus a quick toggle for the admin's own account.
 function EvilAiAdminPanel() {
   const [globalUntil, setGlobalUntil] = useState<string | null>(null);
@@ -4836,6 +4888,7 @@ function EvilAiAdminPanel() {
 
 function AdminTab({
   player,
+  onlineNow,
   grantReward,
   moderateAccount,
   announcement,
@@ -4846,6 +4899,7 @@ function AdminTab({
   grantGift,
 }: {
   player: Player;
+  onlineNow: number;
   grantReward: (targetId: string, reward: { operation?: "add" | "remove"; tokens?: number; candy?: number; blookName?: string; badge?: string; material?: string; materialAmount?: number }) => Promise<void>;
   moderateAccount: (action: "ban" | "delete", payload: Record<string, unknown>) => Promise<boolean>;
   announcement: string;
@@ -5012,6 +5066,7 @@ function AdminTab({
         </div>
       </div>
 
+      <OnlineRecordPanel onlineNow={onlineNow} />
       <EvilAiAdminPanel />
 
       {/* Maintenance Mode */}
