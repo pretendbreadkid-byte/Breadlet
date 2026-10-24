@@ -28,13 +28,23 @@ export async function isNetworkBanned(admin: any, request: Request) {
   return !error && data === true;
 }
 
-// Remembers which devices and IPs an account uses, so a ban can follow it.
+// Remembers which devices and IPs an account uses, so a ban can follow it. Each server instance
+// writes a given account+device+IP at most once every 15 minutes (it used to write on every
+// page load). Returns true when it wrote.
+const RECORD_EVERY_MS = 15 * 60 * 1000;
+const recentlyRecorded = new Map<string, number>();
 export async function recordAccountDevice(admin: any, request: Request, profileId: string) {
   const { ipHash, deviceHash } = networkIdentity(request);
+  const key = `${profileId}|${deviceHash}|${ipHash}`;
+  const now = Date.now();
+  if (now - (recentlyRecorded.get(key) || 0) < RECORD_EVERY_MS) return false;
+  recentlyRecorded.set(key, now);
+  if (recentlyRecorded.size > 5000) recentlyRecorded.delete(recentlyRecorded.keys().next().value as string);
   await admin.from('account_devices').upsert(
     { profile_id: profileId, device_hash: deviceHash, ip_hash: ipHash, last_seen_at: new Date().toISOString() },
     { onConflict: 'profile_id,device_hash,ip_hash' },
   ).then(() => undefined, () => undefined);
+  return true;
 }
 
 export async function deviceHasAccount(admin: any, request: Request) {

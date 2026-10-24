@@ -22,16 +22,22 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   const inventoryAdmin = createAdminClient();
   if (!inventoryAdmin) return NextResponse.json({ error: 'Server inventory saving is not configured.' }, { status: 503 });
-  void recordAccountDevice(inventoryAdmin, request, user.id).then(() => autoBanDeviceAlts(inventoryAdmin, request)).catch(() => undefined);
+  // Only re-check for alts when the device record was actually (re)written.
+  void recordAccountDevice(inventoryAdmin, request, user.id).then((recorded) => recorded ? autoBanDeviceAlts(inventoryAdmin, request) : undefined).catch(() => undefined);
 
+  // The profile counts and Bazaar listings are the heavy part and change slowly, so they are only
+  // loaded with ?full=1 (startup and opening your profile). Calls after a pack opening, sale or
+  // trade skip them and the client keeps its last values.
+  const full = new URL(request.url).searchParams.get('full') === '1';
+  const skipped = Promise.resolve({ data: null, count: null } as any);
   const [{ data: profile, error: profileError }, { data: inventory }, { data: mine }, { data: listings }, capsuleCount, messageCount, tradeCount] = await Promise.all([
     supabase.from('profiles').select('*, equipped:blooks!profiles_equipped_blook_fk(name)').eq('id', user.id).single(),
     inventoryAdmin.from('inventory').select('quantity, shiny, blooks(name)').eq('profile_id', user.id),
     supabase.from('mine_progress').select('*').eq('profile_id', user.id).maybeSingle(),
-    supabase.from('marketplace_listings').select('id, price, status, blooks(name), profiles(username)').eq('status', 'active').order('created_at', { ascending: false }).limit(100),
-    inventoryAdmin.from('chest_rolls').select('id', { count: 'exact', head: true }).eq('profile_id', user.id),
-    inventoryAdmin.from('global_chat_messages').select('id', { count: 'exact', head: true }).eq('profile_id', user.id).eq('is_breadlet_bot', false).is('deleted_at', null),
-    inventoryAdmin.from('trades').select('id', { count: 'exact', head: true }).or(`sender_profile_id.eq.${user.id},receiver_profile_id.eq.${user.id}`).eq('status', 'completed'),
+    full ? supabase.from('marketplace_listings').select('id, price, status, blooks(name), profiles(username)').eq('status', 'active').order('created_at', { ascending: false }).limit(100) : skipped,
+    full ? inventoryAdmin.from('chest_rolls').select('id', { count: 'exact', head: true }).eq('profile_id', user.id) : skipped,
+    full ? inventoryAdmin.from('global_chat_messages').select('id', { count: 'exact', head: true }).eq('profile_id', user.id).eq('is_breadlet_bot', false).is('deleted_at', null) : skipped,
+    full ? inventoryAdmin.from('trades').select('id', { count: 'exact', head: true }).or(`sender_profile_id.eq.${user.id},receiver_profile_id.eq.${user.id}`).eq('status', 'completed') : skipped,
   ]);
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
   const { equipped: equippedRow, ...profileFields } = profile as any;
@@ -56,17 +62,17 @@ export async function GET(request: Request) {
     ),
     materials: { ...emptyMaterials(), ...(profile.materials || {}) },
     mine,
-    activity: {
+    activity: full ? {
       capsulesOpened: (capsuleCount.count || 0) + (Number(profile.stats?.capsulesOpened) || 0),
       messagesSent: messageCount.count || 0,
       completedTrades: tradeCount.count || 0,
-    },
-    listings: (listings || []).map((listing: any) => ({
+    } : null,
+    listings: full ? (listings || []).map((listing: any) => ({
       id: listing.id,
       seller: listing.profiles?.username || 'Player',
       blook: listing.blooks?.name || 'Bread Blook',
       price: listing.price,
-    })),
+    })) : null,
   });
 }
 

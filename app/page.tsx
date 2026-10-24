@@ -441,8 +441,14 @@ const accountAgeLabel = (createdAt?: string | null) => {
   return plural(Math.floor(days / 365), "year");
 };
 
+// /api/player only sends the profile counts and Bazaar listings with ?full=1 (startup, login,
+// opening your profile); other responses leave them out, so the last ones received are kept.
+let lastFullPlayerData: { id: string; activity: any; listings: any[] } | null = null;
 function playerFromServer(data: any): Player {
   const inventory = (data.inventory || []).map((name: string) => name === "Surgeon" ? "Doctor" : name);
+  const kept = lastFullPlayerData?.id === data.profile.id ? lastFullPlayerData : null;
+  if (data.activity || Array.isArray(data.listings)) lastFullPlayerData = { id: data.profile.id, activity: data.activity || kept?.activity || null, listings: Array.isArray(data.listings) ? data.listings : kept?.listings || [] };
+  data = { ...data, activity: data.activity || kept?.activity, listings: Array.isArray(data.listings) ? data.listings : kept?.listings };
   return {
     id: data.profile.id,
     username: data.profile.username,
@@ -545,8 +551,9 @@ function MainPage() {
   const [onlinePlayers, setOnlinePlayers] = useState<{ id: string; username: string; equippedBlook: string }[]>([]);
   const [presenceReady, setPresenceReady] = useState(false);
   const { emojis: customEmojis, canManage: canManageEmojis, reload: reloadEmojis } = useCustomEmojis(Boolean(supabaseClient) && !isGuest && Boolean(player));
-  const refreshPlayerFromServer = useCallback(async () => {
-    const refreshed = await fetch("/api/player", { cache: "no-store" }).catch(() => null);
+  // { full: true } also reloads the profile counts and Bazaar listings (see playerFromServer).
+  const refreshPlayerFromServer = useCallback(async (options?: { full?: boolean }) => {
+    const refreshed = await fetch(options?.full === true ? "/api/player?full=1" : "/api/player", { cache: "no-store" }).catch(() => null);
     if (refreshed?.ok) setPlayer(playerFromServer(await refreshed.json()));
   }, []);
   const [viewedProfile, setViewedProfile] = useState<PublicProfile | null>(null);
@@ -617,7 +624,8 @@ function MainPage() {
       })
       .catch(() => undefined);
     void load();
-    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 20000);
+    // Every 60s (was 20s) to go easy on the database's disk budget.
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 60000);
     return () => window.clearInterval(timer);
   }, [isGuest, player?.id, refreshPlayerFromServer]);
 
@@ -689,7 +697,7 @@ function MainPage() {
         let response: Response | null = null;
         for (let attempt = 0; attempt < 4; attempt += 1) {
           if (attempt) await new Promise((resolve) => window.setTimeout(resolve, attempt * 2000));
-          response = await fetch("/api/player", { signal: AbortSignal.timeout(12000) }).catch(() => null);
+          response = await fetch("/api/player?full=1", { signal: AbortSignal.timeout(12000) }).catch(() => null);
           if (response?.ok || response?.status === 401) break;
         }
         if (response?.ok) {
@@ -966,7 +974,7 @@ function MainPage() {
       let response: Response | null = null;
       for (let attempt = 0; attempt < 4 && !response?.ok; attempt += 1) {
         if (attempt) await new Promise((resolve) => window.setTimeout(resolve, attempt * 2000));
-        response = await fetch("/api/player", { signal: AbortSignal.timeout(12000) }).catch(() => null);
+        response = await fetch("/api/player?full=1", { signal: AbortSignal.timeout(12000) }).catch(() => null);
       }
       if (response?.ok) {
         pendingGuestRef.current = null;
@@ -1843,7 +1851,7 @@ function MainPage() {
             </button>
           )}
           {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} />}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} />}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} />}
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
@@ -2245,6 +2253,7 @@ function ProfileTab({
   closeViewedProfile,
   inboxUnreadCount,
   openInbox,
+  refreshStats,
 }: {
   player: Player;
   setTab: (tab: Tab) => void;
@@ -2259,7 +2268,14 @@ function ProfileTab({
   closeViewedProfile: () => void;
   inboxUnreadCount: number;
   openInbox: () => void;
+  refreshStats: () => void | Promise<void>;
 }) {
+  // Opening your profile reloads the counts it shows (bags opened, messages, trades).
+  useEffect(() => {
+    if (!isGuest) void refreshStats();
+    // Once per visit to the tab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [lookup, setLookup] = useState("");
   const [matches, setMatches] = useState<PublicProfile[]>([]);
   const [trades, setTrades] = useState<any[]>([]);
