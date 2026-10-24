@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { NEW_ACCOUNT_HOURS, NEW_ACCOUNT_MESSAGE, tooNewAccount } from '../../../lib/account-age';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
+import { notify } from '../../../lib/inbox';
 
 type OfferedBlook = { name: string; quantity: number };
 type TradeOffer = { tokens: number; blooks: OfferedBlook[] };
@@ -161,6 +162,12 @@ export async function POST(request: Request) {
   if (data?.status === 'completed') {
     const { error: candyError } = await session.admin.rpc('award_trade_candy', { p_trade_id: tradeId });
     if (candyError) console.error('Trade Candy award failed:', candyError.code);
+    // Both players get the finished trade in their inbox.
+    const { data: names } = await session.admin.from('profiles').select('id, username').in('id', [trade.sender_profile_id, trade.receiver_profile_id]);
+    const nameOf = (id: string) => (names || []).find((row: any) => row.id === id)?.username || 'a player';
+    for (const [me, other] of [[trade.sender_profile_id, trade.receiver_profile_id], [trade.receiver_profile_id, trade.sender_profile_id]]) {
+      await notify(session.admin, me, 'trade_completed', { title: `Trade with ${nameOf(other)} completed`, message: 'Your Breadlets and Bread Bucks were swapped. Check your collection.', from: nameOf(other) });
+    }
   }
   return NextResponse.json(data);
 }

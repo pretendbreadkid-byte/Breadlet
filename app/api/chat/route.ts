@@ -5,6 +5,7 @@ import { gameKnowledge } from '../../../lib/game-knowledge';
 import { runAiModeration } from '../../../lib/ai-moderator';
 import { evilUntil, isEvilActive, isEvilFor } from '../../../lib/evil-ai';
 import { ogBadges } from '../../../lib/og-badge';
+import { mentionedNames, notify } from '../../../lib/inbox';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { filterProfanity, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
@@ -349,6 +350,16 @@ export async function POST(request: Request) {
   }
 
   void runAiModeration(database).catch(() => undefined);
+
+  // @mentions go to the mentioned players' inboxes (with a toast and chime in their game).
+  const mentions = isImageMessage ? [] : mentionedNames(message).filter((name) => name !== String(sender?.username || '').toLowerCase());
+  if (mentions.length) {
+    void (async () => {
+      const { data: targets } = await database.from('profiles').select('id, username').or(mentions.map((name) => `username.ilike.${name}`).join(','));
+      const ids = (targets || []).filter((target: any) => mentions.includes(String(target.username).toLowerCase()) && target.id !== user.id).map((target: any) => target.id);
+      await notify(database, ids, 'mention', { title: `${sender?.username || 'Someone'} mentioned you in chat`, message: message.slice(0, 200), from: sender?.username || '' });
+    })().catch(() => undefined);
+  }
 
   // Let word games (word race / unscramble) react to the message.
   if (!isImageMessage) {

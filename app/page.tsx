@@ -5,7 +5,8 @@ import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
-import { SettingsTab } from "./components/settings-tab";
+import { SettingsTab, readSettings } from "./components/settings-tab";
+import { isInboxType } from "../lib/inbox";
 import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
@@ -106,7 +107,34 @@ type PublicProfile = {
   createdAt?: string | null;
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
-type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number } };
+type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number; from?: string }; is_read?: boolean; created_at?: string };
+
+const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", admin_gift: "🎁", summary: "📬" };
+
+// A short two-note chime for new Inbox notifications (Web Audio, so no sound file to load).
+function playChime() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
+    [880, 1320].forEach((frequency, index) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      const start = context.currentTime + index * 0.13;
+      oscillator.type = "sine";
+      oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(start + 0.4);
+    });
+    window.setTimeout(() => void context.close(), 1000);
+  } catch {
+    // Some browsers block audio until the player has clicked something; the toast still shows.
+  }
+}
 type ClanRecord = {
   id?: string;
   name: string;
@@ -494,6 +522,8 @@ function MainPage() {
   const [tab, setTab] = useState<Tab>("profile");
   const [notice, setNotice] = useState("");
   const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
+  const seenNotificationIds = useRef(new Set<string>());
+  const [inboxToast, setInboxToast] = useState<{ type: string; title: string; message: string } | null>(null);
   const [onlineProfileIds, setOnlineProfileIds] = useState<string[]>([]);
   const [onlinePlayers, setOnlinePlayers] = useState<{ id: string; username: string; equippedBlook: string }[]>([]);
   const [presenceReady, setPresenceReady] = useState(false);
@@ -547,31 +577,51 @@ function MainPage() {
       setPlayerNotifications([]);
       return;
     }
+    let firstLoad = true;
     const load = () => fetch("/api/notifications", { cache: "no-store" })
       .then(async (response) => response.ok ? response.json() : [])
       .then((rows) => {
         if (!Array.isArray(rows)) return;
-        setPlayerNotifications((current) => {
-          const known = new Set(current.map((item) => item.id));
-          if (rows.some((row) => !known.has(row.id) && row.type === "admin_gift")) void refreshPlayerFromServer();
-          return rows;
-        });
+        const fresh = rows.filter((row) => !seenNotificationIds.current.has(row.id));
+        rows.forEach((row) => seenNotificationIds.current.add(row.id));
+        if (fresh.some((row) => row.type === "admin_gift" || row.type === "bazaar_sale" || row.type === "trade_completed")) void refreshPlayerFromServer();
+        // Mentions, sales and trades: a toast and chime for new ones (one summary on page load).
+        const settings = readSettings();
+        const freshInbox = fresh.filter((row) => isInboxType(row.type) && (row.type !== "mention" || settings.chatMentions) && (row.type !== "trade_completed" || settings.tradeOffers));
+        if (freshInbox.length) {
+          const latest = freshInbox[freshInbox.length - 1];
+          if (settings.popups) setInboxToast(firstLoad && freshInbox.length > 1
+            ? { type: "summary", title: `You have ${freshInbox.length} new notifications`, message: "Open your Inbox on your profile to read them." }
+            : { type: latest.type, title: latest.payload.title || "New notification", message: latest.payload.message || "" });
+          if (settings.sounds) playChime();
+        }
+        firstLoad = false;
+        setPlayerNotifications(rows);
       })
       .catch(() => undefined);
     void load();
-    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 60000);
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 20000);
     return () => window.clearInterval(timer);
   }, [isGuest, player?.id, refreshPlayerFromServer]);
 
+  useEffect(() => {
+    if (!inboxToast) return;
+    const timer = window.setTimeout(() => setInboxToast(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [inboxToast]);
+
+  // Pop-ups are only for notifications outside the Inbox (admin gifts, Breadlet swaps).
+  const popupNotifications = playerNotifications.filter((item) => !isInboxType(item.type));
+  const inboxUnreadCount = playerNotifications.filter((item) => isInboxType(item.type)).length;
+
+  const markNotificationsRead = async (body: { id: string } | { all: true }) => {
+    await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => undefined);
+    setPlayerNotifications((notifications) => "all" in body ? notifications.filter((item) => !isInboxType(item.type)) : notifications.filter((item) => item.id !== body.id));
+  };
+
   const dismissPlayerNotification = async () => {
-    const current = playerNotifications[0];
-    if (!current) return;
-    await fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: current.id }),
-    }).catch(() => undefined);
-    setPlayerNotifications((notifications) => notifications.slice(1));
+    const current = popupNotifications[0];
+    if (current) await markNotificationsRead({ id: current.id });
   };
 
   useEffect(() => {
@@ -1602,6 +1652,7 @@ function MainPage() {
               >
                 {item.icon}
                 <span className="flex min-w-0 flex-col items-start leading-none"><span>{item.label}</span></span>
+                {item.id === "profile" && inboxUnreadCount > 0 && <span className="nav-unread-badge" aria-label={`${inboxUnreadCount} unread in your Inbox`}>{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
               </button>
             ))}
           </nav>
@@ -1736,16 +1787,22 @@ function MainPage() {
               </div>
             </div>
           )}
-          {!notice && playerNotifications[0] && (
+          {!notice && popupNotifications[0] && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
               <div className="w-full max-w-sm rounded-3xl border border-cyan-300/60 bg-[#103f75] p-6 text-center shadow-2xl">
-                <p className="text-xl font-black text-cyan-100">{playerNotifications[0].payload.title || "Bread updated"}</p>
-                <p className="mt-3 text-sm leading-6 text-[#d9f3ff]">{playerNotifications[0].payload.message || "One of your Pixel Breadlets was replaced."}</p>
+                <p className="text-xl font-black text-cyan-100">{popupNotifications[0].payload.title || "Bread updated"}</p>
+                <p className="mt-3 text-sm leading-6 text-[#d9f3ff]">{popupNotifications[0].payload.message || "One of your Pixel Breadlets was replaced."}</p>
                 <button onClick={() => void dismissPlayerNotification()} className="mt-6 w-full rounded-2xl bg-cyan-300 px-4 py-3 font-black text-cyan-950 hover:bg-cyan-200">Got it</button>
               </div>
             </div>
           )}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} />}
+          {inboxToast && (
+            <button type="button" role="status" onClick={() => { setInboxToast(null); setViewedProfile(null); setTab("profile"); }} className="inbox-toast" title="Open your Inbox">
+              <span className="inbox-toast-icon" aria-hidden="true">{inboxIcons[inboxToast.type] || "🔔"}</span>
+              <span className="min-w-0 text-left"><b>{inboxToast.title}</b>{inboxToast.message && <span>{inboxToast.message}</span>}</span>
+            </button>
+          )}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} markInboxRead={markNotificationsRead} />}
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
@@ -2089,6 +2146,44 @@ function LoginScreen({
   );
 }
 
+// Inbox on your own profile: @mentions, Bazaar sales, completed trades and gifts, newest first.
+function InboxPanel({ unreadCount, markRead }: { unreadCount: number; markRead: (body: { id: string } | { all: true }) => Promise<void> }) {
+  const [items, setItems] = useState<PlayerNotification[] | null>(null);
+  const load = useCallback(async () => {
+    const response = await fetch("/api/notifications?inbox=1", { cache: "no-store" }).catch(() => null);
+    const rows = await response?.json().catch(() => null);
+    if (Array.isArray(rows)) setItems(rows);
+  }, []);
+  // Reload whenever a new notification arrives (the unread count changes).
+  useEffect(() => { void load(); }, [load, unreadCount]);
+  const readAll = async () => {
+    await markRead({ all: true });
+    setItems((current) => current?.map((item) => ({ ...item, is_read: true })) || current);
+  };
+  const readOne = async (item: PlayerNotification) => {
+    if (item.is_read) return;
+    await markRead({ id: item.id });
+    setItems((current) => current?.map((row) => (row.id === item.id ? { ...row, is_read: true } : row)) || current);
+  };
+  const unread = items?.filter((item) => !item.is_read).length || 0;
+  return (
+    <section className="profile-list-panel inbox-panel" id="profile-inbox">
+      <div className="profile-list-heading"><h2>📬 Inbox{unread ? ` (${unread} new)` : ""}</h2>{unread > 0 && <button type="button" onClick={() => void readAll()}>Mark all read</button>}</div>
+      <div className="profile-list-body inbox-list">
+        {items === null && <span className="profile-empty">Loading your inbox...</span>}
+        {items?.length === 0 && <span className="profile-empty">Nothing yet. @mentions, Bazaar sales and finished trades show up here.</span>}
+        {items?.map((item) => (
+          <button key={item.id} type="button" onClick={() => void readOne(item)} className={`inbox-item${item.is_read ? "" : " is-unread"}`}>
+            <span className="inbox-item-icon" aria-hidden="true">{inboxIcons[item.type] || "🔔"}</span>
+            <span className="min-w-0 flex-1 text-left"><b>{item.payload.title || "Notification"}</b>{item.payload.message && <span className="inbox-item-message">{item.payload.message}</span>}</span>
+            {item.created_at && <time className="inbox-item-time" dateTime={item.created_at}>{listedAgo(item.created_at).replace(/^Listed /, "")}</time>}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ProfileTab({
   player,
   setTab,
@@ -2101,6 +2196,8 @@ function ProfileTab({
   viewedProfile,
   openPlayerProfile,
   closeViewedProfile,
+  inboxUnreadCount,
+  markInboxRead,
 }: {
   player: Player;
   setTab: (tab: Tab) => void;
@@ -2113,6 +2210,8 @@ function ProfileTab({
   viewedProfile: PublicProfile | null;
   openPlayerProfile: (username: string) => void | Promise<void>;
   closeViewedProfile: () => void;
+  inboxUnreadCount: number;
+  markInboxRead: (body: { id: string } | { all: true }) => Promise<void>;
 }) {
   const [lookup, setLookup] = useState("");
   const [matches, setMatches] = useState<PublicProfile[]>([]);
@@ -2264,6 +2363,7 @@ function ProfileTab({
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
         <ProfileMetric label="Account Age" value={accountAgeLabel(profileCreatedAt)} icon={<CalendarDays size={38} strokeWidth={2.4} />} />
       </div></section>
+      {!viewingOther && !isGuest && <InboxPanel unreadCount={inboxUnreadCount} markRead={markInboxRead} />}
       <div className="profile-lower-grid"><section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends{friendsData.friends.length ? ` (${friendsData.friends.length})` : ""}</h2>{!viewingOther ? <button onClick={openLookup}>Find Player</button> : !isGuest && (friendsData.relation === "none" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Add Friend</button> : friendsData.relation === "pending-in" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Accept</button> : friendsData.relation === "pending-out" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Request Sent (Cancel)</button> : friendsData.relation === "friends" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Unfriend</button> : null)}</div><div className="profile-list-body">
         {!viewingOther && friendsData.incoming.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} wants to be friends</span><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "accept" })}>Accept</button><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "decline" })}>Decline</button></div>)}
         {friendsData.friends.length ? friendsData.friends.map((friend) => <div key={friend.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><button onClick={() => void openPlayerProfile(friend.username)} className="min-w-0 flex-1 truncate text-left font-bold">{friend.username}</button>{!viewingOther && <button onClick={() => void friendAction("DELETE", { friendProfileId: friend.id })}>Remove</button>}</div>) : !friendsData.incoming.length && <p className="profile-empty">{isGuest ? "Sign in to add friends." : "No friends yet."}</p>}
@@ -3694,6 +3794,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   ]);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
+  // Messages that @mention this player get highlighted.
+  const mentionPattern = useMemo(() => new RegExp(`(^|[^\\w@])@${player.username.replace(/[^a-zA-Z0-9_]/g, "")}\\b`, "i"), [player.username]);
   // Word game prizes are paid on the server; when the bot announces that this player won,
   // reload the balance so the Bread Bucks show up right away instead of after a refresh.
   // Messages already in chat when it opens are only marked as seen.
@@ -4078,7 +4180,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                     const messageId = String(item.id ?? `local-${item.user}-${index}`);
                     const canEdit = !item.isBreadletBot && item.user === player.username && (item.id != null || isGuest);
                     return (
-                      <div key={messageId} id={`chat-message-${messageId}`} className={`chat-group-message${item.pending ? " chat-pending" : ""}`}>
+                      <div key={messageId} id={`chat-message-${messageId}`} className={`chat-group-message${item.pending ? " chat-pending" : ""}${!item.isBreadletBot && item.user !== player.username && mentionPattern.test(item.text) ? " chat-mention" : ""}`}>
                         {firstUnreadId != null && item.id === firstUnreadId && (
                           <div className="chat-new-divider" role="separator"><span /><b>NEW MESSAGES</b></div>
                         )}

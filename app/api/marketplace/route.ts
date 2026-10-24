@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { NEW_ACCOUNT_MESSAGE, tooNewAccount } from '../../../lib/account-age';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
+import { notify } from '../../../lib/inbox';
 
 export const dynamic = 'force-dynamic';
 const MAX_MARKETPLACE_PRICE = 2147483647;
@@ -111,9 +112,23 @@ export async function POST(request: Request) {
   if (action === 'create' && (!Number.isSafeInteger(price) || price < 1 || price > MAX_MARKETPLACE_PRICE)) return NextResponse.json({ error: 'Invalid listing price.' }, { status: 400 });
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: 'Marketplace server is not configured.' }, { status: 503 });
+  // Looked up before the sale (it's marked sold after), so the seller can be told what sold.
+  const listing = action === 'buy' && body.listingId
+    ? (await admin.from('marketplace_listings').select('profile_id, price, shiny, blooks(name)').eq('id', body.listingId).maybeSingle()).data as any
+    : null;
   const { data, error } = await admin.rpc('secure_marketplace_action', {
     p_profile_id: user.id, p_action: action, p_blook_name: String(body.blook || ''), p_price: price, p_listing_id: body.listingId || null,
   });
   if (error) return NextResponse.json({ error: error.code === 'PGRST202' ? 'Apply migration 0015_secure_gameplay.sql to enable protected marketplace actions.' : error.message }, { status: 409 });
+  if (listing?.profile_id && listing.profile_id !== user.id) {
+    const { data: buyer } = await admin.from('profiles').select('username').eq('id', user.id).maybeSingle();
+    const blookName = `${listing.shiny ? 'Shiny ' : ''}${(Array.isArray(listing.blooks) ? listing.blooks[0] : listing.blooks)?.name || 'Breadlet'}`;
+    const earned = Number(listing.price) - Math.floor(Number(listing.price) * 0.1);
+    await notify(admin, listing.profile_id, 'bazaar_sale', {
+      title: `Your ${blookName} sold!`,
+      message: `${buyer?.username || 'A player'} bought it on the Bazaar for ${Number(listing.price).toLocaleString()} Bread Bucks. You got ${earned.toLocaleString()} after the 10% fee.`,
+      from: buyer?.username || '',
+    });
+  }
   return NextResponse.json(data, { status: action === 'create' ? 201 : 200 });
 }

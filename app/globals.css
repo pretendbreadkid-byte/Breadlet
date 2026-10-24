@@ -653,7 +653,7 @@ section button[class*="h-20"]:hover:not(:disabled) {
 .breadlet-blue-theme .game-workspace[data-tab="capsules"] .guest-mode-banner { margin: 0; border-radius: 0; }
 /* Ted's Shop: a bakery storefront — awning, striped wall, wooden cabinets on a plank floor. */
 .shop-scene {
-  --shelf-row: 178px;
+  --shelf-row: 222px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -790,8 +790,8 @@ section button[class*="h-20"]:hover:not(:disabled) {
 .shop-shelf-bag:hover:not(:disabled) { transform: none; box-shadow: none; filter: none; }
 .shop-shelf-bag:focus-visible { outline: 3px solid #fff1b7; outline-offset: -3px; border-radius: 12px; }
 .shop-shelf-art {
-  max-width: 88%;
-  height: 118px;
+  max-width: 96%;
+  height: 160px;
   object-fit: contain;
   object-position: bottom center;
   transform-origin: 50% 100%;
@@ -875,11 +875,11 @@ main.breadlet-blue-theme.breadlet-blue-theme .shop-cabinet.is-sold-out .shop-cab
 main.breadlet-blue-theme.breadlet-blue-theme .shop-sold-stamp { color: #c62f24 !important; }
 main.breadlet-blue-theme.breadlet-blue-theme .shop-restock .font-mono { color: #ffcb73 !important; }
 @media (max-width: 640px) {
-  .shop-scene { --shelf-row: 150px; }
+  .shop-scene { --shelf-row: 178px; }
   .shop-header-right { width: 100%; margin-left: 0; }
   .shop-cabinet { flex-basis: 100%; }
   .shop-cabinet-shelves { min-height: calc(var(--shelf-row) * 2); padding: 0 4px; }
-  .shop-shelf-art { height: 96px; }
+  .shop-shelf-art { height: 124px; }
 }
 .shop-stock-pill {
   position: absolute;
@@ -2295,3 +2295,39 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
   box-shadow: 0 6px 0 #2a1708, 0 10px 22px rgba(0, 0, 0, .3);
   transform: rotate(-1.5deg);
 }
+
+/* Inbox: toast for new notifications, unread badge on the Profile button, and the list. */
+.inbox-toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  z-index: 9998;
+  display: flex;
+  width: min(420px, calc(100vw - 24px));
+  align-items: center;
+  gap: 12px;
+  border: 3px solid #13120F;
+  border-radius: 16px;
+  background: #27251F;
+  padding: 12px 16px;
+  color: #fff;
+  box-shadow: 0 6px 0 #13120F, 0 16px 34px rgba(0, 0, 0, .4);
+  transform: translateX(-50%);
+  animation: inbox-toast-in 320ms cubic-bezier(.2, .9, .25, 1.25);
+}
+.inbox-toast:hover:not(:disabled) { transform: translateX(-50%); background: #343129; box-shadow: 0 6px 0 #13120F, 0 16px 34px rgba(0, 0, 0, .4); }
+.inbox-toast b, .inbox-item b { display: block; font-size: 15px; font-weight: 900; }
+.inbox-toast span span { display: block; overflow: hidden; font-size: 13px; font-weight: 700; opacity: .85; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-toast-icon { display: grid; width: 42px; height: 42px; flex: none; place-items: center; border-radius: 12px; background: #ED7117; font-size: 22px; }
+@keyframes inbox-toast-in { from { opacity: 0; transform: translate(-50%, -16px) scale(.96); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+.nav-unread-badge { margin-left: auto; min-width: 22px; border-radius: 999px; background: #e2554a; padding: 2px 7px; font-size: 12px; font-weight: 900; line-height: 1.3; text-align: center; color: #fff; }
+.inbox-panel { margin-bottom: 1rem; }
+.inbox-list { display: flex; max-height: 340px; flex-direction: column; gap: 8px; }
+.inbox-item { display: flex; width: 100%; align-items: center; gap: 12px; border: 2px solid #13120F; border-radius: 12px; background: #27251F !important; padding: 10px 12px; color: #fff; }
+.inbox-item:hover:not(:disabled) { transform: none; box-shadow: none; background: #343129 !important; }
+.inbox-item.is-unread { border-color: #ffcb73; background: #3a2a14 !important; }
+.inbox-item-icon { display: grid; width: 38px; height: 38px; flex: none; place-items: center; border-radius: 10px; background: #13120F; font-size: 19px; }
+.inbox-item-message { display: block; margin-top: 2px; font-size: 13px; font-weight: 700; opacity: .85; overflow-wrap: anywhere; }
+.inbox-item-time { flex: none; align-self: flex-start; font-size: 11px; font-weight: 800; opacity: .65; }
+/* Chat messages that @mention you. */
+.global-chat .chat-mention { margin-left: -8px; border-left: 4px solid #ffcb73; border-radius: 6px; background: rgba(255, 203, 115, .14); padding-left: 6px; }
