@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { moderatorBadges } from '../../../../lib/admin-access';
+import { ogBadges } from '../../../../lib/og-badge';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -10,7 +11,7 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
   const query = new URL(request.url).searchParams.get('q')?.trim() || '';
   if (query.length < 2) return NextResponse.json([]);
-  const { data, error } = await supabase.from('profiles').select('id, username, tokens, equipped_blook_id, stats').ilike('username', `%${query}%`).neq('id', user.id).limit(20);
+  const { data, error } = await supabase.from('profiles').select('id, username, tokens, equipped_blook_id, stats, created_at').ilike('username', `%${query}%`).neq('id', user.id).limit(20);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const profiles = data || [];
   const statsDb = createAdminClient() || supabase;
@@ -42,8 +43,10 @@ export async function GET(request: Request) {
       inventoryCount: countByProfile.get(profile.id) || 0,
       capsulesOpened: (capsulesByProfile.get(profile.id) || 0) + (Number(profile.stats?.capsulesOpened) || 0),
       messagesSent: messagesByProfile.get(profile.id) || 0,
+      createdAt: profile.created_at || null,
       badges: Array.from(new Set([
-        ...(profile.stats?.badges || []),
+        ...(profile.stats?.badges || []).filter((badge: string) => badge !== 'OG'),
+        ...ogBadges(profile.created_at),
         ...moderatorBadges(profile.username),
         ...(tokens >= 10000 ? ['10K Tokens'] : []),
         ...(tokens >= 100000 ? ['100K Tokens'] : []),

@@ -4,6 +4,7 @@ import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
 import { runAiModeration } from '../../../lib/ai-moderator';
 import { evilUntil, isEvilActive, isEvilFor } from '../../../lib/evil-ai';
+import { ogBadges } from '../../../lib/og-badge';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { filterProfanity, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
@@ -66,7 +67,7 @@ export async function GET() {
   // Profiles (with equipped blook), replies and the admin check are independent: fetch them together.
   const [profileResult, replyResult, viewerIsAdmin] = await Promise.all([
     profileIds.length > 0
-      ? database.from('profiles').select('id, username, tokens, stats, equipped_blook_id, blooks:equipped_blook_id(name)').in('id', profileIds)
+      ? database.from('profiles').select('id, username, tokens, stats, created_at, equipped_blook_id, blooks:equipped_blook_id(name)').in('id', profileIds)
       : Promise.resolve({ data: [] as any[], error: null }),
     replyIds.length > 0
       ? database.from('global_chat_messages').select(usedLight ? 'id, text_body, is_image, profile_id, is_breadlet_bot' : 'id, message, profile_id, is_breadlet_bot').in('id', replyIds)
@@ -116,7 +117,8 @@ export async function GET() {
 
     const badges = Array.from(
       new Set([
-      ...(profile?.stats?.badges || []),
+      ...(profile?.stats?.badges || []).filter((badge: string) => badge !== 'OG'),
+        ...ogBadges(profile?.created_at),
         ...moderatorBadges(profile?.username),
 
         ...(tokens >= 10000

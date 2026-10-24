@@ -45,6 +45,7 @@ import {
   Zap,
   Repeat,
   Clock,
+  CalendarDays,
 } from "lucide-react";
 
 type Tab =
@@ -90,6 +91,7 @@ type Player = {
   trainScore?: number;
   exploreBeta?: boolean;
   chatMutedUntil?: string;
+  createdAt?: string;
 };
 type PublicProfile = {
   id: string;
@@ -101,6 +103,7 @@ type PublicProfile = {
   capsulesOpened: number;
   messagesSent: number;
   clanTag?: string;
+  createdAt?: string | null;
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number } };
@@ -144,16 +147,17 @@ const badgeDescriptions: Record<string, string> = {
   "10K Tokens": "Reach a balance of 10,000 Bread Bucks.",
   "100K Tokens": "Reach a balance of 100,000 Bread Bucks.",
   "1M Tokens": "Reach a balance of 1,000,000 Bread Bucks.",
-  OG: "Awarded to every original Breadlet player.",
+  OG: "Awarded to the original Breadlet players who joined before October 22, 2026.",
   Moderator: "Trusted community moderator who keeps the chat friendly.",
   Owner: "The creator and owner of Breadlet.",
   Contributor: "Helped build Breadlet with art, ideas or code.",
 };
-// Badges an admin can hand out. Token milestones are automatic from the balance, and Owner /
-// Moderator are tied to the staff usernames, so granting those by hand would only fake them.
-const grantableBadges = Object.keys(badgeDescriptions).filter((badge) => !["10K Tokens", "100K Tokens", "1M Tokens", "Owner", "Moderator"].includes(badge));
+// Badges an admin can hand out. Token milestones are automatic from the balance, OG from the
+// account age, and Owner / Moderator are tied to the staff usernames, so granting those by hand
+// would only fake them.
+const grantableBadges = Object.keys(badgeDescriptions).filter((badge) => !["10K Tokens", "100K Tokens", "1M Tokens", "OG", "Owner", "Moderator"].includes(badge));
+// OG is no longer automatic: the server adds it only for accounts made before the cutoff (lib/og-badge.ts).
 const tokenBadgesFor = (tokens: number) => [
-  "OG",
   ...(tokens >= 10000 ? ["10K Tokens"] : []),
   ...(tokens >= 100000 ? ["100K Tokens"] : []),
   ...(tokens >= 1000000 ? ["1M Tokens"] : []),
@@ -381,6 +385,18 @@ const wheelRarityFor = (reward: (typeof wheelRewards)[number]) => {
   return "Common";
 };
 
+// "5 days", "3 months", "1 year" since the account was made.
+const accountAgeLabel = (createdAt?: string | null) => {
+  const created = Date.parse(String(createdAt || ""));
+  if (!Number.isFinite(created)) return "—";
+  const days = Math.floor((Date.now() - created) / 86400000);
+  const plural = (count: number, unit: string) => `${count} ${unit}${count === 1 ? "" : "s"}`;
+  if (days < 1) return "New today";
+  if (days < 60) return plural(days, "day");
+  if (days < 730) return plural(Math.floor(days / 30), "month");
+  return plural(Math.floor(days / 365), "year");
+};
+
 function playerFromServer(data: any): Player {
   const inventory = (data.inventory || []).map((name: string) => name === "Surgeon" ? "Doctor" : name);
   return {
@@ -405,6 +421,7 @@ function playerFromServer(data: any): Player {
     trainScore: data.mine?.total_tokens_mined || 0,
     exploreBeta: Boolean(data.profile.stats?.exploreBeta),
     chatMutedUntil: data.profile.stats?.chatMutedUntil || undefined,
+    createdAt: data.profile.created_at || undefined,
   };
 }
 
@@ -2127,6 +2144,7 @@ function ProfileTab({
   const profileBadges = viewingOther ? viewedProfile!.badges : player.badges;
   const profileCapsulesOpened = viewingOther ? viewedProfile!.capsulesOpened : player.capsulesOpened || 0;
   const profileMessagesSent = viewingOther ? viewedProfile!.messagesSent : player.messagesSent || 0;
+  const profileCreatedAt = viewingOther ? viewedProfile!.createdAt : player.createdAt;
   const foundUser = lookup.trim() && lookup.trim().toLowerCase() !== player.username.toLowerCase() ? lookup.trim() : "";
   const realtimeClient = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
 
@@ -2244,6 +2262,7 @@ function ProfileTab({
         <ProfileMetric label="Breadlets Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
         <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space bag updated again (1).svg" />
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
+        <ProfileMetric label="Account Age" value={accountAgeLabel(profileCreatedAt)} icon={<CalendarDays size={38} strokeWidth={2.4} />} />
       </div></section>
       <div className="profile-lower-grid"><section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends{friendsData.friends.length ? ` (${friendsData.friends.length})` : ""}</h2>{!viewingOther ? <button onClick={openLookup}>Find Player</button> : !isGuest && (friendsData.relation === "none" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Add Friend</button> : friendsData.relation === "pending-in" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Accept</button> : friendsData.relation === "pending-out" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Request Sent (Cancel)</button> : friendsData.relation === "friends" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Unfriend</button> : null)}</div><div className="profile-list-body">
         {!viewingOther && friendsData.incoming.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} wants to be friends</span><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "accept" })}>Accept</button><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "decline" })}>Decline</button></div>)}
