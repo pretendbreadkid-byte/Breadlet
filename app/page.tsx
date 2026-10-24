@@ -3822,6 +3822,49 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   const [onlinePanelOpen, setOnlinePanelOpen] = useState(false);
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
   const isVerified = player.badges?.includes("Verified");
+  // Who's typing: Realtime broadcast pings (no database writes). Each typer pings at most every
+  // 2.5s; a name drops off 4s after their last ping, or right away when they send.
+  const [typers, setTypers] = useState<Record<string, number>>({});
+  const typingChannel = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
+  const lastTypingPing = useRef(0);
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase.channel("chat-typing", { config: { broadcast: { self: false } } })
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        const name = String(payload?.username || "").slice(0, 20);
+        if (!name || name === player.username) return;
+        setTypers((current) => {
+          const next = { ...current };
+          if (payload?.stopped) delete next[name];
+          else next[name] = Date.now() + 4000;
+          return next;
+        });
+      })
+      .subscribe();
+    typingChannel.current = channel;
+    const prune = window.setInterval(() => {
+      setTypers((current) => {
+        const now = Date.now();
+        const live = Object.entries(current).filter(([, until]) => until > now);
+        return live.length === Object.keys(current).length ? current : Object.fromEntries(live);
+      });
+    }, 1000);
+    return () => {
+      window.clearInterval(prune);
+      typingChannel.current = null;
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase, player.username]);
+  const announceTyping = (stopped = false) => {
+    const now = Date.now();
+    if (stopped ? !lastTypingPing.current : now - lastTypingPing.current < 2500) return;
+    lastTypingPing.current = stopped ? 0 : now;
+    void typingChannel.current?.send({ type: "broadcast", event: "typing", payload: { username: player.username, stopped } });
+  };
+  const typingNames = Object.keys(typers);
+  const typingLabel = typingNames.length === 0 ? ""
+    : typingNames.length > 5 ? "Several people are typing..."
+    : `${typingNames.join(", ")} ${typingNames.length === 1 ? "is" : "are"} typing...`;
 
   const playerRef = useRef(player);
   playerRef.current = player;
@@ -3967,6 +4010,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     const text = message.trim();
     if (!text) return;
     setMessage("");
+    announceTyping(true);
     if (text.toLowerCase() === "/accept" && supabase) {
       const result = await postGameAction({ action: "coinflip_accept" });
       setChatError(result.ok ? "" : result.error || "Could not join the coin flip.");
@@ -4233,7 +4277,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       <div className="relative z-10 h-0 shrink-0">
         {!chatAtBottom && <button type="button" onClick={scrollChatToBottom} className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border-2 border-[#CC5500] bg-[#3B1F0E] px-4 py-2 text-sm font-black text-white shadow-lg hover:bg-[#5a2f16]">Scroll to most recent message ↓</button>}
       </div>
-      <form onSubmit={send} className="mt-4 flex shrink-0 items-center gap-3">
+      <p className="chat-typing" aria-live="polite">{typingLabel && <><span className="chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>{typingLabel}</>}</p>
+      <form onSubmit={send} className="mt-1 flex shrink-0 items-center gap-3">
         {isVerified && (
           <label
             title="Upload image (Verified Badge Feature)"
@@ -4253,7 +4298,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {replyTarget.message}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">×</button></div>}
         <input
           value={message}
-          onChange={(event) => setMessage(event.target.value)}
+          onChange={(event) => { setMessage(event.target.value); announceTyping(!event.target.value.trim()); }}
+          onBlur={() => announceTyping(true)}
           placeholder={isVerified ? "Write a message or upload an image..." : "Write a message..."}
           className="w-full rounded-xl bg-[#24170f] px-4 py-3 text-white outline-none focus:border-[#3d91cd]"
         />
