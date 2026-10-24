@@ -99,7 +99,7 @@ export function SettingsTab({ username, onLogout, isGuest }: { username: string;
         ))}
       </nav>
       <section className="rounded-2xl bg-[#13120F] p-6 text-white">
-        <h2 className="mb-5 text-4xl font-black">{section}</h2>
+        <h2 className="page-sign mb-5 text-4xl font-black">{section}</h2>
         {section === "Account" && (
           <>
             <p className="mb-5 text-[#c9c7c0]">Who you are in Breadlet.</p>

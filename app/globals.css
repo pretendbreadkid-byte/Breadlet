@@ -2197,3 +2197,101 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
   .bazaar-stall-body { margin: 0 6px; }
 }
 @media (max-width: 767px) { .breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign { margin-top: 5.5rem; } }
+
+/* ── Page scenes ──────────────────────────────────────────────────────────────
+   Every tab gets a full-screen themed backdrop in the same warm, wooden style as Ted's Shop
+   and the Bazaar (which draw their own scenes). The backdrop is the workspace's background,
+   so it always fills the whole page area. Kept mid-dark so the white page text reads on it. */
+.breadlet-blue-theme .game-workspace { background-color: #4a2a17; }
+/* Profile: your room. Patterned wallpaper over wooden wainscoting. */
+.breadlet-blue-theme .game-workspace[data-tab="profile"] {
+  background:
+    linear-gradient(180deg, transparent 76%, #2a1708 76%, #2a1708 77%, transparent 77%),
+    repeating-linear-gradient(90deg, #5a3218 0 2px, #6e3f20 2px 90px) 0 100% / 100% 23% no-repeat,
+    radial-gradient(circle at 50% 50%, #9a4e22 18%, transparent 19%) 0 0 / 44px 44px,
+    radial-gradient(circle at 50% 50%, #9a4e22 18%, transparent 19%) 22px 22px / 44px 44px,
+    #8a4420;
+}
+/* My Breadlets: a trophy room. Dark walnut paneling with a spotlight from above. */
+.breadlet-blue-theme .game-workspace[data-tab="inventory"] {
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 0, rgba(255, 214, 140, .28), transparent 70%),
+    repeating-linear-gradient(90deg, #3b2112 0 3px, #4d2c17 3px 120px, #553119 120px 123px, #4d2c17 123px 240px);
+}
+/* Claim Bread Bucks: a carnival tent. Red stripes fanning out from a golden glow. */
+.breadlet-blue-theme .game-workspace[data-tab="wheel"] {
+  background:
+    radial-gradient(ellipse 45% 40% at 50% 40%, rgba(255, 200, 90, .35), transparent 70%),
+    repeating-conic-gradient(from 0deg at 50% -10%, #a82a22 0deg 6deg, #861f1a 6deg 12deg);
+}
+/* Crafting: a workshop. Pegboard wall over a workbench. */
+.breadlet-blue-theme .game-workspace[data-tab="crafting"] {
+  background:
+    linear-gradient(180deg, transparent 82%, #2a1708 82%, #2a1708 83%, transparent 83%),
+    repeating-linear-gradient(90deg, #6e4322 0 2px, #8a5a32 2px 140px) 0 100% / 100% 17% no-repeat,
+    radial-gradient(circle, #4a2c16 2.5px, transparent 3px) 0 0 / 26px 26px,
+    #9a6a3e;
+}
+/* Chat: a café brick wall, darkened so long conversations stay easy to read. */
+.breadlet-blue-theme .game-workspace[data-tab="chat"] {
+  background:
+    linear-gradient(rgba(20, 10, 5, .55), rgba(20, 10, 5, .55)),
+    url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2764%27 height=%2760%27%3E%3Crect width=%2764%27 height=%2760%27 fill=%27%237a3a22%27/%3E%3Cg fill=%27%233e1d12%27%3E%3Crect width=%2764%27 height=%273%27/%3E%3Crect y=%2730%27 width=%2764%27 height=%273%27/%3E%3Crect width=%273%27 height=%2730%27/%3E%3Crect x=%2732%27 y=%2730%27 width=%273%27 height=%2730%27/%3E%3C/g%3E%3C/svg%3E") 0 0 / 64px 60px;
+}
+/* Clans: a castle hall. Stone blocks lit by torches on both sides. */
+.breadlet-blue-theme .game-workspace[data-tab="clan"] {
+  background:
+    radial-gradient(ellipse 30% 40% at 0 35%, rgba(255, 150, 60, .3), transparent 70%),
+    radial-gradient(ellipse 30% 40% at 100% 35%, rgba(255, 150, 60, .3), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2790%27 height=%2792%27%3E%3Crect width=%2790%27 height=%2792%27 fill=%27%235a4a40%27/%3E%3Cg fill=%27%232e2622%27%3E%3Crect width=%2790%27 height=%273%27/%3E%3Crect y=%2746%27 width=%2790%27 height=%273%27/%3E%3Crect width=%273%27 height=%2746%27/%3E%3Crect x=%2745%27 y=%2746%27 width=%273%27 height=%2746%27/%3E%3C/g%3E%3C/svg%3E") 0 0 / 90px 92px;
+}
+/* Leaderboard: a stage. Red curtains at the sides and a spotlight on the middle. */
+.breadlet-blue-theme .game-workspace[data-tab="leaderboard"] {
+  background:
+    repeating-linear-gradient(90deg, #8e1f1a 0 14px, #b02a22 14px 28px) 0 0 / 9% 100% no-repeat,
+    repeating-linear-gradient(90deg, #8e1f1a 0 14px, #b02a22 14px 28px) 100% 0 / 9% 100% no-repeat,
+    radial-gradient(ellipse 40% 55% at 50% 0, rgba(255, 220, 150, .3), transparent 70%),
+    #3a1a12;
+}
+/* Resources, Promo Codes, Refer a Friend, Settings: a corkboard in a wooden frame. */
+.breadlet-blue-theme .game-workspace:is([data-tab="resources"], [data-tab="promo"], [data-tab="referrals"], [data-tab="settings"]) {
+  box-shadow: inset 0 0 0 14px #5a3218, inset 0 0 0 17px #2a1708;
+  background:
+    radial-gradient(circle, rgba(60, 30, 10, .35) 1px, transparent 1.5px) 0 0 / 9px 9px,
+    radial-gradient(circle, rgba(255, 230, 190, .18) 1px, transparent 1.5px) 4px 5px / 11px 11px,
+    #a06a3c;
+}
+/* Token Bank: a steel vault with riveted plates. */
+.breadlet-blue-theme .game-workspace[data-tab="bank"] {
+  background:
+    radial-gradient(circle, #6b737a 3px, #1c2024 3.5px 4.5px, transparent 5px) 12px 12px / 120px 120px,
+    linear-gradient(0deg, #1c2024 2px, transparent 2px) 0 0 / 120px 120px,
+    linear-gradient(90deg, #1c2024 2px, transparent 2px) 0 0 / 120px 120px,
+    repeating-linear-gradient(180deg, #3a4146 0 2px, #343a3f 2px 4px);
+}
+/* Admin: a dark control room with a faint orange grid. */
+.breadlet-blue-theme .game-workspace[data-tab="admin"] {
+  background:
+    linear-gradient(rgba(237, 113, 23, .07) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, rgba(237, 113, 23, .07) 1px, transparent 1px) 0 0 / 32px 32px,
+    #1b1a17;
+}
+/* Page titles as nailed-on wooden signs, matching the Bazaar sign. */
+.breadlet-blue-theme .game-workspace .page-sign {
+  position: relative;
+  display: inline-block;
+  border: 4px solid #2a1708;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 12px 50%, #2a1708 3px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 12px) 50%, #2a1708 3px, transparent 3.5px),
+    repeating-linear-gradient(180deg, transparent 0 9px, rgba(42, 23, 8, .18) 9px 11px),
+    linear-gradient(180deg, #a86a35, #7d4a22);
+  padding: 4px 30px 8px;
+  color: #fff;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+  text-shadow: 0 3px 0 #2a1708;
+  box-shadow: 0 6px 0 #2a1708, 0 10px 22px rgba(0, 0, 0, .3);
+  transform: rotate(-1.5deg);
+}

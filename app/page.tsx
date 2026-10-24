@@ -2721,7 +2721,7 @@ function InventoryTab({
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#3d91cd]/30 lg:pr-[25rem]">
           <div>
-            <h1 className="text-4xl font-black text-white tracking-wide">My Breadlets</h1>
+            <h1 className="page-sign text-4xl font-black text-white tracking-wide">My Breadlets</h1>
             <p className="mt-1 text-sm text-[#9cc8e8]">Click any Breadlet to view details, equip, or sell.</p>
           </div>
           <div className="flex items-center gap-3">
@@ -3072,7 +3072,7 @@ function WheelTab({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Claim Bread Bucks · unlimited free claims" : "Claim Bread Bucks · once every hour"}</p>
-          <h1 className="mt-2 text-4xl font-black">Claim Bread Bucks</h1>
+          <h1 className="page-sign mt-2 text-4xl font-black">Claim Bread Bucks</h1>
         </div>
         <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
       </div>
@@ -4219,7 +4219,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
   return (
     <div className="leaderboard-page mx-auto w-full max-w-5xl">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-5xl font-black text-white">Leaderboard</h1>
+        <h1 className="page-sign text-5xl font-black text-white">Leaderboard</h1>
         <button onClick={() => void load()} className="rounded-xl border-2 border-[#CC5500] bg-[#27251F] px-4 py-2 text-sm font-black text-white hover:bg-[#13120F]">Refresh</button>
       </div>
       <div className="leaderboard-tabs mt-4 flex gap-3">
@@ -4294,7 +4294,7 @@ function PromoTab({
       <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#ffe2a0]">
         Rewards
       </p>
-      <h1 className="mt-2 text-4xl font-black">Promo Codes</h1>
+      <h1 className="page-sign mt-2 text-4xl font-black">Promo Codes</h1>
       <p className="mt-4 leading-7 text-[#d7b88c]">
         Enter an active Breadlet code to claim its reward.
       </p>
@@ -4325,7 +4325,7 @@ function ResourcesTab({ open }: { open: (tab: "promo" | "bank" | "referrals") =>
     <div className="resources-workspace mx-auto w-full max-w-5xl">
       <header className="mb-7">
         <p className="resources-eyebrow text-xs font-black uppercase tracking-[0.25em]">Breadlet library</p>
-        <h1 className="mt-2 text-4xl font-black">Resources</h1>
+        <h1 className="page-sign mt-2 text-4xl font-black">Resources</h1>
         <p className="resources-description mt-3 max-w-2xl leading-7">Guides, account tools, and the artwork behind Breadlet, all in one place.</p>
       </header>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -4382,7 +4382,7 @@ function ReferralsTab({ isGuest }: { isGuest: boolean }) {
   return (
     <div className="resources-workspace mx-auto w-full max-w-3xl">
       <p className="resources-eyebrow text-xs font-black uppercase tracking-[0.25em]">Resources / Refer a Friend</p>
-      <h1 className="mt-2 text-4xl font-black">Refer a Friend</h1>
+      <h1 className="page-sign mt-2 text-4xl font-black">Refer a Friend</h1>
       <section className="bank-card mt-6 rounded-3xl border p-6 text-center sm:p-9">
         <p className="text-xs font-black uppercase tracking-[0.2em]">Your referral code</p>
         <p className="mt-2 text-4xl font-black tracking-widest">{isGuest ? "Sign in" : info?.code || "…"}</p>
@@ -4437,7 +4437,7 @@ function TokenBankTab({ isGuest }: { isGuest: boolean }) {
   return (
     <div className="resources-workspace mx-auto w-full max-w-3xl">
       <p className="resources-eyebrow text-xs font-black uppercase tracking-[0.25em]">Resources / Token Bank</p>
-      <h1 className="mt-2 text-4xl font-black">Token Bank</h1>
+      <h1 className="page-sign mt-2 text-4xl font-black">Token Bank</h1>
       <section className="bank-card mt-6 overflow-hidden rounded-3xl border p-6 sm:p-9">
         <div className="bank-total-block text-center">
           <p className="text-xs font-black uppercase tracking-[0.2em]">Total Bread Bucks spent</p>
@@ -4753,7 +4753,7 @@ function AdminTab({
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">
           Developer & Operator Controls
         </p>
-        <h1 className="mt-2 text-4xl font-black text-white">Admin Panel</h1>
+        <h1 className="page-sign mt-2 text-4xl font-black text-white">Admin Panel</h1>
         <p className="mt-3 leading-7 text-[#d9f3ff]">
           Select a real player, then manage resources, Breadlets, and badges through the server-side admin role.
         </p>
@@ -5327,7 +5327,7 @@ function ClanTab({
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div><p className="clan-eyebrow text-xs font-black uppercase tracking-[0.2em]">Breadlet communities</p><h1 className="mt-1 text-4xl font-black">Clans</h1></div>
+          <div><p className="clan-eyebrow text-xs font-black uppercase tracking-[0.2em]">Breadlet communities</p><h1 className="page-sign mt-1 text-4xl font-black">Clans</h1></div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setDiscoverOpen((open) => !open)} className="clan-primary-button flex items-center gap-2 rounded-xl px-4 py-3 font-black"><Search size={18} />{discoverOpen ? "Hide discovery" : "Discover clans"}</button>
             <button type="button" aria-label="Create a clan" onClick={() => setShowCreate(true)} className="clan-secondary-button flex items-center gap-2 rounded-xl px-4 py-3 font-black"><Users size={19} />Create Clan</button>
@@ -5463,7 +5463,7 @@ function CraftingTab({
       <div className="crafting-page-heading">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#bde8ff]">Forge and recycle</p>
-          <h1 className="mt-1 text-4xl font-black">Crafting</h1>
+          <h1 className="page-sign mt-1 text-4xl font-black">Crafting</h1>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <button type="button" onClick={() => { setRecycleQuantities({}); setMassRecycleOpen(true); }} disabled={!recyclable.length} className="crafting-dark-button rounded-xl px-4 py-3 text-sm font-black disabled:opacity-50">
