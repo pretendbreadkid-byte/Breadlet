@@ -1,5 +1,5 @@
 import { chanceFor, craftRecipeFor, dismantleBundleFor, liveCapsules, sellValueForBlook, wheelRewards } from './gameplay-catalog';
-import { isMarketPackInStock } from './market-stock';
+import { isMarketPackInStock, isSeasonalPackLocked, seasonalPackOpensAt } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 
 export const MAX_MASS_OPEN_COUNT = 2500;
@@ -40,6 +40,7 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
     const selected = quantities.map(([name, value]) => {
       const capsule = liveCapsules.find((entry) => entry.name === name);
       if (!capsule) throw new Error('Unknown Goodybag.');
+      if (isSeasonalPackLocked(name, now)) throw new Error(`The ${name} opens on ${new Date(seasonalPackOpensAt[name]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })}.`);
       if (!isMarketPackInStock(name, now)) throw new Error(`${name} is out of stock. Check back after the next hourly refresh.`);
       return { capsule, quantity: integer(value, MAX_MASS_OPEN_COUNT) };
     });
@@ -50,10 +51,11 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
     plan.tokenDelta = -cost;
     plan.capsulesOpened = count;
     for (const { capsule, quantity } of selected) {
-      const total = capsule.pool.reduce((sum, reward) => sum + chanceFor(capsule, reward), 0);
+      const total = capsule.pool.reduce((sum, reward) => sum + chanceFor(capsule, reward, now), 0);
       for (let opened = 0; opened < quantity; opened += 1) {
         let roll = random() * total;
-        const reward = capsule.pool.find((entry) => { roll -= chanceFor(capsule, entry); return roll < 0; }) || capsule.pool[capsule.pool.length - 1];
+        // Skip rewards at 0% (rotation items that aren't up today) so a roll can't land on one.
+        const reward = capsule.pool.find((entry) => { const chance = chanceFor(capsule, entry, now); roll -= chance; return chance > 0 && roll < 0; }) || capsule.pool.filter((entry) => chanceFor(capsule, entry, now) > 0).at(-1)!;
         addItem(reward.name, 1);
         plan.results.push({ capsule: capsule.name, reward });
       }

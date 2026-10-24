@@ -48,8 +48,17 @@ export const marketStockFor = (date = new Date()) => {
   return stock;
 };
 
+// Seasonal packs skip the hourly stock roll: they show in the shop early but can't be opened
+// until they open, and are always in stock after that.
+export const seasonalPackOpensAt: Record<string, string> = {
+  "Winter Bag": "2026-12-01T00:00:00Z",
+};
+
+export const isSeasonalPackLocked = (name: string, date = new Date()) =>
+  name in seasonalPackOpensAt && date.getTime() < Date.parse(seasonalPackOpensAt[name]);
+
 export const isMarketPackInStock = (name: string, date = new Date()) =>
-  marketStockFor(date)[name] === true;
+  name in seasonalPackOpensAt ? !isSeasonalPackLocked(name, date) : marketStockFor(date)[name] === true;
 
 export const nextMarketRefreshAt = (date = new Date()) => {
   const next = new Date(date);

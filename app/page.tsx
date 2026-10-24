@@ -1,8 +1,8 @@
 "use client";
 
-import { chanceFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
+import { chanceFor, isRewardActive, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
-import { isMarketPackInStock, marketPackStock, nextMarketRefreshAt } from "../lib/market-stock";
+import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { SettingsTab, readSettings } from "./components/settings-tab";
@@ -331,6 +331,22 @@ const artFor = (name: string) =>
     Pickle: "/assets/pickle-2.svg",
     "The Bomb": "/assets/Lost and found + food pack/bomb.svg",
     Nunchucks: "/assets/Lost and found + food pack/nunchucks (rplacemnt for sheild..svg",
+    // Winter Bag
+    Snowball: "/assets/winter/snowball.svg",
+    Mitten: "/assets/winter/mitten.svg",
+    "Christmas Candy": "/assets/winter/christmas-candy.svg",
+    "Santa Hat": "/assets/winter/santa-hat.svg",
+    Ornament: "/assets/winter/ornament.svg",
+    "Chocolate Coin": "/assets/winter/chocolate-coin.svg",
+    Stocking: "/assets/winter/stocking.svg",
+    "Chocolate Candy Cookie": "/assets/winter/chocolate-candy-cookie.svg",
+    "Sugar Cookie": "/assets/winter/sugar-cookie.svg",
+    "Macadamia Nut Cookie": "/assets/winter/macadamia-nut-cookie.svg",
+    "Gingerbread Cookie": "/assets/winter/gingerbread-cookie.svg",
+    Present: "/assets/winter/present.svg",
+    "Festive Breadlet": "/assets/winter/festive-breadlet.svg",
+    Reindeer: "/assets/winter/reindeer-1.svg",
+    Gnome: "/assets/winter/gnome-1.svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const artForBlook = (name: string, artworkKey?: string) => {
   const mappedArt = artFor(name);
@@ -1129,6 +1145,10 @@ function MainPage() {
   const openCapsule = async (capsule: Capsule): Promise<boolean> => {
     const current = latestPlayerRef.current;
     if (!current) return false;
+    if (isSeasonalPackLocked(capsule.name)) {
+      setNotice(`The ${capsule.name} opens on ${opensOnLabel(capsule.name)}.`);
+      return false;
+    }
     if (!isMarketPackInStock(capsule.name)) {
       setNotice(`${capsule.name} is out of stock. Check back after the next hourly refresh.`);
       return false;
@@ -1143,8 +1163,9 @@ function MainPage() {
     const total = capsule.pool.reduce((sum, reward) => sum + chanceFor(capsule, reward), 0);
     let roll = Math.random() * total;
     const reward = capsule.pool.find((item) => {
-      roll -= chanceFor(capsule, item);
-      return roll <= 0;
+      const chance = chanceFor(capsule, item);
+      roll -= chance;
+      return chance > 0 && roll <= 0;
     }) || capsule.pool[0];
     const finalReward = { ...reward, name: shinyNameFor(reward.name) };
     const saved = await save({ ...current, inventory: [...current.inventory, finalReward.name] }, { inventory: true });
@@ -2536,16 +2557,18 @@ function CapsulesTab({
     });
   };
   const stockOdds = new Map(marketPackStock.map(({ name, chance }) => [name, chance]));
-  const freshBags = liveCapsules.filter((capsule) => isMarketPackInStock(capsule.name, now));
-  const soldOutBags = liveCapsules.filter((capsule) => !isMarketPackInStock(capsule.name, now));
+  // Seasonal packs that haven't opened yet stand with the fresh stock, tagged with their opening day.
+  const freshBags = liveCapsules.filter((capsule) => isMarketPackInStock(capsule.name, now) || isSeasonalPackLocked(capsule.name, now));
+  const soldOutBags = liveCapsules.filter((capsule) => !isMarketPackInStock(capsule.name, now) && !isSeasonalPackLocked(capsule.name, now));
   const cabinet = (label: string, bags: Capsule[], soldOut: boolean) => (
     <section className={`shop-cabinet ${soldOut ? "is-sold-out" : ""}`} aria-label={label}>
       <div className="shop-cabinet-sign"><span>{label}</span></div>
       <div className="shop-cabinet-shelves">
         {bags.map((capsule) => (
-          <button key={capsule.name} type="button" onClick={() => setSelectedCapsule(capsule)} className="shop-shelf-bag" data-name={capsule.name} aria-label={`View ${capsule.name}`}>
+          <button key={capsule.name} type="button" onClick={() => setSelectedCapsule(capsule)} className={`shop-shelf-bag${isSeasonalPackLocked(capsule.name, now) ? " is-locked" : ""}`} data-name={capsule.name} aria-label={`View ${capsule.name}`}>
             <img src={capsule.art} alt="" className="shop-shelf-art" />
             {soldOut && <span className="shop-sold-stamp" aria-hidden="true">Sold out</span>}
+            {isSeasonalPackLocked(capsule.name, now) && <span className="shop-soon-stamp">Opens {opensOnLabel(capsule.name, "short")}</span>}
             <span className="shop-price-tag"><img src="/assets/Bread%20bucks.svg" alt="" />{isGuest ? "Free" : capsule.price.toLocaleString()}</span>
           </button>
         ))}
@@ -2589,6 +2612,7 @@ function CapsulesTab({
         <PackDetailsModal
           capsule={selectedCapsule}
           inStock={isMarketPackInStock(selectedCapsule.name, now)}
+          opensOn={isSeasonalPackLocked(selectedCapsule.name, now) ? opensOnLabel(selectedCapsule.name) : undefined}
           stockChance={stockOdds.get(selectedCapsule.name) ?? 0}
           isGuest={isGuest}
           auto={autoOpen}
@@ -2606,6 +2630,10 @@ function CapsulesTab({
   );
 }
 
+// "December 1" (or "Dec 1") for a seasonal pack's opening day.
+const opensOnLabel = (name: string, month: "long" | "short" = "long") =>
+  new Date(seasonalPackOpensAt[name]).toLocaleDateString("en-US", { month, day: "numeric", timeZone: "UTC" });
+
 function MarketRefreshCountdown() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -2620,6 +2648,7 @@ function MarketRefreshCountdown() {
 function PackDetailsModal({
   capsule,
   inStock,
+  opensOn,
   stockChance,
   isGuest,
   auto,
@@ -2630,6 +2659,8 @@ function PackDetailsModal({
 }: {
   capsule: Capsule;
   inStock: boolean;
+  // Set for a seasonal pack that hasn't opened yet, e.g. "December 1".
+  opensOn?: string;
   stockChance: number;
   isGuest: boolean;
   auto: boolean;
@@ -2646,14 +2677,14 @@ function PackDetailsModal({
           <div className="min-w-0 flex-1">
             <p className="text-xs font-black uppercase tracking-widest opacity-70">Ted&apos;s Shop</p>
             <h2 id="pack-details-heading" className="truncate text-2xl font-black">{capsule.name}</h2>
-            <span className={`shop-stock-pill is-static mt-1 ${inStock ? "is-in" : "is-out"}`}>{inStock ? "In stock" : "Sold out"}</span>
+            <span className={`shop-stock-pill is-static mt-1 ${inStock ? "is-in" : opensOn ? "is-soon" : "is-out"}`}>{inStock ? "In stock" : opensOn ? `Opens ${opensOn}` : "Sold out"}</span>
           </div>
           <button type="button" onClick={close} aria-label="Close Goodybag details" className="bazaar-offers-close">×</button>
         </div>
         <div className="shop-pack-facts">
           <p><span>Price</span><b className="bazaar-offer-price">{isGuest ? "Free" : <><img src="/assets/Bread%20bucks.svg" alt="" />{capsule.price.toLocaleString()}</>}</b></p>
           <p><span>Breadlets inside</span><b>{capsule.pool.length}</b></p>
-          <p>
+          {capsule.seasonal ? <p><span>Seasonal</span><b>{opensOn ? `Opens ${opensOn}` : "Always in stock"}</b></p> : <p>
             <span>Chance to be in stock</span>
             <span className="flex items-center gap-2">
               <b>{Number((stockChance * 100).toFixed(2))}%</b>
@@ -2661,11 +2692,11 @@ function PackDetailsModal({
                 <Info size={14} />
               </button>
             </span>
-          </p>
+          </p>}
         </div>
         <button type="button" onClick={showRewardOdds} className="open-toggle mt-4 w-full justify-center">View reward chances</button>
         <button type="button" disabled={!inStock} onClick={open} className="bazaar-buy-button mt-3">
-          {!inStock ? "Currently sold out" : auto ? (isGuest ? "Start auto open (free)" : `Start auto open · ${capsule.price} each`) : isGuest ? "Open for free" : `Open for ${capsule.price} Bread Bucks`}
+          {opensOn ? `Opens ${opensOn}` : !inStock ? "Currently sold out" : auto ? (isGuest ? "Start auto open (free)" : `Start auto open · ${capsule.price} each`) : isGuest ? "Open for free" : `Open for ${capsule.price} Bread Bucks`}
         </button>
       </section>
     </div>
@@ -2722,6 +2753,9 @@ const goldenToasterFrames = [
   "/assets/goldenToaster4.svg",
 ];
 const alienFrames = Array.from({ length: 13 }, (_, index) => `/assets/alien%202%20frame%20${index + 1}.svg`);
+// Reindeer: the nose glow swells and fades. Gnome: waves its arms (played forward then back).
+const reindeerFrames = [1, 2, 3, 4, 5].map((frame) => `/assets/winter/reindeer-${frame}.svg`);
+const gnomeFrames = [1, 2, 3, 4, 5, 6, 5, 4, 3, 2].map((frame) => `/assets/winter/gnome-${frame}.svg`);
 const diamondSwordFrames = [
   "/assets/diamond%20sword%20frame%20one.svg",
   ...Array.from({ length: 7 }, (_, index) => `/assets/diamond%20sword${index + 2}.svg`),
@@ -2766,6 +2800,12 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   if (cleanName === "Alien") {
     return <FrameSwitcher frames={alienFrames} name={name} className={className} />;
+  }
+  if (cleanName === "Reindeer") {
+    return <FrameSwitcher frames={reindeerFrames} name={name} className={className} />;
+  }
+  if (cleanName === "Gnome") {
+    return <FrameSwitcher frames={gnomeFrames} name={name} className={className} />;
   }
   if (cleanName === "Diamond Sword") {
     return <FrameSwitcher frames={diamondSwordFrames} name={name} className={className} />;
@@ -3690,9 +3730,15 @@ function OddsModal({
                 </div>
                 <span className="truncate font-bold text-white">{reward.name} <b className="ml-1 text-xs text-[#e9bd67]">{reward.rarity}</b></span>
               </span>
-              <b className="text-[#bde8ff] text-base">
-                {chanceFor(capsule, reward).toFixed(chanceFor(capsule, reward) < 0.01 ? 3 : 2)}%
-              </b>
+              {reward.rotation && !isRewardActive(reward) ? (
+                // Daily rotation: only one of these is in the pack each day.
+                <b className="text-xs text-[#bde8ff] opacity-80">{(() => { const days = (reward.rotation.slot - rotationSlotFor(reward.rotation.size) + reward.rotation.size) % reward.rotation.size; return days === 1 ? "Back tomorrow" : `Back in ${days} days`; })()}</b>
+              ) : (
+                <b className="text-[#bde8ff] text-base">
+                  {reward.rotation && <span className="mr-2 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-200">Today</span>}
+                  {chanceFor(capsule, reward).toFixed(chanceFor(capsule, reward) < 0.01 ? 3 : 2)}%
+                </b>
+              )}
             </div>
           ))}
         </div>

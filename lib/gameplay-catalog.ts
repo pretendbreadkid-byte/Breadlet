@@ -1,4 +1,5 @@
-export type Reward = { name: string; rarity: string; weight: number; chance?: number; art?: string };
+// rotation: one of a group that takes turns in the pool, one per UTC day (see isRewardActive).
+export type Reward = { name: string; rarity: string; weight: number; chance?: number; art?: string; rotation?: { slot: number; size: number } };
 
 export type Capsule = {
   name: string;
@@ -6,6 +7,9 @@ export type Capsule = {
   art: string;
   pool: Reward[];
   retired?: boolean;
+  // Seasonal packs (see seasonalPackOpensAt in market-stock.ts) don't count toward the pool
+  // sizes that set other packs' Mythic odds.
+  seasonal?: boolean;
   note?: string;
   // Total % chance for a whole rarity tier, split evenly among its items. Other tiers
   // keep their usual proportions and share whatever is left.
@@ -43,14 +47,38 @@ export const rewards = (
     };
   });
 
-export const chanceFor = (capsule: Capsule, reward: Reward) => {
+// Rotations take turns one per UTC day, starting with slot 0 on December 1, 2026.
+const ROTATION_START = Date.UTC(2026, 11, 1);
+export const rotationSlotFor = (size: number, date = new Date()) => {
+  const day = Math.floor((date.getTime() - ROTATION_START) / 86400000);
+  return ((day % size) + size) % size;
+};
+export const isRewardActive = (reward: Reward, date = new Date()) =>
+  !reward.rotation || rotationSlotFor(reward.rotation.size, date) === reward.rotation.slot;
+
+// Turns a group of same-rarity rewards into a daily rotation. Weights are set as if the group
+// were a single item, so the rest of the pack keeps its normal odds whichever one is up.
+const dailyRotation = (pool: Reward[], names: string[]) => {
+  const rarity = pool.find((reward) => reward.name === names[0])!.rarity;
+  const activeInTier = pool.filter((reward) => reward.rarity === rarity && !names.includes(reward.name)).length + 1;
+  return pool.map((reward) => reward.rarity !== rarity ? reward : {
+    ...reward,
+    weight: (rarityBudget[rarity] || 0.1) / activeInTier,
+    rotation: names.includes(reward.name) ? { slot: names.indexOf(reward.name), size: names.length } : undefined,
+  });
+};
+
+// A reward's % chance in a pack on the given day (0 for rotation items that aren't up today).
+export const chanceFor = (capsule: Capsule, reward: Reward, date = new Date()) => {
+  if (!isRewardActive(reward, date)) return 0;
   if (reward.chance !== undefined) return reward.chance;
+  const pool = capsule.pool.filter((item) => isRewardActive(item, date));
   const rarityChances = capsule.rarityChances || {};
-  const tierSize = (rarity: string) => capsule.pool.filter((item) => item.rarity === rarity && item.chance === undefined).length;
+  const tierSize = (rarity: string) => pool.filter((item) => item.rarity === rarity && item.chance === undefined).length;
   if (rarityChances[reward.rarity] !== undefined) return rarityChances[reward.rarity] / tierSize(reward.rarity);
   const mythicFixed = rarityChances.Mythic !== undefined;
-  const mythicRewards = capsule.pool.filter((item) => item.rarity === "Mythic" && item.chance === undefined);
-  const poolSizes = [...liveCapsules, ...legacyCapsules].map((item) => item.pool.length);
+  const mythicRewards = pool.filter((item) => item.rarity === "Mythic" && item.chance === undefined);
+  const poolSizes = [...liveCapsules, ...legacyCapsules].filter((item) => !item.seasonal).map((item) => item.pool.length);
   const smallestPool = Math.min(...poolSizes);
   const largestPool = Math.max(...poolSizes);
   const mythicPoolChance =
@@ -59,10 +87,10 @@ export const chanceFor = (capsule: Capsule, reward: Reward) => {
     return mythicPoolChance / mythicRewards.length;
   }
   const fixedChance =
-    capsule.pool.reduce((sum, item) => sum + (item.chance || 0), 0) +
+    pool.reduce((sum, item) => sum + (item.chance || 0), 0) +
     (mythicFixed ? 0 : mythicPoolChance) +
     Object.entries(rarityChances).reduce((sum, [rarity, chance]) => sum + (tierSize(rarity) ? chance : 0), 0);
-  const weightedRewards = capsule.pool.filter(
+  const weightedRewards = pool.filter(
     (item) => item.chance === undefined && item.rarity !== "Mythic" && rarityChances[item.rarity] === undefined,
   );
   const remainingWeight = weightedRewards.reduce((sum, item) => sum + item.weight, 0);
@@ -346,6 +374,33 @@ export const liveCapsules: Capsule[] = [
       "Holy Bread": 0.25,
       "Golden Toaster": 0.004,
     }),
+  },
+  {
+    // Shows in the shop now, opens December 1 (seasonalPackOpensAt in market-stock.ts).
+    // One cookie is in the pool each day: Chocolate Candy -> Sugar -> Macadamia Nut -> Gingerbread.
+    name: "Winter Bag",
+    price: 25,
+    seasonal: true,
+    // Same tiers as the other packs, so the average resale (~17) stays under the price.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
+    art: "/assets/winter/winter-bag.svg",
+    pool: dailyRotation(rewards([
+      ["Snowball", "Common"],
+      ["Mitten", "Common"],
+      ["Christmas Candy", "Common"],
+      ["Santa Hat", "Uncommon"],
+      ["Ornament", "Uncommon"],
+      ["Chocolate Coin", "Uncommon"],
+      ["Stocking", "Rare"],
+      ["Chocolate Candy Cookie", "Rare"],
+      ["Sugar Cookie", "Rare"],
+      ["Macadamia Nut Cookie", "Rare"],
+      ["Gingerbread Cookie", "Rare"],
+      ["Present", "Epic"],
+      ["Festive Breadlet", "Legendary"],
+      ["Reindeer", "Mythic"],
+      ["Gnome", "Breadled"],
+    ], {}, { Gnome: 0.005 }), ["Chocolate Candy Cookie", "Sugar Cookie", "Macadamia Nut Cookie", "Gingerbread Cookie"]),
   },
 ];
 
