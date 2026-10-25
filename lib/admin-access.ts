@@ -6,7 +6,7 @@ export async function hasAdminAccess(database: any, userId: string): Promise<boo
   return String(profile?.username || '').trim().toLowerCase() === ADMIN_USERNAME;
 }
 // Chat moderators can delete messages and time players out for 30 minutes.
-export const MODERATOR_USERNAMES = ['ethan32', 'xyl1x'];
+export const MODERATOR_USERNAMES = ['xyl1x'];
 // Artists who drew Breadlet art get the Artist badge (admins can also grant it to others).
 export const ARTIST_USERNAMES = ['minti_icecreamet'];
 
