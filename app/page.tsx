@@ -348,6 +348,16 @@ const artFor = (name: string) =>
     "Festive Breadlet": "/assets/winter/festive-breadlet.svg",
     Reindeer: "/assets/winter/reindeer-1.svg",
     Gnome: "/assets/winter/gnome-1.svg",
+    // Fall Bag
+    Pumpkin: "/assets/fall/pumpkin.svg",
+    "Chai Tea": "/assets/fall/chai-tea.svg",
+    "Pumpkin Pie": "/assets/fall/pumpkin-pie.svg",
+    "Cherry Pie": "/assets/fall/cherry-pie.svg",
+    "Cooked Turkey": "/assets/fall/cooked-turkey.svg",
+    Chipmunk: "/assets/fall/chipmunk.svg",
+    Crow: "/assets/fall/crow.svg",
+    "Autumn Cat": "/assets/fall/autumn-cat.svg",
+    Tanuki: "/assets/fall/tanuki-1.svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const artForBlook = (name: string, artworkKey?: string) => {
   const mappedArt = artFor(name);
@@ -2775,6 +2785,8 @@ const alienFrames = Array.from({ length: 13 }, (_, index) => `/assets/alien%202%
 // Reindeer: the nose glow swells and fades. Gnome: waves its arms (played forward then back).
 const reindeerFrames = [1, 2, 3, 4, 5].map((frame) => `/assets/winter/reindeer-${frame}.svg`);
 const gnomeFrames = [1, 2, 3, 4, 5, 6, 5, 4, 3, 2].map((frame) => `/assets/winter/gnome-${frame}.svg`);
+// Tanuki: the leaf and ear sway (frame 7 leads back into frame 1).
+const tanukiFrames = [1, 2, 3, 4, 5, 6, 7].map((frame) => `/assets/fall/tanuki-${frame}.svg`);
 const diamondSwordFrames = [
   "/assets/diamond%20sword%20frame%20one.svg",
   ...Array.from({ length: 7 }, (_, index) => `/assets/diamond%20sword${index + 2}.svg`),
@@ -2825,6 +2837,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   if (cleanName === "Gnome") {
     return <FrameSwitcher frames={gnomeFrames} name={name} className={className} />;
+  }
+  if (cleanName === "Tanuki") {
+    return <FrameSwitcher frames={tanukiFrames} name={name} className={className} />;
   }
   if (cleanName === "Diamond Sword") {
     return <FrameSwitcher frames={diamondSwordFrames} name={name} className={className} />;

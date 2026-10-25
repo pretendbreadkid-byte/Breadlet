@@ -402,6 +402,27 @@ export const liveCapsules: Capsule[] = [
       ["Gnome", "Breadled"],
     ], {}, { Gnome: 0.005 }), ["Chocolate Candy Cookie", "Sugar Cookie", "Macadamia Nut Cookie", "Gingerbread Cookie"]),
   },
+  {
+    // Shows in the shop now, opens November 1 (seasonalPackOpensAt in market-stock.ts).
+    // More Breadlets are coming to this pack.
+    name: "Fall Bag",
+    price: 25,
+    seasonal: true,
+    // Same tiers as the Winter Bag, so the average resale (~17) stays under the price.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
+    art: "/assets/fall/fall-bag.svg",
+    pool: rewards([
+      ["Pumpkin", "Common"],
+      ["Chai Tea", "Common"],
+      ["Pumpkin Pie", "Uncommon"],
+      ["Cherry Pie", "Uncommon"],
+      ["Cooked Turkey", "Rare"],
+      ["Chipmunk", "Rare"],
+      ["Crow", "Epic"],
+      ["Autumn Cat", "Legendary"],
+      ["Tanuki", "Mythic"],
+    ]),
+  },
 ];
 
 export const legacyCapsules: Capsule[] = [
