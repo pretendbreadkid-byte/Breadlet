@@ -351,12 +351,8 @@ const artFor = (name: string) =>
     // Fall Bag
     Pumpkin: "/assets/fall/pumpkin.svg",
     "Chai Tea": "/assets/fall/chai-tea.svg",
-    "Pumpkin Pie": "/assets/fall/pumpkin-pie.svg",
     "Cherry Pie": "/assets/fall/cherry-pie.svg",
     "Cooked Turkey": "/assets/fall/cooked-turkey.svg",
-    Chipmunk: "/assets/fall/chipmunk.svg",
-    Crow: "/assets/fall/crow.svg",
-    "Autumn Cat": "/assets/fall/autumn-cat.svg",
     Tanuki: "/assets/fall/tanuki-1.svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const artForBlook = (name: string, artworkKey?: string) => {
