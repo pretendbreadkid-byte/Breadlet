@@ -66,7 +66,70 @@ const socialRows: Row[] = [
   { key: "sounds", title: "Notification sounds", description: "A short chime plays with each pop-up notification." },
 ];
 
-export function SettingsTab({ username, onLogout, isGuest }: { username: string; onLogout: () => void; isGuest: boolean }) {
+const inputClass = "w-full max-w-sm rounded-xl border border-[#3c3a34] bg-[#27251F] px-4 py-2 text-white outline-none focus:border-[#e9bd67]";
+const saveClass = "rounded-xl border border-[#e9bd67] bg-[#27251F] px-4 py-2 text-sm font-black text-[#e9bd67] disabled:opacity-50";
+
+async function changeAccount(body: Record<string, string>) {
+  try {
+    const response = await fetch("/api/account", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const result = await response.json().catch(() => ({}));
+    return response.ok ? { ok: true, message: "" } : { ok: false, message: result.error || "That change didn't save." };
+  } catch {
+    return { ok: false, message: "Could not reach the server." };
+  }
+}
+
+function AccountForms({ username, onRenamed }: { username: string; onRenamed: () => void }) {
+  const [newName, setNewName] = useState("");
+  const [nameNote, setNameNote] = useState({ ok: false, message: "" });
+  const [passwords, setPasswords] = useState({ current: "", next: "", confirm: "" });
+  const [passwordNote, setPasswordNote] = useState({ ok: false, message: "" });
+  const [busy, setBusy] = useState(false);
+
+  const rename = async () => {
+    setBusy(true);
+    const result = await changeAccount({ action: "username", username: newName.trim() });
+    setBusy(false);
+    setNameNote(result.ok ? { ok: true, message: "Username changed! You can change it again in 7 days." } : result);
+    if (result.ok) { setNewName(""); onRenamed(); }
+  };
+  const changePassword = async () => {
+    if (passwords.next !== passwords.confirm) return setPasswordNote({ ok: false, message: "The new passwords don't match." });
+    setBusy(true);
+    const result = await changeAccount({ action: "password", currentPassword: passwords.current, newPassword: passwords.next });
+    setBusy(false);
+    setPasswordNote(result.ok ? { ok: true, message: "Password changed! Use it next time you log in." } : result);
+    if (result.ok) setPasswords({ current: "", next: "", confirm: "" });
+  };
+  const note = (value: { ok: boolean; message: string }) => value.message && <p role="status" className={`mt-2 text-sm font-bold ${value.ok ? "text-[#9be38f]" : "text-red-300"}`}>{value.message}</p>;
+
+  return (
+    <>
+      <div className="mb-8">
+        <h3 className="text-2xl font-black text-white">Change username</h3>
+        <p className="mb-2 text-sm text-[#c9c7c0]">3-20 letters, numbers or underscores. You can change it once every 7 days, and you'll log in with the new name.</p>
+        <div className="flex flex-wrap gap-2">
+          <input value={newName} maxLength={20} onChange={(event) => setNewName(event.target.value.replace(/[^a-zA-Z0-9_]/g, ""))} placeholder={username} aria-label="New username" className={inputClass} />
+          <button type="button" disabled={busy || newName.trim().length < 3} onClick={() => void rename()} className={saveClass}>Save</button>
+        </div>
+        {note(nameNote)}
+      </div>
+      <div>
+        <h3 className="text-2xl font-black text-white">Change password</h3>
+        <p className="mb-2 text-sm text-[#c9c7c0]">At least 4 characters.</p>
+        <div className="grid gap-2">
+          <input type="password" autoComplete="current-password" value={passwords.current} onChange={(event) => setPasswords({ ...passwords, current: event.target.value })} placeholder="Current password" aria-label="Current password" className={inputClass} />
+          <input type="password" autoComplete="new-password" value={passwords.next} onChange={(event) => setPasswords({ ...passwords, next: event.target.value })} placeholder="New password" aria-label="New password" className={inputClass} />
+          <input type="password" autoComplete="new-password" value={passwords.confirm} onChange={(event) => setPasswords({ ...passwords, confirm: event.target.value })} placeholder="Confirm new password" aria-label="Confirm new password" className={inputClass} />
+          <div><button type="button" disabled={busy || !passwords.current || passwords.next.length < 4} onClick={() => void changePassword()} className={saveClass}>Change password</button></div>
+        </div>
+        {note(passwordNote)}
+      </div>
+    </>
+  );
+}
+
+export function SettingsTab({ username, onLogout, isGuest, onRenamed }: { username: string; onLogout: () => void; isGuest: boolean; onRenamed: () => void }) {
   const { settings, update } = useSettings();
   const [section, setSection] = useState<(typeof sections)[number]>("Account");
 
@@ -104,7 +167,8 @@ export function SettingsTab({ username, onLogout, isGuest }: { username: string;
           <>
             <p className="mb-5 text-[#c9c7c0]">Who you are in Breadlet.</p>
             <p className="text-xs text-[#c9c7c0]">Username</p>
-            <p className="mb-4 text-xl font-black">{username}</p>
+            <p className="mb-6 text-xl font-black">{username}</p>
+            {!isGuest && <AccountForms username={username} onRenamed={onRenamed} />}
           </>
         )}
         {section === "Chat" && renderRows(chatRows)}

@@ -1896,7 +1896,7 @@ function MainPage() {
               redeem={redeemPromo}
             />
           )}
-          {tab === "settings" && <SettingsTab username={player.username} isGuest={isGuest} onLogout={leaveSession} />}
+          {tab === "settings" && <SettingsTab username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} />}
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && <ReferralsTab isGuest={isGuest} />}

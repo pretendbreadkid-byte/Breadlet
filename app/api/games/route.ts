@@ -7,6 +7,10 @@ export const dynamic = 'force-dynamic';
 
 const START_COOLDOWN_MS = 60 * 1000;
 
+// Cancels and refunds coin flips whose host didn't pick heads or tails within 30 seconds of
+// someone joining (migration 0062). Best effort: skipped if that migration isn't applied yet.
+const expireUnpickedFlips = (admin: any) => admin.rpc('chat_game_expire_flips').then(() => undefined, () => undefined);
+
 async function session() {
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -20,7 +24,8 @@ export async function GET() {
   const state = await session();
   if ('error' in state) return state.error;
   const { admin, user } = state;
-  const since = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  await expireUnpickedFlips(admin);
+  const since =new Date(Date.now() - 2 * 60 * 1000).toISOString();
   const { data } = await admin
     .from('chat_games')
     .select('id, kind, status, host_id, opponent_id, bet, result, updated_at')
@@ -44,6 +49,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || '');
   const args: Record<string, unknown> = { p_profile_id: user.id, p_action: action };
+  await expireUnpickedFlips(admin);
 
   if (action === 'coinflip_start') {
     args.p_bet = Math.floor(Number(body.bet) || 0);

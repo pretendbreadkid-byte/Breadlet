@@ -9,6 +9,7 @@ type CoinGame = {
   isHost: boolean;
   hostName: string;
   opponentName: string;
+  updated_at: string;
   result?: { pick: string; flip: "heads" | "tails"; winnerId: string; winnerName: string } | null;
 };
 
@@ -96,6 +97,12 @@ export function CoinFlipPopup({ onFinished }: { onFinished: () => void }) {
   const watchUntil = useRef(0);
   const activeGame = useRef(false);
   useEffect(() => { activeGame.current = game?.status === "active"; }, [game]);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (game?.status !== "active" || !game.isHost) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [game?.status, game?.isHost]);
 
   const load = useCallback(async () => {
     try {
@@ -158,7 +165,9 @@ export function CoinFlipPopup({ onFinished }: { onFinished: () => void }) {
   };
 
   if (!game) return null;
-  const pot = (game.bet * 2).toLocaleString();
+  // The game's updated_at is when the opponent joined; the host has 30 seconds from then.
+  const pickSecondsLeft = Math.max(0, Math.ceil((new Date(game.updated_at).getTime() + 30000 - now) / 1000));
+  const pot =(game.bet * 2).toLocaleString();
   return (
     <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
       <section role="dialog" aria-modal="true" className="w-full max-w-sm rounded-3xl border border-[#3c3a34] bg-[#13120F] p-6 text-center text-white shadow-2xl">
@@ -168,6 +177,7 @@ export function CoinFlipPopup({ onFinished }: { onFinished: () => void }) {
           game.isHost ? (
             <>
               <p className="mt-3 text-sm text-white/70">Pick heads or tails. {game.opponentName} gets the other side.</p>
+              <p className="mt-1 text-xs font-black text-[#e9bd67]">{pickSecondsLeft}s left to pick, or the flip is cancelled and refunded.</p>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <button onClick={() => void pick("heads")} className="rounded-xl bg-[#e9bd67] px-4 py-4 font-black text-[#13120F]">Heads</button>
                 <button onClick={() => void pick("tails")} className="rounded-xl bg-[#27251F] px-4 py-4 font-black text-[#e9bd67]">Tails</button>
