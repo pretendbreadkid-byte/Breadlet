@@ -5,6 +5,8 @@ import { newWordGame } from '../../../lib/chat-games';
 
 export const dynamic = 'force-dynamic';
 
+const START_COOLDOWN_MS = 60 * 1000;
+
 async function session() {
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -54,6 +56,14 @@ export async function POST(request: Request) {
     args.p_hint = game.hint;
   } else if (action !== 'coinflip_accept' && action !== 'cancel') {
     return NextResponse.json({ error: 'Unknown game action.' }, { status: 400 });
+  }
+
+  // Every new game posts a bot message in chat, so starting (and cancelling) over and over
+  // would flood it. One new game per player every START_COOLDOWN_MS.
+  if (action.endsWith('_start')) {
+    const { data: last } = await admin.from('chat_games').select('created_at').eq('host_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    const wait = last ? START_COOLDOWN_MS - (Date.now() - new Date(last.created_at).getTime()) : 0;
+    if (wait > 0) return NextResponse.json({ error: `Slow down! You can start another game in ${Math.ceil(wait / 1000)}s.` }, { status: 429 });
   }
 
   if (action === 'cancel') {
