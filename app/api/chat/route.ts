@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { chatModerationRole, isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
-import { runAiModeration } from '../../../lib/ai-moderator';
 import { evilUntil, isEvilActive, isEvilFor } from '../../../lib/evil-ai';
 import { ogBadges } from '../../../lib/og-badge';
 import { mentionedNames, notify } from '../../../lib/inbox';
@@ -351,8 +350,6 @@ export async function POST(request: Request) {
       if (stale?.length) await database.from('global_chat_messages').delete().in('id', stale.map((row: { id: string }) => row.id));
     })().catch(() => undefined);
   }
-
-  void runAiModeration(database).catch(() => undefined);
 
   // @mentions go to the mentioned players' inboxes (with a toast and chime in their game).
   const mentions = isImageMessage ? [] : mentionedNames(message).filter((name) => name !== String(sender?.username || '').toLowerCase());
