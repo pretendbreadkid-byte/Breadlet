@@ -202,7 +202,7 @@ const badgeIconFor = (badge: string) => ({
   Moderator: "/assets/moderator-badge.svg",
   Owner: "/assets/owner-badge.svg",
   Contributor: "/assets/contributer.svg",
-  Artist: "/assets/artist-badge.svg",
+  Artist: "/assets/artist-badge.svg?v=2",
 })[badge] || "/assets/verified-badge.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>
