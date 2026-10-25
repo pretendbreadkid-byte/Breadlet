@@ -383,7 +383,7 @@ export const liveCapsules: Capsule[] = [
     seasonal: true,
     // Same tiers as the other packs, so the average resale (~17) stays under the price.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
-    art: "/assets/winter/winter-bag.svg",
+    art: "/assets/winter/winter-bag.svg?v=2",
     pool: dailyRotation(rewards([
       ["Snowball", "Common"],
       ["Mitten", "Common"],

@@ -222,7 +222,7 @@ const artFor = (name: string) =>
     "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png?v=2",
     "Lava Slime": "/assets/lava-slime.svg",
     Ted: "/assets/ted-shopkeeper.svg",
-    "Walter White": "/assets/walter-white.svg",
+    "Walter White": "/assets/walter-white.svg?v=2",
     "Olive Grenade": "/assets/grenade2.svg",
     "Golden Grenade": "/assets/gold grenade2.svg",
     "Sour Dough": "/assets/sour-dough-refreshed.svg",
