@@ -2467,3 +2467,20 @@ main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-join
   main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-grid { grid-template-columns: 1fr; }
   main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-art { width: 76px; height: 76px; }
 }
+
+/* Clans: no box behind the page. The header, buttons and sections sit right on the stone wall;
+   only the Create Clan pop-up keeps its panel. */
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace { border-radius: 0; padding: clamp(6px, 1vw, 12px) 0; background: transparent !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace > .clan-panel,
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace > .clan-profile {
+  border: 0 !important;
+  border-radius: 0;
+  padding-inline: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-name,
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace > .clan-panel h2,
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-members-heading h2,
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover h2 { text-shadow: 0 3px 0 #13120F; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace > .clan-profile .clan-profile-content { padding-inline: 0; }
