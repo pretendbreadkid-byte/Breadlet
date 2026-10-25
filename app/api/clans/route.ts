@@ -104,7 +104,11 @@ export async function GET(request: Request) {
   const { data: ownBanner } = ownClan?.banner_unlocked
     ? await supabase.from('clans').select('banner_data').eq('id', ownClan.id).maybeSingle()
     : { data: null };
-  const visibleClans = (clans || []).map((clan: any) => ({ ...clan, banner_data: clan.id === ownClan?.id ? ownBanner?.banner_data || '' : '' }));
+  // Owner names for the "Owned by" line on Discover Clans.
+  const ownerIds = Array.from(new Set((clans || []).map((clan: any) => clan.owner_profile_id).filter(Boolean)));
+  const { data: owners } = ownerIds.length ? await catalog.from('profiles').select('id, username').in('id', ownerIds) : { data: [] as any[] };
+  const ownerNameById = new Map((owners || []).map((owner: any) => [owner.id, owner.username]));
+  const visibleClans = (clans || []).map((clan: any) => ({ ...clan, owner_name: ownerNameById.get(clan.owner_profile_id) || '', banner_data: clan.id === ownClan?.id ? ownBanner?.banner_data || '' : '' }));
   return NextResponse.json({ clans: visibleClans, blooks: blooks || [], membership: membership || null, members, requests, myRequests });
 }
 

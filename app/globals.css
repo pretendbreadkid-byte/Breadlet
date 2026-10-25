@@ -2381,3 +2381,89 @@ main.breadlet-blue-theme.breadlet-blue-theme .shop-soon-stamp { color: #12507d !
 .boot-logo { animation: boot-bob 1.4s ease-in-out infinite; }
 @keyframes boot-bob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-8px) rotate(4deg); } }
 @media (prefers-reduced-motion: reduce) { .boot-logo { animation: none; } }
+
+/* Discover Clans: a full-width grid of clan cards. The clan's Breadlet sits on the card with no box around it. */
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover { display: grid; gap: 18px; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 3px solid #13120F;
+  border-radius: 14px;
+  padding: 0 16px;
+  background: #27251F;
+  box-shadow: 0 4px 0 #13120F;
+  color: #d3cfc4 !important;
+}
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  padding: 14px 0;
+  background: transparent;
+  color: #FFFFFF !important;
+  font-size: 1.05rem;
+  font-weight: 700;
+  outline: none;
+}
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-search input::placeholder { color: #a39d8e !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-card {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 18px;
+  overflow: visible;
+  border: 3px solid #13120F !important;
+  border-radius: 18px;
+  padding: 18px;
+  background-color: #27251F !important;
+  box-shadow: 0 5px 0 #13120F !important;
+  transition: transform 150ms ease;
+}
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-card:hover { transform: translateY(-3px); }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-art {
+  display: grid;
+  width: 104px;
+  height: 104px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #a39d8e !important;
+}
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-art img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 0 #13120F80); }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-info { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 5px; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-info h3 { overflow: hidden; margin: 0 0 4px; font-size: 1.35rem; font-weight: 950; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-info p {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  line-height: 1.3;
+  color: #f2eee5 !important;
+  font-size: .95rem;
+  font-weight: 700;
+}
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-info p svg { flex: 0 0 auto; color: #ED7117 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-info p img { width: 17px; height: 17px; flex: 0 0 auto; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-description { display: block !important; overflow: hidden; color: #d3cfc4 !important; text-overflow: ellipsis; white-space: nowrap; }
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-join {
+  align-self: flex-start;
+  margin-top: 8px;
+  border: 2px solid #CC5500;
+  border-radius: 10px;
+  padding: 6px 14px;
+  background: #E77D22;
+  box-shadow: 0 3px 0 #a84400;
+  color: #FFFFFF !important;
+  font-size: .85rem;
+  font-weight: 900;
+}
+main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-join:disabled { border-color: #514d43; background: #1d1c18; box-shadow: none; color: #d3cfc4 !important; cursor: default; }
+@media (max-width: 1100px) { main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-grid { grid-template-columns: 1fr; }
+  main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover-art { width: 76px; height: 76px; }
+}

@@ -145,6 +145,7 @@ type ClanRecord = {
   profileBlook?: string;
   bannerData?: string;
   ownerProfileId?: string;
+  ownerName?: string;
   role?: string;
   memberCapacity: number;
   nameChangeUnlocked: boolean;
@@ -5236,6 +5237,7 @@ function ClanTab({
     profileBlook: typeof entry.profile_blook === "string" ? entry.profile_blook : "",
     bannerData: typeof entry.banner_data === "string" ? entry.banner_data : "",
     ownerProfileId: typeof entry.owner_profile_id === "string" ? entry.owner_profile_id : undefined,
+    ownerName: typeof entry.owner_name === "string" ? entry.owner_name : "",
     role: typeof entry.role === "string" ? entry.role : undefined,
     memberCapacity: Number(entry.member_capacity) || 25,
     nameChangeUnlocked: Boolean(entry.name_change_unlocked),
@@ -5646,16 +5648,31 @@ function ClanTab({
 
       {!clan && <section className="clan-panel rounded-3xl border p-6 text-center"><h2 className="text-2xl font-black">Find your people</h2><p className="clan-text-muted mt-2">Discover clans, browse their banners and themes, and request to join.</p><button type="button" onClick={() => setDiscoverOpen(true)} className="clan-primary-button mt-4 rounded-xl px-5 py-3 font-black"><Search className="mr-2 inline" size={18} />Discover clans</button></section>}
 
-      {discoverOpen && <section className="clan-panel rounded-3xl border p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="clan-eyebrow text-xs font-black uppercase tracking-widest">Find a community</p><h2 className="mt-1 text-2xl font-black">Discover Clans</h2></div><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Search clan or tag" aria-label="Search clans" className="clan-input w-full rounded-xl border px-3 py-2 sm:w-64" /></div><div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{clans.length ? clans.map((item) => {
-        const pending = pendingByClan.has(item.id || "");
-        const full = item.members >= item.memberCapacity;
-        const ownClan = membershipClanId === item.id;
-        const theme = item.colorsUnlocked ? item.theme : "breadlet";
-        return <article key={item.id || item.name} className={`clan-discover-card clan-theme-${theme} overflow-hidden rounded-2xl border ${item.animatedProfiles ? "clan-profile-animated" : ""}`}>
-          {item.bannerData && ownClan ? <img src={item.bannerData} alt={`${item.name} clan banner`} className="clan-discover-banner" /> : item.profileBlook ? <div className="clan-discover-banner clan-profile-blook-banner"><img src={clanBlookArt(item.profileBlook)} alt={`${item.profileBlook} clan profile`} /></div> : item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={`${item.name} clan`} className="clan-discover-banner" /> : <div className="clan-discover-banner clan-banner-placeholder"><Users size={30} /></div>}
-          <div className="p-4"><div className="flex items-start justify-between gap-2"><h3 className="break-words text-xl font-black">{item.name}</h3><span className="clan-stats shrink-0 rounded-full px-2.5 py-1 text-xs font-bold">{item.members}/{item.memberCapacity}</span></div><p className="clan-text-muted mt-2 text-sm leading-5">{item.description || "A Breadlet community."}</p><div className="mt-3 flex flex-wrap gap-1.5">{item.tags.map((tag) => <span key={tag} className="clan-tag rounded-full px-2.5 py-1 text-xs">#{tag}</span>)}</div><p className="clan-text-muted mt-3 text-xs">{item.treasury.toLocaleString()} treasury tokens · {themeNames[theme]} colors</p><button type="button" disabled={isGuest || ownClan || pending || full || Boolean(membershipClanId)} onClick={() => void handleRequestClan(item)} className="clan-primary-button mt-4 w-full rounded-xl px-4 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{ownClan ? "Your clan" : pending ? "Request pending" : full ? "Clan full" : membershipClanId ? "Leave your clan before requesting" : isGuest ? "Sign in to request" : "Request to join"}</button></div>
-        </article>;
-      }) : <p className="col-span-full py-10 text-center clan-text-muted">No clans match that search.</p>}</div></section>}
+      {discoverOpen && <section className="clan-discover">
+        <div className="clan-discover-head"><h2 className="page-sign text-4xl font-black">Discover Clans</h2></div>
+        <label className="clan-discover-search"><Search size={20} aria-hidden="true" /><input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Search clans..." aria-label="Search clans" /></label>
+        <div className="clan-discover-grid">{clans.length ? clans.map((item) => {
+          const pending = pendingByClan.has(item.id || "");
+          const full = item.members >= item.memberCapacity;
+          const ownClan = membershipClanId === item.id;
+          const theme = item.colorsUnlocked ? item.theme : "breadlet";
+          const canRequest = !(isGuest || ownClan || pending || full || Boolean(membershipClanId));
+          const status = ownClan ? "Your clan" : pending ? "Request pending" : full ? "Clan full" : membershipClanId ? "" : isGuest ? "Sign in to join" : "Request to join";
+          return <article key={item.id || item.name} className={`clan-discover-card clan-theme-${theme} ${item.animatedProfiles ? "clan-profile-animated" : ""}`}>
+            <span className="clan-discover-art">
+              {item.profileBlook ? <img src={clanBlookArt(item.profileBlook)} alt={`${item.profileBlook} clan profile`} /> : item.thumbnailUrl ? <img src={item.thumbnailUrl} alt="" /> : <Users size={44} aria-hidden="true" />}
+            </span>
+            <div className="clan-discover-info">
+              <h3>{item.name}</h3>
+              {item.ownerName && <p><Crown size={16} aria-hidden="true" />Owned by {item.ownerName}</p>}
+              <p><Users size={16} aria-hidden="true" />{item.members}/{item.memberCapacity} members</p>
+              <p><img src="/assets/Bread%20bucks.svg" alt="" aria-hidden="true" />{item.treasury.toLocaleString()}</p>
+              <p className="clan-discover-description" title={item.description}>{item.description || "A Breadlet community."}</p>
+              {status && <button type="button" disabled={!canRequest} onClick={() => void handleRequestClan(item)} className="clan-discover-join">{status}</button>}
+            </div>
+          </article>;
+        }) : <p className="clan-text-muted col-span-full py-10 text-center">No clans match that search.</p>}</div>
+      </section>}
     </div>
   );
 }

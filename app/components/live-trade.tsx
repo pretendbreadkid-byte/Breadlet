@@ -308,7 +308,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
     .filter((entry) => entry.left > 0);
 
   const avatar = (name: string, large = true) => (
-    <div className={`${large ? "h-28 w-28 sm:h-36 sm:w-36" : "h-12 w-12"} shrink-0 overflow-hidden rounded-2xl border-2 border-[#3c3a34] bg-[#27251F]`}>
+    <div className={`${large ? "h-28 w-28 sm:h-36 sm:w-36" : "h-12 w-12"} shrink-0`}>
       {name ? <BlookArt name={name} className="h-full w-full" /> : <CircleUserRound className="h-full w-full p-4 text-[#c9c7c0]" />}
     </div>
   );
