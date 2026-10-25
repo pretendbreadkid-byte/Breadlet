@@ -7,6 +7,8 @@ export async function hasAdminAccess(database: any, userId: string): Promise<boo
 }
 // Chat moderators can delete messages and time players out for 30 minutes.
 export const MODERATOR_USERNAMES = ['ethan32', 'xyl1x'];
+// Artists who drew Breadlet art get the Artist badge (admins can also grant it to others).
+export const ARTIST_USERNAMES = ['minti_icecreamet'];
 
 export async function isChatModerator(database: any, userId: string): Promise<boolean> {
   const { data: profile } = await database.from('profiles').select('username').eq('id', userId).maybeSingle();
@@ -69,5 +71,5 @@ export function isStaffLookalike(username: string) {
 export function moderatorBadges(username?: string | null): string[] {
   const name = String(username || '').trim().toLowerCase();
   if (name === ADMIN_USERNAME) return ['Owner'];
-  return MODERATOR_USERNAMES.includes(name) ? ['Moderator'] : [];
+  return [...(MODERATOR_USERNAMES.includes(name) ? ['Moderator'] : []), ...(ARTIST_USERNAMES.includes(name) ? ['Artist'] : [])];
 }
