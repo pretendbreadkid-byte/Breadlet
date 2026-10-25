@@ -109,7 +109,7 @@ type PublicProfile = {
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number; from?: string }; is_read?: boolean; created_at?: string };
 
-const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", admin_gift: "🎁", summary: "📬" };
+const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", referral: "🎉", admin_gift: "🎁", summary: "📬" };
 
 // A short two-note chime for new Inbox notifications (Web Audio, so no sound file to load).
 function playChime() {
@@ -610,7 +610,7 @@ function MainPage() {
         if (!Array.isArray(rows)) return;
         const fresh = rows.filter((row) => !seenNotificationIds.current.has(row.id));
         rows.forEach((row) => seenNotificationIds.current.add(row.id));
-        if (fresh.some((row) => row.type === "admin_gift" || row.type === "bazaar_sale" || row.type === "trade_completed")) void refreshPlayerFromServer();
+        if (fresh.some((row) => row.type === "admin_gift" || row.type === "bazaar_sale" || row.type === "trade_completed" || row.type === "referral")) void refreshPlayerFromServer();
         // Mentions, sales and trades: a toast and chime for new ones (one summary on page load).
         const settings = readSettings();
         const freshInbox = fresh.filter((row) => isInboxType(row.type) && (row.type !== "mention" || settings.chatMentions) && (row.type !== "trade_completed" || settings.tradeOffers));

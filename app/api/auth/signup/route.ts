@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { isNameAllowed } from '../../../../lib/chat-filter';
 import { isStaffLookalike } from '../../../../lib/admin-access';
+import { notify } from '../../../../lib/inbox';
 import { NETWORK_BANNED_MESSAGE, deviceHasAccount, isNetworkBanned, networkIdentity, recordAccountDevice } from '../../../../lib/network-identity';
 
 export async function POST(request: Request) {
@@ -41,8 +42,10 @@ export async function POST(request: Request) {
   if (existingProfile) return NextResponse.json({ error: 'That username is already taken.' }, { status: 409 });
 
   const referralCode = String(body.referralCode || '').trim().toUpperCase();
+  let referrerId = '';
   if (referralCode) {
     const { data: referrer } = await admin.from('profiles').select('id').eq('stats->>referralCode', referralCode).maybeSingle();
+    referrerId = referrer?.id || '';
     if (!referrer) return NextResponse.json({ error: 'That referral code does not exist.' }, { status: 400 });
   }
 
@@ -77,8 +80,13 @@ export async function POST(request: Request) {
   if (created?.user) await recordAccountDevice(admin, request, created.user.id);
 
   if (referralCode) {
-    const { error: rewardError } = await admin.rpc('referral_reward', { p_code: referralCode });
+    const { data: reward, error: rewardError } = await admin.rpc('referral_reward', { p_code: referralCode });
     if (rewardError) console.error('[REFERRAL] reward failed:', rewardError.message);
+    else if (reward?.rewarded && referrerId) {
+      const count = Number(reward.count) || 0;
+      const extra = count === 25 ? ' You also earned the Verified badge!' : count === 50 ? ' You can now set your own custom code in Refer a Friend!' : '';
+      await notify(admin, referrerId, 'referral', { title: `${username} used your referral code`, message: `+500 Bread Bucks (${count}/50 invited).${extra}`, from: username });
+    }
   }
 
   return NextResponse.json({ ok: true });
