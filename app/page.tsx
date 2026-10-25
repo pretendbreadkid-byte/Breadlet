@@ -4145,6 +4145,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     const response = await fetch("/api/chat/mute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetId }) }).catch(() => null);
     const result = await response?.json().catch(() => ({}));
     setChatError(response?.ok ? "" : result?.error || "Could not time out that player.");
+    if (response?.ok && typeof result?.mutesLeft === "number") window.alert(`${name} is timed out for 30 minutes. You have ${result.mutesLeft} timeout${result.mutesLeft === 1 ? "" : "s"} left today.`);
   };
 
   // Admin only: turns a player's 30-minute evil AI mode on or off (works on yourself too).

@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { isNameAllowed } from '../../../lib/chat-filter';
-import { ADMIN_USERNAME, ARTIST_USERNAMES, MODERATOR_USERNAMES, isStaffLookalike } from '../../../lib/admin-access';
+import { ADMIN_USERNAME, ARTIST_USERNAMES, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES, isStaffLookalike } from '../../../lib/admin-access';
 
 export const dynamic = 'force-dynamic';
 
 const RENAME_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 // Staff powers and some badges are tied to these usernames, so they can't be renamed (a freed
 // staff name could otherwise be taken by someone else).
-const NAME_LOCKED = [ADMIN_USERNAME, ...MODERATOR_USERNAMES, ...ARTIST_USERNAMES];
+const NAME_LOCKED = [ADMIN_USERNAME, ...MODERATOR_USERNAMES, ...LIMITED_MODERATOR_USERNAMES, ...ARTIST_USERNAMES];
 
 // Settings > Account: change your username (once a week) or your password.
 export async function PATCH(request: Request) {

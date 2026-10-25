@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
+import { chatModerationRole, isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
 import { runAiModeration } from '../../../lib/ai-moderator';
@@ -66,15 +66,18 @@ export async function GET() {
   const replyIds = Array.from(new Set(messages.map((row: any) => row.reply_to_message_id).filter(Boolean)));
 
   // Profiles (with equipped blook), replies and the admin check are independent: fetch them together.
-  const [profileResult, replyResult, viewerIsAdmin] = await Promise.all([
+  const [profileResult, replyResult, viewerRole] = await Promise.all([
     profileIds.length > 0
       ? database.from('profiles').select('id, username, tokens, stats, created_at, equipped_blook_id, blooks:equipped_blook_id(name)').in('id', profileIds)
       : Promise.resolve({ data: [] as any[], error: null }),
     replyIds.length > 0
       ? database.from('global_chat_messages').select(usedLight ? 'id, text_body, is_image, profile_id, is_breadlet_bot' : 'id, message, profile_id, is_breadlet_bot').in('id', replyIds)
       : Promise.resolve({ data: [] as any[], error: null }),
-    viewer ? isChatAdmin(database, viewer.id) : Promise.resolve(false),
+    viewer ? chatModerationRole(database, viewer.id) : Promise.resolve(null),
   ]);
+  // Full moderators can delete and time out; limited moderators can only time out.
+  const viewerIsAdmin = viewerRole === 'full';
+  const viewerCanMute = viewerRole !== null;
 
   const profiles: any[] = !profileResult.error && profileResult.data ? profileResult.data : [];
   const replyRows: any[] = !replyResult.error && replyResult.data ? replyResult.data : [];
@@ -167,7 +170,7 @@ export async function GET() {
       equippedBlook,
       badges: isBreadletBot ? [] : badges,
       isBreadletBot,
-      canMute: viewerIsAdmin && !isBreadletBot && Boolean(profile) && row.profile_id !== viewer?.id && !isProtectedFromMute(profile?.username),
+      canMute: viewerCanMute &&!isBreadletBot && Boolean(profile) && row.profile_id !== viewer?.id && !isProtectedFromMute(profile?.username),
       evilAi: !isBreadletBot && isEvilActive(profile?.stats),
       canDelete: Boolean(viewer) && (viewerIsAdmin || row.profile_id === viewer?.id || (!isBreadletBot && !profile)),
 
