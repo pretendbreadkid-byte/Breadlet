@@ -6,7 +6,7 @@ export async function hasAdminAccess(database: any, userId: string): Promise<boo
   return String(profile?.username || '').trim().toLowerCase() === ADMIN_USERNAME;
 }
 // Chat moderators can delete messages and time players out for 30 minutes.
-export const MODERATOR_USERNAMES = ['xyl1x'];
+export const MODERATOR_USERNAMES = ['xyl1x', 'h0mer'];
 // Limited moderators get the Moderator badge but can only time out LIMITED_MUTES_PER_DAY
 // players a day (30 minutes each): no deleting messages and no AI log.
 export const LIMITED_MODERATOR_USERNAMES = ['ethan32'];
