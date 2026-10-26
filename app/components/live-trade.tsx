@@ -310,7 +310,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
 
   const avatar = (name: string, large = true) => (
     <div className={`${large ? "h-28 w-28 sm:h-36 sm:w-36" : "h-12 w-12"} shrink-0`}>
-      {name ? <BlookArt name={name} className="h-full w-full" /> : <CircleUserRound className="h-full w-full p-4 text-[#c9c7c0]" />}
+      {name ? <BlookArt name={name} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}
     </div>
   );
   const slots = (items: { name: string; quantity: number }[], editable: boolean) => (

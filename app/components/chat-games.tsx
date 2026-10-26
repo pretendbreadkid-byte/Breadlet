@@ -59,9 +59,9 @@ export function GamesMenu({ onError, onAsk }: { onError: (message: string) => vo
 
   const option = "w-full rounded-xl bg-[#27251F] px-3 py-2 text-left text-sm font-black text-white hover:bg-[#3c3a34] disabled:opacity-50";
   return (
-    <div className="mb-2 flex flex-col items-end">
+    <div className="relative">
       {open && (
-        <div className="mb-2 w-[min(18rem,calc(100vw-1.5rem))] space-y-2 rounded-2xl border border-[#3c3a34] bg-[#13120F] p-3 text-white shadow-2xl">
+        <div className="absolute bottom-full right-0 z-50 mb-2 w-[min(18rem,calc(100vw-1.5rem))] space-y-2 rounded-2xl border border-[#3c3a34] bg-[#13120F] p-3 text-white shadow-2xl">
           <h2 className="font-black text-[#e9bd67]">Chat games</h2>
           <form onSubmit={(event) => { event.preventDefault(); void ask(); }} className="rounded-xl bg-[#27251F] p-2">
             <p className="px-1 text-sm font-black">Ask the AI</p>
@@ -83,7 +83,7 @@ export function GamesMenu({ onError, onAsk }: { onError: (message: string) => vo
           </div>
         </div>
       )}
-      <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="rounded-2xl border border-[#3c3a34] bg-[#13120F] px-5 py-3 text-xl font-black text-[#e9bd67] shadow-xl hover:bg-[#27251F]">Games</button>
+      <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="rounded-xl border border-[#3c3a34] bg-[#13120F] px-4 py-3 font-black text-[#e9bd67] hover:bg-[#27251F]">Games</button>
     </div>
   );
 }

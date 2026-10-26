@@ -1771,7 +1771,7 @@ function MainPage() {
         <div>
           {/* Logo Header */}
           <button type="button" className="sidebar-brand" data-tour-target="profile" aria-label="Open my profile" onClick={() => { setViewedProfile(null); setTab("profile"); }}>
-            <span className="sidebar-wordmark"><img src="/assets/breadlet-wordmark.png" alt="Breadlet" /></span>
+            <span className="sidebar-wordmark"><img src="/assets/breadlet-logo-2.svg" alt="Breadlet" /></span>
           </button>
 
           {/* Sidebar Nav Buttons */}
@@ -1843,7 +1843,7 @@ function MainPage() {
                 className="workspace-account-button flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3c3a34] bg-[#13120F] px-2 py-2 font-black text-[#e9bd67] transition hover:bg-[#27251F] sm:max-w-none sm:gap-2.5 sm:px-3.5"
               >
                 <div className="flex h-6 w-6 items-center justify-center overflow-hidden">
-                  {player.equipped ? <BlookImg name={player.equipped} className="h-full w-full" /> : <CircleUserRound size={18} className="text-[#9cc8e8]" />}
+                  {player.equipped ? <BlookImg name={player.equipped} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}
                 </div>
                 <span title={player.username} className="min-w-0 max-w-[min(52vw,22rem)] whitespace-normal break-words text-left leading-tight [overflow-wrap:anywhere] sm:max-w-[24rem]">{player.username}</span>
                 <ChevronDown size={18} />
@@ -1912,6 +1912,7 @@ function MainPage() {
 
         {/* Dynamic Page Section */}
         <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
+          {tab !== "capsules" && <BreadDrift className="page-drift" />}
           {player && !isGuest && <CoinFlipPopup onFinished={refreshPlayerFromServer} />}
           {player && !isGuest && <AdminEventsLayer onReward={refreshPlayerFromServer} />}
           {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} BlookArt={BlookImg} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
@@ -2156,6 +2157,27 @@ function BanAppealForm({ username, password }: { username: string; password: str
   );
 }
 
+// Background for every page but Ted's Shop (and the login screen): Bread Bag Breadlets as faint
+// light-orange shapes, slowly drifting down and starting over at the top.
+const BREAD_DRIFT = ["Sour Dough", "Croissant", "Cinnamon Roll", "Toaster", "Slime Bread", "Robo Bread", "Gold Bread", "Holy Bread", "Golden Toaster"];
+const breadDriftItems = Array.from({ length: 16 }, (_, index) => ({
+  name: BREAD_DRIFT[index % BREAD_DRIFT.length],
+  left: (index * 37 + 5) % 94,
+  size: 56 + (index * 23) % 50,
+  duration: 38 + (index * 11) % 30,
+  delay: -((index * 13.7) % 60),
+  spin: index % 2 ? -1 : 1,
+}));
+function BreadDrift({ className }: { className: string }) {
+  return (
+    <div className={`bread-drift ${className}`} aria-hidden="true">
+      {breadDriftItems.map((item, index) => (
+        <img key={index} src={item.name === "Golden Toaster" ? "/assets/goldenToaster%20frame%201.svg" : artFor(item.name)} alt="" style={{ left: `${item.left}%`, width: item.size, animationDuration: `${item.duration}s`, animationDelay: `${item.delay}s`, "--drift-spin": item.spin } as React.CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
 function LoginScreen({
   username,
   email,
@@ -2199,22 +2221,18 @@ function LoginScreen({
 }) {
   return (
     <main className="auth-screen relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0c3b70] px-5 text-white">
-      <div className="auth-falling" aria-hidden="true">
-        {["Mars", "Worker", "Chef", "Earth", "Doctor", "Brioche", "Ted", "Spartan", "Crystal Ball", "Sour Dough", "Globe", "Burnt Toast", "Lava Slime", "Magnifying Glass"].map((name, index) => (
-          <img key={name} src={artFor(name)} alt="" style={{ left: `${(index * 7.3 + 3) % 96}%`, animationDelay: `${-(index * 1.7) % 12}s`, animationDuration: `${9 + (index % 5) * 2}s` }} />
-        ))}
-      </div>
+      <BreadDrift className="auth-drift" />
+      <div className="auth-stack">
       <form
         onSubmit={login}
-        className="w-full max-w-md p-8"
+        className="auth-card w-full max-w-md"
       >
-        <div className="mx-auto mb-8 flex h-44 w-full items-center justify-center rounded-2xl bg-[#27251F] p-3">
-          <img
-            src="/assets/breadlet-wordmark.png"
-            alt="Breadlet logo"
-            className="h-full w-full object-contain"
-          />
-        </div>
+        <img src="/assets/breadlet-logo-2.svg" alt="Breadlet" className="auth-logo" />
+        <p className="auth-tagline">Open bags, collect Breadlets, trade with friends.</p>
+        {!forgotPassword && <div className="auth-tabs" role="tablist" aria-label="Log in or sign up">
+          <button type="button" role="tab" aria-selected={authMode === "login"} onClick={() => setAuthMode("login")}>Log in</button>
+          <button type="button" role="tab" aria-selected={authMode === "signup"} onClick={() => setAuthMode("signup")}>Sign up</button>
+        </div>}
         <h1 className="text-center text-3xl font-black">
           {forgotPassword ? "Reset your password" : authMode === "login" ? "Log in" : "Start your collection"}
         </h1>
@@ -2280,17 +2298,18 @@ function LoginScreen({
             </div>
           </div>
         )}
-        <button type="submit" className="mt-6 w-full rounded-xl bg-[#e9bd67] px-4 py-3 font-black text-[#29170c] hover:bg-[#ffe2a0]">
+        <button type="submit" className="auth-primary mt-6 w-full rounded-xl px-4 py-3 font-black">
           {forgotPassword ? "Email reset link" : authMode === "login" ? "Log in" : "Create account"}
         </button>
         {authFeedback && <p role="status" className="mt-3 text-center text-xs leading-5 text-emerald-200">{authFeedback}</p>}
         {authMode === "login" && !forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(true); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Forgot password?</button>}
         {forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(false); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Back to log in</button>}
-        {!forgotPassword && authMode === "login" && <button type="button" onClick={startGuest} className="mt-4 w-full rounded-xl border border-emerald-300/50 bg-emerald-300/10 px-4 py-3 font-black text-emerald-100 hover:bg-emerald-300/20">Play as guest · free</button>}
+        {!forgotPassword && authMode === "login" && <button type="button" onClick={startGuest} className="auth-guest mt-4 w-full rounded-xl px-4 py-3 font-black">Play as guest · free</button>}
         {!forgotPassword && <button type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">
           {authMode === "login" ? "Need an account? Sign up" : "Already have an account? Log in"}
         </button>}
       </form>
+      </div>
     </main>
   );
 }
@@ -2510,7 +2529,7 @@ function ProfileTab({
       {tradeAlert && <button onClick={() => { setTradeAlert(""); document.getElementById("profile-trades")?.scrollIntoView({ behavior: "smooth" }); }} className="profile-trade-toast" role="status">{tradeAlert}<span>View trade</span></button>}
       <div className="profile-top-grid">
         <section className="profile-player-panel">
-          <div className="profile-avatar-frame profile-avatar-float">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <CircleUserRound size={52} />}</div>
+          <div className="profile-avatar-frame profile-avatar-float"><span className="profile-float-inner">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span></div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
             <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
@@ -3828,7 +3847,7 @@ function BlookListingsModal({
         <div className="bazaar-offers-list" role="listbox" aria-label={`${blook} listings`}>
           {offers.map((offer) => (
             <button key={offer.id} type="button" role="option" aria-selected={offer.id === selected?.id} onClick={() => setSelectedId(offer.id)} className="bazaar-offer-row">
-              <span className="bazaar-offer-avatar">{offer.sellerBlook ? <BlookImg name={offer.sellerBlook} className="h-full w-full" /> : <CircleUserRound size={28} />}</span>
+              <span className="bazaar-offer-avatar">{offer.sellerBlook ? <BlookImg name={offer.sellerBlook} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span>
               <span className="min-w-0 flex-1 text-left">
                 <strong className="block truncate text-lg">{offer.seller}{offer.seller === player.username ? " (you)" : ""}</strong>
                 <small className="block text-sm opacity-75">{listedAgo(offer.listedAt)}{Number(offer.quantity) > 1 ? ` · ${offer.quantity} available` : ""}</small>
@@ -4529,7 +4548,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           return (
             <div key={`${group.user}-${latest.index}`} className="chat-group">
               <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} aria-label={group.isBreadletBot ? "Breadlet chat bot" : `Open ${group.user}'s profile`} title={group.isBreadletBot ? "Breadlet" : `View ${group.user}'s profile`} className="chat-avatar disabled:cursor-default">
-                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <CircleUserRound size={36} />}
+                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}
               </button>
               <div className="min-w-0 flex-1">
                 <div className="chat-group-header">
@@ -4607,7 +4626,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         {lastMentionId != null && <button type="button" onClick={() => jumpToMessage(String(lastMentionId))} className="chat-mention-jump" title="Jump to the last message that mentioned you">@ Jump to my mention</button>}
       </div>
       <p className="chat-typing" aria-live="polite">{typingLabel && <><span className="chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>{typingLabel}</>}</p>
-      <form onSubmit={send} className="mt-1 flex shrink-0 items-center gap-3">
+      <div className="chat-input-row mt-1 flex shrink-0 items-center gap-3">
+      <form onSubmit={send} className="flex min-w-0 flex-1 items-center gap-3">
         {isVerified && (
           <label
             title="Upload image (Verified Badge Feature)"
@@ -4637,11 +4657,12 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           Send
         </button>
       </form>
-      <aside aria-label="Online players" className={`chat-online-panel fixed right-3 z-40 ${onlinePanelOpen ? "chat-online-panel-open" : ""}`}>
+      <aside aria-label="Online players" className={`chat-side-actions relative flex shrink-0 items-center gap-2 ${onlinePanelOpen ? "chat-online-panel-open" : ""}`}>
         {!isGuest && <GamesMenu onError={setChatError} onAsk={(question) => sendMessageText(`/ai ${question}`, null)} />}
-        {onlinePanelOpen && <div className="chat-online-list mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <RewardArt name={online.equippedBlook} art={artFor(online.equippedBlook)} className="h-8 w-8" /> : <CircleUserRound size={26} />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
-        <button type="button" aria-expanded={onlinePanelOpen} onClick={() => setOnlinePanelOpen((open) => !open)} className="flex items-center gap-3 rounded-2xl border border-sky-300/45 bg-[#0c2947]/95 px-5 py-3 text-white shadow-xl backdrop-blur-md hover:bg-[#103f75]"><CircleUserRound size={24} fill="currentColor" strokeWidth={1.5} /><span className="text-xl font-black">{onlinePlayers.length} online</span></button>
+        {onlinePanelOpen && <div className="chat-online-list absolute bottom-full right-0 z-50 mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <RewardArt name={online.equippedBlook} art={artFor(online.equippedBlook)} className="h-8 w-8" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-8 w-8 object-contain" />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
+        <button type="button" aria-expanded={onlinePanelOpen} onClick={() => setOnlinePanelOpen((open) => !open)} className="chat-online-toggle flex items-center gap-2 rounded-xl border border-sky-300/45 bg-[#0c2947]/95 px-4 py-3 text-white hover:bg-[#103f75]"><CircleUserRound size={20} fill="currentColor" strokeWidth={1.5} /><span className="text-xl font-black">{onlinePlayers.length} online</span></button>
       </aside>
+      </div>
     </div>
   );
 }
@@ -4717,7 +4738,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
             <div key={entry.key} className={`leaderboard-podium-card flex flex-col items-center rounded-2xl border-2 p-5 text-center ${entry.rank === 1 ? "leaderboard-first" : ""}`}>
               <p className="text-lg font-black">{ordinal(entry.rank)}</p>
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="mt-2 max-w-full truncate text-2xl font-black disabled:cursor-default">{entry.name}</button>
-              <div className="my-4 grid h-28 w-28 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={64} />}</div>
+              <div className="my-4 grid h-28 w-28 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</div>
               <p className="flex items-center gap-2 text-xl font-black"><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
               {entry.sub && <p className="text-xs font-bold opacity-80">{entry.sub}</p>}
             </div>
@@ -4728,7 +4749,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
         {rest.map((entry) => (
           <li key={entry.key} className={`leaderboard-row flex items-center gap-4 rounded-2xl border-2 px-4 py-2 ${entry.own ? "leaderboard-row-own" : ""}`}>
             <span className="w-10 shrink-0 text-center text-lg font-black">{entry.rank}</span>
-            <span className="grid h-12 w-12 shrink-0 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <CircleUserRound size={32} />}</span>
+            <span className="grid h-12 w-12 shrink-0 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span>
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="truncate text-lg font-black hover:underline disabled:cursor-default disabled:no-underline">{entry.name}{entry.own ? " (you)" : ""}</button>
               {entry.sub && <span className="text-xs font-bold opacity-80">{entry.sub}</span>}

@@ -1684,7 +1684,9 @@ main.breadlet-blue-theme .clan-workspace .clan-banner {
 .auth-falling { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 .auth-falling img { position: absolute; top: -90px; width: 64px; height: 64px; object-fit: contain; filter: brightness(0); opacity: .35; animation: auth-fall linear infinite; }
 @keyframes auth-fall { from { transform: translateY(-10vh) rotate(-12deg); } to { transform: translateY(115vh) rotate(18deg); } }
-.profile-avatar-float img, .profile-avatar-float svg { animation: profile-float 3s ease-in-out infinite; }
+/* The float moves a wrapper, not the art: animating the images themselves replaced animated
+   Breadlets' own frame animations (the Timeglass frames stayed invisible). */
+.profile-float-inner { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; animation: profile-float 3s ease-in-out infinite; }
 @keyframes profile-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 /* The frame clipped the Breadlet's top while it floated up; let it rise out of the frame. */
 .profile-avatar-frame, .profile-avatar-float { overflow: visible !important; }
@@ -2537,7 +2539,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .claim-ready-pill { position: fixed
 main.breadlet-blue-theme.breadlet-blue-theme .claim-ready-pill img { width: 22px; height: 22px; }
 @keyframes claim-bob { 50% { transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { main.breadlet-blue-theme.breadlet-blue-theme .claim-ready-pill { animation: none; } }
-main.breadlet-blue-theme.breadlet-blue-theme .chat-mention-jump { position: absolute; top: 10px; right: 12px; z-index: 5; border: 2px solid #CC5500; border-radius: 999px; padding: 6px 12px; background: #3B1F0E; color: #FFFFFF !important; font-size: .8rem; font-weight: 900; }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-mention-jump { position: absolute; bottom: 12px; left: 12px; z-index: 5; border: 2px solid #CC5500; border-radius: 999px; padding: 6px 12px; background: #3B1F0E; color: #FFFFFF !important; font-size: .8rem; font-weight: 900; }
 .chat-flash { animation: chat-flash 1.8s ease-out; border-radius: 10px; }
 @keyframes chat-flash { 0%, 30% { background: #ffd34d55; } 100% { background: transparent; } }
 .profile-trade-date { margin-left: auto; margin-right: 8px; opacity: .7; font-size: .75rem; font-weight: 800; }
@@ -2555,8 +2557,8 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-mention-jump { position: abso
   --panel-shadow: 0 5px 0 rgba(48, 18, 2, .28);
 }
 .breadlet-blue-theme .game-workspace:not([data-tab="capsules"]) {
-  background: var(--page-shapes) 0 0 / 280px 280px, linear-gradient(180deg, var(--page-bg-top), var(--page-bg-bottom)) !important;
-  background-attachment: local, fixed !important;
+  isolation: isolate;
+  background: linear-gradient(180deg, var(--page-bg-top), var(--page-bg-bottom)) fixed !important;
   box-shadow: none !important;
 }
 /* The Bazaar keeps its stalls, lights and street, on the shared backdrop. */
@@ -2603,8 +2605,63 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-mention-jump { position: abso
 .breadlet-blue-theme .game-workspace .leaderboard-tab { border-color: var(--panel-border); background: var(--panel-bg); color: #FFFFFF; }
 
 /* Chat: the messages sit on one panel so long conversations stay easy to read on the orange. */
-.breadlet-blue-theme .game-workspace[data-tab="chat"] .global-chat .chat-message-list { border-radius: 18px; background: rgba(48, 18, 2, .38); }
+/* Chat fills the page with no box; the bar along the bottom holds the message box, Games and Online. */
+.breadlet-blue-theme .game-workspace.chat-workspace { padding-left: 12px; padding-right: 12px; padding-bottom: 12px; }
+.global-chat .chat-side-actions { position: relative; bottom: auto; right: auto; }
+.global-chat .chat-online-toggle span { white-space: nowrap; }
+@media (max-width: 640px) {
+  .global-chat .chat-input-row { flex-wrap: wrap; }
+  .global-chat .chat-input-row > form { flex-basis: 100%; }
+  .global-chat .chat-side-actions { margin-left: auto; }
+}
 
-/* Sidebar: a dark plate with an orange rim behind the (orange) Breadlet wordmark so it stands out. */
-.breadlet-sidebar .sidebar-brand { margin: 10px 0 6px 12px; width: calc(100% - 12px); padding: 8px 10px !important; border: 3px solid #E77D22 !important; border-radius: 16px; background: radial-gradient(ellipse at 50% 0, #3a2a1c, #13120F 70%) !important; box-shadow: 0 4px 0 #a84400, inset 0 0 18px rgba(231, 125, 34, .25) !important; }
-.breadlet-blue-theme .breadlet-sidebar .sidebar-brand:hover:not(:disabled) { background: radial-gradient(ellipse at 50% 0, #4a3522, #13120F 70%) !important; }
+/* Sidebar: the Breadlet logo on its own, no box behind it. */
+.breadlet-sidebar .sidebar-brand { margin: 12px 0 8px 12px; width: calc(100% - 12px); padding: 0 6px !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
+.breadlet-sidebar .sidebar-wordmark { height: auto; overflow: visible; }
+.breadlet-sidebar .sidebar-wordmark img { position: static; width: 100%; height: auto; transform: none; filter: drop-shadow(0 3px 0 #13120F); }
+
+/* Drifting Bread Bag Breadlets behind every page (see BreadDrift): white silhouettes at low
+   opacity read as a lighter orange on the backdrop. Fixed to the page area, behind the content. */
+.bread-drift { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.bread-drift.page-drift { left: 15rem; }
+.bread-drift.auth-drift { position: absolute; z-index: 0; }
+.bread-drift img { position: absolute; top: 0; height: auto; filter: brightness(0) invert(1); opacity: .13; animation: bread-drift linear infinite; }
+@keyframes bread-drift {
+  from { transform: translateY(-20vh) rotate(calc(var(--drift-spin, 1) * -15deg)); }
+  to { transform: translateY(115vh) rotate(calc(var(--drift-spin, 1) * 25deg)); }
+}
+@media (max-width: 767px) {
+  .bread-drift.page-drift { left: 0; }
+  .breadlet-sidebar .sidebar-brand { width: 120px; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .bread-drift img { animation-play-state: paused; } }
+
+/* Login: the logo over a dark card on the shared orange backdrop with drifting Breadlets. */
+main.auth-screen.auth-screen { background: linear-gradient(180deg, var(--page-bg-top), var(--page-bg-bottom)) !important; }
+main.auth-screen .auth-stack { position: relative; z-index: 1; display: flex; width: 100%; max-width: 28rem; flex-direction: column; align-items: center; padding: 32px 0; }
+main.auth-screen .auth-logo { display: block; width: min(19rem, 90%); height: auto; margin: 0 auto; filter: drop-shadow(0 4px 0 #000); }
+main.auth-screen.auth-screen .auth-card .auth-tagline { margin: 6px 0 18px; color: #f4b26b !important; font-weight: 800; text-align: center; }
+main.auth-screen.auth-screen form.auth-card {
+  border: 3px solid #13120F !important;
+  border-radius: 24px;
+  padding: 26px 28px 22px;
+  background: rgba(31, 22, 15, .92) !important;
+  box-shadow: 0 8px 0 #13120F, 0 24px 50px rgba(48, 18, 2, .45) !important;
+}
+main.auth-screen .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 18px; overflow: hidden; border: 2px solid #3c3a34; border-radius: 14px; background: #13120F; }
+main.auth-screen.auth-screen .auth-tabs button { padding: 10px; border: 0; background: transparent !important; font-weight: 900; }
+main.auth-screen.auth-screen .auth-tabs button[aria-selected="true"] { background: #E77D22 !important; }
+main.auth-screen.auth-screen .auth-card label { color: #f4b26b !important; }
+main.auth-screen.auth-screen .auth-card p { color: #d9cfc2 !important; }
+main.auth-screen.auth-screen .auth-card input {
+  border: 2px solid #3c3a34 !important;
+  background-color: #13120F !important;
+  color: #FFFFFF !important;
+}
+main.auth-screen.auth-screen .auth-card input::placeholder { color: #8a8273 !important; }
+main.auth-screen.auth-screen .auth-card input:focus { border-color: #E77D22 !important; outline: none; }
+main.auth-screen.auth-screen .auth-primary { border: 2px solid #a84400; background: #E77D22 !important; box-shadow: 0 4px 0 #a84400; }
+main.auth-screen.auth-screen .auth-primary:hover { background: #f08a2e !important; }
+main.auth-screen.auth-screen .auth-guest { border: 2px solid #3c3a34; background: #27251F !important; }
+main.auth-screen.auth-screen .auth-guest:hover { border-color: #E77D22; }
+main.auth-screen.auth-screen .auth-card > button:not(.auth-primary):not(.auth-guest) { color: #f4b26b !important; }
