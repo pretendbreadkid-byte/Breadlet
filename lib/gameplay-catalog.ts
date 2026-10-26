@@ -230,7 +230,7 @@ export const liveCapsules: Capsule[] = [
       ["Alien", "Mythic"],
       ["Star Ship", "Breadled"],
     ], {
-      Earth: "/assets/Lost and found + food pack/earth 2.svg",
+      Earth: "/assets/earth-3.svg",
       Globe: "/assets/earth-globe.svg",
       Sun: "/assets/sun.svg",
       Eclipse: "/assets/solar%20ecplise%20but%20good.svg",

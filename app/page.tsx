@@ -214,7 +214,7 @@ const placeholderArt = (label: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' rx='16' fill='#b91c1c' stroke='#7f1d1d' stroke-width='8'/><text x='50%' y='50%' fill='#ffffff' font-family='sans-serif' font-size='22' font-weight='700' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`)}`;
 const artFor = (name: string) =>
   ({
-    Mars: "/assets/Lost and found + food pack/mars 2.svg",
+    Mars: "/assets/mars-3.svg",
     Worker: "/assets/worker.svg",
     "Aztec Coin": "/assets/Aztect Coin 2.0.svg",
     "Magnifying Glass": "/assets/magnifying-glass.svg",
@@ -234,7 +234,7 @@ const artFor = (name: string) =>
     "Burnt Toast": "/assets/Burnt toast.svg",
     Brioche: "/assets/brioche.svg",
     Chef: "/assets/chef (1).svg",
-    Earth: "/assets/Lost and found + food pack/earth 2.svg",
+    Earth: "/assets/earth-3.svg",
     Globe: "/assets/earth-globe.svg",
     Surgeon: "/assets/doctor 2.0.svg",
     Doctor: "/assets/doctor 2.0.svg",
@@ -2157,25 +2157,10 @@ function BanAppealForm({ username, password }: { username: string; password: str
   );
 }
 
-// Background for every page but Ted's Shop (and the login screen): Bread Bag Breadlets as faint
-// light-orange shapes, slowly drifting down and starting over at the top.
-const BREAD_DRIFT = ["Sour Dough", "Croissant", "Cinnamon Roll", "Toaster", "Slime Bread", "Robo Bread", "Gold Bread", "Holy Bread", "Golden Toaster"];
-const breadDriftItems = Array.from({ length: 16 }, (_, index) => ({
-  name: BREAD_DRIFT[index % BREAD_DRIFT.length],
-  left: (index * 37 + 5) % 94,
-  size: 56 + (index * 23) % 50,
-  duration: 38 + (index * 11) % 30,
-  delay: -((index * 13.7) % 60),
-  spin: index % 2 ? -1 : 1,
-}));
+// Background for every page but Ted's Shop (and the login screen): a tile of Breadlet silhouettes
+// (public/assets/background-pattern.svg) that slowly drifts across and loops.
 function BreadDrift({ className }: { className: string }) {
-  return (
-    <div className={`bread-drift ${className}`} aria-hidden="true">
-      {breadDriftItems.map((item, index) => (
-        <img key={index} src={item.name === "Golden Toaster" ? "/assets/goldenToaster%20frame%201.svg" : artFor(item.name)} alt="" style={{ left: `${item.left}%`, width: item.size, animationDuration: `${item.duration}s`, animationDelay: `${item.delay}s`, "--drift-spin": item.spin } as React.CSSProperties} />
-      ))}
-    </div>
-  );
+  return <div className={`bread-drift ${className}`} aria-hidden="true" />;
 }
 
 function LoginScreen({

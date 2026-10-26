@@ -2620,21 +2620,25 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-mention-jump { position: abso
 .breadlet-sidebar .sidebar-wordmark { height: auto; overflow: visible; }
 .breadlet-sidebar .sidebar-wordmark img { position: static; width: 100%; height: auto; transform: none; filter: drop-shadow(0 3px 0 #13120F); }
 
-/* Drifting Bread Bag Breadlets behind every page (see BreadDrift): white silhouettes at low
-   opacity read as a lighter orange on the backdrop. Fixed to the page area, behind the content. */
-.bread-drift { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+/* The drifting Breadlet pattern behind every page (see BreadDrift). The tile slides one full
+   tile size per loop, so it repeats seamlessly. Fixed to the page area, behind the content. */
+.bread-drift {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: url("/assets/background-pattern.svg") 0 0 / 600px 432px repeat;
+  animation: bread-drift 60s linear infinite;
+}
 .bread-drift.page-drift { left: 15rem; }
 .bread-drift.auth-drift { position: absolute; z-index: 0; }
-.bread-drift img { position: absolute; top: 0; height: auto; filter: brightness(0) invert(1); opacity: .13; animation: bread-drift linear infinite; }
-@keyframes bread-drift {
-  from { transform: translateY(-20vh) rotate(calc(var(--drift-spin, 1) * -15deg)); }
-  to { transform: translateY(115vh) rotate(calc(var(--drift-spin, 1) * 25deg)); }
-}
+@keyframes bread-drift { from { background-position: 0 0; } to { background-position: 600px 432px; } }
 @media (max-width: 767px) {
   .bread-drift.page-drift { left: 0; }
   .breadlet-sidebar .sidebar-brand { width: 120px; margin: 0; }
 }
-@media (prefers-reduced-motion: reduce) { .bread-drift img { animation-play-state: paused; } }
+@media (prefers-reduced-motion: reduce) { .bread-drift { animation: none; } }
 
 /* Login: the logo over a dark card on the shared orange backdrop with drifting Breadlets. */
 main.auth-screen.auth-screen { background: linear-gradient(180deg, var(--page-bg-top), var(--page-bg-bottom)) !important; }
