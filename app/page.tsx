@@ -236,7 +236,7 @@ const artFor = (name: string) =>
     Globe: "/assets/earth-globe.svg",
     Surgeon: "/assets/doctor 2.0.svg",
     Doctor: "/assets/doctor 2.0.svg",
-    "Crystal Ball": "/assets/crystal ball 2.0.svg",
+    "Crystal Ball": "/assets/crystal-ball-3.svg",
     "Pixel Bomb": "/assets/Lost and found + food pack/Pixel bomb.png?v=2",
     "Pixel Constellation": "/assets/Lost and found + food pack/Pixel constilation.png?v=2",
     "Pixel Aztec Coin": "/assets/Lost and found + food pack/Pixel axtect coin.png?v=2",
@@ -282,7 +282,7 @@ const artFor = (name: string) =>
     Bitcoin: "/assets/bitcoin.svg",
     "Crimson Octopus": "/assets/crimsonoctopus.svg",
     Caveman: "/assets/caveman.svg",
-    Timeglass: "/assets/Time glass final animation.svg",
+    Timeglass: "/assets/timeglass/frame-1.svg",
     "Pixel Sprinkle Bread": "/assets/Lost and found + food pack/Pixel sprinkle bread frame 1.png?v=2",
     "Star Ship": "/assets/star ship frame 1.svg",
     "Skeleton Pirate": "/assets/Skeleton pirate frame 1.svg",
@@ -324,7 +324,7 @@ const artFor = (name: string) =>
     Textbook: "/assets/Lost and found + food pack/Textbook.svg",
     Tablet: "/assets/Lost and found + food pack/tablet.svg",
     Apple: "/assets/Lost and found + food pack/apple.svg",
-    Avocado: "/assets/avocado.svg",
+    Avocado: "/assets/avocado-2.svg",
     Potato: "/assets/potato-2.svg",
     Carrot: "/assets/carrot-2.svg",
     Fries: "/assets/fries-2.svg",
@@ -2941,7 +2941,7 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
     return <FrameSwitcher frames={diamondSwordFrames} name={name} className={className} />;
   }
   if (cleanName === "Timeglass") {
-    return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{["/assets/Time glass first animation.svg", "/assets/Time glass second animation2.svg", "/assets/Time glass 3rd animation3.svg", "/assets/Time glass final animation.svg"].map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;
+    return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{[1, 2, 3, 4, 5, 6].map((number) => `/assets/timeglass/frame-${number}.svg`).map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;
   }
   if (cleanName === "Pickle") {
     return <OozingPickle className={className} />;
