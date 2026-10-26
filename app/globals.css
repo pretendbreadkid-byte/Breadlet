@@ -2484,3 +2484,15 @@ main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace > .clan-panel h2,
 main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-members-heading h2,
 main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace .clan-discover h2 { text-shadow: 0 3px 0 #13120F; }
 main.breadlet-blue-theme.breadlet-blue-theme .clan-workspace > .clan-profile .clan-profile-content { padding-inline: 0; }
+
+/* Badges show on their own, with no box behind them (profile and chat). */
+main.breadlet-blue-theme.breadlet-blue-theme .profile-badge-row button,
+main.breadlet-blue-theme.breadlet-blue-theme .chat-badge,
+.profile-badge-row button,
+.chat-badge {
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
