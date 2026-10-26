@@ -92,6 +92,9 @@ type Player = {
   exploreBeta?: boolean;
   chatMutedUntil?: string;
   createdAt?: string;
+  // Locked Breadlets can't be sold, recycled or traded by mistake. Wishlist: Bazaar alerts.
+  lockedBlooks?: string[];
+  wishlist?: string[];
 };
 type PublicProfile = {
   id: string;
@@ -106,9 +109,9 @@ type PublicProfile = {
   createdAt?: string | null;
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
-type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number; from?: string }; is_read?: boolean; created_at?: string };
+type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number; from?: string; messageId?: string }; is_read?: boolean; created_at?: string };
 
-const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", referral: "🎉", admin_gift: "🎁", summary: "📬" };
+const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", referral: "🎉", wishlist: "⭐", admin_gift: "🎁", summary: "📬" };
 
 // A short two-note chime for new Inbox notifications (Web Audio, so no sound file to load).
 function playChime() {
@@ -482,6 +485,8 @@ function playerFromServer(data: any): Player {
     exploreBeta: Boolean(data.profile.stats?.exploreBeta),
     chatMutedUntil: data.profile.stats?.chatMutedUntil || undefined,
     createdAt: data.profile.created_at || undefined,
+    lockedBlooks: Array.isArray(data.profile.stats?.lockedBlooks) ? data.profile.stats.lockedBlooks : [],
+    wishlist: Array.isArray(data.profile.stats?.wishlist) ? data.profile.stats.wishlist : [],
   };
 }
 
@@ -1217,6 +1222,76 @@ function MainPage() {
     // When an open itself failed, its own error message is already showing.
     if (!failed) setNotice(`Auto open stopped${reason ? `: ${reason}` : ""}. Opened ${opened} bag${opened === 1 ? "" : "s"}.`);
   };
+  // Keyboard shortcuts (desktop): 1-8 switch tabs, Esc closes the top pop-up, Space on Ted's Shop
+  // opens the last bag again (still asking to confirm). Ignored while typing.
+  const shortcutTabsRef = useRef<Tab[]>([]);
+  const lastShopCapsuleRef = useRef<Capsule | null>(null);
+  const shortcutStateRef = useRef({ tab: "" as Tab | "", busy: false, auto: false });
+  const openShopCapsuleRef = useRef<(capsule: Capsule) => void>(() => undefined);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      const modal = Array.from(document.querySelectorAll<HTMLElement>(".modal-layer")).pop();
+      if (event.key === "Escape" && modal) {
+        const close = Array.from(modal.querySelectorAll<HTMLButtonElement>("button")).find((button) => /close|cancel/i.test(button.getAttribute("aria-label") || "") || ["Close", "×", "Cancel"].includes(button.textContent?.trim() || ""));
+        close?.click();
+        return;
+      }
+      if (modal || shortcutStateRef.current.busy) return;
+      if (/^[1-9]$/.test(event.key)) {
+        const next = shortcutTabsRef.current[Number(event.key) - 1];
+        if (next) { event.preventDefault(); setTab(next); }
+        return;
+      }
+      if (event.key === " " && shortcutStateRef.current.tab === "capsules" && lastShopCapsuleRef.current) {
+        event.preventDefault();
+        openShopCapsuleRef.current(lastShopCapsuleRef.current);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  // Chat message to scroll to when chat opens (from an @mention in the Inbox).
+  const [chatJump, setChatJump] = useState("");
+  // Claim reminder: a button (and one chime) once the hourly Bread Bucks claim is ready again.
+  const [claimReady, setClaimReady] = useState(false);
+  const claimWasReady = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!player || isGuest) { setClaimReady(false); return; }
+    const spunAt = player.wheelSpunAt ? new Date(player.wheelSpunAt).getTime() : 0;
+    const check = () => {
+      const ready = Date.now() >= spunAt + 3600000;
+      // Chime only when it turns ready while playing, not on page load.
+      if (ready && claimWasReady.current === false && readSettings().sounds) playChime();
+      claimWasReady.current = ready;
+      setClaimReady(ready);
+    };
+    check();
+    const timer = window.setInterval(check, 15000);
+    return () => window.clearInterval(timer);
+  }, [player?.wheelSpunAt, isGuest, Boolean(player)]);
+  // Locked Breadlets and the wishlist save to the account (guests keep them for this visit).
+  const savePref = (key: "lockedBlooks" | "wishlist", list: string[]) => {
+    setPlayer((current) => (current ? { ...current, [key]: list } : current));
+    if (isGuest) return;
+    void fetch("/api/player/prefs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [key]: list }) })
+      .then(async (response) => { if (!response.ok) setNotice((await response.json().catch(() => ({}))).error || "That didn't save. Try again."); })
+      .catch(() => setNotice("That didn't save. Try again."));
+  };
+  const toggleInList = (key: "lockedBlooks" | "wishlist", name: string) => {
+    const list = player?.[key] || [];
+    savePref(key, list.includes(name) ? list.filter((item) => item !== name) : [...list, name]);
+  };
+  const toggleLock = (name: string) => toggleInList("lockedBlooks", name);
+  const toggleWish = (name: string) => toggleInList("wishlist", name);
+  const withoutLocked = (quantities: Record<string, number>, verb: string) => {
+    const locked = new Set(player?.lockedBlooks || []);
+    const skipped = Object.keys(quantities).filter((name) => locked.has(name) && quantities[name] > 0);
+    if (skipped.length) setNotice(`Skipped locked Breadlet${skipped.length === 1 ? "" : "s"}: ${skipped.join(", ")}. Unlock ${skipped.length === 1 ? "it" : "them"} to ${verb}.`);
+    return Object.fromEntries(Object.entries(quantities).filter(([name]) => !locked.has(name)));
+  };
   const equip = (name: string) => {
     if (player) {
       save({ ...player, equipped: name });
@@ -1242,7 +1317,7 @@ function MainPage() {
   };
   const massSell = async (quantities: Record<string, number>) => {
     if (!player) return false;
-    const requested = Object.fromEntries(Object.entries(quantities).filter(([, quantity]) => quantity > 0));
+    const requested = Object.fromEntries(Object.entries(withoutLocked(quantities, "sell")).filter(([, quantity]) => quantity > 0));
     if (!Object.keys(requested).length) {
       setNotice("Choose at least one extra Breadlet to sell.");
       return false;
@@ -1271,7 +1346,7 @@ function MainPage() {
   };
   const massDismantle = async (quantities: Record<string, number>) => {
     if (!player) return false;
-    const requested = Object.fromEntries(Object.entries(quantities).filter(([, quantity]) => quantity > 0));
+    const requested = Object.fromEntries(Object.entries(withoutLocked(quantities, "recycle")).filter(([, quantity]) => quantity > 0));
     if (!Object.keys(requested).length) {
       setNotice("Choose at least one extra Breadlet to recycle.");
       return false;
@@ -1684,6 +1759,9 @@ function MainPage() {
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
     : nav;
+  shortcutTabsRef.current = visibleNav.map((item) => item.id);
+  openShopCapsuleRef.current = (capsule) => { if (autoOpen) void startAutoOpen(capsule); else setCapsuleToConfirm(capsule); };
+  shortcutStateRef.current = { tab, busy: Boolean(reveal) || autoCount !== null, auto: autoOpen };
   return (
     <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
       {/* Left Blooket-style Persistent Sidebar */}
@@ -1854,18 +1932,23 @@ function MainPage() {
               </div>
             </div>
           )}
+          {claimReady && tab !== "wheel" && tab !== "capsules" && (
+            <button type="button" onClick={() => setTab("wheel")} className="claim-ready-pill" title="Your hourly Bread Bucks claim is ready">
+              <img src="/assets/Bread%20bucks.svg" alt="" aria-hidden="true" />Claim ready!
+            </button>
+          )}
           {inboxToast && (
             <button type="button" role="status" onClick={() => { setInboxToast(null); setInboxOpen(true); }} className="inbox-toast" title="Open your Inbox">
               <span className="inbox-toast-icon" aria-hidden="true">{inboxIcons[inboxToast.type] || "🔔"}</span>
               <span className="min-w-0 text-left"><b>{inboxToast.title}</b>{inboxToast.message && <span>{inboxToast.message}</span>}</span>
             </button>
           )}
-          {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} />}
+          {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} openMention={(messageId) => { setInboxOpen(false); setChatJump(messageId); setTab("chat"); }} />}
           {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} />}
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
-              openCapsule={(capsule) => (autoOpen ? void startAutoOpen(capsule) : setCapsuleToConfirm(capsule))}
+              openCapsule={(capsule) => { lastShopCapsuleRef.current = capsule; if (autoOpen) void startAutoOpen(capsule); else setCapsuleToConfirm(capsule); }}
               showOdds={setOddsCapsule}
               quickOpen={quickOpen}
               setQuickOpen={setQuickOpenSaved}
@@ -1874,10 +1957,11 @@ function MainPage() {
               showStockOdds={() => setStockOddsOpen(true)}
               isGuest={isGuest}
               claimTed={claimTedSecret}
+              inventory={player.inventory}
             />
           )}
           {tab === "inventory" && (
-            <InventoryTab player={player} equip={equip} sell={sell} massSell={massSell} />
+            <InventoryTab player={player} equip={equip} sell={sell} massSell={massSell} toggleLock={toggleLock} toggleWish={toggleWish} />
           )}
           {tab === "market" && (
             <Bazaar
@@ -1887,15 +1971,16 @@ function MainPage() {
               openListing={setSelectedListing}
               buyListing={buyListing}
               isGuest={isGuest}
+              toggleWish={toggleWish}
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
             />
           )}
           {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
           {tab === "explore" && player.exploreBeta && !isGuest && player.id && <BreadletExplore player={{ ...player, id: player.id }} artFor={artFor} />}
-          {tab === "chat" && <ChatTab refreshPlayer={refreshPlayerFromServer} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
+          {tab === "chat" && <ChatTab jumpTo={chatJump} clearJump={() => setChatJump("")} refreshPlayer={refreshPlayerFromServer} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (
-            <CraftingTab player={player} salvage={(name) => setPendingDismantle(name)} massDismantle={massDismantle} craft={craft} isGuest={isGuest} />
+            <CraftingTab player={player} salvage={(name) => (player.lockedBlooks || []).includes(name) ? setNotice(`${name} is locked. Unlock it in My Breadlets to recycle it.`) : setPendingDismantle(name)} massDismantle={massDismantle} craft={craft} isGuest={isGuest} />
           )}
           {tab === "promo" && (
             <PromoTab
@@ -2210,7 +2295,7 @@ function LoginScreen({
 
 // Inbox pop-up (from the Inbox button on your profile, or a toast): @mentions, Bazaar sales,
 // completed trades and gifts, newest first.
-function InboxModal({ unreadCount, markRead, close }: { unreadCount: number; markRead: (body: { id: string } | { all: true }) => Promise<void>; close: () => void }) {
+function InboxModal({ unreadCount, markRead, close, openMention }: { unreadCount: number; markRead: (body: { id: string } | { all: true }) => Promise<void>; close: () => void; openMention: (messageId: string) => void }) {
   const [items, setItems] = useState<PlayerNotification[] | null>(null);
   const load = useCallback(async () => {
     const response = await fetch("/api/notifications?inbox=1", { cache: "no-store" }).catch(() => null);
@@ -2224,6 +2309,7 @@ function InboxModal({ unreadCount, markRead, close }: { unreadCount: number; mar
     setItems((current) => current?.map((item) => ({ ...item, is_read: true })) || current);
   };
   const readOne = async (item: PlayerNotification) => {
+    if (item.type === "mention" && item.payload.messageId) openMention(item.payload.messageId);
     if (item.is_read) return;
     await markRead({ id: item.id });
     setItems((current) => current?.map((row) => (row.id === item.id ? { ...row, is_read: true } : row)) || current);
@@ -2289,6 +2375,7 @@ function ProfileTab({
   const [lookup, setLookup] = useState("");
   const [matches, setMatches] = useState<PublicProfile[]>([]);
   const [trades, setTrades] = useState<any[]>([]);
+  const [tradesCompletedOnly, setTradesCompletedOnly] = useState(false);
   const [tradeMessage, setTradeMessage] = useState("");
   const [tradeAlert, setTradeAlert] = useState("");
   const [tradeErrorPopup, setTradeErrorPopup] = useState("");
@@ -2442,14 +2529,14 @@ function ProfileTab({
         {!viewingOther && friendsData.outgoing.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} (request sent)</span><button onClick={() => void friendAction("DELETE", { friendProfileId: request.id })}>Cancel</button></div>)}
       </div></section></div>
       {!viewingOther && <div className="profile-lower-grid">
-        {!isGuest && <section className="profile-list-panel" id="profile-trades"><div className="profile-list-heading"><h2>Trades</h2><button onClick={() => void loadTrades()}>Refresh</button></div>{tradeMessage && <p role="status" className="profile-alert-inline">{tradeMessage}</p>}<div className="profile-list-body profile-trade-list">{trades.map((trade) => {
+        {!isGuest && <section className="profile-list-panel" id="profile-trades"><div className="profile-list-heading"><h2>Trades</h2><div className="flex gap-2"><button aria-pressed={tradesCompletedOnly} onClick={() => setTradesCompletedOnly(!tradesCompletedOnly)}>{tradesCompletedOnly ? "Showing completed" : "Completed only"}</button><button onClick={() => void loadTrades()}>Refresh</button></div></div>{tradeMessage && <p role="status" className="profile-alert-inline">{tradeMessage}</p>}<div className="profile-list-body profile-trade-list">{trades.filter((trade) => !tradesCompletedOnly || trade.status === "completed").map((trade) => {
           const sentByMe = trade.sender_profile_id === player.id;
           const otherName = sentByMe ? trade.receiver_username : trade.sender_username;
           const myOffer = sentByMe ? trade.sender_offer_json : trade.receiver_offer_json;
           const theirOffer = sentByMe ? trade.receiver_offer_json : trade.sender_offer_json;
           const confirmed = sentByMe ? trade.sender_confirmed : trade.receiver_confirmed;
-          return <article key={trade.id} className="profile-trade-row"><div className="profile-trade-head"><strong>{otherName}</strong><span className={`profile-trade-status status-${trade.status}`}>{trade.status}</span></div><p>You: {offerSummary(myOffer)}</p><p>Them: {offerSummary(theirOffer)}</p><div className="profile-trade-actions">{trade.status === "pending" && <span className="profile-empty">Open in the live trade window</span>}{trade.status === "completed" && <button className="profile-action-primary" onClick={() => { setChatTrade(trade); setTradeMessages([]); }}>Open live chat</button>}</div></article>;
-        })}{!trades.length && <p className="profile-empty">No trades yet. Find a player to send a trade request.</p>}</div></section>}
+          return <article key={trade.id} className="profile-trade-row"><div className="profile-trade-head"><strong>{otherName}</strong>{trade.updated_at && <small className="profile-trade-date">{new Date(trade.updated_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small>}<span className={`profile-trade-status status-${trade.status}`}>{trade.status}</span></div><p>You: {offerSummary(myOffer)}</p><p>Them: {offerSummary(theirOffer)}</p><div className="profile-trade-actions">{trade.status === "pending" && <span className="profile-empty">Open in the live trade window</span>}{trade.status === "completed" && <button className="profile-action-primary" onClick={() => { setChatTrade(trade); setTradeMessages([]); }}>Open live chat</button>}</div></article>;
+        })}{!trades.filter((trade) => !tradesCompletedOnly || trade.status === "completed").length && <p className="profile-empty">{tradesCompletedOnly ? "No completed trades yet." : "No trades yet. Find a player to send a trade request."}</p>}</div></section>}
       </div>}
       {profileLookupOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"><section role="dialog" aria-modal="true" className="profile-popup"><div className="profile-list-heading"><h2>Find a Player</h2><button aria-label="Close player lookup" onClick={() => setProfileLookupOpen(false)}>×</button></div><div className="profile-search-row"><input value={lookup} onChange={(event) => setLookup(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchPlayers()} placeholder="Search username" /><button onClick={() => void searchPlayers()}>Search</button></div><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{matches.map((match) => <div key={match.id} className="profile-friend-row"><button onClick={() => { setProfileLookupOpen(false); void openPlayerProfile(match.username); }} className="min-w-0 flex-1 truncate text-left font-bold">{match.username}</button><button onClick={() => addFriend(match.username)}>Add</button><button disabled={isGuest} onClick={() => { setProfileLookupOpen(false); void requestTrade(match.id, match.username); }}>Trade</button></div>)}{!matches.length && <p className="profile-empty">Search for a username to add, trade, or view.</p>}</div></section></div>}
       {chatTrade && <TradeChatModal trade={chatTrade} playerId={player.id || ""} username={player.username} messages={tradeMessages} input={tradeChatInput} setInput={setTradeChatInput} close={() => setChatTrade(null)} send={sendTradeMessage} />}
@@ -2520,7 +2607,9 @@ function CapsulesTab({
   showStockOdds,
   isGuest,
   claimTed,
+  inventory,
 }: {
+  inventory: string[];
   openCapsule: (capsule: Capsule) => void;
   showOdds: (capsule: Capsule) => void;
   quickOpen: boolean;
@@ -2588,6 +2677,9 @@ function CapsulesTab({
   // Seasonal packs that haven't opened yet stand with the fresh stock, tagged with their opening day.
   const freshBags = liveCapsules.filter((capsule) => isMarketPackInStock(capsule.name, now) || isSeasonalPackLocked(capsule.name, now));
   const soldOutBags = liveCapsules.filter((capsule) => !isMarketPackInStock(capsule.name, now) && !isSeasonalPackLocked(capsule.name, now));
+  // Collection progress for each bag: different Breadlets owned out of the bag's pool.
+  const ownedNames = new Set(inventory);
+  const progressFor = (capsule: Capsule) => ({ owned: capsule.pool.filter((reward) => ownedNames.has(reward.name)).length, total: capsule.pool.length });
   const cabinet = (label: string, bags: Capsule[], soldOut: boolean) => (
     <section className={`shop-cabinet ${soldOut ? "is-sold-out" : ""}`} aria-label={label}>
       <div className="shop-cabinet-sign"><span>{label}</span></div>
@@ -2598,6 +2690,7 @@ function CapsulesTab({
             {soldOut && <span className="shop-sold-stamp" aria-hidden="true">Sold out</span>}
             {isSeasonalPackLocked(capsule.name, now) && <span className="shop-soon-stamp">Opens {opensOnLabel(capsule.name, "short")}</span>}
             <span className="shop-price-tag"><img src="/assets/Bread%20bucks.svg" alt="" />{isGuest ? "Free" : capsule.price.toLocaleString()}</span>
+            {(() => { const progress = progressFor(capsule); return <span className={`shop-collect-tag${progress.owned === progress.total ? " is-complete" : ""}`} title="Breadlets you've collected from this bag">{progress.owned}/{progress.total}</span>; })()}
           </button>
         ))}
         {!bags.length && <p className="shop-cabinet-empty">Ted is restocking. Check back soon!</p>}
@@ -2642,6 +2735,7 @@ function CapsulesTab({
           inStock={isMarketPackInStock(selectedCapsule.name, now)}
           opensOn={isSeasonalPackLocked(selectedCapsule.name, now) ? opensOnLabel(selectedCapsule.name) : undefined}
           stockChance={stockOdds.get(selectedCapsule.name) ?? 0}
+          collected={progressFor(selectedCapsule)}
           isGuest={isGuest}
           auto={autoOpen}
           close={() => setSelectedCapsule(null)}
@@ -2684,7 +2778,9 @@ function PackDetailsModal({
   showStockOdds,
   showRewardOdds,
   open,
+  collected,
 }: {
+  collected: { owned: number; total: number };
   capsule: Capsule;
   inStock: boolean;
   // Set for a seasonal pack that hasn't opened yet, e.g. "December 1".
@@ -2712,6 +2808,7 @@ function PackDetailsModal({
         <div className="shop-pack-facts">
           <p><span>Price</span><b className="bazaar-offer-price">{isGuest ? "Free" : <><img src="/assets/Bread%20bucks.svg" alt="" />{capsule.price.toLocaleString()}</>}</b></p>
           <p><span>Breadlets inside</span><b>{capsule.pool.length}</b></p>
+          <p><span>You've collected</span><b>{collected.owned}/{collected.total}{collected.owned === collected.total ? " ✓" : ""}</b></p>
           {capsule.seasonal ? <p><span>Seasonal</span><b>{opensOn ? `Opens ${opensOn}` : "Always in stock"}</b></p> : <p>
             <span>Chance to be in stock</span>
             <span className="flex items-center gap-2">
@@ -2878,15 +2975,28 @@ function InventoryTab({
   equip,
   sell,
   massSell,
+  toggleLock,
+  toggleWish,
 }: {
   player: Player;
   equip: (name: string) => void;
   sell: (name: string) => void;
   massSell: (quantities: Record<string, number>) => Promise<boolean>;
+  toggleLock: (name: string) => void;
+  toggleWish: (name: string) => void;
 }) {
   const [selected, setSelected] = useState<Reward | null>(null);
   const [massSellOpen, setMassSellOpen] = useState(false);
   const [sellQuantities, setSellQuantities] = useState<Record<string, number>>({});
+  const [search, setSearch] = useState("");
+  const [rarityFilter, setRarityFilter] = useState("All");
+  const [show, setShow] = useState<"all" | "owned" | "missing">("all");
+  const locked = new Set(player.lockedBlooks || []);
+  const filtering = Boolean(search.trim()) || rarityFilter !== "All" || show !== "all";
+  const matches = (name: string, rarity: string, quantity: number) =>
+    (!search.trim() || name.toLowerCase().includes(search.trim().toLowerCase()))
+    && (rarityFilter === "All" || rarity === rarityFilter)
+    && (show === "all" || (show === "owned" ? quantity > 0 : quantity === 0));
 
   const owned = (name: string) =>
     player.inventory.filter((item) => item === name).length;
@@ -2905,10 +3015,21 @@ function InventoryTab({
     tedReward.name,
   ]);
   const otherItems = Array.from(new Set(player.inventory)).filter((name) => !assignedNames.has(name));
-  const sellableBreads = Array.from(new Set(player.inventory)).map((name) => ({
+  const sellableBreads = Array.from(new Set(player.inventory)).filter((name) => !locked.has(name)).map((name) => ({
     name,
+    rarity: rarityFor(name),
     available: Math.max(0, owned(name) - 1),
   })).filter((bread) => bread.available > 0);
+  // "Sell all duplicates": every extra copy, or only those below Epic so rare pulls stay.
+  const selectExtras = (belowEpic: boolean) => setSellQuantities(Object.fromEntries(sellableBreads
+    .filter((bread) => !belowEpic || rarityOrder.indexOf(bread.rarity) < rarityOrder.indexOf("Epic"))
+    .map((bread) => [bread.name, bread.available])));
+  const lockedCount = Array.from(new Set(player.inventory)).filter((name) => locked.has(name) && owned(name) > 1).length;
+  const filteredOther = otherItems.filter((name) => matches(name, rarityFor(name), owned(name)));
+  const filteredCrafted = craftRecipes.filter((recipe) => matches(recipe.name, craftedRarityFor(recipe.name), owned(recipe.name)));
+  const showTed = !filtering || matches(tedReward.name, tedReward.rarity, tedQuantity);
+  const anyBagMatch = catalog.some((capsule) => capsule.pool.some((reward) => matches(reward.name, reward.rarity, owned(reward.name))));
+  const rarityOptions = ["All", ...rarityOrder.filter((rarity) => rarity !== "Chroma")];
   const massSellTotal = sellableBreads.reduce((total, bread) => total + (sellQuantities[bread.name] || 0) * sellValueForBlook(bread.name, rarityFor(bread.name)), 0);
 
   return (
@@ -2924,14 +3045,25 @@ function InventoryTab({
             <button onClick={() => { setSellQuantities({}); setMassSellOpen(true); }} disabled={!sellableBreads.length} className="dark-action-button disabled:cursor-not-allowed disabled:opacity-40"><Coins size={18} aria-hidden="true" />Mass sell</button>
           </div>
         </div>
+        <div className="inventory-filters lg:pr-[25rem]">
+          <label className="inventory-search"><Search size={16} aria-hidden="true" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Breadlets" aria-label="Search your Breadlets" /></label>
+          <select value={rarityFilter} onChange={(event) => setRarityFilter(event.target.value)} aria-label="Filter by rarity">{rarityOptions.map((rarity) => <option key={rarity} value={rarity}>{rarity === "All" ? "All rarities" : rarity}</option>)}</select>
+          <div className="inventory-show" role="group" aria-label="Show">{(["all", "owned", "missing"] as const).map((option) => <button key={option} type="button" aria-pressed={show === option} onClick={() => setShow(option)}>{option === "all" ? "All" : option === "owned" ? "Owned" : "Missing"}</button>)}</div>
+        </div>
 
         <div className="mt-6 space-y-8">
-          {catalog.map((capsule) => (
+          {catalog.map((capsule) => {
+            const visible = capsule.pool.filter((reward) => matches(reward.name, reward.rarity, owned(reward.name)));
+            if (filtering && !visible.length) return null;
+            const base = capsule.pool.filter((reward) => !reward.name.startsWith("Shiny "));
+            const collected = base.filter((reward) => owned(reward.name) > 0).length;
+            return (
             <section key={capsule.name} className="p-1">
               <div className="mb-4 flex items-center justify-between border-b border-[#3d91cd]/20 pb-2">
                 <h2 className="text-xl font-black text-[#bde8ff] flex items-center gap-2">
                   <img src={capsule.art} alt="" className="h-6 w-6 object-contain" />
                   {capsule.name}
+                  <span className={`collection-progress${collected === base.length ? " is-complete" : ""}`} title="Breadlets collected from this bag (Shiny not counted)">{collected}/{base.length}</span>
                 </h2>
                 {capsule.retired && (
                   <span className="rounded-full bg-[#0c3b70] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#e9bd67] border border-[#e9bd67]/30">
@@ -2940,17 +3072,17 @@ function InventoryTab({
                 )}
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {capsule.pool.map((reward) => {
+                {visible.map((reward) => {
                   const quantity = owned(reward.name);
                   return (
                     <button
                       key={reward.name}
-                      title={quantity ? `${reward.name} (x${quantity})` : `${reward.name} (Locked)`}
-                      onClick={() => quantity && setSelected(reward)}
-                        className={`blook-tilt relative flex aspect-square flex-col items-center justify-center transition-all p-0 ${
+                      title={quantity ? `${reward.name} (x${quantity})` : `${reward.name} (not collected yet)`}
+                      onClick={() => setSelected(reward)}
+                        className={`blook-tilt relative flex aspect-square flex-col items-center justify-center transition-all p-0 cursor-pointer ${
                         quantity
-                          ? "cursor-pointer hover:-translate-y-1"
-                          : "cursor-not-allowed"
+                          ? "hover:-translate-y-1"
+                          : ""
                       }`}
                     >
                       {quantity ? (
@@ -2970,6 +3102,8 @@ function InventoryTab({
                         </span>
                       )}
 
+                      {locked.has(reward.name) && quantity > 0 && <span className="blook-lock-badge" title="Locked"><Lock size={11} aria-hidden="true" /></span>}
+                      {!quantity && (player.wishlist || []).includes(reward.name) && <span className="blook-wish-badge" title="On your wishlist">★</span>}
                       {/* Equipped badge */}
                       {player.equipped === reward.name && (
                         <span className="absolute top-1.5 right-1.5 rounded-md bg-[#e9bd67] px-1 text-[9px] font-black text-[#031426]">
@@ -2981,17 +3115,18 @@ function InventoryTab({
                 })}
               </div>
             </section>
-          ))}
-          <section className="p-1">
+            );
+          })}
+          {(!filtering || filteredOther.length > 0 || filteredCrafted.length > 0 || showTed) ? <section className="p-1">
             <div className="mb-4 flex items-center justify-between border-b border-[#d49a4a]/20 pb-2">
               <h2 className="text-xl font-black text-[#ffe2a0]">Other</h2>
               <span className="text-xs font-bold uppercase tracking-widest text-[#d7b88c]">Extra, secret, and crafted Breadlets</span>
             </div>
             <div className="space-y-6">
-              {otherItems.length > 0 && <div>
+              {filteredOther.length > 0 && <div>
                 <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-[#d7b88c]">Other rewards</h3>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-                  {otherItems.map((name) => {
+                  {filteredOther.map((name) => {
                     const reward: Reward = { name, rarity: rarityFor(name), weight: 0, art: artFor(name) };
                     const quantity = owned(name);
                     return (
@@ -3011,7 +3146,7 @@ function InventoryTab({
                   })}
                 </div>
               </div>}
-              <div>
+              {showTed && <div>
                 <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-fuchsia-200">Secrets</h3>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
                   <button
@@ -3033,11 +3168,11 @@ function InventoryTab({
                     {player.equipped === tedReward.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
                   </button>
                 </div>
-              </div>
-              <div>
+              </div>}
+              {filteredCrafted.length > 0 && <div>
                 <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-[#ead4ff]">Crafted</h3>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-                  {craftRecipes.map((recipe) => {
+                  {filteredCrafted.map((recipe) => {
                     const reward: Reward = { name: recipe.name, rarity: craftedRarityFor(recipe.name), weight: 0, art: artFor(recipe.name) };
                     const quantity = owned(recipe.name);
                     return <button
@@ -3053,13 +3188,14 @@ function InventoryTab({
                     </button>;
                   })}
                 </div>
-              </div>
+              </div>}
             </div>
-          </section>
+          </section> : null}
+          {filtering && !anyBagMatch && !filteredOther.length && !filteredCrafted.length && !showTed && <p className="py-10 text-center font-bold text-white/70">No Breadlets match those filters.</p>}
         </div>
       </div>
 
-      {massSellOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-[#9cc8e8]">Collection</p><h2 className="text-2xl font-black">Mass sell Breadlets</h2></div><button onClick={() => setMassSellOpen(false)} className="rounded-lg bg-[#18558f] px-3 py-2 font-bold">Close</button></div><p className="mt-2 text-sm text-[#9cc8e8]">Choose extra copies to sell. One copy of every Breadlet is always kept.</p><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{sellableBreads.map((bread) => <label key={bread.name} className="flex items-center gap-3 rounded-xl bg-[#0c3b70] p-3"><RewardArt name={bread.name} art={artFor(bread.name)} className="h-12 w-12 shrink-0" /><span className="min-w-0 flex-1 truncate font-bold">{bread.name}<small className="ml-2 text-[#9cc8e8]">up to {bread.available}</small></span><input aria-label={`${bread.name} sell quantity`} type="number" min="0" max={bread.available} value={sellQuantities[bread.name] || 0} onChange={(event) => setSellQuantities({ ...sellQuantities, [bread.name]: Math.min(bread.available, Math.max(0, Math.floor(Number(event.target.value) || 0))) })} className="w-20 rounded-lg bg-[#072a54] px-3 py-2 text-white" /></label>)}</div><button disabled={!massSellTotal} onClick={async () => { if (!window.confirm(`Sell the selected Breadlets for ${massSellTotal.toLocaleString()} Bread Bucks?`)) return; if (await massSell(sellQuantities)) setMassSellOpen(false); }} className="bazaar-buy-button mt-4 disabled:opacity-40">Sell for <img src="/assets/Bread%20bucks.svg" alt="" />{massSellTotal.toLocaleString()}</button></div></div>}
+      {massSellOpen && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl border border-[#3d91cd] bg-[#103f75] p-5"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-[#9cc8e8]">Collection</p><h2 className="text-2xl font-black">Mass sell Breadlets</h2></div><button onClick={() => setMassSellOpen(false)} className="rounded-lg bg-[#18558f] px-3 py-2 font-bold">Close</button></div><p className="mt-2 text-sm text-[#9cc8e8]">Choose extra copies to sell. One copy of every Breadlet is always kept{lockedCount ? `, and ${lockedCount} locked Breadlet${lockedCount === 1 ? " is" : "s are"} left out` : ""}.</p><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => selectExtras(true)} className="rounded-lg bg-[#18558f] px-3 py-2 text-sm font-black">All extras below Epic</button><button type="button" onClick={() => selectExtras(false)} className="rounded-lg bg-[#18558f] px-3 py-2 text-sm font-black">All extras</button></div><div className="mt-4 flex-1 space-y-2 overflow-y-auto">{sellableBreads.map((bread) => <label key={bread.name} className="flex items-center gap-3 rounded-xl bg-[#0c3b70] p-3"><RewardArt name={bread.name} art={artFor(bread.name)} className="h-12 w-12 shrink-0" /><span className="min-w-0 flex-1 truncate font-bold">{bread.name}<small className="ml-2 text-[#9cc8e8]">up to {bread.available}</small></span><input aria-label={`${bread.name} sell quantity`} type="number" min="0" max={bread.available} value={sellQuantities[bread.name] || 0} onChange={(event) => setSellQuantities({ ...sellQuantities, [bread.name]: Math.min(bread.available, Math.max(0, Math.floor(Number(event.target.value) || 0))) })} className="w-20 rounded-lg bg-[#072a54] px-3 py-2 text-white" /></label>)}</div><button disabled={!massSellTotal} onClick={async () => { if (!window.confirm(`Sell the selected Breadlets for ${massSellTotal.toLocaleString()} Bread Bucks?`)) return; if (await massSell(sellQuantities)) setMassSellOpen(false); }} className="bazaar-buy-button mt-4 disabled:opacity-40">Sell for <img src="/assets/Bread%20bucks.svg" alt="" />{massSellTotal.toLocaleString()}</button></div></div>}
 
       {/* Selected Bread Detail Modal */}
       {selected && (
@@ -3070,6 +3206,10 @@ function InventoryTab({
           onClose={() => setSelected(null)}
           equip={equip}
           sell={sell}
+          locked={locked.has(selected.name)}
+          wished={(player.wishlist || []).includes(selected.name)}
+          toggleLock={() => toggleLock(selected.name)}
+          toggleWish={() => toggleWish(selected.name)}
         />
       )}
     </div>
@@ -3083,6 +3223,10 @@ function BlookDetail({
   onClose,
   equip,
   sell,
+  locked,
+  wished,
+  toggleLock,
+  toggleWish,
 }: {
   reward: Reward;
   quantity: number;
@@ -3090,6 +3234,10 @@ function BlookDetail({
   onClose: () => void;
   equip: (name: string) => void;
   sell: (name: string) => void;
+  locked: boolean;
+  wished: boolean;
+  toggleLock: () => void;
+  toggleWish: () => void;
 }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
@@ -3132,7 +3280,8 @@ function BlookDetail({
             {equipped ? "Equipped" : "Equip"}
           </button>
           <button
-            disabled={quantity <= 1}
+            disabled={quantity <= 1 || locked}
+            title={locked ? "Unlock this Breadlet to sell it" : undefined}
             onClick={() => {
               if (
                 window.confirm(
@@ -3147,6 +3296,9 @@ function BlookDetail({
           >
             Sell
           </button>
+          {quantity > 0
+            ? <button type="button" onClick={toggleLock} className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-[#e9bd67]/60 px-4 py-3 text-sm font-black text-[#e9bd67]"><Lock size={16} aria-hidden="true" />{locked ? "Unlock (allow selling, recycling and trading)" : "Lock (protect from selling, recycling and trading)"}</button>
+            : <button type="button" onClick={toggleWish} className="col-span-2 rounded-xl border border-[#e9bd67]/60 px-4 py-3 text-sm font-black text-[#e9bd67]">{wished ? "★ On your wishlist (tap to remove)" : "☆ Add to wishlist: get told when one is listed on the Bazaar"}</button>}
         </div>
       </div>
     </div>
@@ -3198,6 +3350,14 @@ function ConfirmOpenModal({
   confirm: () => void;
   cancel: () => void;
 }) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); confirm(); }
+    };
+    // Added on the next tick so the Space press that opened this doesn't also confirm it.
+    const timer = window.setTimeout(() => window.addEventListener("keydown", onKey), 0);
+    return () => { window.clearTimeout(timer); window.removeEventListener("keydown", onKey); };
+  }, [confirm]);
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <section role="dialog" aria-modal="true" aria-labelledby="confirm-open-title" className="w-full max-w-sm rounded-2xl border border-sky-300/35 bg-[#10182b] p-6 text-white shadow-2xl">
@@ -3363,7 +3523,9 @@ function Bazaar({
   buyListing,
   setPlayerListings,
   isGuest,
+  toggleWish,
 }: {
+  toggleWish: (name: string) => void;
   player: Player;
   createListing: (blook: string, price: number) => void;
   cancelListing: (listing: Listing) => void | Promise<void>;
@@ -3380,6 +3542,10 @@ function Bazaar({
   const packOf = (blook: string) => [...liveCapsules, ...legacyCapsules].find((capsule) => capsule.pool.some((reward) => reward.name === blook.replace(/^Shiny /, "")))?.name || "Other";
   const packNames = [...liveCapsules.map((capsule) => capsule.name), "Other"];
   const [sortOrder, setSortOrder] = useState("Newest");
+  const [onlyMissing, setOnlyMissing] = useState(false);
+  const [onlyWishlist, setOnlyWishlist] = useState(false);
+  const ownedNames = useMemo(() => new Set(player.inventory), [player.inventory]);
+  const wishlist = player.wishlist || [];
   const [showForm, setShowForm] = useState(false);
   const [view, setView] = useState<"browse" | "mine">("browse");
   const [marketListings, setMarketListings] = useState<Listing[]>(player.listings);
@@ -3431,15 +3597,28 @@ function Bazaar({
     }
   }, [player.listings]);
 
+  // Locked Breadlets can't be listed until they're unlocked in My Breadlets.
   const ownedBlooks = player.inventory.filter(
-    (name, index, items) => items.indexOf(name) === index,
+    (name, index, items) => items.indexOf(name) === index && !(player.lockedBlooks || []).includes(name),
   );
+  const [lastSale, setLastSale] = useState<number | null>(null);
+  useEffect(() => {
+    if (!showForm || !blook) return;
+    let cancelled = false;
+    setLastSale(null);
+    void fetch(`/api/marketplace?history=${encodeURIComponent(blook)}`).then((response) => response.ok ? response.json() : []).then((sales) => {
+      if (!cancelled && Array.isArray(sales) && sales.length) setLastSale(Number(sales[0].price) || null);
+    }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [blook, showForm]);
   const filteredListings = marketListings.filter((listing) => {
     const matchesSearch = listing.blook.toLowerCase().includes(search.toLowerCase());
     const matchesRarity = rarity === "All rarities" || rarityFor(listing.blook) === rarity;
     const matchesPack = pack === "All packs" || packOf(listing.blook) === pack;
     const matchesView = view === "browse" || listing.seller === player.username;
-    return matchesSearch && matchesRarity && matchesPack && matchesView;
+    const matchesMissing = !onlyMissing || !ownedNames.has(listing.blook);
+    const matchesWishlist = !onlyWishlist || wishlist.includes(listing.blook);
+    return matchesSearch && matchesRarity && matchesPack && matchesView && matchesMissing && matchesWishlist;
   });
   const listings = [...filteredListings].sort((left, right) => {
     if (sortOrder === "Lowest price") return left.price - right.price;
@@ -3451,7 +3630,7 @@ function Bazaar({
   useEffect(() => {
     setSelectedBlook("");
     setDetailsOpen(false);
-  }, [search, rarity, pack, view]);
+  }, [search, rarity, pack, view, onlyMissing, onlyWishlist]);
 
   return (
     <div className="bazaar-market bazaar-scene min-h-full">
@@ -3476,6 +3655,10 @@ function Bazaar({
           <option>Highest price</option>
         </select>
         <button onClick={() => setShowForm(!showForm)} className="bazaar-list-button">+ List an item</button>
+      </div>
+      <div className="bazaar-quick-filters">
+        <button type="button" aria-pressed={onlyMissing} onClick={() => setOnlyMissing(!onlyMissing)}>Only ones I don&apos;t own</button>
+        <button type="button" aria-pressed={onlyWishlist} onClick={() => setOnlyWishlist(!onlyWishlist)}>★ My wishlist{wishlist.length ? ` (${wishlist.length})` : ""}</button>
       </div>
       <div className="bazaar-view-tabs mt-4 flex rounded-2xl border p-1">
         <button aria-pressed={view === "browse"} onClick={() => setView("browse")} className="flex-1 rounded-xl px-4 py-3 font-black">Browse</button>
@@ -3507,6 +3690,7 @@ function Bazaar({
             aria-label={`Listing price, maximum ${MAX_MARKETPLACE_PRICE.toLocaleString()} Bread Bucks`}
           />
           <button className="bazaar-buy-button px-6">List Breadlet</button>
+          {lastSale !== null && <p className="text-sm font-black md:col-span-3">Last sold for {lastSale.toLocaleString()} Bread Bucks.</p>}
           <p className="text-sm font-bold opacity-80 md:col-span-3">10% Bazaar fee: if it sells, you get {Math.max(0, Math.floor(Number(price) || 0) - Math.floor((Math.floor(Number(price) || 0)) * BAZAAR_FEE_RATE)).toLocaleString()} Bread Bucks.</p>
         </form>
       )}
@@ -3522,7 +3706,7 @@ function Bazaar({
                 <span className="bazaar-stall-body">
                   <span className="bazaar-stall-art"><BlookImg name={name} className="h-full w-full" /></span>
                   <span className="bazaar-stall-counter">
-                    <span className="bazaar-stall-name">{name}</span>
+                    <span className="bazaar-stall-name">{wishlist.includes(name) ? "★ " : ""}{name}</span>
                     <span className="bazaar-stall-meta">{rarityFor(name)} · {quantity} listed</span>
                   </span>
                 </span>
@@ -3542,6 +3726,8 @@ function Bazaar({
         player={player}
         buy={buyListing}
         cancelListing={cancelListing}
+        wished={wishlist.includes(selectedBlook)}
+        toggleWish={() => toggleWish(selectedBlook)}
       />}
     </div>
   );
@@ -3573,6 +3759,8 @@ function BlookListingsModal({
   player,
   buy,
   cancelListing,
+  wished,
+  toggleWish,
 }: {
   blook: string;
   listings: Listing[];
@@ -3580,7 +3768,18 @@ function BlookListingsModal({
   player: Player;
   buy: (listing: Listing) => void | Promise<void>;
   cancelListing: (listing: Listing) => void | Promise<void>;
+  wished: boolean;
+  toggleWish: () => void;
 }) {
+  const [sales, setSales] = useState<{ price: number; soldAt: string }[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(`/api/marketplace?history=${encodeURIComponent(blook)}`).then((response) => response.ok ? response.json() : []).then((rows) => {
+      if (!cancelled) setSales(Array.isArray(rows) ? rows : []);
+    }).catch(() => { if (!cancelled) setSales([]); });
+    return () => { cancelled = true; };
+  }, [blook]);
+  const averageSale = sales?.length ? Math.round(sales.reduce((total, sale) => total + sale.price, 0) / sales.length) : 0;
   const offers = [...listings].sort((left, right) => left.price - right.price);
   const [selectedId, setSelectedId] = useState(offers[0]?.id);
   const [busy, setBusy] = useState(false);
@@ -3613,8 +3812,16 @@ function BlookListingsModal({
             <h2 id="blook-listings-title" className="truncate text-3xl font-black">{blook}</h2>
             <p className="text-base font-bold opacity-80">{rarityWithOdds(blook)}</p>
             <p className="text-base font-black">{listedCount.toLocaleString()} listed</p>
+            <button type="button" onClick={toggleWish} className="bazaar-wish-toggle" aria-pressed={wished}>{wished ? "★ On your wishlist" : "☆ Add to wishlist"}</button>
           </div>
           <button type="button" onClick={close} aria-label="Close listings" className="bazaar-offers-close">×</button>
+        </div>
+        <div className="bazaar-price-history">
+          <p className="text-xs font-black uppercase tracking-widest opacity-70">Recent sales</p>
+          {sales === null ? <p className="text-sm font-bold opacity-70">Loading…</p> : sales.length ? <>
+            <p className="text-sm font-bold">Average of the last {sales.length}: <b>{averageSale.toLocaleString()}</b> Bread Bucks</p>
+            <div className="bazaar-price-chips">{sales.map((sale, index) => <span key={index} title={new Date(sale.soldAt).toLocaleString()}>{sale.price.toLocaleString()}</span>)}</div>
+          </> : <p className="text-sm font-bold opacity-70">No sales yet.</p>}
         </div>
         <div className="bazaar-offers-list" role="listbox" aria-label={`${blook} listings`}>
           {offers.map((offer) => (
@@ -3888,7 +4095,7 @@ function SimplePanel({
   );
 }
 
-function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis, refreshPlayer }: { refreshPlayer: () => void | Promise<void>; emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
+function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis, refreshPlayer, jumpTo = "", clearJump = () => undefined }: { jumpTo?: string; clearJump?: () => void; refreshPlayer: () => void | Promise<void>; emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; evilAi?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
@@ -4211,6 +4418,26 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     if (atBottom && newestCreatedAt) window.localStorage.setItem(lastSeenKey, newestCreatedAt);
   };
   const scrollChatToBottom = () => chatListRef.current?.scrollTo({ top: chatListRef.current.scrollHeight, behavior: "smooth" });
+  // Jump to a message (an @mention), flashing it. Chat keeps only recent messages, so it may be gone.
+  const jumpToMessage = useCallback((id: string) => {
+    const element = document.getElementById(`chat-message-${id}`);
+    if (!element) return false;
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    element.classList.remove("chat-flash");
+    void element.offsetWidth;
+    element.classList.add("chat-flash");
+    return true;
+  }, []);
+  useEffect(() => {
+    if (!jumpTo || !messages.length) return;
+    // Wait a beat so the list has rendered and scrolled to the bottom first.
+    const timer = window.setTimeout(() => {
+      if (!jumpToMessage(jumpTo)) setChatError("That message is no longer in chat.");
+      clearJump();
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [jumpTo, messages.length, jumpToMessage, clearJump]);
+  const lastMentionId = [...messages].reverse().find((item) => !item.isBreadletBot && item.user !== player.username && mentionPattern.test(item.text || ""))?.id;
 
   const messageGroups = messages.reduce<Array<{ user: string; isBreadletBot: boolean; items: Array<{ item: (typeof messages)[number]; index: number }> }>>((groups, item, index) => {
     const current = groups[groups.length - 1];
@@ -4375,6 +4602,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       </div>
       <div className="relative z-10 h-0 shrink-0">
         {!chatAtBottom && <button type="button" onClick={scrollChatToBottom} className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border-2 border-[#CC5500] bg-[#3B1F0E] px-4 py-2 text-sm font-black text-white shadow-lg hover:bg-[#5a2f16]">Scroll to most recent message ↓</button>}
+        {lastMentionId != null && <button type="button" onClick={() => jumpToMessage(String(lastMentionId))} className="chat-mention-jump" title="Jump to the last message that mentioned you">@ Jump to my mention</button>}
       </div>
       <p className="chat-typing" aria-live="polite">{typingLabel && <><span className="chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>{typingLabel}</>}</p>
       <form onSubmit={send} className="mt-1 flex shrink-0 items-center gap-3">

@@ -357,7 +357,7 @@ export async function POST(request: Request) {
     void (async () => {
       const { data: targets } = await database.from('profiles').select('id, username').or(mentions.map((name) => `username.ilike.${name}`).join(','));
       const ids = (targets || []).filter((target: any) => mentions.includes(String(target.username).toLowerCase()) && target.id !== user.id).map((target: any) => target.id);
-      await notify(database, ids, 'mention', { title: `${sender?.username || 'Someone'} mentioned you in chat`, message: message.slice(0, 200), from: sender?.username || '' });
+      await notify(database, ids, 'mention', { title: `${sender?.username || 'Someone'} mentioned you in chat`, message: message.slice(0, 200), from: sender?.username || '', messageId: data?.id ? String(data.id) : undefined });
     })().catch(() => undefined);
   }
 

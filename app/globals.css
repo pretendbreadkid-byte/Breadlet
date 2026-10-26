@@ -2496,3 +2496,42 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-badge,
   background: transparent !important;
   box-shadow: none !important;
 }
+
+/* My Breadlets: search, rarity and owned/missing filters; collection progress; lock and wishlist marks. */
+main.breadlet-blue-theme.breadlet-blue-theme .inventory-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+main.breadlet-blue-theme.breadlet-blue-theme .inventory-search { display: flex; min-width: 200px; flex: 1; align-items: center; gap: 8px; border: 2px solid #13120F; border-radius: 12px; padding: 0 12px; background: #27251F; }
+main.breadlet-blue-theme.breadlet-blue-theme .inventory-search input { min-width: 0; flex: 1; border: 0; padding: 9px 0; background: transparent; color: #FFFFFF !important; font-weight: 700; outline: none; }
+main.breadlet-blue-theme.breadlet-blue-theme .inventory-search input::placeholder { color: #a39d8e !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .inventory-filters select { border: 2px solid #13120F; border-radius: 12px; padding: 9px 12px; background: #27251F; color: #FFFFFF !important; font-weight: 800; }
+main.breadlet-blue-theme.breadlet-blue-theme .inventory-show { display: flex; overflow: hidden; border: 2px solid #13120F; border-radius: 12px; background: #27251F; }
+main.breadlet-blue-theme.breadlet-blue-theme .inventory-show button { padding: 9px 14px; font-weight: 900; }
+main.breadlet-blue-theme.breadlet-blue-theme .inventory-show button[aria-pressed="true"] { background: #E77D22; }
+main.breadlet-blue-theme.breadlet-blue-theme .collection-progress { margin-left: 4px; border-radius: 999px; padding: 2px 9px; background: #13120F80; color: #f2eee5 !important; font-size: .8rem; font-weight: 900; }
+main.breadlet-blue-theme.breadlet-blue-theme .collection-progress.is-complete { background: #2f8a3a; }
+main.breadlet-blue-theme.breadlet-blue-theme .blook-lock-badge { position: absolute; top: 6px; left: 6px; display: grid; width: 20px; height: 20px; place-items: center; border-radius: 6px; background: #13120F; color: #e9bd67 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .blook-wish-badge { position: absolute; top: 4px; right: 6px; color: #ffd34d !important; font-size: 1.1rem; text-shadow: 0 2px 0 #13120F; }
+
+/* Ted's Shop: how many of a bag's Breadlets you have. */
+.shop-collect-tag { position: absolute; top: 4px; left: 50%; z-index: 2; transform: translateX(-50%); border: 2px solid #13120F; border-radius: 999px; padding: 1px 8px; background: #27251F; color: #FFFFFF !important; font-size: .75rem; font-weight: 900; opacity: 0; transition: opacity 150ms ease; }
+.shop-shelf-bag:hover .shop-collect-tag, .shop-shelf-bag:focus-visible .shop-collect-tag { opacity: 1; }
+.shop-collect-tag.is-complete { background: #2f8a3a; }
+
+/* Bazaar: quick filters, wishlist toggle and recent sale prices. */
+.breadlet-blue-theme .bazaar-quick-filters { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.breadlet-blue-theme .bazaar-quick-filters button { border: 2px solid #13120F; border-radius: 999px; padding: 6px 14px; background: #27251F; color: #FFFFFF !important; font-size: .9rem; font-weight: 900; }
+.breadlet-blue-theme .bazaar-quick-filters button[aria-pressed="true"] { background: #E77D22; }
+.breadlet-blue-theme .bazaar-wish-toggle { margin-top: 6px; border: 2px solid currentColor; border-radius: 999px; padding: 3px 12px; font-size: .85rem; font-weight: 900; }
+.breadlet-blue-theme .bazaar-wish-toggle[aria-pressed="true"] { background: #ffd34d33; }
+.breadlet-blue-theme .bazaar-price-history { margin-top: 12px; border-radius: 14px; padding: 10px 12px; background: #00000022; }
+.breadlet-blue-theme .bazaar-price-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.breadlet-blue-theme .bazaar-price-chips span { border-radius: 8px; padding: 2px 8px; background: #00000030; font-size: .8rem; font-weight: 900; }
+
+/* Claim reminder, mention jump and the flash on a jumped-to message. */
+main.breadlet-blue-theme.breadlet-blue-theme .claim-ready-pill { position: fixed; right: 18px; bottom: 18px; z-index: 60; display: flex; align-items: center; gap: 8px; border: 3px solid #13120F; border-radius: 999px; padding: 10px 18px; background: #E77D22; box-shadow: 0 5px 0 #13120F; color: #FFFFFF !important; font-weight: 950; animation: claim-bob 1.6s ease-in-out infinite; }
+main.breadlet-blue-theme.breadlet-blue-theme .claim-ready-pill img { width: 22px; height: 22px; }
+@keyframes claim-bob { 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { main.breadlet-blue-theme.breadlet-blue-theme .claim-ready-pill { animation: none; } }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-mention-jump { position: absolute; top: 10px; right: 12px; z-index: 5; border: 2px solid #CC5500; border-radius: 999px; padding: 6px 12px; background: #3B1F0E; color: #FFFFFF !important; font-size: .8rem; font-weight: 900; }
+.chat-flash { animation: chat-flash 1.8s ease-out; border-radius: 10px; }
+@keyframes chat-flash { 0%, 30% { background: #ffd34d55; } 100% { background: transparent; } }
+.profile-trade-date { margin-left: auto; margin-right: 8px; opacity: .7; font-size: .75rem; font-weight: 800; }

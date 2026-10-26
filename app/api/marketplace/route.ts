@@ -15,7 +15,23 @@ async function sellerBlookNames(supabase: any, profiles: { id: string; equipped_
   return new Map(profiles.map((profile) => [profile.id, String(names.get(profile.equipped_blook_id) || '')]));
 }
 
-export async function GET() {
+// The last 10 sales of one Breadlet (?history=Name), newest first, for the Bazaar price history.
+async function priceHistory(name: string) {
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json([]);
+  const shiny = name.startsWith('Shiny ');
+  const { data: blook } = await admin.from('blooks').select('id').eq('name', name.replace(/^Shiny /, '')).maybeSingle();
+  if (!blook) return NextResponse.json([]);
+  const { data } = await admin.from('marketplace_listings').select('price, sold_at, shiny')
+    .eq('blook_id', blook.id).eq('status', 'sold').not('sold_at', 'is', null)
+    .order('sold_at', { ascending: false }).limit(25);
+  const sales = (data || []).filter((row: any) => Boolean(row.shiny) === shiny).slice(0, 10).map((row: any) => ({ price: row.price, soldAt: row.sold_at }));
+  return NextResponse.json(sales, { headers: { 'Cache-Control': 'private, max-age=60' } });
+}
+
+export async function GET(request: Request) {
+  const history = new URL(request.url).searchParams.get('history');
+  if (history) return priceHistory(history.slice(0, 80));
   const supabase = await createClient();
   if (!supabase) return NextResponse.json([], { status: 200 });
 
@@ -109,6 +125,13 @@ export async function POST(request: Request) {
   if (action === 'create' && (!Number.isSafeInteger(price) || price < 1 || price > MAX_MARKETPLACE_PRICE)) return NextResponse.json({ error: 'Invalid listing price.' }, { status: 400 });
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: 'Marketplace server is not configured.' }, { status: 503 });
+  const blookName = String(body.blook || '');
+  let sellerName = '';
+  if (action === 'create') {
+    const { data: seller } = await admin.from('profiles').select('username, stats').eq('id', user.id).maybeSingle();
+    if ((seller?.stats?.lockedBlooks || []).includes(blookName)) return NextResponse.json({ error: `${blookName} is locked. Unlock it in My Breadlets to list it.` }, { status: 409 });
+    sellerName = seller?.username || '';
+  }
   // Looked up before the sale (it's marked sold after), so the seller can be told what sold.
   const listing = action === 'buy' && body.listingId
     ? (await admin.from('marketplace_listings').select('profile_id, price, shiny, blooks(name)').eq('id', body.listingId).maybeSingle()).data as any
@@ -126,6 +149,17 @@ export async function POST(request: Request) {
       message: `${buyer?.username || 'A player'} bought it on the Bazaar for ${Number(listing.price).toLocaleString()} Bread Bucks. You got ${earned.toLocaleString()} after the 10% fee.`,
       from: buyer?.username || '',
     });
+  }
+  if (action === 'create') {
+    // Players with this Breadlet on their wishlist hear about the new listing.
+    const { data: wishers } = await admin.from('profiles').select('id').contains('stats', { wishlist: [blookName] }).neq('id', user.id).limit(200);
+    if (wishers?.length) {
+      await notify(admin, wishers.map((row: any) => row.id), 'wishlist', {
+        title: `${blookName} is on the Bazaar!`,
+        message: `${sellerName || 'A player'} listed one for ${price.toLocaleString()} Bread Bucks. It's on your wishlist.`,
+        from: sellerName,
+      });
+    }
   }
   return NextResponse.json(data, { status: action === 'create' ? 201 : 200 });
 }

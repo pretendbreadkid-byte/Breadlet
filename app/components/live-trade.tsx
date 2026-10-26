@@ -10,7 +10,7 @@ type Offer = { tokens: number; blooks: { name: string; quantity: number }[] };
 type LocalOffer = { tokens: number; blooks: Record<string, number> };
 
 type LiveTradeProps = {
-  player: { id?: string; username: string; equipped: string; tokens: number; inventory: string[] };
+  player: { id?: string; username: string; equipped: string; tokens: number; inventory: string[]; lockedBlooks?: string[] };
   isGuest: boolean;
   onlineProfileIds: string[];
   presenceReady: boolean;
@@ -303,7 +303,8 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
 
   const emptyTrade = !serverMine?.tokens && !(serverMine?.blooks || []).length && !serverTheirs?.tokens && !(serverTheirs?.blooks || []).length;
   const visibleInventory = Array.from(owned.entries())
-    .filter(([name]) => name.toLowerCase().includes(search.trim().toLowerCase()))
+    // Locked Breadlets stay out of trades until they are unlocked in My Breadlets.
+    .filter(([name]) => !(player.lockedBlooks || []).includes(name) && name.toLowerCase().includes(search.trim().toLowerCase()))
     .map(([name, count]) => ({ name, left: count - (offer.blooks[name] || 0) }))
     .filter((entry) => entry.left > 0);
 
@@ -353,6 +354,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
               </button>
             ))}
             {!visibleInventory.length && <p className="col-span-full py-6 text-center text-sm text-[#c9c7c0]">Nothing left to add.</p>}
+            {(player.lockedBlooks || []).some((name) => owned.has(name)) && <p className="col-span-full text-center text-xs text-[#c9c7c0]">Locked Breadlets are hidden. Unlock them in My Breadlets to trade them.</p>}
           </div>
         </section>
         <section className="space-y-3">
