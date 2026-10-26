@@ -149,7 +149,7 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed }: { userna
 
   return (
     <div className="settings-workspace mx-auto grid w-full max-w-5xl gap-4 md:grid-cols-[14rem_minmax(0,1fr)]">
-      <nav className="rounded-2xl bg-[#13120F] p-3" aria-label="Settings sections">
+      <nav className="ui-panel rounded-2xl bg-[#13120F] p-3" aria-label="Settings sections">
         {sections.map((name) => (
           <button
             key={name}
@@ -161,7 +161,7 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed }: { userna
           </button>
         ))}
       </nav>
-      <section className="rounded-2xl bg-[#13120F] p-6 text-white">
+      <section className="ui-panel rounded-2xl bg-[#13120F] p-6 text-white">
         <h2 className="page-sign mb-5 text-4xl font-black">{section}</h2>
         {section === "Account" && (
           <>

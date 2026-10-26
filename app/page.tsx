@@ -183,6 +183,7 @@ const badgeDescriptions: Record<string, string> = {
   Owner: "The creator and owner of Breadlet.",
   Contributor: "Helped build Breadlet with art, ideas or code.",
   Artist: "Drew artwork for Breadlet.",
+  Birthday: "Happy birthday! Given by an admin on your birthday.",
 };
 // Badges an admin can hand out. Token milestones are automatic from the balance, OG from the
 // account age, and Owner / Moderator are tied to the staff usernames, so granting those by hand
@@ -206,6 +207,7 @@ const badgeIconFor = (badge: string) => ({
   Owner: "/assets/owner-badge.svg",
   Contributor: "/assets/contributer.svg",
   Artist: "/assets/artist-badge.svg?v=2",
+  Birthday: "/assets/birthday-badge.svg",
 })[badge] || "/assets/verified-badge.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>

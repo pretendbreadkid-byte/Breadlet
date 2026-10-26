@@ -2541,3 +2541,70 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-mention-jump { position: abso
 .chat-flash { animation: chat-flash 1.8s ease-out; border-radius: 10px; }
 @keyframes chat-flash { 0%, 30% { background: #ffd34d55; } 100% { background: transparent; } }
 .profile-trade-date { margin-left: auto; margin-right: 8px; opacity: .7; font-size: .75rem; font-weight: 800; }
+
+/* ── One look for every page ─────────────────────────────────────────────────
+   Every tab except Ted's Shop shares one backdrop (Breadlet orange with faint floating shapes),
+   the same big white page titles and the same see-through dark panels, so switching pages
+   doesn't feel like walking into a different game. Ted's Shop keeps its storefront. */
+:root {
+  --page-bg-top: #ec8a2c;
+  --page-bg-bottom: #d8631a;
+  --page-shapes: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cg fill='%23fff' fill-opacity='.08'%3E%3Ccircle cx='42' cy='52' r='24'/%3E%3Crect x='150' y='22' width='46' height='46' rx='9' transform='rotate(18 173 45)'/%3E%3Cpath d='M96 150l32 56H64z'/%3E%3Ccircle cx='224' cy='200' r='15'/%3E%3Crect x='22' y='200' width='32' height='32' rx='7' transform='rotate(-14 38 216)'/%3E%3Cpath d='M214 96l24 42h-48z'/%3E%3C/g%3E%3C/svg%3E");
+  --panel-bg: rgba(74, 30, 6, .30);
+  --panel-border: rgba(48, 18, 2, .38);
+  --panel-shadow: 0 5px 0 rgba(48, 18, 2, .28);
+}
+.breadlet-blue-theme .game-workspace:not([data-tab="capsules"]) {
+  background: var(--page-shapes) 0 0 / 280px 280px, linear-gradient(180deg, var(--page-bg-top), var(--page-bg-bottom)) !important;
+  background-attachment: local, fixed !important;
+  box-shadow: none !important;
+}
+/* The Bazaar keeps its stalls, lights and street, on the shared backdrop. */
+.breadlet-blue-theme .game-workspace[data-tab="market"] .bazaar-market.bazaar-scene { background: transparent !important; }
+
+/* Page titles: big white lettering with a dark drop, like a game menu, on every page. */
+.breadlet-blue-theme .game-workspace .page-sign,
+.breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign,
+.breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign span {
+  display: inline-block;
+  border: 0 !important;
+  background: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  color: #FFFFFF !important;
+  font-size: clamp(2rem, 4vw, 2.9rem);
+  font-weight: 950;
+  letter-spacing: -.01em;
+  line-height: 1.05;
+  text-shadow: 0 4px 0 rgba(48, 18, 2, .45) !important;
+}
+.breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign::before,
+.breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign::after { display: none !important; }
+
+/* Panels and cards: one see-through dark style everywhere. */
+.breadlet-blue-theme .game-workspace :is(
+  .profile-player-panel, .profile-badges-panel, .profile-stats-panel, .profile-list-panel,
+  .bank-card, .resource-card, .ui-panel,
+  .leaderboard-row, .leaderboard-podium-card,
+  .clan-discover-card, .clan-member-card, .clan-upgrade-card,
+  .inventory-search, .inventory-show, .clan-discover-search
+) {
+  border: 2px solid var(--panel-border) !important;
+  border-radius: 16px;
+  background: var(--panel-bg) !important;
+  box-shadow: var(--panel-shadow) !important;
+  color: #FFFFFF !important;
+}
+.breadlet-blue-theme .game-workspace .leaderboard-row-own { border-color: #ffe08a !important; }
+.breadlet-blue-theme .game-workspace .inventory-filters select { border-color: var(--panel-border); background: var(--panel-bg); }
+.breadlet-blue-theme .game-workspace .inventory-show button[aria-pressed="true"],
+.breadlet-blue-theme .game-workspace .leaderboard-tab[aria-pressed="true"] { background: rgba(48, 18, 2, .55) !important; border-color: var(--panel-border) !important; }
+.breadlet-blue-theme .game-workspace .leaderboard-tab { border-color: var(--panel-border); background: var(--panel-bg); color: #FFFFFF; }
+
+/* Chat: the messages sit on one panel so long conversations stay easy to read on the orange. */
+.breadlet-blue-theme .game-workspace[data-tab="chat"] .global-chat .chat-message-list { border-radius: 18px; background: rgba(48, 18, 2, .38); }
+
+/* Sidebar: a dark plate with an orange rim behind the (orange) Breadlet wordmark so it stands out. */
+.breadlet-sidebar .sidebar-brand { margin: 10px 0 6px 12px; width: calc(100% - 12px); padding: 8px 10px !important; border: 3px solid #E77D22 !important; border-radius: 16px; background: radial-gradient(ellipse at 50% 0, #3a2a1c, #13120F 70%) !important; box-shadow: 0 4px 0 #a84400, inset 0 0 18px rgba(231, 125, 34, .25) !important; }
+.breadlet-blue-theme .breadlet-sidebar .sidebar-brand:hover:not(:disabled) { background: radial-gradient(ellipse at 50% 0, #4a3522, #13120F 70%) !important; }
