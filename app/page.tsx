@@ -353,6 +353,8 @@ const artFor = (name: string) =>
     Pumpkin: "/assets/fall/pumpkin.svg",
     "Chai Tea": "/assets/fall/chai-tea.svg",
     "Cherry Pie": "/assets/fall/cherry-pie.svg",
+    "Pumpkin Pie": "/assets/fall/pumpkin-pie.webp",
+    Corn: "/assets/fall/corn.webp",
     "Cooked Turkey": "/assets/fall/cooked-turkey.svg",
     Tanuki: "/assets/fall/tanuki-1.svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";

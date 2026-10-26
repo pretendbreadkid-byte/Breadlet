@@ -408,14 +408,16 @@ export const liveCapsules: Capsule[] = [
     name: "Fall Bag",
     price: 25,
     seasonal: true,
-    // Same tier odds as the Winter Bag; with no Epic or Legendary yet the average resale is ~11.
+    // Same tier odds as the Winter Bag (no Epic yet).
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
     art: "/assets/fall/fall-bag.svg",
     pool: rewards([
       ["Pumpkin", "Common"],
       ["Chai Tea", "Common"],
       ["Cherry Pie", "Uncommon"],
-      ["Cooked Turkey", "Rare"],
+      ["Pumpkin Pie", "Uncommon"],
+      ["Corn", "Rare"],
+      ["Cooked Turkey", "Legendary"],
       ["Tanuki", "Mythic"],
     ]),
   },
