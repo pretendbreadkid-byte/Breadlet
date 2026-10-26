@@ -387,7 +387,7 @@ const PICKLE_DRIPS = [
 // Pickle oozes: drops grow out of every bump, droop, then fall (pure CSS, no re-renders).
 function OozingPickle({ className }: { className: string }) {
   return (
-    <span className={`relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
+    <span className={`pickle-frame relative inline-flex h-full w-full shrink-0 items-center justify-center ${className}`}>
       <span className="pickle-body">
         <img src="/assets/pickle-2.svg" alt="Pickle" decoding="async" className="h-full w-full object-contain" />
         {PICKLE_DRIPS.map((drip, index) => (
