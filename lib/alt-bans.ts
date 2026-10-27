@@ -1,7 +1,7 @@
 import { isProtectedFromMute } from './admin-access';
 import { networkIdentity } from './network-identity';
 
-export const ALT_BAN_REASON = 'Alt accounts (more than one account on the same device)';
+export const ALT_BAN_REASON = 'You have been suspected of alting (more than one account on the same device). Submit an appeal below.';
 
 // Bans every account seen on this request's device when more than one account uses it: the
 // alts and the player making them. No admin confirmation; banned players can appeal instead.
