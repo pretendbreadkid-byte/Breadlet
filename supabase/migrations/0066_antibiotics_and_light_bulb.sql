@@ -4,11 +4,13 @@ update public.blooks set name = 'Antibiotics', artwork_key = 'antibiotics.svg' w
 update public.blooks set name = 'Light Bulb', artwork_key = 'light-bulb.svg' where name = 'Leonardo da Vinci''s Tank';
 
 -- Locked Breadlets and Bazaar wishlists are saved by name, so rename them there too.
-create or replace function pg_temp.rename_davinci(list jsonb) returns jsonb language sql as $$
+update public.profiles set stats = jsonb_set(stats, '{lockedBlooks}', (
   select coalesce(jsonb_agg(case item when 'Da Vinci''s Ornithopter' then 'Antibiotics' when 'Leonardo da Vinci''s Tank' then 'Light Bulb' else item end), '[]'::jsonb)
-  from jsonb_array_elements_text(list) as item
-$$;
-update public.profiles set stats = jsonb_set(stats, '{lockedBlooks}', pg_temp.rename_davinci(stats -> 'lockedBlooks'))
+  from jsonb_array_elements_text(stats -> 'lockedBlooks') as item
+))
 where jsonb_typeof(stats -> 'lockedBlooks') = 'array' and stats -> 'lockedBlooks' ?| array['Da Vinci''s Ornithopter', 'Leonardo da Vinci''s Tank'];
-update public.profiles set stats = jsonb_set(stats, '{wishlist}', pg_temp.rename_davinci(stats -> 'wishlist'))
+update public.profiles set stats = jsonb_set(stats, '{wishlist}', (
+  select coalesce(jsonb_agg(case item when 'Da Vinci''s Ornithopter' then 'Antibiotics' when 'Leonardo da Vinci''s Tank' then 'Light Bulb' else item end), '[]'::jsonb)
+  from jsonb_array_elements_text(stats -> 'wishlist') as item
+))
 where jsonb_typeof(stats -> 'wishlist') = 'array' and stats -> 'wishlist' ?| array['Da Vinci''s Ornithopter', 'Leonardo da Vinci''s Tank'];
