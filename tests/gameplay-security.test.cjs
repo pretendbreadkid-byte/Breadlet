@@ -49,9 +49,9 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   );
   const inventions = catalog.liveCapsules.find((pack) => pack.name === 'Inventions Bag');
   assert.equal(inventions.pool.find((reward) => reward.name === 'Magnifying Glass').rarity, 'Common');
-  assert.equal(inventions.pool.find((reward) => reward.name === 'Magnifying Glass').art, '/assets/magnifying-glass.svg');
+  assert.equal(inventions.pool.find((reward) => reward.name === 'Magnifying Glass').art, '/assets/magnifying-glass-2.svg');
   assert.equal(inventions.pool.find((reward) => reward.name === 'Bitcoin').rarity, 'Mythic');
-  assert.equal(inventions.pool.find((reward) => reward.name === "Leonardo da Vinci's Tank").rarity, 'Epic');
+  assert.equal(inventions.pool.find((reward) => reward.name === "Light Bulb").rarity, 'Epic');
   const space = catalog.liveCapsules.find((pack) => pack.name === 'Space Bag');
   assert.equal(space.pool.find((reward) => reward.name === 'Space Goo').rarity, 'Uncommon');
   assert.equal(space.pool.some((reward) => reward.name === 'Space Trooper'), false);
@@ -470,9 +470,9 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     assert.equal((await database.query("select (stats->>'candy')::integer as candy from profiles where id=$1", [contestPlayers[0][0]])).rows[0].candy, candyBeforeDisabledTradeAward);
     await database.query("select set_config('request.jwt.claim.role','',false)");
     assert.equal((await database.query("select rarity from blooks where name='Old Transcendent'")).rows[0].rarity, 'Breadled');
-    const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Leonardo da Vinci's Tank"])).rows[0];
+    const tank = (await database.query("select rarity, artwork_key from blooks where name = $1", ["Light Bulb"])).rows[0];
     assert.equal(tank.rarity, 'Epic');
-    assert.equal(tank.artwork_key, "DaVinci'sOrnothopter2.svg");
+    assert.equal(tank.artwork_key, 'light-bulb.svg');
     const sun = (await database.query("select rarity, artwork_key from blooks where name = 'Sun'")).rows[0];
     assert.equal(sun.rarity, 'Rare');
     assert.equal(sun.artwork_key, 'sun.svg');

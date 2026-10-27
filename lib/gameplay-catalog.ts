@@ -206,12 +206,12 @@ export const liveCapsules: Capsule[] = [
       ["Magnifying Glass", "Common"],
       ["Letter", "Uncommon"],
       ["Gears", "Rare"],
-      ["Da Vinci's Ornithopter", "Epic"],
-      ["Leonardo da Vinci's Tank", "Epic"],
+      ["Antibiotics", "Epic"],
+      ["Light Bulb", "Epic"],
       ["Leonardo da Vinci", "Legendary"],
       ["Bitcoin", "Mythic"],
     ], {
-      "Magnifying Glass": "/assets/magnifying-glass.svg",
+      "Magnifying Glass": "/assets/magnifying-glass-2.svg",
     }),
   },
   {
@@ -417,7 +417,7 @@ export const liveCapsules: Capsule[] = [
       ["Cherry Pie", "Uncommon"],
       ["Pumpkin Pie", "Uncommon"],
       ["Corn", "Rare"],
-      ["Cooked Turkey", "Legendary"],
+      ["Cooked Turkey", "Legendary"],
       ["Tanuki", "Mythic"],
     ]),
   },
