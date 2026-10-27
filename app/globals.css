@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DynaPuff:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -2669,3 +2669,31 @@ main.auth-screen.auth-screen .auth-primary:hover { background: #f08a2e !importan
 main.auth-screen.auth-screen .auth-guest { border: 2px solid #3c3a34; background: #27251F !important; }
 main.auth-screen.auth-screen .auth-guest:hover { border-color: #E77D22; }
 main.auth-screen.auth-screen .auth-card > button:not(.auth-primary):not(.auth-guest) { color: #f4b26b !important; }
+
+/* ── Quicksand everywhere ──────────────────────────────────────────────────── */
+html, body, *, *::before, *::after { font-family: "Quicksand", ui-rounded, system-ui, sans-serif !important; }
+/* Quicksand's heaviest weight is 700, so the bold and black weights all use it. */
+.font-black, .font-extrabold, .font-bold, b, strong, h1, h2, h3, button { font-weight: 700; }
+
+/* ── Squishy UI ────────────────────────────────────────────────────────────────
+   Buttons and clickable tiles swell a little on hover, squash wide and short when pressed, and
+   spring back with a small overshoot. Uses the separate scale property, so it stacks with the
+   hover lifts (transform) that some buttons already have. */
+button, [role="button"], [role="tab"], select, label[title], .shop-shelf-bag, .bazaar-stall, .resource-card, .clan-discover-card {
+  transition: scale 260ms cubic-bezier(.34, 1.8, .5, 1), transform 180ms ease, filter 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+:is(button, [role="button"], [role="tab"], select, label[title], .shop-shelf-bag, .bazaar-stall, .resource-card, .clan-discover-card):hover:not(:disabled) { scale: 1.04; }
+:is(button, [role="button"], [role="tab"], select, label[title], .shop-shelf-bag, .bazaar-stall, .resource-card, .clan-discover-card):active:not(:disabled) { scale: 1.06 .9; transition-duration: 90ms; }
+/* Wide bars (sidebar tabs, full-width buttons) only swell a touch, so they don't jump sideways. */
+.breadlet-sidebar nav button:hover:not(:disabled), button.w-full:hover:not(:disabled) { scale: 1.015; }
+.breadlet-sidebar nav button:active:not(:disabled), button.w-full:active:not(:disabled) { scale: 1.02 .94; }
+/* Text boxes give a little when you click into them. */
+input, textarea { transition: scale 260ms cubic-bezier(.34, 1.8, .5, 1), border-color 150ms ease; }
+input:focus, textarea:focus { scale: 1.01; }
+/* Pop-ups bounce in. */
+.modal-layer:not(.reveal-overlay) > :not([class*="reveal-"]) { animation: squishy-pop 360ms cubic-bezier(.34, 1.6, .5, 1); }
+@keyframes squishy-pop { 0% { scale: .85 .8; opacity: 0; } 60% { scale: 1.03 1.02; opacity: 1; } 100% { scale: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  button, [role="button"], [role="tab"], select, label[title], .shop-shelf-bag, .bazaar-stall, .resource-card, .clan-discover-card, input, textarea { transition: none; scale: none !important; }
+  .modal-layer:not(.reveal-overlay) > :not([class*="reveal-"]) { animation: none; }
+}
