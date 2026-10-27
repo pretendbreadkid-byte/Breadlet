@@ -18,6 +18,7 @@ const hideSlurs = (message: string) => !isImage(message) && hasSevereSlur(messag
 // Rows from the light select (migration 0055) carry text_body/is_image instead of the full
 // message, so embedded images are served once from /api/chat/image (cached) instead of
 // being downloaded from the database on every chat refresh.
+const SPAM_MUTE_MINUTES = 5;
 const LIGHT_SELECT = 'id, text_body, is_image, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
 const FULL_SELECT = 'id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
 const imageLink = (id: string) => `[img]/api/chat/image?id=${id}[/img]`;
@@ -261,6 +262,28 @@ export async function POST(request: Request) {
       },
       { status: 400 }
     );
+  }
+
+  // Spam: the bot mutes a player who sends several messages in a row, either 5 within 10
+  // seconds, or the same message 3 times in a row within a minute. One long message never counts.
+  if (!isProtectedFromMute(sender?.username || '')) {
+    // text_body (migration 0055) skips image data; without it, only the timing check runs.
+    const since = new Date(Date.now() - 60 * 1000).toISOString();
+    const lastQuery = (columns: string) => database.from('global_chat_messages').select(columns)
+      .eq('profile_id', user.id).eq('is_breadlet_bot', false).gte('created_at', since)
+      .order('created_at', { ascending: false }).limit(4);
+    let { data: lastMessages, error: lastError } = await lastQuery('text_body, created_at');
+    if (lastError) ({ data: lastMessages } = await lastQuery('created_at'));
+    const recentRows = ((lastMessages || []) as any[]).map((row) => ({ message: row.text_body ?? null, created_at: String(row.created_at) }));
+    const burst = recentRows.filter((row) => Date.now() - Date.parse(row.created_at) < 10 * 1000).length >= 4;
+    const normalized = (text: string) => String(text || '').trim().toLowerCase();
+    const repeated = !isImageMessage && recentRows.length >= 2 && recentRows.slice(0, 2).every((row) => row.message !== null && normalized(row.message) === normalized(message));
+    if (burst || repeated) {
+      const until = new Date(Date.now() + SPAM_MUTE_MINUTES * 60 * 1000).toISOString();
+      await database.from('profiles').update({ stats: { ...(sender?.stats || {}), chatMutedUntil: until } }).eq('id', user.id);
+      await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: `${sender?.username || 'A player'} was muted for ${SPAM_MUTE_MINUTES} minutes for spamming.` });
+      return NextResponse.json({ error: `Slow down! You were muted for ${SPAM_MUTE_MINUTES} minutes for spamming.` }, { status: 429 });
+    }
   }
 
   const replyToMessageId =
