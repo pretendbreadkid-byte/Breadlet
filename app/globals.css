@@ -2697,3 +2697,17 @@ input:focus, textarea:focus { scale: 1.01; }
   button, [role="button"], [role="tab"], select, label[title], .shop-shelf-bag, .bazaar-stall, .resource-card, .clan-discover-card, input, textarea { transition: none; scale: none !important; }
   .modal-layer:not(.reveal-overlay) > :not([class*="reveal-"]) { animation: none; }
 }
+
+/* Chat mentions: @names are yellow, and red (with the message highlighted) when they're you. */
+main.breadlet-blue-theme.breadlet-blue-theme .chat-at { color: #ffd84d !important; font-weight: 700; }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-at-me { border-radius: 6px; padding: 0 3px; background: rgba(255, 77, 77, .18); color: #ff5a5a !important; }
+.global-chat .chat-mention { border-left-color: #ff5a5a !important; background: rgba(255, 77, 77, .16) !important; }
+/* @mention and / command picker above the message box. */
+.global-chat .chat-picker { position: absolute; right: 0; bottom: calc(100% + 8px); left: 0; z-index: 60; max-height: 320px; overflow-y: auto; border: 2px solid #13120F; border-radius: 16px; padding: 6px; background: rgba(31, 22, 15, .97); box-shadow: 0 6px 0 #13120F, 0 18px 40px rgba(0, 0, 0, .35); }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-picker-item { display: flex; width: 100%; align-items: center; gap: 12px; border-radius: 12px; padding: 8px 10px; background: transparent; color: #FFFFFF !important; font-size: 1.05rem; font-weight: 700; text-align: left; }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-picker-item[aria-selected="true"], main.breadlet-blue-theme.breadlet-blue-theme .chat-picker-item:hover { background: rgba(231, 125, 34, .35); scale: 1; }
+.global-chat .chat-picker-avatar { display: grid; width: 40px; height: 40px; flex: none; place-items: center; }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-picker-command { flex: none; color: #ffd84d !important; font-family: ui-monospace, monospace !important; font-size: .95rem; }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-picker-desc { min-width: 0; overflow: hidden; color: #d9cfc2 !important; font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }
+.global-chat .chat-command-result { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; border-left: 4px solid #4ade80; border-radius: 10px; padding: 8px 10px; background: rgba(20, 60, 30, .55); font-size: .9rem; font-weight: 700; white-space: pre-line; }
+.global-chat .chat-command-result span { min-width: 0; flex: 1; }

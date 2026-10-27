@@ -9,7 +9,18 @@ export async function GET(request: Request) {
   if (!supabase) return NextResponse.json([], { status: 200 });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
-  const query = new URL(request.url).searchParams.get('q')?.trim() || '';
+  const params = new URL(request.url).searchParams;
+  const query = params.get('q')?.trim() || '';
+  // ?light=1: names starting with the typed letters, for the @mention picker in chat.
+  if (params.get('light') === '1') {
+    const prefix = query.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 20);
+    if (!prefix) return NextResponse.json([]);
+    const { data } = await supabase.from('profiles').select('username, equipped_blook_id').ilike('username', `${prefix}%`).neq('id', user.id).order('username').limit(8);
+    const ids = Array.from(new Set((data || []).map((row) => row.equipped_blook_id).filter(Boolean)));
+    const { data: blooks } = ids.length ? await supabase.from('blooks').select('id, name').in('id', ids) : { data: [] as any[] };
+    const nameById = new Map((blooks || []).map((blook: any) => [blook.id, blook.name === 'Surgeon' ? 'Doctor' : blook.name]));
+    return NextResponse.json((data || []).map((row) => ({ username: row.username, equippedBlook: nameById.get(row.equipped_blook_id) || '' })), { headers: { 'Cache-Control': 'private, max-age=30' } });
+  }
   if (query.length < 2) return NextResponse.json([]);
   const { data, error } = await supabase.from('profiles').select('id, username, tokens, equipped_blook_id, stats, created_at').ilike('username', `%${query}%`).neq('id', user.id).limit(20);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

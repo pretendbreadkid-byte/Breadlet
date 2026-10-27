@@ -49,6 +49,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  if (body.action === 'unban') {
+    // Same as approving an appeal: end every active ban (unbanning the profile also lifts its
+    // device/IP bans, migration 0052), and altAppealApproved keeps the alt auto-ban off them.
+    const targetId = String(body.targetId || '');
+    const { data: target } = await session.supabase.from('profiles').select('id, stats').eq('id', targetId).maybeSingle();
+    if (!target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+    const now = new Date().toISOString();
+    await session.supabase.from('bans').update({ is_permanent: false, expires_at: now }).eq('profile_id', targetId).or(`is_permanent.eq.true,expires_at.is.null,expires_at.gt.${now}`);
+    const { error } = await session.supabase.from('profiles').update({ is_banned: false, ban_reason: null, ban_expires_at: null, stats: { ...(target.stats || {}), altAppealApproved: true } }).eq('id', targetId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await session.supabase.from('network_bans').delete().eq('profile_id', targetId);
+    return NextResponse.json({ ok: true });
+  }
+
   const targetId = String(body.targetId || '');
   const operation = body.operation === 'remove' ? 'remove' : 'add';
   const tokens = Math.max(0, Math.floor(Number(body.tokens) || 0));

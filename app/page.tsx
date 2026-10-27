@@ -11,6 +11,8 @@ import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
+import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
+import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
@@ -1525,7 +1527,7 @@ function MainPage() {
     if (!response.ok) return setNotice((await response.json().catch(() => null))?.error || "Admin resource update failed.");
     setNotice(reward.operation === "remove" ? "Resource removed." : "Resource added.");
   };
-  const moderateAccount = async (action: "ban" | "delete", payload: Record<string, unknown>) => {
+  const moderateAccount = async (action: "ban" | "unban" | "delete", payload: Record<string, unknown>) => {
     const response = action === "delete"
       ? await fetch(`/api/admin?targetId=${encodeURIComponent(String(payload.targetId || ""))}`, { method: "DELETE" })
       : await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...payload }) });
@@ -1535,6 +1537,7 @@ function MainPage() {
       return false;
     }
     if (action === "delete") setNotice(`${result.username || "Account"} deleted. Its username is available again.`);
+    else if (action === "unban") setNotice("Player unbanned. They can log in again.");
     else {
       setNotice("Ban applied. The player will see the reason when they try to log in.");
     }
@@ -4133,6 +4136,83 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   const [onlinePanelOpen, setOnlinePanelOpen] = useState(false);
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
   const isVerified = player.badges?.includes("Verified");
+  // Commands this player can use, for the "/" pop-up (the server checks again).
+  const lowerName = player.username.toLowerCase();
+  const commandRole = lowerName === ADMIN_USERNAME ? "admin" : MODERATOR_USERNAMES.includes(lowerName) ? "full" : LIMITED_MODERATOR_USERNAMES.includes(lowerName) ? "limited" : null;
+  const availableCommands = commandsFor(commandRole);
+  const [commandResult, setCommandResult] = useState("");
+  // @mention and / command pop-up above the message box.
+  const chatInputRef = useRef<HTMLInputElement>(null);
+  const [caret, setCaret] = useState(0);
+  const [pickerIndex, setPickerIndex] = useState(0);
+  const [pickerDismissed, setPickerDismissed] = useState<string | null>(null);
+  const [mentionResults, setMentionResults] = useState<{ username: string; equippedBlook: string }[]>([]);
+  const mentionMatch = message.slice(0, caret).match(/(^|\s)@([a-zA-Z0-9_]{0,20})$/);
+  const mentionQuery = mentionMatch ? mentionMatch[2] : null;
+  const slashQuery = /^\/[a-z]*$/i.test(message) ? message.slice(1).toLowerCase() : null;
+  useEffect(() => {
+    if (mentionQuery === null || isGuest) { setMentionResults([]); return; }
+    const typed = mentionQuery.toLowerCase();
+    const seen = new Set<string>();
+    const pick = (list: { username: string; equippedBlook: string }[]) => list.filter((entry) => {
+      const key = String(entry.username || "").toLowerCase();
+      if (!key || key === lowerName || !key.startsWith(typed) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    // People online or in chat first, then everyone else whose name starts with the letters typed.
+    setMentionResults(pick([
+      ...onlinePlayers.map((online) => ({ username: online.username, equippedBlook: online.equippedBlook })),
+      ...messagesRef.current.filter((item) => !item.isBreadletBot).map((item) => ({ username: item.user, equippedBlook: item.equippedBlook || "" })),
+    ]).slice(0, 8));
+    setPickerIndex(0);
+    if (!typed) return;
+    const timer = window.setTimeout(() => {
+      void fetch(`/api/players/search?light=1&q=${encodeURIComponent(typed)}`).then((response) => (response.ok ? response.json() : [])).then((rows) => {
+        if (Array.isArray(rows)) setMentionResults((current) => [...current, ...pick(rows)].slice(0, 8));
+      }).catch(() => undefined);
+    }, 150);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mentionQuery, isGuest]);
+  const commandMatches = slashQuery === null ? [] : availableCommands.filter((command) => command.name.startsWith(slashQuery));
+  const pickerOpen = pickerDismissed !== message && (mentionQuery !== null ? mentionResults.length > 0 : commandMatches.length > 0);
+  const chooseMention = (username: string) => {
+    const before = message.slice(0, caret).replace(/@([a-zA-Z0-9_]{0,20})$/, `@${username} `);
+    const next = `${before}${message.slice(caret)}`.slice(0, 500);
+    setMessage(next);
+    setCaret(before.length);
+    window.requestAnimationFrame(() => { chatInputRef.current?.focus(); chatInputRef.current?.setSelectionRange(before.length, before.length); });
+  };
+  const chooseCommand = (command: ChatCommand) => {
+    const next = `/${command.name} `;
+    setMessage(next);
+    setCaret(next.length);
+    window.requestAnimationFrame(() => chatInputRef.current?.focus());
+  };
+  const onChatKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!pickerOpen) return;
+    const count = mentionQuery !== null ? mentionResults.length : commandMatches.length;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setPickerIndex((index) => (index + (event.key === "ArrowDown" ? 1 : count - 1)) % count);
+    } else if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      const index = Math.min(pickerIndex, count - 1);
+      if (mentionQuery !== null) chooseMention(mentionResults[index].username);
+      else chooseCommand(commandMatches[index]);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setPickerDismissed(message);
+    }
+  };
+  // @names in messages: yellow, or red when they're you.
+  const renderWithMentions = (text: string) => {
+    const emojiList = [...emojis, ...blookEmojis()];
+    return text.split(/(@[A-Za-z0-9_]{3,20})/).map((part, index) => index % 2
+      ? <span key={index} className={part.slice(1).toLowerCase() === lowerName ? "chat-at chat-at-me" : "chat-at"}>{part}</span>
+      : <span key={index}>{renderEmojiText(part, emojiList)}</span>);
+  };
   // Who's typing: Realtime broadcast pings (no database writes). Each typer pings at most every
   // 2.5s; a name drops off 4s after their last ping, or right away when they send.
   const [typers, setTypers] = useState<Record<string, number>>({});
@@ -4332,6 +4412,15 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       setChatError(result.ok ? "" : result.error || "Could not cancel the game.");
       return;
     }
+    // Staff commands run on the server and are never posted to chat.
+    const commandName = text.startsWith("/") ? text.slice(1).split(/\s+/)[0].toLowerCase() : "";
+    if (SERVER_COMMANDS.has(commandName)) {
+      const response = await fetch("/api/chat/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).catch(() => null);
+      const result = await response?.json().catch(() => ({}));
+      if (response?.ok) { setChatError(""); setCommandResult(result?.message || "Done."); }
+      else { setCommandResult(""); setChatError(result?.error || "That command didn't work."); }
+      return;
+    }
     await sendMessageText(text);
   };
 
@@ -4363,7 +4452,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         />
       );
     }
-    return <p className={isBreadletBot ? "chat-breadlet-fact chat-message-text" : "chat-message-text text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderEmojiText(text, [...emojis, ...blookEmojis()])}</p>;
+    return <p className={isBreadletBot ? "chat-breadlet-fact chat-message-text" : "chat-message-text text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderWithMentions(text)}</p>;
   };
 
   const muteChatter = async (targetId: string, name: string) => {
@@ -4628,12 +4717,21 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           </label>
         )}
         <EmojiPicker emojis={emojis} canManage={canManageEmojis} onPick={(text) => setMessage((current) => `${current}${text}`.slice(0, 500))} onChanged={reloadEmojis} />
-        <div className="min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1">
+        {pickerOpen && <div className="chat-picker" role="listbox" aria-label={mentionQuery !== null ? "Mention a player" : "Commands"}>
+          {mentionQuery !== null
+            ? mentionResults.map((entry, index) => <button key={entry.username} type="button" role="option" aria-selected={index === pickerIndex} onMouseDown={(event) => { event.preventDefault(); chooseMention(entry.username); }} className="chat-picker-item"><span className="chat-picker-avatar">{entry.equippedBlook ? <BlookImg name={entry.equippedBlook} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span><span className="truncate">{entry.username}</span></button>)
+            : commandMatches.map((command, index) => <button key={command.name} type="button" role="option" aria-selected={index === pickerIndex} onMouseDown={(event) => { event.preventDefault(); chooseCommand(command); }} className="chat-picker-item"><span className="chat-picker-command">{command.usage}</span><span className="chat-picker-desc">{command.description}</span></button>)}
+        </div>}
+        {commandResult && <div role="status" className="chat-command-result"><span>{commandResult}</span><button type="button" aria-label="Dismiss" onClick={() => setCommandResult("")}>×</button></div>}
         {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {replyTarget.message}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">×</button></div>}
         <input
+          ref={chatInputRef}
           value={message}
-          onChange={(event) => { setMessage(event.target.value); announceTyping(!event.target.value.trim()); }}
-          onBlur={() => announceTyping(true)}
+          onChange={(event) => { setMessage(event.target.value); setCaret(event.target.selectionStart ?? event.target.value.length); setPickerDismissed(null); announceTyping(!event.target.value.trim()); }}
+          onSelect={(event) => setCaret(event.currentTarget.selectionStart ?? 0)}
+          onKeyDown={onChatKeyDown}
+          onBlur={() => { announceTyping(true); window.setTimeout(() => setPickerDismissed(message), 150); }}
           placeholder={isVerified ? "Write a message or upload an image..." : "Write a message..."}
           className="w-full rounded-xl bg-[#24170f] px-4 py-3 text-white outline-none focus:border-[#3d91cd]"
         />
@@ -5162,7 +5260,7 @@ function AdminTab({
   player: Player;
   onlineNow: number;
   grantReward: (targetId: string, reward: { operation?: "add" | "remove"; tokens?: number; candy?: number; blookName?: string; badge?: string; material?: string; materialAmount?: number }) => Promise<void>;
-  moderateAccount: (action: "ban" | "delete", payload: Record<string, unknown>) => Promise<boolean>;
+  moderateAccount: (action: "ban" | "unban" | "delete", payload: Record<string, unknown>) => Promise<boolean>;
   announcement: string;
   setAnnouncement: (value: string) => void;
   publishAnnouncement: () => void;
@@ -5429,6 +5527,22 @@ function AdminTab({
             >
               Issue Ban Sanction
             </button>
+          </div>
+          <div className="mt-6 border-t border-[#ef8b9d]/30 pt-4">
+            <h3 className="font-black text-[#ffd6df]">Banned players ({players.filter((profile) => profile.is_banned).length})</h3>
+            <p className="mt-1 text-xs text-[#f2b9c7]">Unbanning ends the ban, lifts its device and network bans, and keeps the alt check from banning them again.</p>
+            <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
+              {players.filter((profile) => profile.is_banned).map((profile) => (
+                <div key={profile.id} className="flex items-center gap-3 rounded-xl bg-[#351c3a] p-3">
+                  <div className="min-w-0 flex-1"><p className="truncate font-black">{profile.username}</p><p className="truncate text-xs text-[#f2b9c7]" title={profile.ban_reason || ""}>{profile.ban_reason || "No reason given"}</p></div>
+                  <button type="button" onClick={async () => {
+                    if (!window.confirm(`Unban ${profile.username}?`)) return;
+                    if (await moderateAccount("unban", { targetId: profile.id })) setPlayers((current) => current.map((entry) => entry.id === profile.id ? { ...entry, is_banned: false, ban_reason: null } : entry));
+                  }} className="rounded-lg bg-emerald-300 px-3 py-2 text-xs font-black text-emerald-950">Unban</button>
+                </div>
+              ))}
+              {!players.some((profile) => profile.is_banned) && <p className="text-sm text-[#f2b9c7]">Nobody is banned.</p>}
+            </div>
           </div>
         </div>
       </div>
