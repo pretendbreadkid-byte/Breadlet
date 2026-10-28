@@ -1944,7 +1944,7 @@ function MainPage() {
             </div>
           )}
           {claimReady && tab !== "wheel" && tab !== "capsules" && (
-            <button type="button" onClick={() => setTab("wheel")} className="claim-ready-pill" title="Your hourly Bread Bucks claim is ready">
+            <button type="button" onClick={() => setTab("wheel")} className={`claim-ready-pill ${tab === "chat" ? "claim-ready-pill-top" : ""}`} title="Your hourly Bread Bucks claim is ready">
               <img src="/assets/Bread%20bucks.svg" alt="" aria-hidden="true" />Claim ready!
             </button>
           )}

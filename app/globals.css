@@ -2746,3 +2746,11 @@ main.breadlet-blue-theme.breadlet-blue-theme .event-countdown-unit b { color: #f
 @keyframes event-leaf-fall { to { translate: 40px 900px; rotate: 360deg; } }
 @media (max-width: 640px) { .event-countdown { gap: 8px; } .event-countdown-unit { padding: 10px 2px 8px; border-radius: 14px; } }
 @media (prefers-reduced-motion: reduce) { .event-logo, .event-leaves span { animation: none; } .event-leaves { display: none; } }
+
+/* Chat: the claim pill sits top-right so it doesn't cover the online count by the message box. */
+main.breadlet-blue-theme.breadlet-blue-theme .claim-ready-pill-top { top: 18px; bottom: auto; }
+/* A compact @ / command picker: narrow, short and left-aligned, so the chat stays readable. */
+.global-chat .chat-picker { right: auto; width: min(20rem, 100%); max-height: 13.5rem; border-radius: 14px; padding: 4px; }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-picker-item { gap: 8px; border-radius: 10px; padding: 4px 8px; font-size: .95rem; }
+.global-chat .chat-picker-avatar { width: 28px; height: 28px; }
+.global-chat .chat-picker:has(.chat-picker-command) { width: min(30rem, 100%); }
