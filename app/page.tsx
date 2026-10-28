@@ -48,6 +48,7 @@ import {
   Repeat,
   Clock,
   CalendarDays,
+  Leaf,
 } from "lucide-react";
 
 type Tab =
@@ -66,7 +67,8 @@ type Tab =
   | "crafting"
   | "settings"
   | "admin"
-  | "explore";
+  | "explore"
+  | "event";
 
 
 type Listing = { id: number | string; seller: string; sellerId?: string; blook: string; price: number; quantity?: number; listedAt?: string; sellerBlook?: string };
@@ -1735,6 +1737,7 @@ function MainPage() {
       />
     );
   const nav: NavItem[] = [
+    { id: "event", label: "Event", icon: <Leaf size={20} strokeWidth={2.2} /> },
     {
       id: "capsules",
       label: "Goodybags",
@@ -2001,6 +2004,7 @@ function MainPage() {
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && <ReferralsTab isGuest={isGuest} />}
+          {tab === "event" && <EventTab />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
@@ -4902,6 +4906,46 @@ function PromoTab({
     </div>
   );
 }
+// Breadlet Fall Fiesta: a coming-soon page with a countdown to the start and how the event works.
+const FALL_FIESTA_START = Date.parse("2026-11-01T00:00:00Z");
+function EventTab() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const left = Math.max(0, FALL_FIESTA_START - now);
+  const units = [
+    { label: "Days", value: Math.floor(left / 86400000) },
+    { label: "Hours", value: Math.floor(left / 3600000) % 24 },
+    { label: "Minutes", value: Math.floor(left / 60000) % 60 },
+    { label: "Seconds", value: Math.floor(left / 1000) % 60 },
+  ];
+  const steps = [
+    { title: "Grab the Fiesta item", text: "Buy the Fall Fiesta item from the Shop. It switches on by itself the moment you buy it, so there's nothing to equip." },
+    { title: "Catch falling leaves", text: "Once it's on, leaves rain down across Breadlet while you play. Tap or click a leaf to catch it before it hits the ground." },
+    { title: "Spend your leaves", text: "Leaves are the Fiesta's own currency. Save them up and spend them on event rewards." },
+    { title: "Climb the leaderboard", text: "Every leaf you catch counts toward the Fiesta leaderboard. The top catchers when the event ends win exclusive Breadlets nobody else can get." },
+  ];
+  return (
+    <div className="event-page mx-auto w-full max-w-4xl">
+      <div className="event-leaves" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <span key={index} style={{ "--leaf-index": index } as React.CSSProperties}>🍂</span>)}</div>
+      <img src="/assets/fall-fiesta-logo.webp" alt="Breadlet Fall Fiesta" className="event-logo" />
+      <p className="event-soon">{left ? "Coming soon" : "The Fall Fiesta is here!"}</p>
+      <div className="event-countdown" role="timer" aria-label="Time until the Fall Fiesta starts">
+        {units.map((unit) => <div key={unit.label} className="event-countdown-unit"><b>{String(unit.value).padStart(2, "0")}</b><span>{unit.label}</span></div>)}
+      </div>
+      <p className="event-date">Starts November 1</p>
+      <section className="event-how">
+        <h2>How the Fiesta works</h2>
+        <ol>
+          {steps.map((step, index) => <li key={step.title}><span className="event-step-number">{index + 1}</span><div><h3>{step.title}</h3><p>{step.text}</p></div></li>)}
+        </ol>
+      </section>
+    </div>
+  );
+}
+
 function ResourcesTab({ open }: { open: (tab: "promo" | "bank" | "referrals") => void }) {
   const resources = [
     { title: "Promo Codes", description: "Redeem a Breadlet code for its reward.", icon: <Percent size={22} />, tab: "promo" as const },

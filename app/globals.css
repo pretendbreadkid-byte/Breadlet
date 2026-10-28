@@ -2722,3 +2722,27 @@ body *:not(svg, svg *) { font-weight: 700 !important; }
 .breadlet-sidebar .sidebar-brand { padding: 0; }
 .breadlet-sidebar .sidebar-wordmark img { width: 104%; max-width: none; margin-left: -2%; }
 main.auth-screen .auth-logo { width: min(24rem, 100%); }
+
+/* ── Event tab (Fall Fiesta) ─────────────────────────────────────────────────── */
+.event-page { position: relative; display: flex; flex-direction: column; align-items: center; padding: 8px 0 40px; text-align: center; }
+.event-logo { width: min(40rem, 100%); height: auto; filter: drop-shadow(0 6px 0 rgba(19, 18, 15, .45)); animation: event-logo-bob 4s ease-in-out infinite; }
+@keyframes event-logo-bob { 50% { translate: 0 -8px; rotate: -1deg; } }
+.event-soon { margin-top: 10px; border: 3px solid #13120F; border-radius: 999px; background: #13120F; padding: 6px 22px; font-size: 1.25rem; letter-spacing: .12em; text-transform: uppercase; box-shadow: 0 4px 0 #090908; }
+.event-countdown { display: grid; width: min(34rem, 100%); grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px; }
+.event-countdown-unit { display: flex; flex-direction: column; align-items: center; border: 3px solid #13120F; border-radius: 18px; background: #27251F; padding: 14px 4px 10px; box-shadow: 0 5px 0 #13120F; }
+.event-countdown-unit b { font-size: clamp(2rem, 7vw, 3.2rem); line-height: 1; font-variant-numeric: tabular-nums; -webkit-text-stroke: .04em currentColor; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-countdown-unit b { color: #ffb02e !important; }
+.event-countdown-unit span { margin-top: 6px; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; opacity: .8; }
+.event-date { margin-top: 12px; font-size: 1.05rem; opacity: .9; }
+.event-how { width: 100%; margin-top: 34px; text-align: left; }
+.event-how h2 { margin-bottom: 14px; font-size: 1.8rem; text-align: center; text-shadow: 0 3px 0 #13120F; }
+.event-how ol { display: grid; gap: 12px; }
+.event-how li { display: flex; align-items: flex-start; gap: 14px; border: 3px solid #13120F; border-radius: 18px; background: rgba(39, 37, 31, .92); padding: 14px 16px; box-shadow: 0 4px 0 #13120F; }
+.event-how h3 { font-size: 1.15rem; }
+.event-how li p { margin-top: 3px; line-height: 1.5; opacity: .88; }
+.event-step-number { display: grid; width: 40px; height: 40px; flex: none; place-items: center; border-radius: 12px; background: #E77D22; font-size: 1.2rem; box-shadow: 0 3px 0 #13120F; }
+.event-leaves { position: absolute; inset: -20px 0 auto; height: 100%; overflow: hidden; pointer-events: none; }
+.event-leaves span { position: absolute; top: -40px; left: calc(var(--leaf-index) * 10% + 3%); font-size: 26px; opacity: .8; animation: event-leaf-fall calc(9s + var(--leaf-index) * .7s) linear calc(var(--leaf-index) * -1.3s) infinite; }
+@keyframes event-leaf-fall { to { translate: 40px 900px; rotate: 360deg; } }
+@media (max-width: 640px) { .event-countdown { gap: 8px; } .event-countdown-unit { padding: 10px 2px 8px; border-radius: 14px; } }
+@media (prefers-reduced-motion: reduce) { .event-logo, .event-leaves span { animation: none; } .event-leaves { display: none; } }
