@@ -416,9 +416,7 @@ function OozingPickle({ className }: { className: string }) {
 
 
 const rarityClassFor = (rarity: string) =>
-  rarity === "Secret"
-    ? "rarity-secret"
-    : rarity === "Unique"
+  rarity === "Unique"
     ? "rarity-unique"
     : rarity === "Breadled"
       ? "rarity-breadled"

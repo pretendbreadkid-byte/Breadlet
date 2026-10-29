@@ -2818,11 +2818,6 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-error { color: #ff8a80 !imp
 @media (max-width: 640px) { .casino-reel { width: 84px; height: 84px; } .casino-reel img { width: 60px; height: 60px; } .casino-die { font-size: 4.5rem; } }
 @media (prefers-reduced-motion: reduce) { .casino-die-rolling { animation: none; } }
 
-/* Secret rarity: a slow indigo shimmer. */
-@keyframes rarity-secret { 0%, 100% { filter: drop-shadow(0 0 6px #6366f1); } 50% { filter: drop-shadow(0 0 14px #a5b4fc) brightness(1.08); } }
-.rarity-secret { animation: rarity-secret 1.6s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .rarity-secret { animation: none; filter: drop-shadow(0 0 8px #818cf8); } }
-
 /* Breadlet News panel: slides in from the right. */
 .news-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(9, 9, 8, .55); }
 .news-panel { position: absolute; top: 0; right: 0; display: flex; flex-direction: column; width: min(440px, 100vw); height: 100%; background: #1b1a16; border-left: 4px solid #13120F; box-shadow: -10px 0 30px rgba(0, 0, 0, .45); animation: news-slide .25s ease-out; color: #fff; }
