@@ -219,8 +219,8 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Space Bag",
     price: 25,
-    // Secret odds run 0.01% (smallest pack) to 1.09% (biggest pack) by pool size.
-    rarityChances: { Secret: 0.42 },
+    // Secret odds run 0.01% (smallest pack) to 0.09% (biggest pack) by pool size.
+    rarityChances: { Secret: 0.04 },
     art: "/assets/space bag updated again (1).svg",
     pool: rewards([
       ["Mars", "Common"],
@@ -261,7 +261,7 @@ export const liveCapsules: Capsule[] = [
     name: "Food Bag",
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
-    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.69 },
+    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.06 },
     art: "/assets/food bag updated (1).svg",
     pool: rewards([
       ["Rock", "Common"],
@@ -386,7 +386,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     seasonal: true,
     // Same tiers as the other packs, so the average resale (~17) stays under the price.
-    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 1.09 },
+    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.09 },
     art: "/assets/winter/winter-bag.svg?v=2",
     pool: dailyRotation(rewards([
       ["Snowball", "Common"],
