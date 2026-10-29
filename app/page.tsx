@@ -11,6 +11,7 @@ import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
+import { GamesTab } from "./components/casino-games";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
@@ -49,6 +50,7 @@ import {
   Clock,
   CalendarDays,
   Leaf,
+  Dices,
 } from "lucide-react";
 
 type Tab =
@@ -68,7 +70,8 @@ type Tab =
   | "settings"
   | "admin"
   | "explore"
-  | "event";
+  | "event"
+  | "games";
 
 
 type Listing = { id: number | string; seller: string; sellerId?: string; blook: string; price: number; quantity?: number; listedAt?: string; sellerBlook?: string };
@@ -1765,6 +1768,8 @@ function MainPage() {
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
     { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
+    // Games is only open to the admin while it is being tested.
+    ...(player.username.toLowerCase() === ADMIN_USERNAME ? [{ id: "games" as Tab, label: "Games", icon: <Dices size={20} strokeWidth={2.2} /> }] : []),
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
@@ -1783,7 +1788,7 @@ function MainPage() {
           </button>
 
           {/* Sidebar Nav Buttons */}
-          <nav className="-mt-3 space-y-1.5">
+          <nav className="sidebar-nav mt-1 space-y-1.5">
             {visibleNav.map((item) => (
               <button
                 key={item.id}
@@ -2005,6 +2010,7 @@ function MainPage() {
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab />}
+          {tab === "games" && player.username.toLowerCase() === ADMIN_USERNAME && <GamesTab tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
@@ -4908,6 +4914,11 @@ function PromoTab({
 }
 // Breadlet Fall Fiesta: a coming-soon page with a countdown to the start and how the event works.
 const FALL_FIESTA_START = Date.parse("2026-11-01T00:00:00Z");
+const EVENT_REWARDS = [
+  { name: "Acorn", art: "/assets/fall/acorn.svg" },
+  { name: "Pilgrim Hat", art: "/assets/fall/pilgrim-hat.webp" },
+  { name: "Fall Leaf", art: "/assets/fall/fall-leaf.webp" },
+];
 function EventTab() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -4929,13 +4940,21 @@ function EventTab() {
   ];
   return (
     <div className="event-page mx-auto w-full max-w-4xl">
-      <div className="event-leaves" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <span key={index} style={{ "--leaf-index": index } as React.CSSProperties}>🍂</span>)}</div>
+      <div className="event-leaves" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <img key={index} src="/assets/fall/fall-leaf.webp" alt="" style={{ "--leaf-index": index } as React.CSSProperties} />)}</div>
       <img src="/assets/fall-fiesta-logo.webp" alt="Breadlet Fall Fiesta" className="event-logo" />
       <p className="event-soon">{left ? "Coming soon" : "The Fall Fiesta is here!"}</p>
       <div className="event-countdown" role="timer" aria-label="Time until the Fall Fiesta starts">
         {units.map((unit) => <div key={unit.label} className="event-countdown-unit"><b>{String(unit.value).padStart(2, "0")}</b><span>{unit.label}</span></div>)}
       </div>
       <p className="event-date">Starts November 1</p>
+      <section className="event-rewards" aria-labelledby="event-rewards-title">
+        <h2 id="event-rewards-title">Exclusive rewards</h2>
+        <p>Win these Breadlets on the Fiesta leaderboard. More are on the way.</p>
+        <ul>
+          {EVENT_REWARDS.map((reward) => <li key={reward.name}><img src={reward.art} alt="" aria-hidden="true" /><b>{reward.name}</b></li>)}
+          <li className="event-reward-soon"><span aria-hidden="true">?</span><b>More coming</b></li>
+        </ul>
+      </section>
       <section className="event-how">
         <h2>How the Fiesta works</h2>
         <ol>
