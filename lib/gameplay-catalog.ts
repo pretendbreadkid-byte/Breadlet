@@ -23,11 +23,12 @@ export const rarityBudget: Record<string, number> = {
   Epic: 12,
   Legendary: 5,
   Mythic: 0.5,
+  Secret: 0.1,
   Unique: 0.975,
   Breadled: 0.025,
 };
 
-export const rarityOrder = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Unique", "Breadled", "Chroma"];
+export const rarityOrder = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Unique", "Breadled", "Chroma"];
 export const sortByRarity = <T extends { rarity: string }>(items: T[]) =>
   [...items].sort((left, right) => rarityOrder.indexOf(left.rarity) - rarityOrder.indexOf(right.rarity));
 
@@ -88,7 +89,7 @@ export const chanceFor = (capsule: Capsule, reward: Reward, date = new Date()) =
   }
   const fixedChance =
     pool.reduce((sum, item) => sum + (item.chance || 0), 0) +
-    (mythicFixed ? 0 : mythicPoolChance) +
+    (mythicFixed || !mythicRewards.length ? 0 : mythicPoolChance) +
     Object.entries(rarityChances).reduce((sum, [rarity, chance]) => sum + (tierSize(rarity) ? chance : 0), 0);
   const weightedRewards = pool.filter(
     (item) => item.chance === undefined && item.rarity !== "Mythic" && rarityChances[item.rarity] === undefined,
@@ -105,6 +106,7 @@ export const sellValueFor = (rarity: string) =>
     Epic: 75,
     Legendary: 150,
     Mythic: 300,
+    Secret: 400,
     Unique: 500,
     Breadled: 1000,
   })[rarity] || 5;
@@ -136,7 +138,7 @@ export const wheelRewards = [
 ] as const;
 
 export const materialFor = (name: string, rarity: string) =>
-  rarity === "Mythic" || rarity === "Breadled"
+  rarity === "Mythic" || rarity === "Secret" || rarity === "Breadled"
     ? "Metal"
     : rarity === "Legendary"
       ? "Metal"
@@ -217,6 +219,8 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Space Bag",
     price: 25,
+    // Secret odds run 0.01% (smallest pack) to 1.09% (biggest pack) by pool size.
+    rarityChances: { Secret: 0.42 },
     art: "/assets/space bag updated again (1).svg",
     pool: rewards([
       ["Mars", "Common"],
@@ -227,7 +231,7 @@ export const liveCapsules: Capsule[] = [
       ["Consolation", "Uncommon"],
       ["Sun", "Rare"],
       ["Eclipse", "Epic"],
-      ["Alien", "Mythic"],
+      ["Alien", "Secret"],
       ["Star Ship", "Breadled"],
     ], {
       Earth: "/assets/earth-3.svg",
@@ -257,7 +261,7 @@ export const liveCapsules: Capsule[] = [
     name: "Food Bag",
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
-    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.35 },
+    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.69 },
     art: "/assets/food bag updated (1).svg",
     pool: rewards([
       ["Rock", "Common"],
@@ -271,14 +275,14 @@ export const liveCapsules: Capsule[] = [
       ["Caramel", "Epic"],
       ["Sprinkle Bread", "Epic"],
       ["Ice Cream", "Legendary"],
-      ["Pickle", "Mythic"],
+      ["Pickle", "Secret"],
     ]),
   },
   {
     name: "Artifact Bag",
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
-    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.18 },
+    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.01 },
     art: "/assets/artifact bag2.svg",
     pool: rewards([
       ["Aztec Coin", "Common"],
@@ -287,7 +291,7 @@ export const liveCapsules: Capsule[] = [
       ["Crystal Ball", "Rare"],
       ["Necklace", "Epic"],
       ["Stone Tablet", "Legendary"],
-      ["Timeglass", "Mythic"],
+      ["Timeglass", "Secret"],
     ], {
       "Clay Vase": "/assets/clay-vase.svg",
     }),
@@ -382,7 +386,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     seasonal: true,
     // Same tiers as the other packs, so the average resale (~17) stays under the price.
-    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
+    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 1.09 },
     art: "/assets/winter/winter-bag.svg?v=2",
     pool: dailyRotation(rewards([
       ["Snowball", "Common"],
@@ -398,7 +402,7 @@ export const liveCapsules: Capsule[] = [
       ["Gingerbread Cookie", "Rare"],
       ["Present", "Epic"],
       ["Festive Breadlet", "Legendary"],
-      ["Reindeer", "Mythic"],
+      ["Reindeer", "Secret"],
       ["Gnome", "Breadled"],
     ], {}, { Gnome: 0.005 }), ["Chocolate Candy Cookie", "Sugar Cookie", "Macadamia Nut Cookie", "Gingerbread Cookie"]),
   },
@@ -409,7 +413,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     seasonal: true,
     // Same tier odds as the Winter Bag (no Epic yet).
-    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
+    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.01 },
     art: "/assets/fall/fall-bag.svg",
     pool: rewards([
       ["Pumpkin", "Common"],
@@ -418,7 +422,7 @@ export const liveCapsules: Capsule[] = [
       ["Pumpkin Pie", "Uncommon"],
       ["Corn", "Rare"],
       ["Cooked Turkey", "Legendary"],
-      ["Tanuki", "Mythic"],
+      ["Tanuki", "Secret"],
     ]),
   },
 ];

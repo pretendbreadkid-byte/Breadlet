@@ -12,6 +12,7 @@ import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { GamesTab } from "./components/casino-games";
+import { NewsPanel } from "./components/news-panel";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
@@ -51,6 +52,7 @@ import {
   CalendarDays,
   Leaf,
   Dices,
+  Newspaper,
 } from "lucide-react";
 
 type Tab =
@@ -414,7 +416,9 @@ function OozingPickle({ className }: { className: string }) {
 
 
 const rarityClassFor = (rarity: string) =>
-  rarity === "Unique"
+  rarity === "Secret"
+    ? "rarity-secret"
+    : rarity === "Unique"
     ? "rarity-unique"
     : rarity === "Breadled"
       ? "rarity-breadled"
@@ -427,6 +431,7 @@ const rarityTileClass = (rarity: string) => {
     Epic: "border-violet-400/50 bg-violet-500/10 text-violet-200",
     Legendary: "border-amber-400/60 bg-amber-500/10 text-amber-200",
     Mythic: "border-rose-400/60 bg-rose-500/10 text-rose-200",
+    Secret: "border-indigo-300/70 bg-indigo-950/50 text-indigo-100",
     Unique: "border-fuchsia-400/60 bg-fuchsia-500/10 text-fuchsia-200",
     Breadled: "border-yellow-300/70 bg-yellow-400/15 text-yellow-100",
   };
@@ -435,7 +440,7 @@ const rarityTileClass = (rarity: string) => {
 const rewardEffectClassFor = (name: string, rarity: string) => {
   const cleanName = name.replace(/^Shiny /, "");
   if (cleanName === "Star Ship") return "";
-  return `${rarityClassFor(rarity)} ${cleanName === "Bread Blook" ? "rainbow-blook" : ""} ${cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""} ${cleanName === "Crimson Octopus" ? "crimson-octopus-glow" : ""}`;
+  return `${rarityClassFor(rarity)} ${cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""}`;
 };
 
 const shinyEligibleNames = new Set<string>();
@@ -586,6 +591,7 @@ function MainPage() {
   const [promoCode, setPromoCode] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [tradeDoneNotice, setTradeDoneNotice] = useState("");
+  const [newsOpen, setNewsOpen] = useState(false);
   const [capsuleToConfirm, setCapsuleToConfirm] = useState<Capsule | null>(null);
   const [reveal, setReveal] = useState<{
     capsule: Capsule;
@@ -1822,9 +1828,11 @@ function MainPage() {
           <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
           <a title="YouTube" href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><CirclePlay size={18} /></a>
           <a title="Discord" href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><MessageCircle size={18} /></a>
+          <button type="button" title="Breadlet News" aria-label="Breadlet News" onClick={() => setNewsOpen(true)} className="hover:text-[#bde8ff] transition"><Newspaper size={18} /></button>
           <button title={isGuest ? "End guest session" : "Log out"} onClick={leaveSession} className="hover:text-red-300 transition"><LogOut size={20} /></button>
         </div>
       </aside>
+      <NewsPanel open={newsOpen} onClose={() => setNewsOpen(false)} />
 
       {/* Main Workspace Column */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen md:h-screen md:min-h-0 md:overflow-y-auto">
@@ -2919,24 +2927,8 @@ function FrameSwitcher({ frames, name, className }: { frames: string[]; name: st
   return <AnimatedArtFrame src={frames[frame]} name={name} className={className} />;
 }
 
-const pixelSprinkleFrames = [1, 2, 3].map((frame) => `/assets/Lost and found + food pack/Pixel sprinkle bread frame ${frame}.png?v=2`);
-function PixelSprinkleFrameSwitcher({ className }: { className: string }) {
-  const [frame, setFrame] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => setFrame((current) => (current + 1) % pixelSprinkleFrames.length), 220);
-    return () => clearInterval(timer);
-  }, []);
-  return <AnimatedArtFrame src={pixelSprinkleFrames[frame]} name="Pixel Sprinkle Bread" className={className} />;
-}
-
 function RewardArt({ name, art, className }: { name: string; art: string; className: string }) {
   const cleanName = name.replace(/^Shiny /, "");
-  if (cleanName === "Bitcoin") {
-    return <span className={`bitcoin-art relative inline-flex items-center justify-center ${className}`}>
-      <img src={art} alt={name} decoding="async" className="max-h-full max-w-full object-contain" />
-      {[-1, -0.5, 0.5, 1].map((direction, index) => <img key={direction} src="/assets/bitcoin pop out.svg" alt="" aria-hidden="true" className="bitcoin-popout" style={{ "--coin-direction": direction, "--coin-delay": `${index * 0.35}s` } as React.CSSProperties} />)}
-    </span>;
-  }
   if (cleanName === "Star Ship") {
     return <StarShipFrameSwitcher className={className} />;
   }
@@ -2967,13 +2959,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   if (cleanName === "Pickle") {
     return <OozingPickle className={className} />;
   }
-  if (cleanName === "Pixel Sprinkle Bread") {
-    return <PixelSprinkleFrameSwitcher className={className} />;
-  }
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`}>
       <img src={art} alt={name} decoding="async" className="max-h-full max-w-full object-contain" />
-      {cleanName === "Caveman" && <img src="/assets/rock for caveman to throw.svg" alt="" className="caveman-accessory caveman-rock absolute bottom-0 right-0 h-1/3 w-1/3 object-contain" />}
     </span>
   );
 }
@@ -3334,10 +3322,11 @@ function RewardBurst({ rarity }: { rarity: string }) {
     Epic: ["#c084fc", "#e9d5ff", "#ffffff"],
     Legendary: ["#fbbf24", "#fde68a", "#fff7ed"],
     Mythic: ["#fb7185", "#fda4af", "#fef2f2"],
+    Secret: ["#818cf8", "#312e81", "#c7d2fe", "#ffffff"],
     Unique: ["#e879f9", "#f5d0fe", "#ffffff"],
     Breadled: ["#facc15", "#f0abfc", "#67e8f9", "#ffffff"],
   };
-  const counts: Record<string, number> = { Common: 12, Uncommon: 16, Rare: 20, Epic: 24, Legendary: 28, Mythic: 32, Unique: 36, Breadled: 40 };
+  const counts: Record<string, number> = { Common: 12, Uncommon: 16, Rare: 20, Epic: 24, Legendary: 28, Mythic: 32, Secret: 34, Unique: 36, Breadled: 40 };
   const colors = palettes[rarity] || palettes.Common;
   const count = counts[rarity] || counts.Common;
   const distance = 64 + Object.keys(counts).indexOf(rarity) * 24;
@@ -3532,6 +3521,7 @@ const stallColors: Record<string, string> = {
   Epic: "#9b4fd8",
   Legendary: "#f0a020",
   Mythic: "#e2364a",
+  Secret: "#3b2a7a",
   Unique: "#17b8b0",
   Breadled: "#ff6fb5",
 };
@@ -3664,7 +3654,7 @@ function Bazaar({
         </label>
         <select value={rarity} onChange={(event) => setRarity(event.target.value)} aria-label="Filter by rarity" className="bazaar-filter-control">
           <option>All rarities</option>
-          {["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Unique", "Breadled"].map((item) => <option key={item}>{item}</option>)}
+          {["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Unique", "Breadled"].map((item) => <option key={item}>{item}</option>)}
         </select>
         <select value={pack} onChange={(event) => setPack(event.target.value)} aria-label="Filter by pack" className="bazaar-filter-control">
           <option>All packs</option>
@@ -3869,7 +3859,7 @@ function BlookListingsModal({
   );
 }
 
-const REVEAL_GLOW: Record<string, string> = { Common: "#cbd5e1", Uncommon: "#4ade80", Rare: "#38bdf8", Epic: "#c084fc", Legendary: "#fbbf24", Mythic: "#f472b6", Unique: "#fb923c", Breadled: "#f43f5e", Chroma: "#22d3ee" };
+const REVEAL_GLOW: Record<string, string> = { Common: "#cbd5e1", Uncommon: "#4ade80", Rare: "#38bdf8", Epic: "#c084fc", Legendary: "#fbbf24", Mythic: "#f472b6", Secret: "#818cf8", Unique: "#fb923c", Breadled: "#f43f5e", Chroma: "#22d3ee" };
 
 // Pack opening over a blurred copy of the shop: the bag pops in, shakes, then drops off the bottom of
 // the screen to reveal the Breadlet, which stands on a soft ground shadow in a rarity-colored glow.

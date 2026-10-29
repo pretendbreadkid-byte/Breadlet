@@ -5,6 +5,7 @@ export type Rarity =
   | 'Epic'
   | 'Legendary'
   | 'Mythic'
+  | 'Secret'
   | 'Chroma'
   | 'Unique'
   | 'Breadled';

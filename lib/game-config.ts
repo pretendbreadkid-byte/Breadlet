@@ -8,7 +8,7 @@ export const BREADLET_CONFIG = {
     bread: 25,
     plushiePack: 150,
   },
-  rarityOrder: ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Chroma', 'Unique', 'Breadled'],
+  rarityOrder: ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic', 'Secret', 'Chroma', 'Unique', 'Breadled'],
   shinyWhitelist: ['Mars', 'Aztec Coin', 'Worker', 'Olive Grenade', 'Green Astronaut'],
   defaultLuck: 0,
   maxClanMembers: 25,
