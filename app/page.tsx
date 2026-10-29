@@ -229,7 +229,7 @@ const artFor = (name: string) =>
     "Magnifying Glass": "/assets/magnifying-glass-2.svg",
     "Coffee Mug": "/assets/coffee-mug.svg",
     "Clay Vase": "/assets/clay-vase.svg",
-    Map: "/assets/map (1).svg",
+    Map: "/assets/map-2.svg",
     Wallet: "/assets/wallet.svg",
     "Pixel Apple": "/assets/Lost and found + food pack/Pixel apple.png?v=2",
     "Pixel Caramel": "/assets/Lost and found + food pack/Pixel carmel.png?v=2",
@@ -276,7 +276,7 @@ const artFor = (name: string) =>
     Shield: "/assets/sheild (1).svg",
     Spartan: "/assets/spartan-new.svg",
     Solider: "/assets/solider.svg",
-    "Gold Bread": "/assets/gold-bread-refreshed.svg",
+    "Gold Bread": "/assets/gold-bread-3.svg",
     Sword: "/assets/sword way better.svg",
     "Diamond Sword": "/assets/diamond sword frame one.svg",
     "Golden Toaster": "/assets/goldenToaster%20frame%201.svg",
@@ -285,8 +285,8 @@ const artFor = (name: string) =>
     Actor: "/assets/actor.svg",
     Alien: "/assets/Lost and found + food pack/alien 2.svg",
     Wheel: "/assets/wheel.svg",
-    Letter: "/assets/letter.svg",
-    Gears: "/assets/gears.svg",
+    Letter: "/assets/letter-2.svg",
+    Gears: "/assets/gears-2.svg",
     Antibiotics: "/assets/antibiotics.svg",
     "Da Vinci's Ornithopter": "/assets/antibiotics.svg",
     "Light Bulb": "/assets/light-bulb.svg",
@@ -373,6 +373,7 @@ const artFor = (name: string) =>
     Corn: "/assets/fall/corn.webp",
     "Cooked Turkey": "/assets/fall/cooked-turkey.svg",
     Tanuki: "/assets/fall/tanuki-1.svg",
+    "Caramel Apple": "/assets/fall/caramel-apple-1.svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const artForBlook = (name: string, artworkKey?: string) => {
   const mappedArt = artFor(name);
@@ -2910,6 +2911,7 @@ const reindeerFrames = [1, 2, 3, 4, 5].map((frame) => `/assets/winter/reindeer-$
 const gnomeFrames = [1, 2, 3, 4, 5, 6, 5, 4, 3, 2].map((frame) => `/assets/winter/gnome-${frame}.svg`);
 // Tanuki: the leaf and ear sway (frame 7 leads back into frame 1).
 const tanukiFrames = [1, 2, 3, 4, 5, 6, 7].map((frame) => `/assets/fall/tanuki-${frame}.svg`);
+const caramelAppleFrames = Array.from({ length: 12 }, (_, index) => `/assets/fall/caramel-apple-${index + 1}.svg`);
 const diamondSwordFrames = [
   "/assets/diamond%20sword%20frame%20one.svg",
   ...Array.from({ length: 7 }, (_, index) => `/assets/diamond%20sword${index + 2}.svg`),
@@ -2947,6 +2949,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   if (cleanName === "Tanuki") {
     return <FrameSwitcher frames={tanukiFrames} name={name} className={className} />;
+  }
+  if (cleanName === "Caramel Apple") {
+    return <FrameSwitcher frames={caramelAppleFrames} name={name} className={className} />;
   }
   if (cleanName === "Diamond Sword") {
     return <FrameSwitcher frames={diamondSwordFrames} name={name} className={className} />;

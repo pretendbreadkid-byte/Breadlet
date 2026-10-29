@@ -202,7 +202,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.21 },
-    art: "/assets/invntions bag.svg",
+    art: "/assets/inventions-bag-2.svg",
     pool: rewards([
       ["Wheel", "Common"],
       ["Magnifying Glass", "Common"],
@@ -361,7 +361,7 @@ export const liveCapsules: Capsule[] = [
       "Cinnamon Roll": "/assets/cinnamon-roll-refreshed.svg",
       "Robo Bread": "/assets/robo-bread-2.svg",
       "Slime Bread": "/assets/slime-bread.svg",
-      "Gold Bread": "/assets/gold-bread-refreshed.svg",
+      "Gold Bread": "/assets/gold-bread-3.svg",
       "Holy Bread": "/assets/holy-bread-refreshed.svg",
       "Golden Toaster": "/assets/goldenToaster frame 1.svg",
     },
@@ -422,8 +422,9 @@ export const liveCapsules: Capsule[] = [
       ["Pumpkin Pie", "Uncommon"],
       ["Corn", "Rare"],
       ["Cooked Turkey", "Legendary"],
-      ["Tanuki", "Secret"],
-    ]),
+      ["Caramel Apple", "Secret"],
+      ["Tanuki", "Breadled"],
+    ], {}, { Tanuki: 0.005 }),
   },
 ];
 
