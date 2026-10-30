@@ -238,7 +238,8 @@ export const liveCapsules: Capsule[] = [
       Globe: "/assets/earth-globe.svg",
       Sun: "/assets/sun.svg",
       Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
-      Alien: "/assets/alien%202%20frame%201.svg",
+      // An animated SVG (it plays by itself, no frame switching).
+      Alien: "/assets/alien-animated.svg",
     }, { "Star Ship": 0.005 }),
   },
   {

@@ -283,7 +283,7 @@ const artFor = (name: string) =>
     "Lost and Found Box": "/assets/Lost%20and%20found%20box%20frame%201.svg",
     "Stone Tablet": "/assets/stone-tablet-2.svg",
     Actor: "/assets/actor.svg",
-    Alien: "/assets/Lost and found + food pack/alien 2.svg",
+    Alien: "/assets/alien-animated.svg",
     Wheel: "/assets/wheel.svg",
     Letter: "/assets/letter-2.svg",
     Gears: "/assets/gears-2.svg",
@@ -2905,7 +2905,6 @@ const goldenToasterFrames = [
   "/assets/goldenToaster3.svg",
   "/assets/goldenToaster4.svg",
 ];
-const alienFrames = Array.from({ length: 13 }, (_, index) => `/assets/alien%202%20frame%20${index + 1}.svg`);
 // Reindeer: the nose glow swells and fades. Gnome: waves its arms (played forward then back).
 const reindeerFrames = [1, 2, 3, 4, 5].map((frame) => `/assets/winter/reindeer-${frame}.svg`);
 const gnomeFrames = [1, 2, 3, 4, 5, 6, 5, 4, 3, 2].map((frame) => `/assets/winter/gnome-${frame}.svg`);
@@ -2937,9 +2936,6 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   if (cleanName === "Golden Toaster") {
     return <FrameSwitcher frames={goldenToasterFrames} name={name} className={className} />;
-  }
-  if (cleanName === "Alien") {
-    return <FrameSwitcher frames={alienFrames} name={name} className={className} />;
   }
   if (cleanName === "Reindeer") {
     return <FrameSwitcher frames={reindeerFrames} name={name} className={className} />;

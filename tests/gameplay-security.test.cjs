@@ -78,7 +78,7 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   assert.equal(space.pool.find((reward) => reward.name === 'Earth').art, '/assets/Lost and found + food pack/earth 2.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').rarity, 'Uncommon');
   assert.equal(space.pool.find((reward) => reward.name === 'Globe').art, '/assets/earth-globe.svg');
-  assert.equal(space.pool.find((reward) => reward.name === 'Alien').art, '/assets/alien%202%20frame%201.svg');
+  assert.equal(space.pool.find((reward) => reward.name === 'Alien').art, '/assets/alien-animated.svg');
   assert.equal(space.pool.find((reward) => reward.name === 'Sun').rarity, 'Rare');
   assert.equal(space.pool.find((reward) => reward.name === 'Space Goo').rarity, 'Uncommon');
   assert.equal(space.pool.some((reward) => reward.name === 'Space Trooper'), false);
