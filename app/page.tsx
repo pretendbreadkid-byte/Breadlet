@@ -1,6 +1,6 @@
 "use client";
 
-import { chanceFor, isRewardActive, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
+import { chanceFor, isRewardActive, isUniqueBreadlet, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -418,12 +418,6 @@ function OozingPickle({ className }: { className: string }) {
 
 
 
-const rarityClassFor = (rarity: string) =>
-  rarity === "Unique"
-    ? "rarity-unique"
-    : rarity === "Breadled"
-      ? "rarity-breadled"
-      : "";
 const rarityTileClass = (rarity: string) => {
   const classes: Record<string, string> = {
     Common: "border-slate-400/40 bg-slate-400/10 text-slate-200",
@@ -441,7 +435,8 @@ const rarityTileClass = (rarity: string) => {
 const rewardEffectClassFor = (name: string, rarity: string) => {
   const cleanName = name.replace(/^Shiny /, "");
   if (cleanName === "Star Ship") return "";
-  return `${rarityClassFor(rarity)} ${cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""}`;
+  // Holy Bread is the only Breadlet with a glow.
+  return `${cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""}`;
 };
 
 const shinyEligibleNames = new Set<string>();
@@ -1322,6 +1317,7 @@ function MainPage() {
   };
   const sell = (name: string) => {
     if (!player || player.inventory.length <= 1) return;
+    if (isUniqueBreadlet(name)) return setNotice(`${name} is Unique and can't be sold.`);
     if (!isGuest) {
       void massSell({ [name]: 1 });
       return;
@@ -1339,9 +1335,11 @@ function MainPage() {
   };
   const massSell = async (quantities: Record<string, number>) => {
     if (!player) return false;
-    const requested = Object.fromEntries(Object.entries(withoutLocked(quantities, "sell")).filter(([, quantity]) => quantity > 0));
+    const unique = Object.keys(quantities).filter((name) => isUniqueBreadlet(name) && quantities[name] > 0);
+    const requested = Object.fromEntries(Object.entries(withoutLocked(quantities, "sell")).filter(([name, quantity]) => quantity > 0 && !isUniqueBreadlet(name)));
+    if (unique.length) setNotice(`${unique.join(", ")} ${unique.length === 1 ? "is" : "are"} Unique and can't be sold.`);
     if (!Object.keys(requested).length) {
-      setNotice("Choose at least one extra Breadlet to sell.");
+      if (!unique.length) setNotice("Choose at least one extra Breadlet to sell.");
       return false;
     }
     if (!isGuest) {
@@ -3624,9 +3622,9 @@ function Bazaar({
     }
   }, [player.listings]);
 
-  // Locked Breadlets can't be listed until they're unlocked in My Breadlets.
+  // Locked Breadlets can't be listed until they're unlocked in My Breadlets; Uniques never can.
   const ownedBlooks = player.inventory.filter(
-    (name, index, items) => items.indexOf(name) === index && !(player.lockedBlooks || []).includes(name),
+    (name, index, items) => items.indexOf(name) === index && !(player.lockedBlooks || []).includes(name) && !isUniqueBreadlet(name),
   );
   const [lastSale, setLastSale] = useState<number | null>(null);
   useEffect(() => {

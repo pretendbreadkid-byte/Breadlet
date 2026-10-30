@@ -131,11 +131,15 @@ export async function POST(request: Request) {
     const { data: seller } = await admin.from('profiles').select('username, stats').eq('id', user.id).maybeSingle();
     if ((seller?.stats?.lockedBlooks || []).includes(blookName)) return NextResponse.json({ error: `${blookName} is locked. Unlock it in My Breadlets to list it.` }, { status: 409 });
     sellerName = seller?.username || '';
+    const { data: blook } = await admin.from('blooks').select('rarity').eq('name', blookName.replace(/^Shiny /, '')).maybeSingle();
+    if (blook?.rarity === 'Unique') return NextResponse.json({ error: `${blookName} is Unique and can't be sold or traded.` }, { status: 409 });
   }
   // Looked up before the sale (it's marked sold after), so the seller can be told what sold.
   const listing = action === 'buy' && body.listingId
-    ? (await admin.from('marketplace_listings').select('profile_id, price, shiny, blooks(name)').eq('id', body.listingId).maybeSingle()).data as any
+    ? (await admin.from('marketplace_listings').select('profile_id, price, shiny, blooks(name, rarity)').eq('id', body.listingId).maybeSingle()).data as any
     : null;
+  // Listings made before Uniques were locked can't be bought either (the seller can still cancel).
+  if ((Array.isArray(listing?.blooks) ? listing.blooks[0] : listing?.blooks)?.rarity === 'Unique') return NextResponse.json({ error: 'Unique Breadlets can't be sold or traded.' }, { status: 409 });
   const { data, error } = await admin.rpc('secure_marketplace_action', {
     p_profile_id: user.id, p_action: action, p_blook_name: String(body.blook || ''), p_price: price, p_listing_id: body.listingId || null,
   });

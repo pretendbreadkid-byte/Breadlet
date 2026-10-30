@@ -41,10 +41,12 @@ async function validateOffer(admin: ReturnType<typeof createAdminClient> & {}, p
   if (offer.blooks.length > 20) return 'You can include at most 20 Bread types in one offer.';
   const names = offer.blooks.map((item) => item.name.replace(/^Shiny /, ''));
   const { data: blooks, error: blookError } = names.length
-    ? await admin.from('blooks').select('id, name').in('name', names)
+    ? await admin.from('blooks').select('id, name, rarity').in('name', names)
     : { data: [], error: null };
   if (blookError) return 'Could not validate the Bread offer.';
   const ids = new Map((blooks || []).map((blook) => [blook.name, blook.id]));
+  const unique = (blooks || []).find((blook) => blook.rarity === 'Unique');
+  if (unique) return `${unique.name} is Unique and can't be traded.`;
   for (const item of offer.blooks) {
     if (item.quantity < 1 || item.quantity > 100) return 'Bread quantities must be between 1 and 100.';
     const blookId = ids.get(item.name.replace(/^Shiny /, ''));

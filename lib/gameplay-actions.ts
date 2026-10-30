@@ -82,6 +82,7 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       const quantity = integer(value, 100000);
       const owned = snapshot.inventory[name];
       if (!owned || quantity >= owned.quantity) throw new Error(`Keep one copy of ${name}.`);
+      if (owned.rarity === 'Unique') throw new Error(`${name} is Unique and can't be sold.`);
       addItem(name, -quantity);
       for (const [material, amount] of Object.entries(dismantleBundleFor(name, owned.rarity))) {
         plan.materialDelta[material] = (plan.materialDelta[material] || 0) + amount * quantity;
