@@ -4917,7 +4917,7 @@ function PromoTab({
   );
 }
 // Breadlet Fall Fiesta: a coming-soon page with a countdown to the start and how the event works.
-const FALL_FIESTA_START = Date.parse("2026-11-01T00:00:00Z");
+const FALL_FIESTA_START = Date.parse("2026-11-06T00:00:00Z");
 const EVENT_REWARDS = [
   { name: "Acorn", art: "/assets/fall/acorn.svg" },
   { name: "Pilgrim Hat", art: "/assets/fall/pilgrim-hat.webp" },
@@ -4950,7 +4950,7 @@ function EventTab() {
       <div className="event-countdown" role="timer" aria-label="Time until the Fall Fiesta starts">
         {units.map((unit) => <div key={unit.label} className="event-countdown-unit"><b>{String(unit.value).padStart(2, "0")}</b><span>{unit.label}</span></div>)}
       </div>
-      <p className="event-date">Starts November 1</p>
+      <p className="event-date">Starts November 6</p>
       <section className="event-rewards" aria-labelledby="event-rewards-title">
         <h2 id="event-rewards-title">Exclusive rewards</h2>
         <p>Win these Breadlets on the Fiesta leaderboard. More are on the way.</p>
