@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     ? (await admin.from('marketplace_listings').select('profile_id, price, shiny, blooks(name, rarity)').eq('id', body.listingId).maybeSingle()).data as any
     : null;
   // Listings made before Uniques were locked can't be bought either (the seller can still cancel).
-  if ((Array.isArray(listing?.blooks) ? listing.blooks[0] : listing?.blooks)?.rarity === 'Unique') return NextResponse.json({ error: 'Unique Breadlets can't be sold or traded.' }, { status: 409 });
+  if ((Array.isArray(listing?.blooks) ? listing.blooks[0] : listing?.blooks)?.rarity === 'Unique') return NextResponse.json({ error: "Unique Breadlets can't be sold or traded." }, { status: 409 });
   const { data, error } = await admin.rpc('secure_marketplace_action', {
     p_profile_id: user.id, p_action: action, p_blook_name: String(body.blook || ''), p_price: price, p_listing_id: body.listingId || null,
   });
