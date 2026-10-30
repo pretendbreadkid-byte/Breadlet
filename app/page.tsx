@@ -2,7 +2,7 @@
 
 import { chanceFor, isRewardActive, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
-import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt } from "../lib/market-stock";
+import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { SettingsTab, readSettings } from "./components/settings-tab";
@@ -13,6 +13,7 @@ import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { GamesTab } from "./components/casino-games";
 import { NewsPanel } from "./components/news-panel";
+import { useForcedStock } from "./components/forced-stock";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
@@ -562,6 +563,10 @@ function MainPage() {
   const quickRef = useRef(false);
   const revealClickRef = useRef<(() => void) | null>(null);
   const latestPlayerRef = useRef<Player | null>(null);
+  // Bags an admin put in stock with /stock. A ref too, so auto open's loop sees changes.
+  const forcedStock = useForcedStock();
+  const forcedStockRef = useRef(forcedStock);
+  forcedStockRef.current = forcedStock;
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [authFeedback, setAuthFeedback] = useState("");
   const [supabaseClient] = useState(() => createSupabaseClient());
@@ -1184,11 +1189,11 @@ function MainPage() {
   const openCapsule = async (capsule: Capsule): Promise<boolean> => {
     const current = latestPlayerRef.current;
     if (!current) return false;
-    if (isSeasonalPackLocked(capsule.name)) {
+    if (isSeasonalPackLocked(capsule.name, new Date(), forcedStockRef.current)) {
       setNotice(`The ${capsule.name} opens on ${opensOnLabel(capsule.name)}.`);
       return false;
     }
-    if (!isMarketPackInStock(capsule.name)) {
+    if (!isMarketPackInStock(capsule.name, new Date(), forcedStockRef.current)) {
       setNotice(`${capsule.name} is out of stock. Check back after the next hourly refresh.`);
       return false;
     }
@@ -1224,7 +1229,7 @@ function MainPage() {
     while (autoRef.current) {
       const current = latestPlayerRef.current;
       if (!current) break;
-      if (!isMarketPackInStock(capsule.name)) { reason = `${capsule.name} sold out`; break; }
+      if (!isMarketPackInStock(capsule.name, new Date(), forcedStockRef.current)) { reason = `${capsule.name} sold out`; break; }
       if (!isGuest && current.tokens < capsule.price) { reason = "you ran out of Bread Bucks"; break; }
       if (opened >= (isGuest ? AUTO_OPEN_GUEST_LIMIT : AUTO_OPEN_LIMIT)) { reason = "that's the most for one session"; break; }
       if (!(await openCapsule(capsule))) { failed = true; break; }
@@ -1971,6 +1976,7 @@ function MainPage() {
           {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
           {tab === "capsules" && (
             <CapsulesTab
+              forcedStock={forcedStock}
               openCapsule={(capsule) => { lastShopCapsuleRef.current = capsule; if (autoOpen) void startAutoOpen(capsule); else setCapsuleToConfirm(capsule); }}
               showOdds={setOddsCapsule}
               quickOpen={quickOpen}
@@ -2636,8 +2642,10 @@ function CapsulesTab({
   isGuest,
   claimTed,
   inventory,
+  forcedStock,
 }: {
   inventory: string[];
+  forcedStock: ForcedStock;
   openCapsule: (capsule: Capsule) => void;
   showOdds: (capsule: Capsule) => void;
   quickOpen: boolean;
@@ -2661,6 +2669,14 @@ function CapsulesTab({
     const timer = window.setTimeout(() => setNow(new Date()), Math.max(1000, nextMarketRefreshAt(now).getTime() - Date.now() + 250));
     return () => window.clearTimeout(timer);
   }, [now]);
+  // Re-render when a bag an admin stocked runs out, or right away when one is stocked.
+  useEffect(() => {
+    setNow(new Date());
+    const ends = Object.values(forcedStock).map((at) => Date.parse(at)).filter((at) => at > Date.now());
+    if (!ends.length) return;
+    const timer = window.setTimeout(() => setNow(new Date()), Math.min(...ends) - Date.now() + 250);
+    return () => window.clearTimeout(timer);
+  }, [forcedStock]);
   useEffect(() => {
     return () => {
       if (shopClickTimer.current) window.clearTimeout(shopClickTimer.current);
@@ -2703,8 +2719,8 @@ function CapsulesTab({
   };
   const stockOdds = new Map(marketPackStock.map(({ name, chance }) => [name, chance]));
   // Seasonal packs that haven't opened yet stand with the fresh stock, tagged with their opening day.
-  const freshBags = liveCapsules.filter((capsule) => isMarketPackInStock(capsule.name, now) || isSeasonalPackLocked(capsule.name, now));
-  const soldOutBags = liveCapsules.filter((capsule) => !isMarketPackInStock(capsule.name, now) && !isSeasonalPackLocked(capsule.name, now));
+  const freshBags = liveCapsules.filter((capsule) => isMarketPackInStock(capsule.name, now, forcedStock) || isSeasonalPackLocked(capsule.name, now, forcedStock));
+  const soldOutBags = liveCapsules.filter((capsule) => !isMarketPackInStock(capsule.name, now, forcedStock) && !isSeasonalPackLocked(capsule.name, now, forcedStock));
   // Collection progress for each bag: different Breadlets owned out of the bag's pool.
   const ownedNames = new Set(inventory);
   const progressFor = (capsule: Capsule) => ({ owned: capsule.pool.filter((reward) => ownedNames.has(reward.name)).length, total: capsule.pool.length });
@@ -2713,10 +2729,10 @@ function CapsulesTab({
       <div className="shop-cabinet-sign"><span>{label}</span></div>
       <div className="shop-cabinet-shelves">
         {bags.map((capsule) => (
-          <button key={capsule.name} type="button" onClick={() => setSelectedCapsule(capsule)} className={`shop-shelf-bag${isSeasonalPackLocked(capsule.name, now) ? " is-locked" : ""}`} data-name={capsule.name} aria-label={`View ${capsule.name}`}>
+          <button key={capsule.name} type="button" onClick={() => setSelectedCapsule(capsule)} className={`shop-shelf-bag${isSeasonalPackLocked(capsule.name, now, forcedStock) ? " is-locked" : ""}`} data-name={capsule.name} aria-label={`View ${capsule.name}`}>
             <img src={capsule.art} alt="" className="shop-shelf-art" />
             {soldOut && <span className="shop-sold-stamp" aria-hidden="true">Sold out</span>}
-            {isSeasonalPackLocked(capsule.name, now) && <span className="shop-soon-stamp">Opens {opensOnLabel(capsule.name, "short")}</span>}
+            {isSeasonalPackLocked(capsule.name, now, forcedStock) && <span className="shop-soon-stamp">Opens {opensOnLabel(capsule.name, "short")}</span>}
             <span className="shop-price-tag"><img src="/assets/Bread%20bucks.svg" alt="" />{isGuest ? "Free" : capsule.price.toLocaleString()}</span>
             {(() => { const progress = progressFor(capsule); return <span className={`shop-collect-tag${progress.owned === progress.total ? " is-complete" : ""}`} title="Breadlets you've collected from this bag">{progress.owned}/{progress.total}</span>; })()}
           </button>
@@ -2760,8 +2776,8 @@ function CapsulesTab({
       {selectedCapsule && (
         <PackDetailsModal
           capsule={selectedCapsule}
-          inStock={isMarketPackInStock(selectedCapsule.name, now)}
-          opensOn={isSeasonalPackLocked(selectedCapsule.name, now) ? opensOnLabel(selectedCapsule.name) : undefined}
+          inStock={isMarketPackInStock(selectedCapsule.name, now, forcedStock)}
+          opensOn={isSeasonalPackLocked(selectedCapsule.name, now, forcedStock) ? opensOnLabel(selectedCapsule.name) : undefined}
           stockChance={stockOdds.get(selectedCapsule.name) ?? 0}
           collected={progressFor(selectedCapsule)}
           isGuest={isGuest}

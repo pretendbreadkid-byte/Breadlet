@@ -20,10 +20,12 @@ export async function POST(request: Request) {
   if (!admin) return NextResponse.json({ error: 'Gameplay server is not configured.' }, { status: 503 });
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'Invalid gameplay request.' }, { status: 400 });
-  const [{ data: profile, error: profileError }, { data: inventory, error: inventoryError }, { data: catalog, error: catalogError }] = await Promise.all([
+  const [{ data: profile, error: profileError }, { data: inventory, error: inventoryError }, { data: catalog, error: catalogError }, { data: forcedRows }] = await Promise.all([
     admin.from('profiles').select('tokens, materials, stats, is_banned, account_status').eq('id', user.id).single(),
     admin.from('inventory').select('quantity, shiny, blooks(id, name, rarity)').eq('profile_id', user.id),
     admin.from('blooks').select('id, name'),
+    // Packs an admin put in stock with /stock (empty if migration 0069 isn't applied).
+    admin.from('market_stock_overrides').select('pack_name, ends_at').gt('ends_at', new Date().toISOString()),
   ]);
   if (profileError || inventoryError || catalogError || !profile) return NextResponse.json({ error: 'Could not load your current game state.' }, { status: 503 });
   if (profile.is_banned || profile.account_status !== 'active') return NextResponse.json({ error: 'This account cannot play.' }, { status: 403 });
@@ -38,7 +40,8 @@ export async function POST(request: Request) {
     if (blook) snapshot.inventory[`${row.shiny ? 'Shiny ' : ''}${blook.name}`] = { quantity: row.quantity, rarity: blook.rarity };
   }
   try {
-    const plan = planGameplay(body, snapshot, () => randomInt(0, 1000000000) / 1000000000);
+    const forcedStock = Object.fromEntries((forcedRows || []).map((row) => [row.pack_name, row.ends_at]));
+    const plan = planGameplay(body, snapshot, () => randomInt(0, 1000000000) / 1000000000, new Date(), forcedStock);
     const ids = new Map((catalog || []).map((entry) => [entry.name, entry.id]));
     const deltas = Object.entries(plan.inventoryDelta).map(([name, quantity]) => {
       const id = ids.get(name.replace(/^Shiny /, ''));

@@ -55,11 +55,19 @@ export const seasonalPackOpensAt: Record<string, string> = {
   "Winter Bag": "2026-12-01T00:00:00Z",
 };
 
-export const isSeasonalPackLocked = (name: string, date = new Date()) =>
-  name in seasonalPackOpensAt && date.getTime() < Date.parse(seasonalPackOpensAt[name]);
+// Packs an admin put in stock with /stock in chat: pack name -> when that ends (ISO time).
+// A forced pack is in stock even if the hourly roll missed it or it is a seasonal pack that
+// hasn't opened yet. Stored in market_stock_overrides (migration 0069).
+export type ForcedStock = Record<string, string>;
+const isForcedInStock = (name: string, date: Date, forced: ForcedStock) =>
+  Boolean(forced[name]) && Date.parse(forced[name]) > date.getTime();
 
-export const isMarketPackInStock = (name: string, date = new Date()) =>
-  name in seasonalPackOpensAt ? !isSeasonalPackLocked(name, date) : marketStockFor(date)[name] === true;
+export const isSeasonalPackLocked = (name: string, date = new Date(), forced: ForcedStock = {}) =>
+  !isForcedInStock(name, date, forced) && name in seasonalPackOpensAt && date.getTime() < Date.parse(seasonalPackOpensAt[name]);
+
+export const isMarketPackInStock = (name: string, date = new Date(), forced: ForcedStock = {}) =>
+  isForcedInStock(name, date, forced) ||
+  (name in seasonalPackOpensAt ? !isSeasonalPackLocked(name, date) : marketStockFor(date)[name] === true);
 
 export const nextMarketRefreshAt = (date = new Date()) => {
   const next = new Date(date);

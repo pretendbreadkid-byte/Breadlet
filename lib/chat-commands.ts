@@ -14,6 +14,8 @@ export const CHAT_COMMANDS: ChatCommand[] = [
   { name: 'unban', usage: '/unban <player>', description: 'Unban a player', role: 'admin' },
   { name: 'give', usage: '/give <player> <amount>', description: 'Give a player Bread Bucks', role: 'admin' },
   { name: 'announce', usage: '/announce <message>', description: 'Breadlet posts your message in chat', role: 'admin' },
+  { name: 'stock', usage: '/stock <bag> [minutes]', description: 'Put a bag in Ted\'s Shop (60 minutes if no time given) and announce it to everyone', role: 'admin' },
+  { name: 'unstock', usage: '/unstock <bag>', description: 'End a bag you put in stock with /stock', role: 'admin' },
   { name: 'help', usage: '/help', description: 'List the commands you can use', role: 'mod' },
 ];
 

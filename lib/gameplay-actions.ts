@@ -1,5 +1,5 @@
 import { chanceFor, craftRecipeFor, dismantleBundleFor, liveCapsules, sellValueForBlook, wheelRewards } from './gameplay-catalog';
-import { isMarketPackInStock, isSeasonalPackLocked, seasonalPackOpensAt } from './market-stock';
+import { isMarketPackInStock, isSeasonalPackLocked, seasonalPackOpensAt, type ForcedStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 
 export const MAX_MASS_OPEN_COUNT = 2500;
@@ -29,7 +29,7 @@ const integer = (value: unknown, maximum: number) => {
   return amount;
 };
 
-export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySnapshot, random: () => number, now = new Date()): GameplayPlan {
+export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySnapshot, random: () => number, now = new Date(), forcedStock: ForcedStock = {}): GameplayPlan {
   const action = String(body.action || '');
   const plan: GameplayPlan = { action, tokenDelta: 0, materialDelta: {}, inventoryDelta: {}, candyDelta: 0, capsulesOpened: 0, results: [], sold: {}, tokensEarned: 0 };
   const addItem = (name: string, quantity: number) => { plan.inventoryDelta[name] = (plan.inventoryDelta[name] || 0) + quantity; };
@@ -40,8 +40,8 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
     const selected = quantities.map(([name, value]) => {
       const capsule = liveCapsules.find((entry) => entry.name === name);
       if (!capsule) throw new Error('Unknown Goodybag.');
-      if (isSeasonalPackLocked(name, now)) throw new Error(`The ${name} opens on ${new Date(seasonalPackOpensAt[name]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })}.`);
-      if (!isMarketPackInStock(name, now)) throw new Error(`${name} is out of stock. Check back after the next hourly refresh.`);
+      if (isSeasonalPackLocked(name, now, forcedStock)) throw new Error(`The ${name} opens on ${new Date(seasonalPackOpensAt[name]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })}.`);
+      if (!isMarketPackInStock(name, now, forcedStock)) throw new Error(`${name} is out of stock. Check back after the next hourly refresh.`);
       return { capsule, quantity: integer(value, MAX_MASS_OPEN_COUNT) };
     });
     const count = selected.reduce((total, entry) => total + entry.quantity, 0);
