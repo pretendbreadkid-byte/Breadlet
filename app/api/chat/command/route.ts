@@ -11,7 +11,7 @@ const STOCK_MIGRATION = 'Apply migration 0069_admin_stock.sql to use /stock.';
 
 const reply = (message: string, status = 200) => NextResponse.json(status === 200 ? { ok: true, message } : { error: message }, { status });
 
-// Staff chat commands: /mute, /unmute (moderators and the admin), /ban, /unban, /give, /announce,
+// Staff chat commands: /mute, /unmute (moderators and the admin), /ban, /unban, /unbannetwork, /give, /announce,
 // /stock, /unstock (the admin only) and /help. The command text is never posted to chat.
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -101,6 +101,12 @@ export async function POST(request: Request) {
     if (error) return reply(error.message, 500);
     await database.from('network_bans').delete().eq('profile_id', target.id);
     return reply(`${target.username} is unbanned.`);
+  }
+  if (command === 'unbannetwork') {
+    const { data, error } = await database.from('network_bans').delete().eq('profile_id', target.id).select('kind');
+    if (error) return reply(error.message, 500);
+    if (!data?.length) return reply(`${target.username} has no device or network bans.`);
+    return reply(`Lifted ${data.length} device and network ban${data.length === 1 ? '' : 's'} from ${target.username}.${target.is_banned ? ' Their account is still banned.' : ''}`);
   }
   if (command === 'give') {
     const amount = Math.floor(Number(args[1]));

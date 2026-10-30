@@ -14,6 +14,7 @@ import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-game
 import { GamesTab } from "./components/casino-games";
 import { NewsPanel } from "./components/news-panel";
 import { useForcedStock } from "./components/forced-stock";
+import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
@@ -5614,6 +5615,7 @@ function AdminTab({
               {!players.some((profile) => profile.is_banned) && <p className="text-sm text-[#f2b9c7]">Nobody is banned.</p>}
             </div>
           </div>
+          <NetworkBansPanel />
         </div>
       </div>
     </div>
