@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { hasAdminAccess } from '../../../lib/admin-access';
+import { adminRenamePlayer } from '../../../lib/admin-rename';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
@@ -47,6 +48,11 @@ export async function POST(request: Request) {
     if (banError) return NextResponse.json({ error: banError.message }, { status: 400 });
     await session.supabase.from('profiles').update({ is_banned: true, ban_reason: reason, ban_expires_at: permanent ? null : new Date(Date.now() + hours * 60 * 60 * 1000).toISOString() }).eq('id', targetId);
     return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === 'rename') {
+    const result = await adminRenamePlayer(session.supabase, String(body.targetId || ''), String(body.username || ''));
+    return 'error' in result ? NextResponse.json({ error: result.error }, { status: result.status }) : NextResponse.json(result);
   }
 
   if (body.action === 'unban') {

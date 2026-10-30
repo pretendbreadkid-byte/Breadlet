@@ -4,6 +4,7 @@ import { createAdminClient } from '../../../../lib/supabase/admin';
 import { chatModerationRole, hasAdminAccess, isProtectedFromMute } from '../../../../lib/admin-access';
 import { commandsFor } from '../../../../lib/chat-commands';
 import { liveCapsules } from '../../../../lib/gameplay-catalog';
+import { adminRenamePlayer } from '../../../../lib/admin-rename';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,6 +102,11 @@ export async function POST(request: Request) {
     if (error) return reply(error.message, 500);
     await database.from('network_bans').delete().eq('profile_id', target.id);
     return reply(`${target.username} is unbanned.`);
+  }
+  if (command === 'rename') {
+    if (!args[1]) return reply(`Usage: ${allowed.usage}`, 400);
+    const result = await adminRenamePlayer(database, target.id, String(args[1]).replace(/^@/, ''));
+    return 'error' in result ? reply(result.error, result.status) : reply(`Renamed ${result.from} to ${result.to}. They'll get an Inbox message with their new login name.`);
   }
   if (command === 'unbannetwork') {
     const { data, error } = await database.from('network_bans').delete().eq('profile_id', target.id).select('kind');

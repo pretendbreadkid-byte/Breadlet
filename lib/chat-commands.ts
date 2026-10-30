@@ -13,6 +13,7 @@ export const CHAT_COMMANDS: ChatCommand[] = [
   { name: 'ban', usage: '/ban <player> [hours] [reason]', description: 'Ban a player (permanent if no hours given)', role: 'admin' },
   { name: 'unban', usage: '/unban <player>', description: 'Unban a player', role: 'admin' },
   { name: 'unbannetwork', usage: '/unbannetwork <player>', description: 'Lift the device and Wi-Fi bans a banned player left (they stay banned)', role: 'admin' },
+  { name: 'rename', usage: '/rename <player> <new name>', description: 'Change a player\'s username (they log in with the new one)', role: 'admin' },
   { name: 'give', usage: '/give <player> <amount>', description: 'Give a player Bread Bucks', role: 'admin' },
   { name: 'announce', usage: '/announce <message>', description: 'Breadlet posts your message in chat', role: 'admin' },
   { name: 'stock', usage: '/stock <bag> [minutes]', description: 'Put a bag in Ted\'s Shop (60 minutes if no time given) and announce it to everyone', role: 'admin' },

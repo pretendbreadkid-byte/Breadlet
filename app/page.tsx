@@ -5406,6 +5406,17 @@ function AdminTab({
             const deleted = await moderateAccount("delete", { targetId });
             if (deleted) setPlayers((current) => current.filter((profile) => profile.id !== targetId));
           }} className="rounded-lg border border-rose-300/40 px-3 py-2 text-xs font-black text-rose-100 disabled:opacity-40">Delete account</button>
+          <button disabled={!targetId} onClick={async () => {
+            const selected = players.find((profile) => profile.id === targetId);
+            const username = selected && window.prompt(`New username for ${selected.username} (3-20 letters, numbers or underscores):`, selected.username)?.trim();
+            if (!selected || !username || username === selected.username) return;
+            const response = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "rename", targetId, username }) }).catch(() => null);
+            const result = await response?.json().catch(() => null);
+            if (!response?.ok) return window.alert(result?.error || "Could not rename that player.");
+            setPlayers((current) => current.map((profile) => profile.id === targetId ? { ...profile, username: result.to } : profile));
+            setTargetSearch(result.to);
+            window.alert(`Renamed ${result.from} to ${result.to}. They'll get an Inbox message with their new login name.`);
+          }} className="rounded-lg border border-[#bde8ff]/40 px-3 py-2 text-xs font-black text-[#bde8ff] disabled:opacity-40">Rename player</button>
         </div>
       </div>
 
