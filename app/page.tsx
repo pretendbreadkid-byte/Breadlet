@@ -196,7 +196,7 @@ const badgeDescriptions: Record<string, string> = {
   Artist: "Drew artwork for Breadlet.",
   Birthday: "Happy birthday! Given by an admin on your birthday.",
 };
-// Badges an admin can hand out. Token milestones are automatic from the balance, OG from the
+// Badges an admin can hand out. Token milestones are automatic and kept once earned, OG from the
 // account age, and Owner / Moderator are tied to the staff usernames, so granting those by hand
 // would only fake them.
 const grantableBadges = Object.keys(badgeDescriptions).filter((badge) => !["10K Tokens", "100K Tokens", "1M Tokens", "OG", "Owner", "Moderator"].includes(badge));
@@ -280,9 +280,9 @@ const artFor = (name: string) =>
     Solider: "/assets/solider.svg",
     "Gold Bread": "/assets/gold-bread-3.svg",
     Sword: "/assets/sword way better.svg",
-    "Diamond Sword": "/assets/diamond sword frame one.svg",
-    "Golden Toaster": "/assets/goldenToaster%20frame%201.svg",
-    "Lost and Found Box": "/assets/Lost%20and%20found%20box%20frame%201.svg",
+    "Diamond Sword": "/assets/diamond-sword-animated.svg",
+    "Golden Toaster": "/assets/golden-toaster-animated.svg",
+    "Lost and Found Box": "/assets/lost-and-found-box-animated.svg",
     "Stone Tablet": "/assets/stone-tablet-2.svg",
     Actor: "/assets/actor.svg",
     Alien: "/assets/alien-animated.svg",
@@ -365,8 +365,8 @@ const artFor = (name: string) =>
     "Gingerbread Cookie": "/assets/winter/gingerbread-cookie.svg",
     Present: "/assets/winter/present.svg",
     "Festive Breadlet": "/assets/winter/festive-breadlet.svg",
-    Reindeer: "/assets/winter/reindeer-1.svg",
-    Gnome: "/assets/winter/gnome-1.svg",
+    Reindeer: "/assets/winter/reindeer-animated.svg",
+    Gnome: "/assets/winter/gnome-animated.svg",
     // Fall Bag
     Pumpkin: "/assets/fall/pumpkin.svg",
     "Chai Tea": "/assets/fall/chai-tea.svg",
@@ -374,8 +374,8 @@ const artFor = (name: string) =>
     "Pumpkin Pie": "/assets/fall/pumpkin-pie.webp",
     Corn: "/assets/fall/corn.webp",
     "Cooked Turkey": "/assets/fall/cooked-turkey.svg",
-    Tanuki: "/assets/fall/tanuki-1.svg",
-    "Caramel Apple": "/assets/fall/caramel-apple-1.svg",
+    Tanuki: "/assets/fall/tanuki-animated.svg",
+    "Caramel Apple": "/assets/fall/caramel-apple-animated.svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const artForBlook = (name: string, artworkKey?: string) => {
   const mappedArt = artFor(name);
@@ -2547,7 +2547,7 @@ function ProfileTab({
             <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
           </div>
         </section>
-        <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{tokenBadges.at(-1) || "Token milestones: 10K · 100K · 1M"}</div></section>
+        <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{["1M Tokens", "100K Tokens", "10K Tokens"].find((badge) => displayedBadges.includes(badge)) || "Token milestones: 10K · 100K · 1M"}</div></section>
       </div>
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/Bread%20bucks.svg" />
@@ -2906,66 +2906,10 @@ function StarShipFrameSwitcher({ className }: { className: string }) {
   return <AnimatedArtFrame src={`/assets/star ship frame ${frame}.svg`} name="Star Ship" className={className} />;
 }
 
-const lostAndFoundBoxFrames = [
-  "/assets/Lost%20and%20found%20box%20frame%201.svg",
-  "/assets/Lost%20and%20found%20box%202.svg",
-  "/assets/Lost%20and%20found%20box%203.svg",
-  "/assets/Lost%20and%20found%20box%204.svg",
-  "/assets/Lost%20and%20found%20box%205.svg",
-  "/assets/Lost%20and%20found%20box%206.svg",
-];
-const goldenToasterFrames = [
-  "/assets/goldenToaster%20frame%201.svg",
-  "/assets/goldenToaster2.svg",
-  "/assets/goldenToaster3.svg",
-  "/assets/goldenToaster4.svg",
-];
-// Reindeer: the nose glow swells and fades. Gnome: waves its arms (played forward then back).
-const reindeerFrames = [1, 2, 3, 4, 5].map((frame) => `/assets/winter/reindeer-${frame}.svg`);
-const gnomeFrames = [1, 2, 3, 4, 5, 6, 5, 4, 3, 2].map((frame) => `/assets/winter/gnome-${frame}.svg`);
-// Tanuki: the leaf and ear sway (frame 7 leads back into frame 1).
-const tanukiFrames = [1, 2, 3, 4, 5, 6, 7].map((frame) => `/assets/fall/tanuki-${frame}.svg`);
-const caramelAppleFrames = Array.from({ length: 12 }, (_, index) => `/assets/fall/caramel-apple-${index + 1}.svg`);
-const diamondSwordFrames = [
-  "/assets/diamond%20sword%20frame%20one.svg",
-  ...Array.from({ length: 7 }, (_, index) => `/assets/diamond%20sword${index + 2}.svg`),
-];
-function FrameSwitcher({ frames, name, className }: { frames: string[]; name: string; className: string }) {
-  const [frame, setFrame] = useState(0);
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setFrame((current) => (current + 1) % frames.length);
-    }, 180);
-    return () => window.clearInterval(timer);
-  }, [frames]);
-  return <AnimatedArtFrame src={frames[frame]} name={name} className={className} />;
-}
-
 function RewardArt({ name, art, className }: { name: string; art: string; className: string }) {
   const cleanName = name.replace(/^Shiny /, "");
   if (cleanName === "Star Ship") {
     return <StarShipFrameSwitcher className={className} />;
-  }
-  if (cleanName === "Lost and Found Box") {
-    return <FrameSwitcher frames={lostAndFoundBoxFrames} name={name} className={className} />;
-  }
-  if (cleanName === "Golden Toaster") {
-    return <FrameSwitcher frames={goldenToasterFrames} name={name} className={className} />;
-  }
-  if (cleanName === "Reindeer") {
-    return <FrameSwitcher frames={reindeerFrames} name={name} className={className} />;
-  }
-  if (cleanName === "Gnome") {
-    return <FrameSwitcher frames={gnomeFrames} name={name} className={className} />;
-  }
-  if (cleanName === "Tanuki") {
-    return <FrameSwitcher frames={tanukiFrames} name={name} className={className} />;
-  }
-  if (cleanName === "Caramel Apple") {
-    return <FrameSwitcher frames={caramelAppleFrames} name={name} className={className} />;
-  }
-  if (cleanName === "Diamond Sword") {
-    return <FrameSwitcher frames={diamondSwordFrames} name={name} className={className} />;
   }
   if (cleanName === "Timeglass") {
     return <span className={`timeglass-sequence relative inline-flex h-full w-full items-center justify-center ${className}`}>{[1, 2, 3, 4, 5, 6].map((number) => `/assets/timeglass/frame-${number}.svg`).map((frame, index) => <img key={frame} src={frame} alt={name} className={`timeglass-frame timeglass-frame-${index} max-h-full max-w-full object-contain`} />)}</span>;

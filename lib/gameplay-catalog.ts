@@ -371,7 +371,7 @@ export const liveCapsules: Capsule[] = [
       "Slime Bread": "/assets/slime-bread.svg",
       "Gold Bread": "/assets/gold-bread-3.svg",
       "Holy Bread": "/assets/holy-bread-refreshed.svg",
-      "Golden Toaster": "/assets/goldenToaster frame 1.svg",
+      "Golden Toaster": "/assets/golden-toaster-animated.svg",
     },
     // Fixed odds keep the average resale value (~16) well under the price, so opening
     // and reselling Bread Bags can't print tokens.

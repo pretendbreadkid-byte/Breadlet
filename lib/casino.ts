@@ -1,9 +1,10 @@
-// Games tab: roulette, slots and dice for Bread Bucks. Outcomes are rolled on the server
+// Games tab: roulette, slots and dice for chips. Outcomes are rolled on the server
 // (app/api/casino), which passes in crypto randomness; this file holds the rules and payouts so the client
 // and server agree. Every game returns a little under the bet on average.
 
 export const CASINO_MIN_BET = 1;
 export const CASINO_MAX_BET = 100000;
+export const MAX_CHIPS = 2147483647;
 
 export type CasinoGame = 'roulette' | 'slots' | 'dice';
 
@@ -15,7 +16,7 @@ export function rouletteColor(n: number) {
   return n === 0 ? 'green' : RED_NUMBERS.includes(n) ? 'red' : 'black';
 }
 
-// Total returned (bet included) per Bread Buck bet when the pick wins.
+// Total returned (bet included) per chip bet when the pick wins.
 export function roulettePayout(pick: string, n: number) {
   if (pick.startsWith('number:')) return Number(pick.slice(7)) === n ? 36 : 0;
   if (n === 0) return 0;
