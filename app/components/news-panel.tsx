@@ -4,34 +4,9 @@
 // Everyone can read posts; admins can write them (with an image) and remove them.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePlus, Newspaper, Trash2, X } from "lucide-react";
+import { shrinkImage } from "../../lib/shrink-image";
 
 type NewsPost = { id: string; category: string; title: string; body: string; created_at: string; has_image: boolean };
-
-const MAX_IMAGE_WIDTH = 1000;
-
-// Shrinks big images to a webp (GIFs under 1 MB are kept as-is so they still animate).
-function readImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Could not read that image."));
-    reader.onload = () => {
-      const dataUrl = String(reader.result);
-      if (file.type === "image/gif" && dataUrl.length < 1400000) return resolve(dataUrl);
-      const image = new Image();
-      image.onerror = () => reject(new Error("Could not read that image."));
-      image.onload = () => {
-        const scale = Math.min(1, MAX_IMAGE_WIDTH / image.width);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(image.width * scale);
-        canvas.height = Math.round(image.height * scale);
-        canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/webp", 0.85));
-      };
-      image.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 export function NewsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [posts, setPosts] = useState<NewsPost[] | null>(null);
@@ -68,7 +43,7 @@ export function NewsPanel({ open, onClose }: { open: boolean; onClose: () => voi
     if (!/^image\/(png|gif|jpeg|webp)$/.test(file.type)) return setError("Upload a PNG, GIF, JPEG, or WebP image.");
     setError("");
     try {
-      setImage(await readImage(file));
+      setImage(await shrinkImage(file, { maxLength: 1400000, maxSide: 1600 }));
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : "Could not read that image.");
     }

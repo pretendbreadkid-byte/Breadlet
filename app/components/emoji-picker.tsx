@@ -2,6 +2,7 @@
 
 import { ChangeEvent, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Smile, Trash2, Upload } from "lucide-react";
+import { shrinkImage } from "../../lib/shrink-image";
 
 export type CustomEmoji = { id: string; name: string; image: string };
 
@@ -75,7 +76,7 @@ export function EmojiPicker({ emojis, canManage, onPick, onChanged, align = "lef
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
 
-  const upload = (event: ChangeEvent<HTMLInputElement>) => {
+  const upload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -83,31 +84,28 @@ export function EmojiPicker({ emojis, canManage, onPick, onChanged, align = "lef
       setError("Upload a PNG, GIF, JPEG, or WebP image.");
       return;
     }
-    if (file.size > 280 * 1024) {
-      setError("Keep emoji images under 280 KB.");
-      return;
-    }
     const suggested = file.name.replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 24);
     const name = window.prompt("Name this emoji (letters, numbers, underscores). Use it as :name:", suggested.length >= 2 ? suggested : "emoji");
     if (!name) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      setBusy(true);
-      setError("");
-      const response = await fetch("/api/emojis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, image: reader.result }),
-      }).catch(() => null);
-      setBusy(false);
-      if (!response || !response.ok) {
-        const result = await response?.json().catch(() => ({}));
-        setError(result?.error || "Could not upload that emoji.");
-        return;
-      }
-      await onChanged();
-    };
-    reader.readAsDataURL(file);
+    setBusy(true);
+    setError("");
+    const image = await shrinkImage(file, { maxLength: 400000, maxSide: 256 }).catch((problem: Error) => {
+      setError(problem.message);
+      return "";
+    });
+    if (!image) return setBusy(false);
+    const response = await fetch("/api/emojis", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, image }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response || !response.ok) {
+      const result = await response?.json().catch(() => ({}));
+      setError(result?.error || "Could not upload that emoji.");
+      return;
+    }
+    await onChanged();
   };
 
   const remove = async (emoji: CustomEmoji) => {

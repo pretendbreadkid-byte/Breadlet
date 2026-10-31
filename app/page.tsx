@@ -13,6 +13,7 @@ import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { GamesTab } from "./components/casino-games";
 import { NewsPanel } from "./components/news-panel";
+import { shrinkImage } from "../lib/shrink-image";
 import { useForcedStock } from "./components/forced-stock";
 import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
@@ -4095,7 +4096,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   const [editDraft, setEditDraft] = useState("");
   const [onlinePanelOpen, setOnlinePanelOpen] = useState(false);
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
-  const isVerified = player.badges?.includes("Verified");
+  const canSendImages = player.badges?.includes("Verified") || canManageEmojis;
   // Commands this player can use, for the "/" pop-up (the server checks again).
   const lowerName = player.username.toLowerCase();
   const commandRole = lowerName === ADMIN_USERNAME ? "admin" : MODERATOR_USERNAMES.includes(lowerName) ? "full" : LIMITED_MODERATOR_USERNAMES.includes(lowerName) ? "limited" : null;
@@ -4384,21 +4385,15 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     await sendMessageText(text);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 400 * 1024) {
-      alert("Image file size must be smaller than 400KB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        sendMessageText(`[img]${reader.result}[/img]`);
-      }
-    };
-    reader.readAsDataURL(file);
     e.target.value = "";
+    if (!file) return;
+    try {
+      await sendMessageText(`[img]${await shrinkImage(file, { maxLength: 590000, maxSide: 1600 })}[/img]`);
+    } catch (problem) {
+      setChatError(problem instanceof Error ? problem.message : "Could not send that image.");
+    }
   };
 
   const renderMessageContent = (text: string, isBreadletBot = false) => {
@@ -4662,9 +4657,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       <p className="chat-typing" aria-live="polite">{typingLabel && <><span className="chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>{typingLabel}</>}</p>
       <div className="chat-input-row mt-1 flex shrink-0 items-center gap-3">
       <form onSubmit={send} className="flex min-w-0 flex-1 items-center gap-3">
-        {isVerified && (
+        {canSendImages && (
           <label
-            title="Upload image (Verified Badge Feature)"
+            title="Upload image"
             className="flex cursor-pointer items-center justify-center rounded-xl border border-[#3d91cd] bg-[#103f75] p-3 text-[#bde8ff] hover:bg-[#18558f] transition"
           >
             <ImageIcon size={20} />
@@ -4692,7 +4687,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           onSelect={(event) => setCaret(event.currentTarget.selectionStart ?? 0)}
           onKeyDown={onChatKeyDown}
           onBlur={() => { announceTyping(true); window.setTimeout(() => setPickerDismissed(message), 150); }}
-          placeholder={isVerified ? "Write a message or upload an image..." : "Write a message..."}
+          placeholder={canSendImages ? "Write a message or upload an image..." : "Write a message..."}
           className="w-full rounded-xl bg-[#24170f] px-4 py-3 text-white outline-none focus:border-[#3d91cd]"
         />
         </div>

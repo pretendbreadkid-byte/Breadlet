@@ -245,6 +245,8 @@ export async function POST(request: Request) {
   const rawMessage = String(body.message || '').trim();
   // Image messages carry a base64 data URL (png, jpeg, gif, webp or svg) and need a larger limit.
   const isImageMessage = /^\[img\]data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+\/=]+\[\/img\]$/.test(rawMessage) && rawMessage.length <= 600000;
+  // A rejected image must not fall through and get posted as a chopped-up text message.
+  if (rawMessage.startsWith('[img]') && !isImageMessage) return NextResponse.json({ error: 'That image could not be sent. Try a PNG or JPEG.' }, { status: 400 });
   // Slurs are blocked outright and earn an automatic 30-minute timeout.
   if (!isImageMessage && hasSevereSlur(rawMessage)) {
     if (!isProtectedFromMute(sender?.username || '')) {
