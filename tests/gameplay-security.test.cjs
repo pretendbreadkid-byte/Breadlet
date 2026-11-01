@@ -683,7 +683,11 @@ test('leaves are capped per shower, cannot be overspent, and buy each reward onc
       insert into public.profiles (id) values ('00000000-0000-0000-0000-000000000001');
       insert into public.profiles (id, is_banned) values ('00000000-0000-0000-0000-000000000002', true);
     `);
+    await database.exec(`
+      create table public.admin_events (id uuid primary key default gen_random_uuid(), kind text not null constraint admin_events_kind_check check (kind in ('disco')), created_at timestamptz not null default now(), ends_at timestamptz not null);
+    `);
     await database.exec(fs.readFileSync('supabase/migrations/0071_fall_fiesta_leaf_shop.sql', 'utf8'));
+    await database.exec(fs.readFileSync('supabase/migrations/0073_admin_leaf_showers.sql', 'utf8'));
     const player = '00000000-0000-0000-0000-000000000001';
     const banned = '00000000-0000-0000-0000-000000000002';
     const value = async (sql) => Object.values((await database.query(sql)).rows[0])[0];
@@ -697,6 +701,15 @@ test('leaves are capped per shower, cannot be overspent, and buy each reward onc
     await catchLeaf();
     assert.deepEqual(await catchLeaf(), { leaves: 3, caught: 3, bought: [] });
     await assert.rejects(catchLeaf(), /every leaf/);
+
+    // An admin shower opens catching outside the hourly window, with its own limit.
+    await database.exec(`insert into public.admin_events (kind, ends_at) values ('leaf_shower', now() - interval '1 minute')`);
+    await assert.rejects(catchLeaf(0), /leaf shower is over/);
+    await database.exec(`insert into public.admin_events (kind, ends_at) values ('leaf_shower', now() + interval '5 minutes')`);
+    assert.deepEqual(await catchLeaf(0, 1), { leaves: 4, caught: 1, bought: [] });
+    await assert.rejects(catchLeaf(0, 1), /every leaf/);
+    await database.exec(`delete from public.admin_events`);
+    await database.exec(`update public.fall_fiesta_wallets set leaves = 3`);
 
     await assert.rejects(buy('Acorn', 4), /need more leaves/);
     assert.deepEqual(await buy('Acorn', 2), { leaves: 1, bought: ['Acorn'] });

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 // What Supabase answers until migration 0071 has been run.
 const NOT_INSTALLED = new Set(['PGRST202', 'PGRST205', '42883', '42P01']);
-const notReady = () => NextResponse.json({ ready: false, leaves: 0, caught: 0, bought: [] });
+const notReady = () => NextResponse.json({ ready: false, leaves: 0, caught: 0, bought: [], adminEndsAt: null });
 
 const signedIn = async () => {
   const supabase = await createClient();
@@ -22,16 +22,20 @@ export async function GET() {
   const session = await signedIn();
   if (!session) return NextResponse.json({ error: 'Log in to join the Fall Fiesta.' }, { status: 401 });
   const { user, database } = session;
+  // A running admin shower replaces the hourly one, like in catch_fall_leaf (migration 0073).
+  const { data: adminShowers } = await database.from('admin_events').select('created_at, ends_at')
+    .eq('kind', 'leaf_shower').gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(1);
+  const adminShower = adminShowers?.[0];
   const [wallet, shower] = await Promise.all([
     database.from('fall_fiesta_wallets').select('leaves, bought').eq('profile_id', user.id).maybeSingle(),
     database.from('fall_fiesta_showers').select('catches').eq('profile_id', user.id)
-      .eq('shower_at', new Date(showerAt(Date.now()).startsAt).toISOString()).maybeSingle(),
+      .eq('shower_at', adminShower?.created_at || new Date(showerAt(Date.now()).startsAt).toISOString()).maybeSingle(),
   ]);
   if (wallet.error || shower.error) {
     if (NOT_INSTALLED.has(wallet.error?.code || '') || NOT_INSTALLED.has(shower.error?.code || '')) return notReady();
     return NextResponse.json({ error: 'Could not load your leaves.' }, { status: 503 });
   }
-  return NextResponse.json({ ready: true, leaves: wallet.data?.leaves || 0, caught: shower.data?.catches || 0, bought: wallet.data?.bought || [] });
+  return NextResponse.json({ ready: true, leaves: wallet.data?.leaves || 0, caught: shower.data?.catches || 0, bought: wallet.data?.bought || [], adminEndsAt: adminShower ? Date.parse(adminShower.ends_at) : null });
 }
 
 // Catch one leaf during a shower, or buy something from the leaf shop.

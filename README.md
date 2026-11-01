@@ -47,7 +47,7 @@ The current server-backed slice includes Supabase Auth, profile bootstrap, RLS, 
 
 Apply `supabase/migrations/0015_secure_gameplay.sql` in the Supabase SQL Editor after the earlier migrations before using this release. It adds the Inventions catalog, protected gameplay transactions, marketplace escrow, atomic donations/promo rewards, and direct-write restrictions. Uninstalled protections fail closed with a setup error rather than trusting browser rewards.
 
-Apply `supabase/migrations/0071_fall_fiesta_leaf_shop.sql` to open the Fall Fiesta: it adds the leaf balance, the hourly leaf catches and the leaf shop. Until then the Event tab says the shop is opening soon and no leaves fall.
+Apply `supabase/migrations/0071_fall_fiesta_leaf_shop.sql` to open the Fall Fiesta: it adds the leaf balance, the hourly leaf catches and the leaf shop. Until then the Event tab says the shop is opening soon and no leaves fall. Apply `supabase/migrations/0073_admin_leaf_showers.sql` after it to let the owner start a leaf shower from the Admin Panel.
 
 Apply `supabase/migrations/0072_textbook_becomes_book.sql` to rename Textbook to Book in the database. Until then, a Lost and Found Bag that rolls a Book fails with a catalog error and charges nothing.
 

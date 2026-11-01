@@ -2887,7 +2887,8 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-error { color: #ffb4ad !imp
 @media (prefers-reduced-motion: reduce) { .news-panel { animation: none; } }
 
 /* Fall Fiesta: the hourly leaf shower and the leaf shop. */
-.fiesta-leaf img { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .35)); }
+.admin-bread.fiesta-leaf { top: -200px; }
+.fiesta-leaf img { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 12px rgba(255, 196, 84, .95)) drop-shadow(0 6px 8px rgba(0, 0, 0, .55)); }
 .event-countdown-short { width: min(18rem, 100%); grid-template-columns: repeat(2, 1fr); }
 .event-wallet { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; border: 3px solid #13120F; border-radius: 999px; background: #27251F; padding: 4px 18px 4px 10px; font-size: 1.25rem; font-weight: 900; opacity: 1 !important; box-shadow: 0 3px 0 #13120F; }
 .event-rewards .event-wallet img { width: 28px; height: 28px; object-fit: contain; }

@@ -5,9 +5,12 @@ import { FIESTA_SHOP, LEAVES_PER_SHOWER, SHOWER_MINUTES, showerAt } from "../../
 
 // Breadlet Fall Fiesta: the hourly leaf shower over the whole game, and the Event tab's leaf shop.
 
-type Fiesta = { ready: boolean; leaves: number; caught: number; bought: string[] };
+type Fiesta = { ready: boolean; leaves: number; caught: number; bought: string[]; adminEndsAt: number | null };
 
 const FIESTA_CHANGED = "breadlet-fiesta-changed";
+const FIESTA_REFRESH = "breadlet-fiesta-refresh";
+// Reload the player's leaves: an admin just started a leaf shower.
+export const refreshFiesta = () => window.dispatchEvent(new Event(FIESTA_REFRESH));
 const announce = (changes: Partial<Fiesta>) => window.dispatchEvent(new CustomEvent(FIESTA_CHANGED, { detail: changes }));
 const fiestaPost = (body: Record<string, string>) => fetch("/api/events/fiesta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
 
@@ -20,18 +23,31 @@ const useNow = () => {
   return now;
 };
 
-// The player's leaves. Loads once per `hour`, so idle players don't poll Supabase.
+// When the leaves stop falling, or null if none are falling right now.
+const fallingUntil = (fiesta: Fiesta | null, now: number) => {
+  if (fiesta?.adminEndsAt && fiesta.adminEndsAt > now) return fiesta.adminEndsAt;
+  const shower = showerAt(now);
+  return shower.live ? shower.endsAt : null;
+};
+
+// The player's leaves. Loads once per `hour` and when an admin starts a shower, so idle players don't poll Supabase.
 const useFiesta = (hour: number | null) => {
   const [fiesta, setFiesta] = useState<Fiesta | null>(null);
+  const [refreshes, setRefreshes] = useState(0);
   useEffect(() => {
-    if (hour === null) return;
+    if (hour === null && !refreshes) return;
     let stale = false;
     fetch("/api/events/fiesta", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((state) => { if (!stale && state) setFiesta(state); })
       .catch(() => undefined);
     return () => { stale = true; };
-  }, [hour]);
+  }, [hour, refreshes]);
+  useEffect(() => {
+    const refresh = () => setRefreshes((count) => count + 1);
+    window.addEventListener(FIESTA_REFRESH, refresh);
+    return () => window.removeEventListener(FIESTA_REFRESH, refresh);
+  }, []);
   useEffect(() => {
     const changed = (event: Event) => setFiesta((current) => current && { ...current, ...(event as CustomEvent<Partial<Fiesta>>).detail });
     window.addEventListener(FIESTA_CHANGED, changed);
@@ -40,25 +56,28 @@ const useFiesta = (hour: number | null) => {
   return fiesta;
 };
 
-const newLeaf = (id: number) => ({
+const newLeaf = (id: number, delay: number) => ({
   id,
-  left: 3 + Math.random() * 90,
-  delay: Math.random() * 6,
-  duration: 5 + Math.random() * 3,
-  size: 52 + Math.random() * 28,
+  left: Math.random() * 88,
+  delay,
+  duration: 7 + Math.random() * 4,
+  size: 120 + Math.random() * 60,
   spin: Math.random() < 0.5 ? -1 : 1,
 });
 
 export function FallFiestaLayer() {
-  const shower = showerAt(useNow());
+  const now = useNow();
+  const shower = showerAt(now);
   const fiesta = useFiesta(shower.live ? shower.startsAt : null);
-  if (!shower.live || !fiesta?.ready || fiesta.caught >= LEAVES_PER_SHOWER) return null;
-  return <LeafShower key={shower.startsAt} caught={fiesta.caught} />;
+  const until = fallingUntil(fiesta, now);
+  if (!until || !fiesta?.ready || fiesta.caught >= LEAVES_PER_SHOWER) return null;
+  return <LeafShower key={until} caught={fiesta.caught} />;
 }
 
 function LeafShower({ caught }: { caught: number }) {
-  const count = useRef(12);
-  const [leaves, setLeaves] = useState(() => Array.from({ length: 12 }, (_, index) => newLeaf(index)));
+  const count = useRef(14);
+  // A negative delay starts a leaf partway down, so the screen fills up straight away.
+  const [leaves, setLeaves] = useState(() => Array.from({ length: 14 }, (_, index) => newLeaf(index, -Math.random() * 7)));
   const [pops, setPops] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
   const busy = useRef(false);
 
@@ -72,7 +91,7 @@ function LeafShower({ caught }: { caught: number }) {
     if (busy.current) return;
     busy.current = true;
     // A new leaf takes the caught one's place, so the shower keeps falling.
-    setLeaves((current) => current.map((leaf) => (leaf.id === leafId ? newLeaf(count.current++) : leaf)));
+    setLeaves((current) => current.map((leaf) => (leaf.id === leafId ? newLeaf(count.current++, 0) : leaf)));
     const response = await fiestaPost({ action: "catch" });
     const result = await response?.json().catch(() => null);
     busy.current = false;
@@ -118,7 +137,8 @@ export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: ()
   const fiesta = useFiesta(isGuest ? null : shower.startsAt);
   const [buying, setBuying] = useState("");
   const [notice, setNotice] = useState("");
-  const left = Math.max(0, (shower.live ? shower.endsAt : shower.nextAt) - now);
+  const until = fallingUntil(fiesta, now);
+  const left = Math.max(0, (until ?? shower.nextAt) - now);
   const units = [
     { label: "Minutes", value: Math.floor(left / 60000) },
     { label: "Seconds", value: Math.floor(left / 1000) % 60 },
@@ -138,10 +158,10 @@ export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: ()
 
   return (
     <div className="event-page mx-auto w-full max-w-4xl">
-      {!shower.live && <div className="event-leaves" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <img key={index} src="/assets/fall/fall-leaf.webp" alt="" style={{ "--leaf-index": index } as React.CSSProperties} />)}</div>}
+      {!until && <div className="event-leaves" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <img key={index} src="/assets/fall/fall-leaf.webp" alt="" style={{ "--leaf-index": index } as React.CSSProperties} />)}</div>}
       <img src="/assets/fall-fiesta-logo.webp" alt="Breadlet Fall Fiesta" className="event-logo" />
-      <p className="event-soon">{shower.live ? "Leaves are falling!" : "Next leaf shower"}</p>
-      <div className="event-countdown event-countdown-short" role="timer" aria-label={shower.live ? "Time left in this leaf shower" : "Time until the next leaf shower"}>
+      <p className="event-soon">{until ? "Leaves are falling!" : "Next leaf shower"}</p>
+      <div className="event-countdown event-countdown-short" role="timer" aria-label={until ? "Time left in this leaf shower" : "Time until the next leaf shower"}>
         {units.map((unit) => <div key={unit.label} className="event-countdown-unit"><b>{String(unit.value).padStart(2, "0")}</b><span>{unit.label}</span></div>)}
       </div>
       <section className="event-rewards" aria-labelledby="event-rewards-title">

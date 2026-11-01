@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { hasAdminAccess } from '../../../../lib/admin-access';
 import { filterProfanity } from '../../../../lib/chat-filter';
+import { SHOWER_MINUTES } from '../../../../lib/fall-fiesta';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 
 // How long each "admin abuse" event lasts, in seconds.
-const DURATIONS: Record<string, number> = { disco: 60, barrel_roll: 3, announcement: 10, bread_rain: 45 };
+const DURATIONS: Record<string, number> = { disco: 60, barrel_roll: 3, announcement: 10, bread_rain: 45, leaf_shower: SHOWER_MINUTES * 60 };
 
 // Starts an admin abuse event for everyone online. Owner only.
 export async function POST(request: Request) {
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
 
   const endsAt = new Date(Date.now() + DURATIONS[kind] * 1000).toISOString();
   const { data, error } = await database.from('admin_events').insert({ kind, message, created_by: user.id, ends_at: endsAt }).select('id, kind, message, created_at, ends_at').single();
+  if (error?.code === '23514') return NextResponse.json({ error: 'Run migrations 0071 and 0073 in Supabase to enable leaf showers.' }, { status: 503 });
   if (error) return NextResponse.json({ error: error.code === '42P01' ? 'Run migration 0058 in Supabase to enable admin events.' : error.message }, { status: 500 });
   return NextResponse.json(data);
 }

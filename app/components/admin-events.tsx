@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient } from "../../lib/supabase/client";
+import { SHOWER_MINUTES } from "../../lib/fall-fiesta";
+import { refreshFiesta } from "./fall-fiesta";
 
 // "Admin abuse": live events the owner starts for everyone online (see migration 0058).
 
-type AdminEvent = { id: string; kind: "disco" | "barrel_roll" | "announcement" | "bread_rain"; message: string; created_at: string; ends_at: string };
+type AdminEvent = { id: string; kind: "disco" | "barrel_roll" | "announcement" | "bread_rain" | "leaf_shower"; message: string; created_at: string; ends_at: string };
 
 const MAX_CATCHES = 5;
 const isLive = (event: AdminEvent) => new Date(event.ends_at).getTime() > Date.now();
@@ -18,6 +20,7 @@ export function AdminEventsLayer({ onReward }: { onReward: () => void }) {
 
   const add = useCallback((event: AdminEvent) => {
     if (!isLive(event)) return;
+    if (event.kind === "leaf_shower") refreshFiesta();
     setEvents((current) => (current.some((item) => item.id === event.id) ? current : [...current, event]));
   }, []);
 
@@ -125,6 +128,7 @@ const EVENT_BUTTONS: { kind: AdminEvent["kind"]; label: string; detail: string }
   { kind: "disco", label: "🪩 Disco Mode", detail: "Rainbow colors on everyone's screen for 60s" },
   { kind: "barrel_roll", label: "🌀 Barrel Roll", detail: "Everyone's screen does a full spin" },
   { kind: "bread_rain", label: "🍞 Bread Rain", detail: "45s of falling breads, +10 each, max 50 per player" },
+  { kind: "leaf_shower", label: "🍂 Leaf Shower", detail: `${SHOWER_MINUTES} minutes of falling leaves for the Fall Fiesta` },
 ];
 
 // Owner controls in the Admin Panel.
@@ -148,7 +152,7 @@ export function AdminAbusePanel() {
     <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
       <h2 className="text-xl font-black text-[#bde8ff]">😈 Admin Abuse</h2>
       <p className="mt-1 text-sm opacity-80">Live events for every player online right now.</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {EVENT_BUTTONS.map((button) => (
           <button key={button.kind} type="button" disabled={busy} onClick={() => void start(button.kind)} className="dark-action-button flex-col !items-start text-left disabled:opacity-50">
             <span className="text-base">{button.label}</span>
