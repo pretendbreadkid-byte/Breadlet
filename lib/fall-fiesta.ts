@@ -7,10 +7,10 @@ export const LEAVES_PER_SHOWER = 20;
 export type FiestaItem = { name: string; price: number; art: string; badge?: boolean };
 
 export const FIESTA_SHOP: FiestaItem[] = [
-  { name: "Acorn", price: 100, art: "/assets/fall/acorn.svg" },
-  { name: "Pilgrim Hat", price: 250, art: "/assets/fall/pilgrim-hat.webp" },
-  { name: "Fall Leaf", price: 500, art: "/assets/fall/fall-leaf.webp" },
-  { name: "Fall Fiesta", price: 750, art: "/assets/fall-badge.svg", badge: true },
+  { name: "Acorn", price: 50, art: "/assets/fall/acorn.svg" },
+  { name: "Pilgrim Hat", price: 100, art: "/assets/fall/pilgrim-hat.webp" },
+  { name: "Fall Leaf", price: 200, art: "/assets/fall/fall-leaf.webp" },
+  { name: "Fall Fiesta", price: 300, art: "/assets/fall-badge.svg", badge: true },
 ];
 
 const HOUR = 3600000;
