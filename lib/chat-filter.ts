@@ -68,5 +68,5 @@ export function isNameAllowed(name: string) {
 
 // Copying the chat window and pasting it back in brings the message times along with it.
 export function isPastedChatLog(text: string) {
-  return (text.match(/b\d{1,2}:\d{2}b/g) || []).length >= 3;
+  return (text.match(/\b\d{1,2}:\d{2}\b/g) || []).length >= 3;
 }
