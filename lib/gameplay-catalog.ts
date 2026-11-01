@@ -437,6 +437,19 @@ export const liveCapsules: Capsule[] = [
 ];
 
 export const legacyCapsules: Capsule[] = [
+  // Not a real bag: the Breadlets bought with leaves in the Fall Fiesta (lib/fall-fiesta.ts).
+  {
+    name: "Fall Fiesta",
+    price: 0,
+    art: "/assets/fall/fall-leaf.webp",
+    retired: true,
+    seasonal: true,
+    pool: rewards([
+      ["Acorn", "Unique"],
+      ["Pilgrim Hat", "Unique"],
+      ["Fall Leaf", "Unique"],
+    ]),
+  },
   {
     name: "Legacy Bread Bag",
     price: 25,

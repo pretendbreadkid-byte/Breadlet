@@ -10,6 +10,7 @@ import { isInboxType } from "../lib/inbox";
 import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
+import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { GamesTab } from "./components/casino-games";
 import { NewsPanel } from "./components/news-panel";
@@ -196,6 +197,7 @@ const badgeDescriptions: Record<string, string> = {
   Contributor: "Helped build Breadlet with art, ideas or code.",
   Artist: "Drew artwork for Breadlet.",
   Birthday: "Happy birthday! Given by an admin on your birthday.",
+  "Fall Fiesta": "Bought with leaves in the Breadlet Fall Fiesta.",
 };
 // Badges an admin can hand out. Token milestones are automatic and kept once earned, OG from the
 // account age, and Owner / Moderator are tied to the staff usernames, so granting those by hand
@@ -220,6 +222,7 @@ const badgeIconFor = (badge: string) => ({
   Contributor: "/assets/contributer.svg",
   Artist: "/assets/artist-badge.svg?v=2",
   Birthday: "/assets/birthday-badge.svg",
+  "Fall Fiesta": "/assets/fall-badge.svg",
 })[badge] || "/assets/verified-badge.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>
@@ -377,6 +380,10 @@ const artFor = (name: string) =>
     "Cooked Turkey": "/assets/fall/cooked-turkey.svg",
     Tanuki: "/assets/fall/tanuki-animated.svg",
     "Caramel Apple": "/assets/fall/caramel-apple-animated.svg",
+    // Fall Fiesta leaf shop
+    Acorn: "/assets/fall/acorn.svg",
+    "Pilgrim Hat": "/assets/fall/pilgrim-hat.webp",
+    "Fall Leaf": "/assets/fall/fall-leaf.webp",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const artForBlook = (name: string, artworkKey?: string) => {
   const mappedArt = artFor(name);
@@ -1940,6 +1947,7 @@ function MainPage() {
           {tab !== "capsules" && <BreadDrift className="page-drift" />}
           {player && !isGuest && <CoinFlipPopup onFinished={refreshPlayerFromServer} />}
           {player && !isGuest && <AdminEventsLayer onReward={refreshPlayerFromServer} />}
+          {player && !isGuest && <FallFiestaLayer />}
           {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} BlookArt={BlookImg} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
@@ -2022,7 +2030,7 @@ function MainPage() {
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && <ReferralsTab isGuest={isGuest} />}
-          {tab === "event" && <EventTab />}
+          {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
           {tab === "games" && player.username.toLowerCase() === ADMIN_USERNAME && <GamesTab tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
@@ -4855,59 +4863,6 @@ function PromoTab({
     </div>
   );
 }
-// Breadlet Fall Fiesta: a coming-soon page with a countdown to the start and how the event works.
-const FALL_FIESTA_START = Date.parse("2026-11-06T00:00:00Z");
-const EVENT_REWARDS = [
-  { name: "Acorn", art: "/assets/fall/acorn.svg" },
-  { name: "Pilgrim Hat", art: "/assets/fall/pilgrim-hat.webp" },
-  { name: "Fall Leaf", art: "/assets/fall/fall-leaf.webp" },
-];
-function EventTab() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const left = Math.max(0, FALL_FIESTA_START - now);
-  const units = [
-    { label: "Days", value: Math.floor(left / 86400000) },
-    { label: "Hours", value: Math.floor(left / 3600000) % 24 },
-    { label: "Minutes", value: Math.floor(left / 60000) % 60 },
-    { label: "Seconds", value: Math.floor(left / 1000) % 60 },
-  ];
-  const steps = [
-    { title: "Grab the Fiesta item", text: "Buy the Fall Fiesta item from the Shop. It switches on by itself the moment you buy it, so there's nothing to equip." },
-    { title: "Catch falling leaves", text: "Once it's on, leaves rain down across Breadlet while you play. Tap or click a leaf to catch it before it hits the ground." },
-    { title: "Spend your leaves", text: "Leaves are the Fiesta's own currency. Save them up and spend them on event rewards." },
-    { title: "Climb the leaderboard", text: "Every leaf you catch counts toward the Fiesta leaderboard. The top catchers when the event ends win exclusive Breadlets nobody else can get." },
-  ];
-  return (
-    <div className="event-page mx-auto w-full max-w-4xl">
-      <div className="event-leaves" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <img key={index} src="/assets/fall/fall-leaf.webp" alt="" style={{ "--leaf-index": index } as React.CSSProperties} />)}</div>
-      <img src="/assets/fall-fiesta-logo.webp" alt="Breadlet Fall Fiesta" className="event-logo" />
-      <p className="event-soon">{left ? "Coming soon" : "The Fall Fiesta is here!"}</p>
-      <div className="event-countdown" role="timer" aria-label="Time until the Fall Fiesta starts">
-        {units.map((unit) => <div key={unit.label} className="event-countdown-unit"><b>{String(unit.value).padStart(2, "0")}</b><span>{unit.label}</span></div>)}
-      </div>
-      <p className="event-date">Starts November 6</p>
-      <section className="event-rewards" aria-labelledby="event-rewards-title">
-        <h2 id="event-rewards-title">Exclusive rewards</h2>
-        <p>Win these Breadlets on the Fiesta leaderboard. More are on the way.</p>
-        <ul>
-          {EVENT_REWARDS.map((reward) => <li key={reward.name}><img src={reward.art} alt="" aria-hidden="true" /><b>{reward.name}</b></li>)}
-          <li className="event-reward-soon"><span aria-hidden="true">?</span><b>More coming</b></li>
-        </ul>
-      </section>
-      <section className="event-how">
-        <h2>How the Fiesta works</h2>
-        <ol>
-          {steps.map((step, index) => <li key={step.title}><span className="event-step-number">{index + 1}</span><div><h3>{step.title}</h3><p>{step.text}</p></div></li>)}
-        </ol>
-      </section>
-    </div>
-  );
-}
-
 function ResourcesTab({ open }: { open: (tab: "promo" | "bank" | "referrals") => void }) {
   const resources = [
     { title: "Promo Codes", description: "Redeem a Breadlet code for its reward.", icon: <Percent size={22} />, tab: "promo" as const },

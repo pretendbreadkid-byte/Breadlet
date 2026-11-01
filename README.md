@@ -47,6 +47,8 @@ The current server-backed slice includes Supabase Auth, profile bootstrap, RLS, 
 
 Apply `supabase/migrations/0015_secure_gameplay.sql` in the Supabase SQL Editor after the earlier migrations before using this release. It adds the Inventions catalog, protected gameplay transactions, marketplace escrow, atomic donations/promo rewards, and direct-write restrictions. Uninstalled protections fail closed with a setup error rather than trusting browser rewards.
 
+Apply `supabase/migrations/0071_fall_fiesta_leaf_shop.sql` to open the Fall Fiesta: it adds the leaf balance, the hourly leaf catches and the leaf shop. Until then the Event tab says the shop is opening soon and no leaves fall.
+
 Apply `supabase/migrations/0017_ted_secret.sql` as well to enable the signed-in Ted secret click counter and grant Ted as a Unique inventory item. Without it, the secret claim endpoint cannot save the reward.
 
 Apply `supabase/migrations/0018_refreshed_bread_bag.sql` to register the refreshed Bread Bag rewards and artwork, update Sun and Eclipse artwork, and retire the Human, Pixel, and Remix packs in the database catalog.

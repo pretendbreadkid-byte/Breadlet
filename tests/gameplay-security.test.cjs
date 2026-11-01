@@ -656,3 +656,59 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
     await database.close();
   }
 });
+
+const fiesta = loadModule('lib/fall-fiesta.ts');
+
+test('the leaf shower runs for the first minutes of every hour', () => {
+  const at = (time) => fiesta.showerAt(Date.parse(time));
+  assert.equal(at('2026-11-01T05:00:00Z').live, true);
+  assert.equal(at('2026-11-01T05:04:59Z').live, true);
+  assert.equal(at('2026-11-01T05:05:00Z').live, false);
+  assert.equal(at('2026-11-01T05:59:59Z').nextAt, Date.parse('2026-11-01T06:00:00Z'));
+  assert.ok(fiesta.FIESTA_SHOP.some((item) => item.badge));
+  for (const item of fiesta.FIESTA_SHOP) {
+    assert.ok(fs.existsSync(`public${item.art}`), item.art);
+    if (!item.badge) assert.equal(catalog.isUniqueBreadlet(item.name), true, item.name);
+  }
+});
+
+test('leaves are capped per shower, cannot be overspent, and buy each reward once', async () => {
+  const database = new PGlite();
+  try {
+    await database.exec(`
+      create role anon; create role authenticated; create role service_role;
+      create table public.profiles (id uuid primary key, is_banned boolean not null default false, account_status text not null default 'active', stats jsonb not null default '{}');
+      create table public.blooks (id uuid primary key default gen_random_uuid(), name text unique not null, rarity text not null, artwork_key text);
+      create table public.inventory (profile_id uuid not null, blook_id uuid not null, quantity integer not null, shiny boolean not null default false, primary key (profile_id, blook_id, shiny));
+      insert into public.profiles (id) values ('00000000-0000-0000-0000-000000000001');
+      insert into public.profiles (id, is_banned) values ('00000000-0000-0000-0000-000000000002', true);
+    `);
+    await database.exec(fs.readFileSync('supabase/migrations/0071_fall_fiesta_leaf_shop.sql', 'utf8'));
+    const player = '00000000-0000-0000-0000-000000000001';
+    const banned = '00000000-0000-0000-0000-000000000002';
+    const value = async (sql) => Object.values((await database.query(sql)).rows[0])[0];
+    const catchLeaf = (minutes = 60, limit = 3, who = player) => value(`select public.catch_fall_leaf('${who}', ${minutes}, ${limit})`);
+    const buy = (item, price, badge = false) => value(`select public.buy_fall_reward('${player}', '${item}', ${price}, ${badge})`);
+
+    await assert.rejects(catchLeaf(0), /leaf shower is over/);
+    await assert.rejects(catchLeaf(60, 3, banned), /cannot play/);
+    await assert.rejects(buy('Acorn', 2), /need more leaves/);
+    await catchLeaf();
+    await catchLeaf();
+    assert.deepEqual(await catchLeaf(), { leaves: 3, caught: 3, bought: [] });
+    await assert.rejects(catchLeaf(), /every leaf/);
+
+    await assert.rejects(buy('Acorn', 4), /need more leaves/);
+    assert.deepEqual(await buy('Acorn', 2), { leaves: 1, bought: ['Acorn'] });
+    assert.equal(await value(`select quantity from public.inventory`), 1);
+    await assert.rejects(buy('Acorn', 1), /already own/);
+    assert.deepEqual(await buy('Fall Fiesta', 1, true), { leaves: 0, bought: ['Acorn', 'Fall Fiesta'] });
+    const stats = await value(`select stats from public.profiles where id = '${player}'`);
+    assert.deepEqual(stats.badges, ['Fall Fiesta']);
+    assert.equal(stats.gameplayRevision, 2);
+    assert.equal(await value(`select has_table_privilege('authenticated', 'public.fall_fiesta_wallets', 'select')`), false);
+    assert.equal(await value(`select has_function_privilege('authenticated', 'public.catch_fall_leaf(uuid, integer, integer)', 'execute')`), false);
+  } finally {
+    await database.close();
+  }
+});
