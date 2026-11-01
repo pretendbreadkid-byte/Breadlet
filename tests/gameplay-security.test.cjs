@@ -657,6 +657,13 @@ test('database transactions enforce replay, balance, ownership, escrow, and perm
   }
 });
 
+test('chat logs pasted back into the chat are recognized', () => {
+  const { isPastedChatLog } = loadModule('lib/chat-filter.ts');
+  assert.equal(isPastedChatLog('westina 4:59 PM feets Acorn kid 4:59 PM hi Breadlet logo Breadlet 5:00 PM Share your referral code'), true);
+  assert.equal(isPastedChatLog('the event is at 4:00 PM or 5:00 PM'), false);
+  assert.equal(isPastedChatLog('hello there'), false);
+});
+
 const fiesta = loadModule('lib/fall-fiesta.ts');
 
 test('the leaf shower runs for the first minutes of every hour', () => {

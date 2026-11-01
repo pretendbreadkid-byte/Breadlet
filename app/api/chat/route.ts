@@ -7,7 +7,7 @@ import { ogBadges } from '../../../lib/og-badge';
 import { mentionedNames, notify } from '../../../lib/inbox';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
-import { filterProfanity, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
+import { filterProfanity, hasSevereSlur, isNameAllowed, isPastedChatLog } from '../../../lib/chat-filter';
 import { NETWORK_BANNED_MESSAGE, isNetworkBanned } from '../../../lib/network-identity';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +19,7 @@ const hideSlurs = (message: string) => !isImage(message) && hasSevereSlur(messag
 // message, so embedded images are served once from /api/chat/image (cached) instead of
 // being downloaded from the database on every chat refresh.
 const SPAM_MUTE_MINUTES = 5;
+const PASTED_CHAT_ERROR = "Please don't paste the chat back into the chat.";
 const LIGHT_SELECT = 'id, text_body, is_image, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
 const FULL_SELECT = 'id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
 const imageLink = (id: string) => `[img]/api/chat/image?id=${id}[/img]`;
@@ -247,6 +248,7 @@ export async function POST(request: Request) {
   const isImageMessage = /^\[img\]data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+\/=]+\[\/img\]$/.test(rawMessage) && rawMessage.length <= 600000;
   // A rejected image must not fall through and get posted as a chopped-up text message.
   if (rawMessage.startsWith('[img]') && !isImageMessage) return NextResponse.json({ error: 'That image could not be sent. Try a PNG or JPEG.' }, { status: 400 });
+  if (!isImageMessage && isPastedChatLog(rawMessage)) return NextResponse.json({ error: PASTED_CHAT_ERROR }, { status: 400 });
   // Slurs are blocked outright and earn an automatic 30-minute timeout.
   if (!isImageMessage && hasSevereSlur(rawMessage)) {
     if (!isProtectedFromMute(sender?.username || '')) {
@@ -481,6 +483,7 @@ export async function PATCH(request: Request) {
   if (Number.isFinite(editorMutedUntil) && editorMutedUntil > Date.now()) {
     return NextResponse.json({ error: 'You are timed out from chat and cannot edit messages.' }, { status: 403 });
   }
+  if (isPastedChatLog(rawMessage)) return NextResponse.json({ error: PASTED_CHAT_ERROR }, { status: 400 });
   if (hasSevereSlur(rawMessage)) {
     if (!isProtectedFromMute(editor?.username || '')) {
       const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();

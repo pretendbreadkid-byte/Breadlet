@@ -65,3 +65,8 @@ export function isNameAllowed(name: string) {
   if (hasSevereSlur(name) || /fag|kys|^nig(?:a|er)|nig(?:a|er)s?$/.test(squashed)) return false;
   return !MILD_WORDS.some((mild) => squashed.includes(mild));
 }
+
+// Copying the chat window and pasting it back in brings the message times along with it.
+export function isPastedChatLog(text: string) {
+  return (text.match(/b\d{1,2}:\d{2}b/g) || []).length >= 3;
+}
