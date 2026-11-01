@@ -340,7 +340,7 @@ const artFor = (name: string) =>
     "Car Keys": "/assets/Lost and found + food pack/car keys .svg",
     Comb: "/assets/Lost and found + food pack/comb.svg",
     Hat: "/assets/Lost and found + food pack/hat.svg",
-    Textbook: "/assets/Lost and found + food pack/Textbook.svg",
+    Book: "/assets/book.svg",
     Tablet: "/assets/Lost and found + food pack/tablet.svg",
     Apple: "/assets/Lost and found + food pack/apple.svg",
     Avocado: "/assets/avocado-2.svg",
