@@ -448,6 +448,7 @@ export const legacyCapsules: Capsule[] = [
       ["Acorn", "Unique"],
       ["Pilgrim Hat", "Unique"],
       ["Fall Leaf", "Unique"],
+      ["Pumpkin Dragon", "Unique"],
     ]),
   },
   {

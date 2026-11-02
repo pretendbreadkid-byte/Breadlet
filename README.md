@@ -51,6 +51,8 @@ Apply `supabase/migrations/0071_fall_fiesta_leaf_shop.sql` to open the Fall Fies
 
 Apply `supabase/migrations/0074_dragon_hand_mirror_and_terms.sql` to add the Christmas Tree Dragon, swap every Comb for a Hand Mirror and turn on the Terms of Service. Until then, bags that roll either new Breadlet fail with a catalog error and charge nothing, and nobody is asked to agree.
 
+Apply `supabase/migrations/0075_pumpkin_dragon.sql` to add the Pumpkin Dragon. Until then, buying it in the leaf shop fails and costs no leaves.
+
 Apply `supabase/migrations/0072_textbook_becomes_book.sql` to rename Textbook to Book in the database. Until then, a Lost and Found Bag that rolls a Book fails with a catalog error and charges nothing.
 
 Apply `supabase/migrations/0017_ted_secret.sql` as well to enable the signed-in Ted secret click counter and grant Ted as a Unique inventory item. Without it, the secret claim endpoint cannot save the reward.

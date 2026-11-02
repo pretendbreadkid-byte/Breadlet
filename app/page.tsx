@@ -389,6 +389,7 @@ const artFor = (name: string) =>
     Acorn: "/assets/fall/acorn.svg",
     "Pilgrim Hat": "/assets/fall/pilgrim-hat.webp",
     "Fall Leaf": "/assets/fall/fall-leaf.webp",
+    "Pumpkin Dragon": "/assets/fall/pumpkin-dragon.svg",
   })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const artForBlook = (name: string, artworkKey?: string) => {
   const mappedArt = artFor(name);
