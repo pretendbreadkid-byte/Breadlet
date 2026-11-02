@@ -60,7 +60,7 @@ const newLeaf = (id: number, delay: number) => ({
   id,
   left: Math.random() * 88,
   delay,
-  duration: 7 + Math.random() * 4,
+  duration: 2.5 + Math.random() * 1.5,
   size: 120 + Math.random() * 60,
   spin: Math.random() < 0.5 ? -1 : 1,
 });
@@ -75,9 +75,9 @@ export function FallFiestaLayer() {
 }
 
 function LeafShower({ caught }: { caught: number }) {
-  const count = useRef(14);
-  // A negative delay starts a leaf partway down, so the screen fills up straight away.
-  const [leaves, setLeaves] = useState(() => Array.from({ length: 14 }, (_, index) => newLeaf(index, -Math.random() * 7)));
+  const count = useRef(5);
+  // A negative delay starts a leaf partway down, so leaves are falling straight away.
+  const [leaves, setLeaves] = useState(() => Array.from({ length: 5 }, (_, index) => newLeaf(index, -Math.random() * 3)));
   const [pops, setPops] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
   const busy = useRef(false);
 
@@ -90,8 +90,8 @@ function LeafShower({ caught }: { caught: number }) {
   const catchLeaf = async (leafId: number, x: number, y: number) => {
     if (busy.current) return;
     busy.current = true;
-    // A new leaf takes the caught one's place, so the shower keeps falling.
-    setLeaves((current) => current.map((leaf) => (leaf.id === leafId ? newLeaf(count.current++, 0) : leaf)));
+    // A new leaf takes the caught one's place after a short wait, so the shower keeps falling.
+    setLeaves((current) => current.map((leaf) => (leaf.id === leafId ? newLeaf(count.current++, 2) : leaf)));
     const response = await fiestaPost({ action: "catch" });
     const result = await response?.json().catch(() => null);
     busy.current = false;

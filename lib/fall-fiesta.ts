@@ -2,7 +2,7 @@
 // The server re-checks all of this (see app/api/events/fiesta and migration 0071).
 
 export const SHOWER_MINUTES = 5;
-export const LEAVES_PER_SHOWER = 20;
+export const LEAVES_PER_SHOWER = 10;
 
 export type FiestaItem = { name: string; price: number; art: string; badge?: boolean };
 
