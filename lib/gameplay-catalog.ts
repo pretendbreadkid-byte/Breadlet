@@ -255,7 +255,7 @@ export const liveCapsules: Capsule[] = [
     art: "/assets/lost and found.svg",
     pool: rewards([
       ["Car Keys", "Common"],
-      ["Comb", "Common"],
+      ["Hand Mirror", "Common"],
       ["Coffee Mug", "Common"],
       ["Wallet", "Uncommon"],
       ["Hat", "Uncommon"],
@@ -411,8 +411,8 @@ export const liveCapsules: Capsule[] = [
       ["Present", "Epic"],
       ["Festive Breadlet", "Legendary"],
       ["Reindeer", "Secret"],
-      ["Gnome", "Breadled"],
-    ], {}, { Gnome: 0.005 }), ["Chocolate Candy Cookie", "Sugar Cookie", "Macadamia Nut Cookie", "Gingerbread Cookie"]),
+      ["Christmas Tree Dragon", "Breadled"],
+    ], {}, { "Christmas Tree Dragon": 0.005 }), ["Chocolate Candy Cookie", "Sugar Cookie", "Macadamia Nut Cookie", "Gingerbread Cookie"]),
   },
   {
     // Shows in the shop now, opens November 1 (seasonalPackOpensAt in market-stock.ts).

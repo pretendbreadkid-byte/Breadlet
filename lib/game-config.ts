@@ -33,7 +33,7 @@ export const CHEST_DEFINITIONS = [
     name: 'Lost and Found Bag',
     price: 25,
     description: 'Someone left these behind.',
-    pool: ['Car Keys', 'Comb', 'Coffee Mug', 'Wallet', 'Hat', 'Book', 'Tablet', 'Button', 'Lost and Found Box'],
+    pool: ['Car Keys', 'Hand Mirror', 'Coffee Mug', 'Wallet', 'Hat', 'Book', 'Tablet', 'Button', 'Lost and Found Box'],
     rarity: 'Mythic',
     isRetired: false,
     active: true,

@@ -11,6 +11,8 @@ import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
+import { TermsGate, TermsModal } from "./components/terms";
+import { TERMS_VERSION } from "../lib/terms";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { GamesTab } from "./components/casino-games";
 import { NewsPanel } from "./components/news-panel";
@@ -98,6 +100,8 @@ type Player = {
   wheelSpun?: boolean;
   wheelSpunAt?: string;
   guestStarterRemoved?: boolean;
+  // The Terms of Service version they agreed to. Stays undefined for accounts until migration 0074 runs.
+  termsVersion?: number | null;
   capsulesOpened?: number;
   messagesSent?: number;
   completedTrades?: number;
@@ -197,7 +201,7 @@ const badgeDescriptions: Record<string, string> = {
   Contributor: "Helped build Breadlet with art, ideas or code.",
   Artist: "Drew artwork for Breadlet.",
   Birthday: "Happy birthday! Given by an admin on your birthday.",
-  "Fall Fiesta": "Bought with leaves in the Breadlet Fall Fiesta.",
+  "Fall Fiesta": "Earned in the Breadlet Fall Fiesta.",
 };
 // Badges an admin can hand out. Token milestones are automatic and kept once earned, OG from the
 // account age, and Owner / Moderator are tied to the staff usernames, so granting those by hand
@@ -338,7 +342,7 @@ const artFor = (name: string) =>
     Rock: "/assets/rock-refreshed.svg",
     Button: "/assets/Lost and found + food pack/button.svg",
     "Car Keys": "/assets/Lost and found + food pack/car keys .svg",
-    Comb: "/assets/Lost and found + food pack/comb.svg",
+    "Hand Mirror": "/assets/hand-mirror.svg",
     Hat: "/assets/Lost and found + food pack/hat.svg",
     Book: "/assets/book.svg",
     Tablet: "/assets/Lost and found + food pack/tablet.svg",
@@ -359,7 +363,7 @@ const artFor = (name: string) =>
     Snowball: "/assets/winter/snowball.svg",
     Mitten: "/assets/winter/mitten.svg",
     "Christmas Candy": "/assets/winter/christmas-candy.svg",
-    "Santa Hat": "/assets/winter/santa-hat.svg",
+    "Santa Hat": "/assets/winter/santa-hat.svg?v=2",
     Ornament: "/assets/winter/ornament.svg",
     "Chocolate Coin": "/assets/winter/chocolate-coin.svg",
     Stocking: "/assets/winter/stocking.svg",
@@ -371,9 +375,10 @@ const artFor = (name: string) =>
     "Festive Breadlet": "/assets/winter/festive-breadlet.svg",
     Reindeer: "/assets/winter/reindeer-animated.svg",
     Gnome: "/assets/winter/gnome-animated.svg",
+    "Christmas Tree Dragon": "/assets/winter/christmas-tree-dragon.svg",
     // Fall Bag
     Pumpkin: "/assets/fall/pumpkin.svg",
-    "Chai Tea": "/assets/fall/chai-tea.svg",
+    "Chai Tea": "/assets/fall/chai-tea.svg?v=2",
     "Cherry Pie": "/assets/fall/cherry-pie.svg",
     "Pumpkin Pie": "/assets/fall/pumpkin-pie.webp",
     Corn: "/assets/fall/corn.webp",
@@ -498,6 +503,7 @@ function playerFromServer(data: any): Player {
     friends: data.profile.friends || [],
     wheelSpun: Boolean(data.profile.wheel_spun),
     wheelSpunAt: data.profile.wheel_spun_at || undefined,
+    termsVersion: data.profile.terms_version,
     capsulesOpened: data.activity?.capsulesOpened || 0,
     messagesSent: data.activity?.messagesSent || 0,
     completedTrades: data.activity?.completedTrades || 0,
@@ -577,6 +583,7 @@ function MainPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [referralCode, setReferralCode] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [forgotPassword, setForgotPassword] = useState(false);
@@ -979,7 +986,7 @@ function MainPage() {
           method: "POST",
           signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim() }),
+          body: JSON.stringify({ email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim(), acceptedTerms }),
         });
         const signupBody = await signupResponse.json().catch(() => null);
         if (!signupResponse.ok) {
@@ -1010,6 +1017,7 @@ function MainPage() {
         return;
       }
       await fetch("/api/player", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), tokens: 1000, materials: emptyMaterials() }) }).catch(() => null);
+      if (authMode === "signup") await fetch("/api/player/terms", { method: "POST" }).catch(() => null);
       // Retry while the server finishes restarting instead of silently doing nothing.
       let response: Response | null = null;
       for (let attempt = 0; attempt < 4 && !response?.ok; attempt += 1) {
@@ -1048,6 +1056,14 @@ function MainPage() {
     setViewedProfile(null);
     setNotice("");
     setTourOpen(true);
+  };
+  const acceptTerms = async () => {
+    if (!player) return false;
+    const accepted = { ...player, termsVersion: TERMS_VERSION };
+    if (isGuest) return save(accepted);
+    const response = await fetch("/api/player/terms", { method: "POST" }).catch(() => null);
+    if (response?.ok) setPlayer(accepted);
+    return Boolean(response?.ok);
   };
   const startGuest = () => {
     const persistentGuest = window.localStorage.getItem(guestPlayerKey);
@@ -1742,6 +1758,8 @@ function MainPage() {
         setEmail={setEmail}
         referralCode={referralCode}
         setReferralCode={setReferralCode}
+        acceptedTerms={acceptedTerms}
+        setAcceptedTerms={setAcceptedTerms}
         setPassword={setPassword}
         authMode={authMode}
         setAuthMode={setAuthMode}
@@ -2112,6 +2130,7 @@ function MainPage() {
         />
       )}
       {badgeInfo && <BadgeModal badge={badgeInfo} close={() => setBadgeInfo(null)} />}
+      {player.termsVersion !== TERMS_VERSION && (isGuest || player.termsVersion !== undefined) && <TermsGate onAccept={acceptTerms} onDecline={leaveSession} />}
       {selectedListing && <ListingModal listing={selectedListing} close={() => setSelectedListing(null)} buy={buyListing} isGuest={isGuest} />}
     </main>
   );
@@ -2207,6 +2226,8 @@ function LoginScreen({
   setEmail,
   referralCode,
   setReferralCode,
+  acceptedTerms,
+  setAcceptedTerms,
   setPassword,
   authMode,
   setAuthMode,
@@ -2227,6 +2248,8 @@ function LoginScreen({
   setEmail: (value: string) => void;
   referralCode: string;
   setReferralCode: (value: string) => void;
+  acceptedTerms: boolean;
+  setAcceptedTerms: (value: boolean) => void;
   setPassword: (value: string) => void;
   authMode: "login" | "signup";
   setAuthMode: (value: "login" | "signup") => void;
@@ -2240,6 +2263,7 @@ function LoginScreen({
   resetClickCountRef: { current: number };
   setAuthFeedback: (value: string) => void;
 }) {
+  const [termsOpen, setTermsOpen] = useState(false);
   return (
     <main className="auth-screen relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0c3b70] px-5 text-white">
       <BreadDrift className="auth-drift" />
@@ -2309,6 +2333,11 @@ function LoginScreen({
           placeholder="Create a password"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />}
+        {!forgotPassword && authMode === "signup" && <label className="auth-terms">
+          <input type="checkbox" required checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} />
+          <span>I agree to the <button type="button" onClick={() => setTermsOpen(true)}>Terms of Service</button></span>
+        </label>}
+        {termsOpen && <TermsModal close={() => setTermsOpen(false)} />}
         {notice && (
           <div className="modal-layer fixed inset-0 z-[9999] flex min-h-screen items-center justify-center bg-black/55 px-5 backdrop-blur-sm">
             <div className="w-full max-w-sm rounded-2xl border border-[#73c8ff] bg-[#18558f] p-6 text-center shadow-2xl">
@@ -4759,7 +4788,8 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
     ? playerRows.map((row) => ({ key: row.id, rank: row.rank, name: row.username, value: row.tokens, art: "", blook: row.equippedBlook, badges: row.badges, own: row.id === player.id, profileName: row.username }))
     : clanRows.map((row, index) => ({ key: row.id, rank: index + 1, name: row.name, value: row.treasury, art: row.profileBlook ? "" : row.thumbnailUrl, blook: row.profileBlook, badges: [], own: false, sub: `${row.members} members` }));
   const podium = [entries[1], entries[0], entries[2]].filter(Boolean) as LeaderboardEntry[];
-  const rest = entries.slice(3);
+  // The podium's top 3, then the next 15.
+  const rest = entries.slice(3, 18);
   const ordinal = (rank: number) => (rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd");
   const openEntry = (entry: LeaderboardEntry) => { if (entry.profileName) void openPlayerProfile(entry.profileName); };
   const valueLabel = board === "players" ? "tokens" : "treasury";

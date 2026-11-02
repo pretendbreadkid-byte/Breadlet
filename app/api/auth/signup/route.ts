@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   const password = String(body.password || '');
   const admin = createAdminClient();
 
+  if (body.acceptedTerms !== true) return NextResponse.json({ error: 'Please agree to the Terms of Service to make an account.' }, { status: 400 });
   if (!admin) {
     return NextResponse.json(
       { error: 'Server auth is not configured. Add SUPABASE_SERVICE_ROLE_KEY to .env.local, then restart the dev server.' },

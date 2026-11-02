@@ -2887,6 +2887,24 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-error { color: #ffb4ad !imp
 @media (prefers-reduced-motion: reduce) { .news-panel { animation: none; } }
 
 /* Fall Fiesta: the hourly leaf shower and the leaf shop. */
+/* Terms of Service: the signup checkbox, and the box that stays on top of everything until agreed. */
+.auth-terms { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 14px; font-weight: 700; }
+.auth-terms input { width: 18px; height: 18px; flex: none; }
+.auth-terms button { background: none; border: 0; padding: 0; color: #eac477; font-weight: 800; text-decoration: underline; box-shadow: none; }
+.modal-layer.terms-layer { z-index: 2147483000 !important; }
+.terms-card { display: flex; width: 100%; max-width: 34rem; max-height: 88vh; flex-direction: column; border: 4px solid #13120F; border-radius: 22px; background: #27251F; padding: 22px; color: #fff; box-shadow: 0 8px 0 #13120F; text-align: left; }
+.terms-card h2 { font-size: 1.6rem; font-weight: 900; }
+.terms-intro { margin-top: 4px; font-size: 14px; opacity: .85; }
+.terms-text { min-height: 0; flex: 1; overflow-y: auto; margin-top: 12px; border-radius: 12px; background: #13120F; padding: 14px; font-size: 14px; line-height: 1.45; }
+.terms-text section + section { margin-top: 12px; }
+.terms-text h3 { font-weight: 900; color: #eac477; }
+.terms-check { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 14px; font-weight: 800; cursor: pointer; }
+.terms-check input { width: 20px; height: 20px; flex: none; }
+.terms-error { margin-top: 8px; font-size: 14px; font-weight: 800; color: #ffb4a8; }
+.terms-agree { margin-top: 14px; width: 100%; border-radius: 14px; background: #ED7117; padding: 12px; font-weight: 900; color: #fff; }
+.terms-agree:disabled { opacity: .5; cursor: not-allowed; }
+.terms-decline { margin-top: 8px; width: 100%; background: none; border: 0; box-shadow: none; font-size: 14px; font-weight: 800; color: #fff; opacity: .75; }
+
 .admin-bread.fiesta-leaf { top: -200px; }
 .fiesta-leaf img { filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 12px rgba(255, 196, 84, .95)) drop-shadow(0 6px 8px rgba(0, 0, 0, .55)); }
 .event-countdown-short { width: min(18rem, 100%); grid-template-columns: repeat(2, 1fr); }

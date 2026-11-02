@@ -26,16 +26,20 @@ export async function GET() {
   const { data: adminShowers } = await database.from('admin_events').select('created_at, ends_at')
     .eq('kind', 'leaf_shower').gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(1);
   const adminShower = adminShowers?.[0];
-  const [wallet, shower] = await Promise.all([
+  const [wallet, shower, profile] = await Promise.all([
     database.from('fall_fiesta_wallets').select('leaves, bought').eq('profile_id', user.id).maybeSingle(),
     database.from('fall_fiesta_showers').select('catches').eq('profile_id', user.id)
       .eq('shower_at', adminShower?.created_at || new Date(showerAt(Date.now()).startsAt).toISOString()).maybeSingle(),
+    database.from('profiles').select('stats').eq('id', user.id).maybeSingle(),
   ]);
   if (wallet.error || shower.error) {
     if (NOT_INSTALLED.has(wallet.error?.code || '') || NOT_INSTALLED.has(shower.error?.code || '')) return notReady();
     return NextResponse.json({ error: 'Could not load your leaves.' }, { status: 503 });
   }
-  return NextResponse.json({ ready: true, leaves: wallet.data?.leaves || 0, caught: shower.data?.catches || 0, bought: wallet.data?.bought || [], adminEndsAt: adminShower ? Date.parse(adminShower.ends_at) : null });
+  // A badge an admin awarded counts as owned, so nobody pays for one they already have.
+  const awarded = FIESTA_SHOP.filter((item) => item.badge && profile.data?.stats?.badges?.includes(item.name)).map((item) => item.name);
+  const bought = Array.from(new Set([...(wallet.data?.bought || []), ...awarded]));
+  return NextResponse.json({ ready: true, leaves: wallet.data?.leaves || 0, caught: shower.data?.catches || 0, bought, adminEndsAt: adminShower ? Date.parse(adminShower.ends_at) : null });
 }
 
 // Catch one leaf during a shower, or buy something from the leaf shop.
@@ -51,6 +55,10 @@ export async function POST(request: Request) {
   } else if (body.action === 'buy') {
     const item = FIESTA_SHOP.find((entry) => entry.name === body.item);
     if (!item) return NextResponse.json({ error: 'That is not in the leaf shop.' }, { status: 400 });
+    if (item.badge) {
+      const { data: profile } = await database.from('profiles').select('stats').eq('id', user.id).maybeSingle();
+      if (profile?.stats?.badges?.includes(item.name)) return NextResponse.json({ error: 'You already own that.' }, { status: 409 });
+    }
     call = database.rpc('buy_fall_reward', { p_profile_id: user.id, p_item: item.name, p_price: item.price, p_badge: Boolean(item.badge) });
   } else {
     return NextResponse.json({ error: 'Bad request.' }, { status: 400 });
