@@ -146,8 +146,9 @@ export function cleanCatalogEdits(input: any): CatalogEdits | string {
 
 export const STYLE_PROPS = ['color', 'background', 'font-family', 'font-size', 'font-weight', 'text-shadow', 'box-shadow', 'border', 'border-radius', 'opacity', 'display'];
 // No braces, angle brackets, semicolons or @, so a value can't break out of its CSS rule.
+// Selectors may use ">" (one element inside another), but never "<", so they can't end the <style> tag.
 const SAFE_VALUE = /^[^{}<>;@\\]{1,200}$/;
-const SAFE_SELECTOR = /^[^{}<>;@]{1,600}$/;
+const SAFE_SELECTOR = /^[^{}<;@]{1,2000}$/;
 const SAFE_FONT = /^[A-Za-z0-9 ]{1,40}$/;
 const IMAGE = /^(\/assets\/[^"'<>\\]{1,200}|\/api\/site\/image\?id=[0-9a-f-]{36}|https:\/\/[^"'<>\s]{1,300})$/i;
 const LINK = /^(\/|https?:\/\/|#|mailto:)[^"'<>\s]{0,300}$/i;

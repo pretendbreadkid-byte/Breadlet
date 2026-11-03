@@ -311,7 +311,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
 
   const avatar = (name: string, large = true) => (
     <div className={`${large ? "h-28 w-28 sm:h-36 sm:w-36" : "h-12 w-12"} shrink-0`}>
-      {name ? <BlookArt name={name} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}
+      {name ? <BlookArt name={name} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}
     </div>
   );
   const slots = (items: { name: string; quantity: number }[], editable: boolean) => (
@@ -331,7 +331,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
   return (
     <div className="modal-layer fixed inset-0 z-[9998] flex flex-col overflow-y-auto text-white" style={{ background: "#E77D22 url(/assets/tab-stripes-bg.png) center / cover fixed no-repeat" }}>
       <header className="trade-room-header sticky top-0 z-10 flex items-center justify-between border-b border-[#3c3a34]/30 bg-[#13120F] px-4 py-3">
-        <div className="flex items-center gap-3"><img src="/assets/breadlet-logo.svg" alt="Breadlet" className="h-10 w-auto object-contain" /><span className="text-2xl font-black tracking-wide" style={{ fontFamily: "DynaPuff, Impact, sans-serif" }}>Breadlet</span><h2 className="ml-3 border-l border-[#3c3a34] pl-3 text-lg font-black">Trading with {otherName}</h2></div>
+        <div className="flex items-center gap-3"><img src="/assets/breadlet-icon.svg" alt="Breadlet" className="h-10 w-auto object-contain" /><span className="text-2xl font-black tracking-wide" style={{ fontFamily: "DynaPuff, Impact, sans-serif" }}>Breadlet</span><h2 className="ml-3 border-l border-[#3c3a34] pl-3 text-lg font-black">Trading with {otherName}</h2></div>
         <span className={`rounded-full px-3 py-1 text-xs font-black ${otherOffline ? "bg-red-600" : "bg-green-600"}`}>{otherOffline ? "Offline" : "Online"}</span>
       </header>
       <p role="note" className="bg-[#27251F] px-4 py-2 text-center text-sm font-bold text-[#e9bd67]">A 20% fee is taken from all Bread Bucks traded. To sell items for Bread Bucks, use the Bazaar instead.</p>

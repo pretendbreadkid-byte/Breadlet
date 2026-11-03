@@ -299,8 +299,8 @@ const artFor = (name: string) =>
     Wheel: "/assets/wheel.svg",
     Letter: "/assets/letter-2.svg",
     Gears: "/assets/gears-2.svg",
-    Antibiotics: "/assets/antibiotics.svg",
-    "Da Vinci's Ornithopter": "/assets/antibiotics.svg",
+    Antibiotics: "/assets/antibiotics-2.svg",
+    "Da Vinci's Ornithopter": "/assets/antibiotics-2.svg",
     "Light Bulb": "/assets/light-bulb.svg",
     "Leonardo da Vinci's Tank": "/assets/light-bulb.svg",
     "Leonardo da Vinci": "/assets/leonardo da vici.svg",
@@ -374,7 +374,7 @@ const artFor = (name: string) =>
     "Macadamia Nut Cookie": "/assets/winter/macadamia-nut-cookie.svg",
     "Gingerbread Cookie": "/assets/winter/gingerbread-cookie.svg",
     Present: "/assets/winter/present.svg",
-    "Festive Breadlet": "/assets/winter/festive-breadlet.svg",
+    "Festive Breadlet": "/assets/winter/festive-breadlet-2.svg",
     Reindeer: "/assets/winter/reindeer-animated.svg",
     Gnome: "/assets/winter/gnome-animated.svg",
     "Christmas Tree Dragon": "/assets/winter/christmas-tree-dragon.svg",
@@ -1903,7 +1903,7 @@ function MainPage() {
                 className="workspace-account-button flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3c3a34] bg-[#13120F] px-2 py-2 font-black text-[#e9bd67] transition hover:bg-[#27251F] sm:max-w-none sm:gap-2.5 sm:px-3.5"
               >
                 <div className="flex h-6 w-6 items-center justify-center overflow-hidden">
-                  {player.equipped ? <BlookImg name={player.equipped} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}
+                  {player.equipped ? <BlookImg name={player.equipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}
                 </div>
                 <span title={player.username} className="min-w-0 max-w-[min(52vw,22rem)] whitespace-normal break-words text-left leading-tight [overflow-wrap:anywhere] sm:max-w-[24rem]">{player.username}</span>
                 <ChevronDown size={18} />
@@ -2186,7 +2186,7 @@ function BootScreen() {
     <div className="fixed inset-0 flex items-center justify-center bg-[#E77D22] px-5">
       {stage !== "blank" && (
         <div role="status" className="w-full max-w-sm rounded-[22px] border-4 border-[#13120F] bg-[#27251F] p-7 text-center text-white shadow-[0_8px_0_#13120F]">
-          <img src="/assets/breadlet-logo.svg" alt="" className="boot-logo mx-auto h-16 w-16 object-contain" />
+          <img src="/assets/breadlet-icon.svg" alt="" className="boot-logo mx-auto h-16 w-16 object-contain" />
           <h1 className="mt-3 text-2xl font-black">Loading Breadlet...</h1>
           <p className="mt-1 text-sm opacity-85">{stage === "slow" ? "This is taking longer than usual. Your connection or our server might be slow." : "Getting your Breadlets ready."}</p>
           {stage === "slow" && <button type="button" onClick={() => window.location.reload()} className="mt-5 w-full rounded-[14px] bg-[#ED7117] px-4 py-3 font-black">Reload</button>}
@@ -2590,7 +2590,7 @@ function ProfileTab({
       {tradeAlert && <button onClick={() => { setTradeAlert(""); document.getElementById("profile-trades")?.scrollIntoView({ behavior: "smooth" }); }} className="profile-trade-toast" role="status">{tradeAlert}<span>View trade</span></button>}
       <div className="profile-top-grid">
         <section className="profile-player-panel">
-          <div className="profile-avatar-frame profile-avatar-float"><span className="profile-float-inner">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span></div>
+          <div className="profile-avatar-frame profile-avatar-float"><span className="profile-float-inner">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span></div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
             <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
@@ -2601,14 +2601,14 @@ function ProfileTab({
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/Bread%20bucks.svg" />
         <ProfileMetric label="Breadlets Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
-        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space bag updated again (1).svg" />
+        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space-bag-3.svg" />
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
         <ProfileMetric label="Account Age" value={accountAgeLabel(profileCreatedAt)} icon={<CalendarDays size={38} strokeWidth={2.4} />} />
       </div></section>
       <div className="profile-lower-grid"><section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends{friendsData.friends.length ? ` (${friendsData.friends.length})` : ""}</h2>{!viewingOther ? <button onClick={openLookup}>Find Player</button> : !isGuest && (friendsData.relation === "none" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Add Friend</button> : friendsData.relation === "pending-in" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Accept</button> : friendsData.relation === "pending-out" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Request Sent (Cancel)</button> : friendsData.relation === "friends" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Unfriend</button> : null)}</div><div className="profile-list-body">
-        {!viewingOther && friendsData.incoming.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} wants to be friends</span><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "accept" })}>Accept</button><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "decline" })}>Decline</button></div>)}
-        {friendsData.friends.length ? friendsData.friends.map((friend) => <div key={friend.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><button onClick={() => void openPlayerProfile(friend.username)} className="min-w-0 flex-1 truncate text-left font-bold">{friend.username}</button>{!viewingOther && <button onClick={() => void friendAction("DELETE", { friendProfileId: friend.id })}>Remove</button>}</div>) : !friendsData.incoming.length && <p className="profile-empty">{isGuest ? "Sign in to add friends." : "No friends yet."}</p>}
-        {!viewingOther && friendsData.outgoing.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-logo.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} (request sent)</span><button onClick={() => void friendAction("DELETE", { friendProfileId: request.id })}>Cancel</button></div>)}
+        {!viewingOther && friendsData.incoming.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} wants to be friends</span><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "accept" })}>Accept</button><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "decline" })}>Decline</button></div>)}
+        {friendsData.friends.length ? friendsData.friends.map((friend) => <div key={friend.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><button onClick={() => void openPlayerProfile(friend.username)} className="min-w-0 flex-1 truncate text-left font-bold">{friend.username}</button>{!viewingOther && <button onClick={() => void friendAction("DELETE", { friendProfileId: friend.id })}>Remove</button>}</div>) : !friendsData.incoming.length && <p className="profile-empty">{isGuest ? "Sign in to add friends." : "No friends yet."}</p>}
+        {!viewingOther && friendsData.outgoing.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} (request sent)</span><button onClick={() => void friendAction("DELETE", { friendProfileId: request.id })}>Cancel</button></div>)}
       </div></section></div>
       {!viewingOther && <div className="profile-lower-grid">
         {!isGuest && <section className="profile-list-panel" id="profile-trades"><div className="profile-list-heading"><h2>Trades</h2><div className="flex gap-2"><button aria-pressed={tradesCompletedOnly} onClick={() => setTradesCompletedOnly(!tradesCompletedOnly)}>{tradesCompletedOnly ? "Showing completed" : "Completed only"}</button><button onClick={() => void loadTrades()}>Refresh</button></div></div>{tradeMessage && <p role="status" className="profile-alert-inline">{tradeMessage}</p>}<div className="profile-list-body profile-trade-list">{trades.filter((trade) => !tradesCompletedOnly || trade.status === "completed").map((trade) => {
@@ -3869,7 +3869,7 @@ function BlookListingsModal({
         <div className="bazaar-offers-list" role="listbox" aria-label={`${blook} listings`}>
           {offers.map((offer) => (
             <button key={offer.id} type="button" role="option" aria-selected={offer.id === selected?.id} onClick={() => setSelectedId(offer.id)} className="bazaar-offer-row">
-              <span className="bazaar-offer-avatar">{offer.sellerBlook ? <BlookImg name={offer.sellerBlook} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span>
+              <span className="bazaar-offer-avatar">{offer.sellerBlook ? <BlookImg name={offer.sellerBlook} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span>
               <span className="min-w-0 flex-1 text-left">
                 <strong className="block truncate text-lg">{offer.seller}{offer.seller === player.username ? " (you)" : ""}</strong>
                 <small className="block text-sm opacity-75">{listedAgo(offer.listedAt)}{Number(offer.quantity) > 1 ? ` · ${offer.quantity} available` : ""}</small>
@@ -4656,7 +4656,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
           return (
             <div key={`${group.user}-${latest.index}`} className="chat-group">
               <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} aria-label={group.isBreadletBot ? "Breadlet chat bot" : `Open ${group.user}'s profile`} title={group.isBreadletBot ? "Breadlet" : `View ${group.user}'s profile`} className="chat-avatar disabled:cursor-default">
-                {group.isBreadletBot ? <img src="/assets/breadlet-logo.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}
+                {group.isBreadletBot ? <img src="/assets/breadlet-icon.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}
               </button>
               <div className="min-w-0 flex-1">
                 <div className="chat-group-header">
@@ -4754,7 +4754,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         <div className="relative min-w-0 flex-1">
         {pickerOpen && <div className="chat-picker" role="listbox" aria-label={mentionQuery !== null ? "Mention a player" : "Commands"}>
           {mentionQuery !== null
-            ? mentionResults.map((entry, index) => <button key={entry.username} type="button" role="option" aria-selected={index === pickerIndex} onMouseDown={(event) => { event.preventDefault(); chooseMention(entry.username); }} className="chat-picker-item"><span className="chat-picker-avatar">{entry.equippedBlook ? <BlookImg name={entry.equippedBlook} className="h-full w-full" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span><span className="truncate">{entry.username}</span></button>)
+            ? mentionResults.map((entry, index) => <button key={entry.username} type="button" role="option" aria-selected={index === pickerIndex} onMouseDown={(event) => { event.preventDefault(); chooseMention(entry.username); }} className="chat-picker-item"><span className="chat-picker-avatar">{entry.equippedBlook ? <BlookImg name={entry.equippedBlook} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span><span className="truncate">{entry.username}</span></button>)
             : commandMatches.map((command, index) => <button key={command.name} type="button" role="option" aria-selected={index === pickerIndex} onMouseDown={(event) => { event.preventDefault(); chooseCommand(command); }} className="chat-picker-item"><span className="chat-picker-command">{command.usage}</span><span className="chat-picker-desc">{command.description}</span></button>)}
         </div>}
         {commandResult && <div role="status" className="chat-command-result"><span>{commandResult}</span><button type="button" aria-label="Dismiss" onClick={() => setCommandResult("")}>×</button></div>}
@@ -4776,7 +4776,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       </form>
       <aside aria-label="Online players" className={`chat-side-actions relative flex shrink-0 items-center gap-2 ${onlinePanelOpen ? "chat-online-panel-open" : ""}`}>
         {!isGuest && <GamesMenu onError={setChatError} onAsk={(question) => sendMessageText(`/ai ${question}`, null)} />}
-        {onlinePanelOpen && <div className="chat-online-list absolute bottom-full right-0 z-50 mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <RewardArt name={online.equippedBlook} art={artFor(online.equippedBlook)} className="h-8 w-8" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-8 w-8 object-contain" />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
+        {onlinePanelOpen && <div className="chat-online-list absolute bottom-full right-0 z-50 mb-2 max-h-[38vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-sky-300/40 bg-[#0c2947]/95 p-2 text-white shadow-2xl backdrop-blur-md"><header className="flex items-center justify-between border-b border-sky-200/20 px-3 py-2"><div><h2 className="font-black">Online Players</h2><p className="text-xs text-sky-100/70">{onlinePlayers.length} online now</p></div><span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" /></header>{onlinePlayers.map((online) => <button key={online.id} onClick={() => void openPlayerProfile(online.username)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/10"><span className="grid h-10 w-10 shrink-0 place-items-center">{online.equippedBlook ? <RewardArt name={online.equippedBlook} art={artFor(online.equippedBlook)} className="h-8 w-8" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-8 w-8 object-contain" />}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{online.username}</span><span className="h-2 w-2 rounded-full bg-emerald-400" /></button>)}{!onlinePlayers.length && <p className="px-3 py-5 text-center text-sm text-white/60">{isGuest ? "Sign in to see live players." : "No players detected yet."}</p>}</div>}
         <button type="button" aria-expanded={onlinePanelOpen} onClick={() => setOnlinePanelOpen((open) => !open)} className="chat-online-toggle flex items-center gap-2 rounded-xl border border-sky-300/45 bg-[#0c2947]/95 px-4 py-3 text-white hover:bg-[#103f75]"><CircleUserRound size={20} fill="currentColor" strokeWidth={1.5} /><span className="text-xl font-black">{onlinePlayers.length} online</span></button>
       </aside>
       </div>
@@ -4856,7 +4856,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
             <div key={entry.key} className={`leaderboard-podium-card flex flex-col items-center rounded-2xl border-2 p-5 text-center ${entry.rank === 1 ? "leaderboard-first" : ""}`}>
               <p className="text-lg font-black">{ordinal(entry.rank)}</p>
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="mt-2 max-w-full truncate text-2xl font-black disabled:cursor-default">{entry.name}</button>
-              <div className="my-4 flex h-28 w-28 items-center justify-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</div>
+              <div className="my-4 flex h-28 w-28 items-center justify-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</div>
               <p className="flex items-center gap-2 text-xl font-black"><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
               {entry.sub && <p className="text-xs font-bold opacity-80">{entry.sub}</p>}
             </div>
@@ -4867,7 +4867,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
         {rest.map((entry) => (
           <li key={entry.key} className={`leaderboard-row flex items-center gap-4 rounded-2xl border-2 px-4 py-2 ${entry.own ? "leaderboard-row-own" : ""}`}>
             <span className="w-10 shrink-0 text-center text-lg font-black">{entry.rank}</span>
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span>
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="truncate text-lg font-black hover:underline disabled:cursor-default disabled:no-underline">{entry.name}{entry.own ? " (you)" : ""}</button>
               {entry.sub && <span className="text-xs font-bold opacity-80">{entry.sub}</span>}

@@ -691,6 +691,9 @@ test('edit mode changes packs, odds and rarities, and undoing puts the built-in 
     assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'h1', style: { color: 'red; background: url(x)' } }] }), 'string');
     assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'a', style: {}, href: 'javascript:alert(1)' }] }), 'string');
     assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'h1.text-\\[\\#fff\\]', style: { color: '#ff0000' } }] }), 'object');
+    // "Just this one" picks save a path like "main > div:nth-of-type(2) > h1".
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'main.flex:nth-of-type(1) > div:nth-of-type(2) > h1.md\\:text-2xl:nth-of-type(1)', style: { color: '#ff0000' } }] }), 'object');
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'h1 </style><script>', style: { color: '#ff0000' } }] }), 'string');
   } finally {
     edits.applyCatalogEdits(edits.emptyCatalogEdits());
   }

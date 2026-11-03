@@ -106,8 +106,9 @@ export function SiteVisualEdits({ visual }: { visual: VisualEdits }) {
 }
 
 // "Every one like it": the tag and its classes. "Just this one": that plus its place in the page.
-const classes = (element: Element) => Array.from(element.classList).map((name) => `.${CSS.escape(name)}`).join("");
+const classes = (element: Element, limit = Infinity) => Array.from(element.classList).slice(0, limit).map((name) => `.${CSS.escape(name)}`).join("");
 const likeSelector = (element: Element) => `${element.tagName.toLowerCase()}${classes(element)}`;
+// The boxes around it only keep their first two classes, so the path stays short enough to save.
 const exactSelector = (element: Element) => {
   const parts: string[] = [];
   let node: Element | null = element;
@@ -116,7 +117,7 @@ const exactSelector = (element: Element) => {
     const parent: Element | null = node.parentElement;
     const tag = node.tagName;
     const position = parent ? Array.from(parent.children).filter((child) => child.tagName === tag).indexOf(node) + 1 : 1;
-    parts.unshift(`${tag.toLowerCase()}${classes(node)}:nth-of-type(${position})`);
+    parts.unshift(`${tag.toLowerCase()}${classes(node, node === element ? Infinity : 2)}:nth-of-type(${position})`);
     node = parent;
   }
   return parts.join(" > ");
