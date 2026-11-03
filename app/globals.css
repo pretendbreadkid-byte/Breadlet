@@ -2111,80 +2111,122 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 30px 20px;
 }
-.bazaar-stall { position: relative; display: flex; min-width: 0; flex-direction: column; border: 0; background: transparent; padding: 0; color: #fff; text-align: center; transition: transform 200ms cubic-bezier(.3, 1.5, .5, 1); }
+.bazaar-stall { position: relative; display: flex; min-width: 0; flex-direction: column; border: 0; background: transparent; padding: 0 0 6px; color: #fff; text-align: center; transition: transform 200ms cubic-bezier(.3, 1.5, .5, 1); }
 .bazaar-scene .bazaar-stall:hover:not(:disabled) { transform: translateY(-5px); box-shadow: none; filter: none; }
 .bazaar-stall:focus-visible { outline: 3px solid #fff1b7; outline-offset: 4px; border-radius: 12px; }
+/* A striped awning in the Breadlet's rarity color, with a scalloped edge. */
 .bazaar-stall-roof {
   position: relative;
   z-index: 2;
-  height: 32px;
+  height: 38px;
+  margin: 0 -2px;
   border: 3px solid #13120F;
-  border-radius: 12px 12px 4px 4px;
-  background: repeating-linear-gradient(90deg, var(--stall) 0 18px, #fff3df 18px 36px);
-  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .18);
+  border-radius: 16px 16px 6px 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .3), transparent 45%),
+    repeating-linear-gradient(90deg, var(--stall) 0 20px, #fff3df 20px 40px);
+  box-shadow: inset 0 -7px 0 rgba(0, 0, 0, .2), 0 4px 0 rgba(0, 0, 0, .25);
 }
 .bazaar-stall-roof::after {
   content: "";
   position: absolute;
   top: 100%;
-  left: 4px;
-  right: 4px;
-  height: 11px;
-  background: radial-gradient(circle at 9px 0, var(--stall) 8px, #13120F 8.5px 10px, transparent 10.5px) 0 0 / 18px 11px repeat-x;
+  left: 3px;
+  right: 3px;
+  height: 13px;
+  background: radial-gradient(circle at 10px 0, var(--stall) 9px, #13120F 9.5px 11.5px, transparent 12px) 0 0 / 20px 13px repeat-x;
 }
 .bazaar-stall-body {
+  position: relative;
   display: flex;
   flex-direction: column;
-  margin: 0 9px;
+  margin: 0 10px;
   overflow: hidden;
   border: 3px solid #13120F;
   border-top: 0;
-  border-radius: 0 0 10px 10px;
-  box-shadow: 0 6px 0 rgba(0, 0, 0, .35);
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 7px 0 rgba(0, 0, 0, .35);
 }
+/* Wooden posts holding up the awning. */
+.bazaar-stall-body::before, .bazaar-stall-body::after { content: ""; position: absolute; top: 0; bottom: 0; z-index: 3; width: 8px; background: linear-gradient(90deg, #5a3416, #8a5528 50%, #5a3416); }
+.bazaar-stall-body::before { left: 0; border-right: 2px solid #13120F; }
+.bazaar-stall-body::after { right: 0; border-left: 2px solid #13120F; }
 .bazaar-stall-art {
+  position: relative;
   display: flex;
-  height: 124px;
+  height: 136px;
   align-items: flex-end;
   justify-content: center;
-  padding: 20px 14px 6px;
-  background: radial-gradient(ellipse at 50% 35%, color-mix(in srgb, var(--stall) 38%, transparent), transparent 70%), #1d1611;
+  padding: 30px 20px 12px;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 50%, color-mix(in srgb, var(--stall) 50%, transparent), transparent 72%),
+    linear-gradient(180deg, #2c1e14, #17100b);
 }
-.bazaar-stall-art > * { transition: transform 220ms cubic-bezier(.3, 1.6, .5, 1); }
-.bazaar-stall:hover .bazaar-stall-art > * { transform: translateY(-5px) rotate(-4deg) scale(1.05); }
+/* A soft shadow on the shelf under the Breadlet. */
+.bazaar-stall-art::after { content: ""; position: absolute; right: 26%; bottom: 9px; left: 26%; height: 10px; border-radius: 50%; background: rgba(0, 0, 0, .5); filter: blur(2px); }
+.bazaar-stall-art > :not(.bazaar-stall-rarity) { position: relative; z-index: 1; transition: transform 220ms cubic-bezier(.3, 1.6, .5, 1); }
+.bazaar-stall:hover .bazaar-stall-art > :not(.bazaar-stall-rarity) { transform: translateY(-6px) rotate(-4deg) scale(1.06); }
+.bazaar-stall-rarity {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  border: 2px solid #13120F;
+  border-radius: 999px;
+  background: var(--stall);
+  padding: 1px 9px;
+  color: #13120F;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
 .bazaar-stall-counter {
+  position: relative;
+  z-index: 2;
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
   border-top: 3px solid #13120F;
   background:
     repeating-linear-gradient(90deg, transparent 0 30px, rgba(42, 23, 8, .22) 30px 32px),
-    linear-gradient(180deg, #a86a35, #7d4a22);
-  padding: 7px 8px 16px;
+    linear-gradient(180deg, #b47440, #7d4a22);
+  padding: 8px 14px 20px;
 }
 .bazaar-stall-name { overflow: hidden; font-size: 15px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 0 #2a1708; }
-.bazaar-stall-meta { font-size: 12px; font-weight: 800; opacity: .88; }
+.bazaar-stall-rap { display: inline-flex; max-width: 100%; align-self: center; align-items: center; gap: 4px; border-radius: 999px; background: rgba(19, 18, 15, .6); padding: 2px 10px; font-size: 13px; font-weight: 900; white-space: nowrap; }
+.bazaar-stall-rap small { color: #ffd75e; font-size: 10px; font-weight: 900; letter-spacing: .08em; }
+.bazaar-stall-rap img { width: 16px; height: 16px; object-fit: contain; }
+.bazaar-stall-rap-none { font-size: 12px; font-weight: 800; opacity: .85; }
+/* A price tag hanging off the counter. */
 .bazaar-price-sign {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: inline-flex;
+  max-width: calc(100% - 12px);
   align-self: center;
   align-items: center;
   gap: 5px;
-  margin-top: -12px;
-  border: 3px solid #8b5a2b;
-  border-radius: 8px;
-  background: #1f2b25;
-  padding: 3px 12px;
+  margin-top: -15px;
+  border: 3px solid #13120F;
+  border-radius: 10px;
+  background: #2f8a4a;
+  padding: 4px 12px;
   font-size: 14px;
   font-weight: 900;
   white-space: nowrap;
-  box-shadow: 0 3px 0 #13120F;
+  box-shadow: 0 4px 0 #13120F;
   transform: rotate(-2deg);
 }
 .bazaar-stall:nth-child(even) .bazaar-price-sign { transform: rotate(2deg); }
 .bazaar-price-sign img { width: 18px; height: 18px; object-fit: contain; }
+.bazaar-price-sign small { overflow: hidden; font-size: 11px; font-weight: 800; text-overflow: ellipsis; opacity: .85; }
+/* Nobody is selling one: the booth is shut. */
+.bazaar-stall[data-closed="true"] .bazaar-price-sign { background: #5b5248; color: #f1e7da; }
+.bazaar-stall[data-closed="true"] .bazaar-stall-art > :not(.bazaar-stall-rarity) { filter: saturate(.6) brightness(.8); }
 .bazaar-street {
   flex: 1 0 70px;
   margin: 34px calc(-1 * var(--scene-pad)) 0;
@@ -2198,9 +2240,13 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 }
 .breadlet-blue-theme .bazaar-scene > p.bazaar-empty { position: relative; z-index: 1; border-color: #13120F; background: rgba(19, 18, 15, .75); }
 @media (max-width: 540px) {
-  .breadlet-blue-theme .bazaar-scene .bazaar-blook-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 10px; }
-  .bazaar-stall-art { height: 96px; padding: 16px 10px 4px; }
+  .breadlet-blue-theme .bazaar-scene .bazaar-blook-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 10px; }
+  .bazaar-stall-art { height: 108px; padding: 28px 12px 10px; }
   .bazaar-stall-body { margin: 0 6px; }
+  .bazaar-stall-counter { padding: 7px 10px 18px; }
+  .bazaar-stall-name { font-size: 13px; }
+  .bazaar-price-sign { font-size: 12px; padding: 3px 8px; }
+  .bazaar-price-sign small { display: none; }
 }
 @media (max-width: 767px) { .breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign { margin-top: 5.5rem; } }
 
@@ -2807,17 +2853,33 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-card-suit[data-color="red"]
 main.breadlet-blue-theme.breadlet-blue-theme .casino-table h2 { color: #ffd75e !important; }
 .casino-cashier > p:not(.casino-outcome), .casino-shop > p { margin: 0 auto; max-width: 34rem; text-align: center; }
 .casino-stage { display: grid; min-height: 150px; place-items: center; }
-.casino-roulette { display: grid; width: 130px; height: 130px; place-items: center; border: 8px solid #c79a3b; border-radius: 50%; box-shadow: inset 0 0 0 6px #13120F, 0 5px 0 #090908; font-size: 3rem; }
 .casino-red { background: #c4302b; }
 .casino-black { background: #1d1d1d; }
 .casino-green { background: #1f8a3a; }
 .casino-reels { display: flex; gap: 10px; }
 .casino-reel { display: grid; width: 110px; height: 110px; place-items: center; border: 4px solid #c79a3b; border-radius: 16px; background: #f6ecd8; box-shadow: inset 0 6px 10px rgba(0, 0, 0, .25); }
 .casino-reel img { width: 80px; height: 80px; object-fit: contain; }
-.casino-dice { display: flex; gap: 18px; }
-.casino-die { font-size: 6rem; line-height: 1; }
-.casino-die-rolling { animation: casino-tumble .3s linear infinite; }
-@keyframes casino-tumble { to { rotate: 360deg; } }
+.casino-dice { display: flex; gap: 24px; padding: 8px 0 4px; }
+/* A real die: rounded ivory cube with black pips on a 3x3 grid. */
+.casino-die { display: grid; width: 96px; height: 96px; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center; border: 3px solid #13120F; border-radius: 18px; background: radial-gradient(circle at 30% 25%, #ffffff, #f1e6d2 60%, #d9c8a8); padding: 12px; box-shadow: inset -5px -6px 0 rgba(0, 0, 0, .12), 0 6px 0 #090908; }
+.casino-die i { width: 100%; height: 100%; }
+.casino-die .casino-pip { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #4a4a4a, #111); box-shadow: inset 0 2px 2px rgba(0, 0, 0, .6); }
+.casino-die-rolling { animation: casino-tumble .45s cubic-bezier(.4, 0, .6, 1) infinite; }
+.casino-die-rolling:nth-child(2) { animation-delay: -.2s; }
+@keyframes casino-tumble {
+  0% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-22px) rotate(180deg) scale(.92); }
+  100% { transform: translateY(0) rotate(360deg); }
+}
+/* The roulette wheel turns under a fixed pointer, then the ball sits in the winning pocket. */
+.casino-wheel { position: relative; width: min(280px, 72vw); aspect-ratio: 1; margin: 6px auto; filter: drop-shadow(0 8px 0 #090908); }
+.casino-wheel-spin { width: 100%; height: 100%; transition-property: transform; transition-timing-function: cubic-bezier(.15, .65, .12, 1); }
+.casino-card-wheel { display: block; width: 2.6rem; height: 2.6rem; }
+.casino-wheel-number { fill: #fff; font-size: 9px; font-weight: 900; font-family: Arial, sans-serif; }
+.casino-wheel-pointer { position: absolute; top: -6px; left: 50%; width: 0; height: 0; transform: translateX(-50%); border-top: 22px solid #ffd75e; border-right: 13px solid transparent; border-left: 13px solid transparent; filter: drop-shadow(0 2px 0 #13120F); }
+.casino-wheel-ball { position: absolute; top: 15%; left: 50%; width: 5.5%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #c9c9c9); box-shadow: 0 1px 2px rgba(0, 0, 0, .7); }
+.casino-wheel-result { position: absolute; top: 50%; left: 50%; display: grid; width: 22%; aspect-ratio: 1; place-items: center; transform: translate(-50%, -50%); border: 3px solid #ffd75e; border-radius: 50%; font-size: clamp(1.1rem, 4vw, 1.6rem); font-weight: 900; color: #fff; box-shadow: 0 0 14px rgba(255, 215, 94, .7); }
+@media (prefers-reduced-motion: reduce) { .casino-wheel-spin { transition-duration: 0ms !important; } .casino-die-rolling { animation: none; } }
 .casino-outcome { margin: 10px 0 0; text-align: center; font-size: 1.25rem; }
 main.breadlet-blue-theme.breadlet-blue-theme .casino-win { color: #6ee787 !important; }
 main.breadlet-blue-theme.breadlet-blue-theme .casino-lose { color: #ff8a80 !important; }
@@ -2848,7 +2910,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-play { border: 3px solid #1
 main.breadlet-blue-theme.breadlet-blue-theme .casino-shop-item button { border: 2px solid #13120F; border-radius: 10px; background: #3c3a34; padding: 6px 14px; opacity: .85; cursor: not-allowed; }
 .casino-error { margin: 12px 0 0; text-align: center; }
 main.breadlet-blue-theme.breadlet-blue-theme .casino-error { color: #ffb4ad !important; }
-@media (max-width: 640px) { .casino-page { padding: 12px; } .casino-reel { width: 84px; height: 84px; } .casino-reel img { width: 60px; height: 60px; } .casino-die { font-size: 4.5rem; } .casino-bulbs span:nth-child(3n) { display: none; } }
+@media (max-width: 640px) { .casino-page { padding: 12px; } .casino-reel { width: 84px; height: 84px; } .casino-reel img { width: 60px; height: 60px; } .casino-die { width: 78px; height: 78px; padding: 9px; } .casino-die .casino-pip { width: 14px; height: 14px; } .casino-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .casino-game-card > span:not(.casino-game-art) { display: none; } .casino-game-card b { font-size: 1rem; } .casino-card-suit { font-size: .9rem; } .casino-bulbs span:nth-child(3n) { display: none; } }
 @media (prefers-reduced-motion: reduce) { .casino-die-rolling, .casino-bulbs span { animation: none; } }
 
 /* Breadlet News panel: slides in from the right. */
@@ -2957,3 +3019,32 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-error { color: #ffb4ad !imp
 .edit-change { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; border-radius: 8px; background: #2b2924; padding: 6px 8px; word-break: break-word; }
 .edit-highlight { position: fixed; z-index: 2147482999; pointer-events: none; outline: 3px dashed #ED7117; outline-offset: 2px; background: rgba(237, 113, 23, .12); }
 .edit-pill { position: fixed; right: 12px; bottom: 12px; z-index: 2147483000; border: 3px solid #13120F; border-radius: 999px; background: #ED7117; padding: 10px 18px; color: #fff; font: 900 14px Arial, sans-serif; cursor: pointer; }
+
+/* Phones: a slim top bar (logo and links), the balance row under it, and the tabs in a bar along
+   the bottom that scrolls sideways, like a phone app. */
+@media (max-width: 767px) {
+  main.breadlet-blue-theme > aside.breadlet-sidebar { position: sticky !important; top: 0; z-index: 40; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 8px; height: auto; padding: 6px 12px !important; border-bottom-width: 4px !important; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar > div:first-child { display: flex; align-items: center; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-brand { width: 96px !important; margin: 0; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-wordmark { height: 30px !important; }
+  .breadlet-sidebar .sidebar-brand:hover::after { content: none; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-footer { margin: 0 !important; padding: 0 !important; gap: 18px; background: transparent !important; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; display: flex; gap: 2px; margin: 0; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; border-top: 3px solid #E77D22; background: #13120F; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); scrollbar-width: none; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav::-webkit-scrollbar { display: none; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button { position: relative; width: 68px !important; min-height: 54px !important; flex: 0 0 auto; flex-direction: column; justify-content: center; gap: 3px; margin: 0 !important; border-radius: 12px !important; padding: 6px 2px !important; font-size: 11px !important; line-height: 1.1; scroll-snap-align: start; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button > span { align-items: center !important; white-space: nowrap; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav .nav-unread-badge { position: absolute; top: 2px; right: 8px; margin: 0; }
+  .breadlet-blue-theme .workspace-island { position: static !important; width: auto !important; max-width: none !important; margin: 10px 12px 0; pointer-events: auto; }
+  .workspace-island > div.workspace-summary { width: 100%; max-width: none; flex-direction: row !important; flex-wrap: wrap !important; align-items: center !important; justify-content: space-between !important; }
+  .workspace-island .workspace-materials { order: 3; width: 100% !important; max-width: none !important; flex: 1 0 100%; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); }
+  .workspace-island .workspace-account-button { white-space: nowrap; }
+  .breadlet-blue-theme .game-workspace { padding-top: 12px !important; padding-right: 12px; padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important; padding-left: 12px; }
+  .breadlet-blue-theme .game-workspace[data-tab="capsules"], .breadlet-blue-theme .game-workspace[data-tab="market"] { padding-top: 0 !important; padding-right: 0; padding-left: 0; }
+  .shop-header { padding-top: 1rem !important; }
+  .breadlet-blue-theme .bazaar-market .bazaar-title.bazaar-sign { margin-top: 1rem !important; }
+  .breadlet-blue-theme .game-workspace.chat-workspace { height: calc(100svh - 190px) !important; padding-bottom: 12px !important; }
+  /* Grids size their one column to the widest card unless told to fit the screen. */
+  .breadlet-blue-theme .crafting-workbench, .breadlet-blue-theme .crafting-recipe-grid { grid-template-columns: minmax(0, 1fr); }
+  .breadlet-blue-theme .crafting-workspace .craft-process { min-width: 0; }
+  .chat-online-panel, .global-chat .chat-online-panel { bottom: calc(80px + env(safe-area-inset-bottom)) !important; }
+}

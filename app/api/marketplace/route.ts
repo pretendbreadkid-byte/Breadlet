@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { notify } from '../../../lib/inbox';
+import { isUniqueBreadlet } from '../../../lib/gameplay-catalog';
 
 export const dynamic = 'force-dynamic';
 const MAX_MARKETPLACE_PRICE = 2147483647;
@@ -29,8 +30,29 @@ async function priceHistory(name: string) {
   return NextResponse.json(sales, { headers: { 'Cache-Control': 'private, max-age=60' } });
 }
 
+// Every Breadlet's RAP (recent average price): the average of its last 10 sales, like the price
+// history. Shiny ones count separately. Breadlets that never sold are left out.
+async function recentAveragePrices() {
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({});
+  const { data } = await admin.from('marketplace_listings').select('price, shiny, blooks(name)')
+    .eq('status', 'sold').not('sold_at', 'is', null)
+    .order('sold_at', { ascending: false }).limit(3000);
+  const sales: Record<string, number[]> = {};
+  for (const row of (data || []) as any[]) {
+    const blook = Array.isArray(row.blooks) ? row.blooks[0] : row.blooks;
+    if (!blook?.name) continue;
+    const prices = (sales[`${row.shiny ? 'Shiny ' : ''}${blook.name}`] ||= []);
+    if (prices.length < 10) prices.push(Number(row.price) || 0);
+  }
+  const raps = Object.fromEntries(Object.entries(sales).map(([name, prices]) => [name, Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length)]));
+  return NextResponse.json(raps, { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600' } });
+}
+
 export async function GET(request: Request) {
-  const history = new URL(request.url).searchParams.get('history');
+  const params = new URL(request.url).searchParams;
+  if (params.get('rap')) return recentAveragePrices();
+  const history = params.get('history');
   if (history) return priceHistory(history.slice(0, 80));
   const supabase = await createClient();
   if (!supabase) return NextResponse.json([], { status: 200 });
@@ -131,15 +153,15 @@ export async function POST(request: Request) {
     const { data: seller } = await admin.from('profiles').select('username, stats').eq('id', user.id).maybeSingle();
     if ((seller?.stats?.lockedBlooks || []).includes(blookName)) return NextResponse.json({ error: `${blookName} is locked. Unlock it in My Breadlets to list it.` }, { status: 409 });
     sellerName = seller?.username || '';
-    const { data: blook } = await admin.from('blooks').select('rarity').eq('name', blookName.replace(/^Shiny /, '')).maybeSingle();
-    if (blook?.rarity === 'Unique') return NextResponse.json({ error: `${blookName} is Unique and can't be sold or traded.` }, { status: 409 });
+    if (isUniqueBreadlet(blookName)) return NextResponse.json({ error: `${blookName} can't be sold or traded.` }, { status: 409 });
   }
   // Looked up before the sale (it's marked sold after), so the seller can be told what sold.
   const listing = action === 'buy' && body.listingId
     ? (await admin.from('marketplace_listings').select('profile_id, price, shiny, blooks(name, rarity)').eq('id', body.listingId).maybeSingle()).data as any
     : null;
-  // Listings made before Uniques were locked can't be bought either (the seller can still cancel).
-  if ((Array.isArray(listing?.blooks) ? listing.blooks[0] : listing?.blooks)?.rarity === 'Unique') return NextResponse.json({ error: "Unique Breadlets can't be sold or traded." }, { status: 409 });
+  // Ted or Walter White listed before they were locked can't be bought either (the seller can still cancel).
+  const listedName = (Array.isArray(listing?.blooks) ? listing.blooks[0] : listing?.blooks)?.name;
+  if (listedName && isUniqueBreadlet(listedName)) return NextResponse.json({ error: `${listedName} can't be sold or traded.` }, { status: 409 });
   const { data, error } = await admin.rpc('secure_marketplace_action', {
     p_profile_id: user.id, p_action: action, p_blook_name: String(body.blook || ''), p_price: price, p_listing_id: body.listingId || null,
   });

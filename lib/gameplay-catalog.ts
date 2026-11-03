@@ -98,11 +98,11 @@ export const chanceFor = (capsule: Capsule, reward: Reward, date = new Date()) =
   return ((100 - fixedChance) * reward.weight) / remainingWeight;
 };
 
-// Unique Breadlets (Ted, Walter White) can't be sold, listed on the Bazaar or traded.
+// Ted and Walter White can't be sold, listed on the Bazaar or traded. Other Unique Breadlets
+// (the leaf shop prizes, the Skeleton Pirates) can.
 export const isUniqueBreadlet = (name: string) => {
   const baseName = name.replace(/^Shiny /, "");
-  return baseName === "Ted" || baseName === "Walter White"
-    || [...liveCapsules, ...legacyCapsules].some((capsule) => capsule.pool.some((reward) => reward.name === baseName && reward.rarity === "Unique"));
+  return baseName === "Ted" || baseName === "Walter White";
 };
 
 export const sellValueFor = (rarity: string) =>

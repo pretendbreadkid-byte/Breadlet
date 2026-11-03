@@ -2669,7 +2669,7 @@ function TradeChatModal({
 
 function rarityFor(name: string) {
   const baseName = name.replace(/^Shiny /, "");
-  if (baseName === "Ted" || baseName === "Walter White") return "Unique";
+  if (["Ted", "Walter White", "Skeleton Pirate", "Festive Skeleton Pirate"].includes(baseName)) return "Unique";
   const craftedRarity = craftedRarityFor(baseName);
   if (craftRecipes.some((recipe) => recipe.name === baseName)) return craftedRarity;
   return (
@@ -3569,7 +3569,14 @@ function Bazaar({
   const [marketListings, setMarketListings] = useState<Listing[]>(player.listings);
   const [selectedBlook, setSelectedBlook] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
+  // Recent average price of every Breadlet that has sold (average of its last 10 sales).
+  const [raps, setRaps] = useState<Record<string, number>>({});
   const supabase = useMemo(() => createSupabaseClient(), []);
+  useEffect(() => {
+    void fetch("/api/marketplace?rap=1").then((response) => (response.ok ? response.json() : {})).then((data) => {
+      if (data && typeof data === "object" && !Array.isArray(data)) setRaps(data as Record<string, number>);
+    }).catch(() => undefined);
+  }, []);
 
   const loadListings = useCallback(async () => {
     try {
@@ -3629,21 +3636,29 @@ function Bazaar({
     }).catch(() => undefined);
     return () => { cancelled = true; };
   }, [blook, showForm]);
-  const filteredListings = marketListings.filter((listing) => {
-    const matchesSearch = listing.blook.toLowerCase().includes(search.toLowerCase());
-    const matchesRarity = rarity === "All rarities" || rarityFor(listing.blook) === rarity;
-    const matchesPack = pack === "All packs" || packOf(listing.blook) === pack;
-    const matchesView = view === "browse" || listing.seller === player.username;
-    const matchesMissing = !onlyMissing || !ownedNames.has(listing.blook);
-    const matchesWishlist = !onlyWishlist || wishlist.includes(listing.blook);
-    return matchesSearch && matchesRarity && matchesPack && matchesView && matchesMissing && matchesWishlist;
-  });
+  const matchesFilters = (name: string) =>
+    name.toLowerCase().includes(search.toLowerCase())
+    && (rarity === "All rarities" || rarityFor(name) === rarity)
+    && (pack === "All packs" || packOf(name) === pack)
+    && (!onlyMissing || !ownedNames.has(name))
+    && (!onlyWishlist || wishlist.includes(name));
+  const filteredListings = marketListings.filter((listing) => matchesFilters(listing.blook) && (view === "browse" || listing.seller === player.username));
   const listings = [...filteredListings].sort((left, right) => {
     if (sortOrder === "Lowest price") return left.price - right.price;
     if (sortOrder === "Highest price") return right.price - left.price;
     return 0;
   });
-  const blookGroups = Array.from(new Set(listings.map((listing) => listing.blook)));
+  // Every Breadlet that can be traded gets a booth, even if nobody is selling one. Ones for sale
+  // come first; "My listings" only shows your own.
+  const listedGroups = Array.from(new Set(listings.map((listing) => listing.blook)));
+  const closedBooths = view === "mine" ? [] : Array.from(new Set(
+    [...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool.map((reward) => reward.name))
+      .concat(craftRecipes.map((recipe) => recipe.name), Object.keys(raps)),
+  )).filter((name) => !listedGroups.includes(name) && !isUniqueBreadlet(name) && matchesFilters(name))
+    .sort((left, right) => (raps[right] || 0) - (raps[left] || 0) || left.localeCompare(right));
+  const blookGroups = sortOrder === "Highest RAP"
+    ? [...listedGroups, ...closedBooths].sort((left, right) => (raps[right] || 0) - (raps[left] || 0))
+    : [...listedGroups, ...closedBooths];
 
   useEffect(() => {
     setSelectedBlook("");
@@ -3671,6 +3686,7 @@ function Bazaar({
           <option>Newest</option>
           <option>Lowest price</option>
           <option>Highest price</option>
+          <option>Highest RAP</option>
         </select>
         <button onClick={() => setShowForm(!showForm)} className="bazaar-list-button">+ List an item</button>
       </div>
@@ -3719,16 +3735,21 @@ function Bazaar({
             const quantity = blookListings.reduce((total, listing) => total + Math.max(1, Number(listing.quantity) || 1), 0);
             const lowest = Math.min(...blookListings.map((listing) => listing.price));
             return (
-              <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-stall" style={{ "--stall": stallColors[rarityFor(name)] || stallColors.Common } as React.CSSProperties}>
+              <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-stall" data-closed={!quantity} style={{ "--stall": stallColors[rarityFor(name)] || stallColors.Common } as React.CSSProperties}>
                 <span className="bazaar-stall-roof" aria-hidden="true" />
                 <span className="bazaar-stall-body">
-                  <span className="bazaar-stall-art"><BlookImg name={name} className="h-full w-full" /></span>
+                  <span className="bazaar-stall-art">
+                    <span className="bazaar-stall-rarity">{rarityFor(name)}</span>
+                    <BlookImg name={name} className="h-full w-full" />
+                  </span>
                   <span className="bazaar-stall-counter">
                     <span className="bazaar-stall-name">{wishlist.includes(name) ? "★ " : ""}{name}</span>
-                    <span className="bazaar-stall-meta">{rarityFor(name)} · {quantity} listed</span>
+                    {raps[name]
+                      ? <span className="bazaar-stall-rap" title="Recent average price: the average of the last 10 sales"><small>RAP</small><img src="/assets/Bread%20bucks.svg" alt="" />{raps[name].toLocaleString()}</span>
+                      : <span className="bazaar-stall-rap bazaar-stall-rap-none">No sales yet</span>}
                   </span>
                 </span>
-                <span className="bazaar-price-sign"><img src="/assets/Bread%20bucks.svg" alt="" />from {lowest.toLocaleString()}</span>
+                <span className="bazaar-price-sign">{quantity ? <><img src="/assets/Bread%20bucks.svg" alt="" />from {lowest.toLocaleString()}<small>· {quantity} for sale</small></> : "Not for sale"}</span>
               </button>
             );
           })}
@@ -3811,8 +3832,12 @@ function BlookListingsModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [close]);
-  // Close once the last listing is bought or taken down.
-  useEffect(() => { if (!offers.length) close(); }, [offers.length, close]);
+  // Close once the last listing is bought or taken down (booths with nothing for sale stay open).
+  const hadOffers = useRef(offers.length > 0);
+  useEffect(() => {
+    if (offers.length) hadOffers.current = true;
+    else if (hadOffers.current) close();
+  }, [offers.length, close]);
 
   const act = async () => {
     if (!selected || busy) return;
@@ -3829,7 +3854,7 @@ function BlookListingsModal({
           <div className="min-w-0 flex-1">
             <h2 id="blook-listings-title" className="truncate text-3xl font-black">{blook}</h2>
             <p className="text-base font-bold opacity-80">{rarityWithOdds(blook)}</p>
-            <p className="text-base font-black">{listedCount.toLocaleString()} listed</p>
+            <p className="text-base font-black">{listedCount ? `${listedCount.toLocaleString()} listed` : "Nobody is selling one right now"}</p>
             <button type="button" onClick={toggleWish} className="bazaar-wish-toggle" aria-pressed={wished}>{wished ? "★ On your wishlist" : "☆ Add to wishlist"}</button>
           </div>
           <button type="button" onClick={close} aria-label="Close listings" className="bazaar-offers-close">×</button>
@@ -4831,7 +4856,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
             <div key={entry.key} className={`leaderboard-podium-card flex flex-col items-center rounded-2xl border-2 p-5 text-center ${entry.rank === 1 ? "leaderboard-first" : ""}`}>
               <p className="text-lg font-black">{ordinal(entry.rank)}</p>
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="mt-2 max-w-full truncate text-2xl font-black disabled:cursor-default">{entry.name}</button>
-              <div className="my-4 grid h-28 w-28 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</div>
+              <div className="my-4 flex h-28 w-28 items-center justify-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</div>
               <p className="flex items-center gap-2 text-xl font-black"><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
               {entry.sub && <p className="text-xs font-bold opacity-80">{entry.sub}</p>}
             </div>
@@ -4842,7 +4867,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
         {rest.map((entry) => (
           <li key={entry.key} className={`leaderboard-row flex items-center gap-4 rounded-2xl border-2 px-4 py-2 ${entry.own ? "leaderboard-row-own" : ""}`}>
             <span className="w-10 shrink-0 text-center text-lg font-black">{entry.rank}</span>
-            <span className="grid h-12 w-12 shrink-0 place-items-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-logo.svg" alt="" className="h-full w-full object-contain" />}</span>
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="truncate text-lg font-black hover:underline disabled:cursor-default disabled:no-underline">{entry.name}{entry.own ? " (you)" : ""}</button>
               {entry.sub && <span className="text-xs font-bold opacity-80">{entry.sub}</span>}

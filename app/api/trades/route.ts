@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { notify } from '../../../lib/inbox';
+import { isUniqueBreadlet } from '../../../lib/gameplay-catalog';
 
 type OfferedBlook = { name: string; quantity: number };
 type TradeOffer = { tokens: number; blooks: OfferedBlook[] };
@@ -45,8 +46,8 @@ async function validateOffer(admin: ReturnType<typeof createAdminClient> & {}, p
     : { data: [], error: null };
   if (blookError) return 'Could not validate the Bread offer.';
   const ids = new Map((blooks || []).map((blook) => [blook.name, blook.id]));
-  const unique = (blooks || []).find((blook) => blook.rarity === 'Unique');
-  if (unique) return `${unique.name} is Unique and can't be traded.`;
+  const unique = names.find((name) => isUniqueBreadlet(name));
+  if (unique) return `${unique} can't be traded.`;
   for (const item of offer.blooks) {
     if (item.quantity < 1 || item.quantity > 100) return 'Bread quantities must be between 1 and 100.';
     const blookId = ids.get(item.name.replace(/^Shiny /, ''));

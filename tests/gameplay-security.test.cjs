@@ -710,8 +710,12 @@ test('the leaf shower runs for the first minutes of every hour', () => {
   assert.ok(fiesta.FIESTA_SHOP.some((item) => item.badge));
   for (const item of fiesta.FIESTA_SHOP) {
     assert.ok(fs.existsSync(`public${item.art}`), item.art);
-    if (!item.badge) assert.equal(catalog.isUniqueBreadlet(item.name), true, item.name);
+    if (!item.badge) assert.equal(catalog.isUniqueBreadlet(item.name), false, item.name);
   }
+  // Only Ted and Walter White can't be traded.
+  assert.equal(catalog.isUniqueBreadlet('Ted'), true);
+  assert.equal(catalog.isUniqueBreadlet('Shiny Walter White'), true);
+  assert.equal(catalog.isUniqueBreadlet('Skeleton Pirate'), false);
 });
 
 test('leaves are capped per shower, cannot be overspent, and buy each reward once', async () => {
