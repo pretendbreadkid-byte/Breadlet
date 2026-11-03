@@ -664,6 +664,41 @@ test('chat logs pasted back into the chat are recognized', () => {
   assert.equal(isPastedChatLog('hello there'), false);
 });
 
+test('edit mode changes packs, odds and rarities, and undoing puts the built-in ones back', () => {
+  const edits = loadModule('lib/site-edits.ts', { './gameplay-catalog': catalog, './market-stock': marketStock });
+  try {
+    const space = edits.packEditFor(catalog.liveCapsules.find((capsule) => capsule.name === 'Space Bag'));
+    space.price = 40;
+    space.items.push({ name: 'Moon Rock', rarity: 'Legendary' });
+    const testBag = { name: 'Test Bag', price: 10, art: '/assets/Bread.svg', stock: 1, rarityChances: {}, items: [{ name: 'Toast', rarity: 'Common' }, { name: 'Jam', rarity: 'Rare', chance: 10 }] };
+    const cleaned = edits.cleanCatalogEdits({ packs: { 'Space Bag': space, 'Test Bag': testBag }, blooks: { Mars: { rarity: 'Epic' } } });
+    assert.equal(typeof cleaned, 'object');
+    edits.applyCatalogEdits(cleaned);
+
+    const editedSpace = catalog.liveCapsules.find((capsule) => capsule.name === 'Space Bag');
+    assert.equal(editedSpace.price, 40);
+    assert.ok(editedSpace.pool.some((reward) => reward.name === 'Moon Rock'));
+    assert.equal(editedSpace.pool.find((reward) => reward.name === 'Mars').rarity, 'Epic');
+    const bag = catalog.liveCapsules.find((capsule) => capsule.name === 'Test Bag');
+    assert.ok(Math.abs(bag.pool.reduce((sum, reward) => sum + catalog.chanceFor(bag, reward), 0) - 100) < 1e-6);
+    assert.equal(catalog.chanceFor(bag, bag.pool[1]), 10);
+    assert.ok(marketStock.marketPackStock.some((entry) => entry.name === 'Test Bag'));
+
+    assert.match(edits.cleanCatalogEdits({ packs: { x: { ...testBag, price: -1 } }, blooks: {} }), /price/);
+    assert.match(edits.cleanCatalogEdits({ packs: { x: { ...testBag, art: 'javascript:alert(1)' } }, blooks: {} }), /picture/);
+    assert.match(edits.cleanCatalogEdits({ packs: { x: { ...testBag, items: [{ name: 'A', rarity: 'Rare', chance: 80 }, { name: 'B', rarity: 'Rare', chance: 30 }] } }, blooks: {} }), /more than 100/);
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'body } * {', style: {} }] }), 'string');
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'h1', style: { color: 'red; background: url(x)' } }] }), 'string');
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'a', style: {}, href: 'javascript:alert(1)' }] }), 'string');
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'h1.text-\\[\\#fff\\]', style: { color: '#ff0000' } }] }), 'object');
+  } finally {
+    edits.applyCatalogEdits(edits.emptyCatalogEdits());
+  }
+  assert.equal(catalog.liveCapsules.find((capsule) => capsule.name === 'Space Bag').price, 25);
+  assert.ok(!catalog.liveCapsules.some((capsule) => capsule.name === 'Test Bag'));
+  assert.ok(!marketStock.marketPackStock.some((entry) => entry.name === 'Test Bag'));
+});
+
 const fiesta = loadModule('lib/fall-fiesta.ts');
 
 test('the leaf shower runs for the first minutes of every hour', () => {

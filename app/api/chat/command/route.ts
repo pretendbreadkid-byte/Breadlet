@@ -4,6 +4,7 @@ import { createAdminClient } from '../../../../lib/supabase/admin';
 import { chatModerationRole, hasAdminAccess, isProtectedFromMute } from '../../../../lib/admin-access';
 import { commandsFor } from '../../../../lib/chat-commands';
 import { liveCapsules } from '../../../../lib/gameplay-catalog';
+import { loadSiteEdits } from '../../../../lib/site-edits-server';
 import { adminRenamePlayer } from '../../../../lib/admin-rename';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,8 @@ export async function POST(request: Request) {
 
   const [moderation, admin] = await Promise.all([chatModerationRole(database, user.id), hasAdminAccess(database, user.id)]);
   const role = admin ? 'admin' : moderation;
+  // So /stock knows about packs made or removed in edit mode.
+  await loadSiteEdits(database);
   const allowed = commandsFor(role).find((entry) => entry.name === command && entry.role !== 'everyone');
   if (!allowed) return reply(`/${command} isn't a command you can use.`, 403);
 

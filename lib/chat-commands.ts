@@ -18,6 +18,7 @@ export const CHAT_COMMANDS: ChatCommand[] = [
   { name: 'announce', usage: '/announce <message>', description: 'Breadlet posts your message in chat', role: 'admin' },
   { name: 'stock', usage: '/stock <bag> [minutes]', description: 'Put a bag in Ted\'s Shop (60 minutes if no time given) and announce it to everyone', role: 'admin' },
   { name: 'unstock', usage: '/unstock <bag>', description: 'End a bag you put in stock with /stock', role: 'admin' },
+  { name: 'edit', usage: '/edit', description: 'Open or close edit mode (packs, odds, Breadlets and how the site looks)', role: 'admin' },
   { name: 'help', usage: '/help', description: 'List the commands you can use', role: 'mod' },
 ];
 

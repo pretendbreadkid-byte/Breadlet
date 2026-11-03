@@ -53,6 +53,8 @@ Apply `supabase/migrations/0074_dragon_hand_mirror_and_terms.sql` to add the Chr
 
 Apply `supabase/migrations/0075_pumpkin_dragon.sql` to add the Pumpkin Dragon. Until then, buying it in the leaf shop fails and costs no leaves.
 
+Apply `supabase/migrations/0076_edit_mode.sql` to use edit mode: the owner types `/edit` in chat to change packs, odds, Breadlets and how the site looks. Edits save to the database and apply without a deploy.
+
 Apply `supabase/migrations/0072_textbook_becomes_book.sql` to rename Textbook to Book in the database. Until then, a Lost and Found Bag that rolls a Book fails with a catalog error and charges nothing.
 
 Apply `supabase/migrations/0017_ted_secret.sql` as well to enable the signed-in Ted secret click counter and grant Ted as a Unique inventory item. Without it, the secret claim endpoint cannot save the reward.

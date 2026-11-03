@@ -2913,3 +2913,47 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-error { color: #ffb4ad !imp
 .event-buy { justify-content: center; width: 100%; margin-top: auto; }
 .event-buy:disabled { opacity: .55; cursor: not-allowed; }
 .event-notice { margin-top: 12px; font-weight: 900; opacity: 1 !important; }
+
+/* Edit mode (/edit in chat, owner only): the side panel and the box around what you're pointing at. */
+.edit-panel { position: fixed; top: 12px; right: 12px; bottom: 12px; z-index: 2147483000; display: flex; width: min(420px, calc(100vw - 24px)); flex-direction: column; overflow: hidden; border: 3px solid #13120F; border-radius: 18px; background: #1d1c18; color: #fff; font: 14px/1.4 Arial, Helvetica, sans-serif; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); }
+.edit-panel * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+.edit-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #13120F; }
+.edit-header b { flex: 1; font-size: 16px; color: #e9bd67; }
+.edit-tabs { display: flex; gap: 4px; padding: 8px 8px 0; }
+.edit-tabs button { flex: 1; border: 0; border-radius: 10px 10px 0 0; background: #2b2924; padding: 8px 4px; color: #fff; font-weight: 800; cursor: pointer; }
+.edit-tabs button[aria-pressed="true"] { background: #3a372f; color: #e9bd67; }
+.edit-section { flex: 1; overflow-y: auto; margin: 0 8px 8px; border-radius: 0 0 12px 12px; background: #3a372f; padding: 12px; }
+.edit-button { display: inline-flex; align-items: center; justify-content: center; border: 2px solid #13120F; border-radius: 10px; background: #55503f; padding: 6px 10px; color: #fff; font-weight: 800; cursor: pointer; }
+.edit-button:disabled { opacity: .5; cursor: not-allowed; }
+.edit-save { background: #ED7117; }
+.edit-danger { background: #a32b22; }
+.edit-wide { width: 100%; margin: 8px 0; }
+.edit-link { border: 0; background: none; padding: 0 0 8px; color: #e9bd67; font-weight: 800; cursor: pointer; }
+.edit-field { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.edit-field > span:first-child { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #e9bd67; }
+.edit-inputs { display: flex; gap: 6px; }
+.edit-panel input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), .edit-panel select { width: 100%; min-width: 0; border: 2px solid #13120F; border-radius: 8px; background: #1d1c18; padding: 6px 8px; color: #fff; }
+.edit-panel input[type="color"] { width: 40px; height: 34px; flex: none; border: 2px solid #13120F; border-radius: 8px; background: none; padding: 0; }
+.edit-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.edit-picked { margin-top: 8px; word-break: break-word; }
+.edit-help { margin-top: 8px; font-size: 12px; opacity: .75; }
+.edit-status { margin-top: 10px; font-weight: 800; color: #9be59b; }
+.edit-error { margin-top: 6px; font-weight: 800; color: #ffb4a8; }
+.edit-title { margin-top: 14px; font-size: 15px; font-weight: 900; color: #e9bd67; }
+.edit-image { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.edit-image img { width: 44px; height: 44px; object-fit: contain; border-radius: 8px; background: #1d1c18; }
+.edit-image input { flex: 1; }
+.edit-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.edit-list-item { display: flex; align-items: center; gap: 8px; border: 0; border-radius: 8px; background: #2b2924; padding: 6px 8px; color: #fff; text-align: left; cursor: pointer; }
+.edit-list-item:hover { background: #4a463b; }
+.edit-list-item img { width: 28px; height: 28px; object-fit: contain; }
+.edit-search { margin-bottom: 4px; }
+.edit-table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 12px; }
+.edit-table th { padding: 4px 2px; text-align: left; color: #e9bd67; }
+.edit-table td { padding: 2px; }
+.edit-table td:nth-child(3) input { width: 58px; }
+.edit-table td:nth-child(4) { white-space: nowrap; }
+.edit-x { border: 0; border-radius: 6px; background: #a32b22; padding: 2px 8px; color: #fff; font-weight: 900; cursor: pointer; }
+.edit-change { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; border-radius: 8px; background: #2b2924; padding: 6px 8px; word-break: break-word; }
+.edit-highlight { position: fixed; z-index: 2147482999; pointer-events: none; outline: 3px dashed #ED7117; outline-offset: 2px; background: rgba(237, 113, 23, .12); }
+.edit-pill { position: fixed; right: 12px; bottom: 12px; z-index: 2147483000; border: 3px solid #13120F; border-radius: 999px; background: #ED7117; padding: 10px 18px; color: #fff; font: 900 14px Arial, sans-serif; cursor: pointer; }

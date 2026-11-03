@@ -4,6 +4,7 @@ import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { depositBankSpend } from '../../../lib/bank';
 import { planGameplay } from '../../../lib/gameplay-actions';
+import { loadSiteEdits } from '../../../lib/site-edits-server';
 import type { GameplaySnapshot } from '../../../lib/gameplay-actions';
 import { GET as getPlayer } from '../player/route';
 
@@ -39,8 +40,10 @@ export async function POST(request: Request) {
     const blook = row.blooks as unknown as { id: string; name: string; rarity: string } | null;
     if (blook) snapshot.inventory[`${row.shiny ? 'Shiny ' : ''}${blook.name}`] = { quantity: row.quantity, rarity: blook.rarity };
   }
+  // Packs and odds changed in edit mode (migration 0076).
+  await loadSiteEdits(admin);
   try {
-    const forcedStock = Object.fromEntries((forcedRows || []).map((row) => [row.pack_name, row.ends_at]));
+    const forcedStock =Object.fromEntries((forcedRows || []).map((row) => [row.pack_name, row.ends_at]));
     const plan = planGameplay(body, snapshot, () => randomInt(0, 1000000000) / 1000000000, new Date(), forcedStock);
     const ids = new Map((catalog || []).map((entry) => [entry.name, entry.id]));
     const deltas = Object.entries(plan.inventoryDelta).map(([name, quantity]) => {

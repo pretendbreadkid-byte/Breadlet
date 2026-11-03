@@ -13,6 +13,8 @@ import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
 import { TERMS_VERSION } from "../lib/terms";
+import { EditModePanel, SiteVisualEdits, TOGGLE_EDIT_MODE, useSiteEdits } from "./components/edit-mode";
+import { artOverrides } from "../lib/site-edits";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { GamesTab } from "./components/casino-games";
 import { NewsPanel } from "./components/news-panel";
@@ -232,7 +234,7 @@ const badgeIconFor = (badge: string) => ({
 const placeholderArt = (label: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' rx='16' fill='#b91c1c' stroke='#7f1d1d' stroke-width='8'/><text x='50%' y='50%' fill='#ffffff' font-family='sans-serif' font-size='22' font-weight='700' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`)}`;
 const artFor = (name: string) =>
-  ({
+  artOverrides[name.replace(/^Shiny /, "")] || ({
     Mars: "/assets/mars-3.svg",
     Worker: "/assets/worker.svg",
     "Aztec Coin": "/assets/Aztect Coin 2.0.svg",
@@ -562,6 +564,13 @@ const UPDATING_MESSAGE = "🔨 Quick maintenance: Breadlet is updating right now
 
 function MainPage() {
   const [player, setPlayer] = useState<Player | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  // /edit in chat (the owner only) opens and closes edit mode.
+  useEffect(() => {
+    const toggle = () => setEditMode((open) => !open);
+    window.addEventListener(TOGGLE_EDIT_MODE, toggle);
+    return () => window.removeEventListener(TOGGLE_EDIT_MODE, toggle);
+  }, []);
   const [isGuest, setIsGuest] = useState(false);
   const [guestProgressUnlocked, setGuestProgressUnlocked] = useState(false);
   const [guestWelcomeOpen, setGuestWelcomeOpen] = useState(false);
@@ -2131,6 +2140,7 @@ function MainPage() {
         />
       )}
       {badgeInfo && <BadgeModal badge={badgeInfo} close={() => setBadgeInfo(null)} />}
+      {editMode && !isGuest && player.username.toLowerCase() === ADMIN_USERNAME && <EditModePanel close={() => setEditMode(false)} />}
       {player.termsVersion !== TERMS_VERSION && (isGuest || player.termsVersion !== undefined) && <TermsGate onAccept={acceptTerms} onDecline={leaveSession} />}
       {selectedListing && <ListingModal listing={selectedListing} close={() => setSelectedListing(null)} buy={buyListing} isGuest={isGuest} />}
     </main>
@@ -4413,6 +4423,12 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     }
     // Staff commands run on the server and are never posted to chat.
     const commandName = text.startsWith("/") ? text.slice(1).split(/\s+/)[0].toLowerCase() : "";
+    if (commandName === "edit" && commandRole === "admin") {
+      window.dispatchEvent(new Event(TOGGLE_EDIT_MODE));
+      setChatError("");
+      setCommandResult("Edit mode switched. Type /edit again to switch it back.");
+      return;
+    }
     if (SERVER_COMMANDS.has(commandName)) {
       const response = await fetch("/api/chat/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).catch(() => null);
       const result = await response?.json().catch(() => ({}));
@@ -6160,5 +6176,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 
 export default function Game() {
-  return <MainPage />;
+  // The owner's edit mode changes. Loading them re-renders the game with the edited packs.
+  const siteEdits = useSiteEdits();
+  return (
+    <>
+      <SiteVisualEdits visual={siteEdits.visual} />
+      <MainPage />
+    </>
+  );
 }
