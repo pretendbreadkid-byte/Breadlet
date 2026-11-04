@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { notify } from '../../../lib/inbox';
-import { isUniqueBreadlet } from '../../../lib/gameplay-catalog';
+import { loadSiteEdits } from '../../../lib/site-edits-server';
+import { isUntradableBreadlet, untradableReason } from '../../../lib/gameplay-catalog';
 
 export const dynamic = 'force-dynamic';
 const MAX_MARKETPLACE_PRICE = 2147483647;
@@ -147,21 +148,23 @@ export async function POST(request: Request) {
   if (action === 'create' && (!Number.isSafeInteger(price) || price < 1 || price > MAX_MARKETPLACE_PRICE)) return NextResponse.json({ error: 'Invalid listing price.' }, { status: 400 });
   const admin = createAdminClient();
   if (!admin) return NextResponse.json({ error: 'Marketplace server is not configured.' }, { status: 503 });
+  // Edit mode can put a removed Breadlet back in a pack, which makes it tradable again.
+  await loadSiteEdits(admin);
   const blookName = String(body.blook || '');
   let sellerName = '';
   if (action === 'create') {
     const { data: seller } = await admin.from('profiles').select('username, stats').eq('id', user.id).maybeSingle();
     if ((seller?.stats?.lockedBlooks || []).includes(blookName)) return NextResponse.json({ error: `${blookName} is locked. Unlock it in My Breadlets to list it.` }, { status: 409 });
     sellerName = seller?.username || '';
-    if (isUniqueBreadlet(blookName)) return NextResponse.json({ error: `${blookName} can't be sold or traded.` }, { status: 409 });
+    if (isUntradableBreadlet(blookName)) return NextResponse.json({ error: `${untradableReason(blookName)} and can't be sold or traded.` }, { status: 409 });
   }
   // Looked up before the sale (it's marked sold after), so the seller can be told what sold.
   const listing = action === 'buy' && body.listingId
     ? (await admin.from('marketplace_listings').select('profile_id, price, shiny, blooks(name, rarity)').eq('id', body.listingId).maybeSingle()).data as any
     : null;
-  // Ted or Walter White listed before they were locked can't be bought either (the seller can still cancel).
+  // Breadlets listed before they became untradable (Ted, Walter White, removed ones) can't be bought either (the seller can still cancel).
   const listedName = (Array.isArray(listing?.blooks) ? listing.blooks[0] : listing?.blooks)?.name;
-  if (listedName && isUniqueBreadlet(listedName)) return NextResponse.json({ error: `${listedName} can't be sold or traded.` }, { status: 409 });
+  if (listedName && isUntradableBreadlet(listedName)) return NextResponse.json({ error: `${untradableReason(listedName)} and can't be sold or traded.` }, { status: 409 });
   const { data, error } = await admin.rpc('secure_marketplace_action', {
     p_profile_id: user.id, p_action: action, p_blook_name: String(body.blook || ''), p_price: price, p_listing_id: body.listingId || null,
   });

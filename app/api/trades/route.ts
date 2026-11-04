@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { notify } from '../../../lib/inbox';
-import { isUniqueBreadlet } from '../../../lib/gameplay-catalog';
+import { isUntradableBreadlet, untradableReason } from '../../../lib/gameplay-catalog';
+import { loadSiteEdits } from '../../../lib/site-edits-server';
 
 type OfferedBlook = { name: string; quantity: number };
 type TradeOffer = { tokens: number; blooks: OfferedBlook[] };
@@ -31,6 +32,7 @@ async function auth(request: Request) {
   if (!user) return { response: NextResponse.json({ error: 'Your login session has expired or could not be verified. Log out and sign in again to trade.' }, { status: 401 }) };
   const admin = createAdminClient();
   if (!admin) return { response: NextResponse.json({ error: 'Server trading is not configured.' }, { status: 503 }) };
+  await loadSiteEdits(admin);
   return { admin, userId: user.id };
 }
 
@@ -46,8 +48,8 @@ async function validateOffer(admin: ReturnType<typeof createAdminClient> & {}, p
     : { data: [], error: null };
   if (blookError) return 'Could not validate the Bread offer.';
   const ids = new Map((blooks || []).map((blook) => [blook.name, blook.id]));
-  const unique = names.find((name) => isUniqueBreadlet(name));
-  if (unique) return `${unique} can't be traded.`;
+  const locked = offer.blooks.map((item) => item.name).find((name) => isUntradableBreadlet(name));
+  if (locked) return `${untradableReason(locked)} and can't be traded.`;
   for (const item of offer.blooks) {
     if (item.quantity < 1 || item.quantity > 100) return 'Bread quantities must be between 1 and 100.';
     const blookId = ids.get(item.name.replace(/^Shiny /, ''));
@@ -144,6 +146,12 @@ export async function POST(request: Request) {
     if (offerKey(seen.sender) !== offerKey(trade.sender_offer_json) || offerKey(seen.receiver) !== offerKey(trade.receiver_offer_json)) {
       return NextResponse.json({ error: 'The offer just changed. Review it and accept again.' }, { status: 409 });
     }
+  }
+
+  // An offer made before a Breadlet became untradable can't be completed.
+  if (action === 'confirm') {
+    const locked = [...parseOffer(trade.sender_offer_json).blooks, ...parseOffer(trade.receiver_offer_json).blooks].map((item) => item.name).find((name) => isUntradableBreadlet(name));
+    if (locked) return NextResponse.json({ error: `${untradableReason(locked)} and can't be traded. Take it out of the offer.` }, { status: 409 });
   }
 
   let offer: TradeOffer | null = null;

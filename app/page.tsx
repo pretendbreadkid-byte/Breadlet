@@ -1,6 +1,6 @@
 "use client";
 
-import { chanceFor, isRewardActive, isUniqueBreadlet, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, wheelRewards } from "../lib/gameplay-catalog";
+import { chanceFor, isRewardActive, isUntradableBreadlet, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, untradableReason, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -18,6 +18,8 @@ import { artOverrides } from "../lib/site-edits";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
 import { GamesTab } from "./components/casino-games";
 import { NewsPanel } from "./components/news-panel";
+import { ReactionButton, ReactionChips, useReactions } from "./components/reactions";
+import { isReactionTarget } from "../lib/reactions";
 import { shrinkImage } from "../lib/shrink-image";
 import { useForcedStock } from "./components/forced-stock";
 import { NetworkBansPanel } from "./components/network-bans";
@@ -1351,7 +1353,7 @@ function MainPage() {
   };
   const sell = (name: string) => {
     if (!player || player.inventory.length <= 1) return;
-    if (isUniqueBreadlet(name)) return setNotice(`${name} is Unique and can't be sold.`);
+    if (isUntradableBreadlet(name)) return setNotice(`${untradableReason(name)} and can't be sold.`);
     if (!isGuest) {
       void massSell({ [name]: 1 });
       return;
@@ -1369,9 +1371,9 @@ function MainPage() {
   };
   const massSell = async (quantities: Record<string, number>) => {
     if (!player) return false;
-    const unique = Object.keys(quantities).filter((name) => isUniqueBreadlet(name) && quantities[name] > 0);
-    const requested = Object.fromEntries(Object.entries(withoutLocked(quantities, "sell")).filter(([name, quantity]) => quantity > 0 && !isUniqueBreadlet(name)));
-    if (unique.length) setNotice(`${unique.join(", ")} ${unique.length === 1 ? "is" : "are"} Unique and can't be sold.`);
+    const unique = Object.keys(quantities).filter((name) => isUntradableBreadlet(name) && quantities[name] > 0);
+    const requested = Object.fromEntries(Object.entries(withoutLocked(quantities, "sell")).filter(([name, quantity]) => quantity > 0 && !isUntradableBreadlet(name)));
+    if (unique.length) setNotice(unique.length === 1 ? `${untradableReason(unique[0])} and can't be sold.` : `${unique.join(", ")} can't be sold (Unique or removed from the game).`);
     if (!Object.keys(requested).length) {
       if (!unique.length) setNotice("Choose at least one extra Breadlet to sell.");
       return false;
@@ -2346,7 +2348,7 @@ function LoginScreen({
         />}
         {!forgotPassword && authMode === "signup" && <label className="auth-terms">
           <input type="checkbox" required checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} />
-          <span>I agree to the <button type="button" onClick={() => setTermsOpen(true)}>Terms of Service</button></span>
+          <span>I am 13 or older and agree to the <button type="button" onClick={() => setTermsOpen(true)}>Terms of Service</button></span>
         </label>}
         {termsOpen && <TermsModal close={() => setTermsOpen(false)} />}
         {notice && (
@@ -3622,9 +3624,10 @@ function Bazaar({
     }
   }, [player.listings]);
 
-  // Locked Breadlets can't be listed until they're unlocked in My Breadlets; Uniques never can.
+  // Locked Breadlets can't be listed until they're unlocked in My Breadlets; Ted, Walter White and
+  // removed Breadlets never can.
   const ownedBlooks = player.inventory.filter(
-    (name, index, items) => items.indexOf(name) === index && !(player.lockedBlooks || []).includes(name) && !isUniqueBreadlet(name),
+    (name, index, items) => items.indexOf(name) === index && !(player.lockedBlooks || []).includes(name) && !isUntradableBreadlet(name),
   );
   const [lastSale, setLastSale] = useState<number | null>(null);
   useEffect(() => {
@@ -3642,7 +3645,8 @@ function Bazaar({
     && (pack === "All packs" || packOf(name) === pack)
     && (!onlyMissing || !ownedNames.has(name))
     && (!onlyWishlist || wishlist.includes(name));
-  const filteredListings = marketListings.filter((listing) => matchesFilters(listing.blook) && (view === "browse" || listing.seller === player.username));
+  // Old listings of untradable Breadlets only show in the seller's own "My listings", so they can take them down.
+  const filteredListings = marketListings.filter((listing) => matchesFilters(listing.blook) && (view === "browse" ? !isUntradableBreadlet(listing.blook) : listing.seller === player.username));
   const listings = [...filteredListings].sort((left, right) => {
     if (sortOrder === "Lowest price") return left.price - right.price;
     if (sortOrder === "Highest price") return right.price - left.price;
@@ -3654,7 +3658,7 @@ function Bazaar({
   const closedBooths = view === "mine" ? [] : Array.from(new Set(
     [...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool.map((reward) => reward.name))
       .concat(craftRecipes.map((recipe) => recipe.name), Object.keys(raps)),
-  )).filter((name) => !listedGroups.includes(name) && !isUniqueBreadlet(name) && matchesFilters(name))
+  )).filter((name) => !listedGroups.includes(name) && !isUntradableBreadlet(name) && matchesFilters(name))
     .sort((left, right) => (raps[right] || 0) - (raps[left] || 0) || left.localeCompare(right));
   const blookGroups = sortOrder === "Highest RAP"
     ? [...listedGroups, ...closedBooths].sort((left, right) => (raps[right] || 0) - (raps[left] || 0))
@@ -4566,6 +4570,11 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     }, 400);
     return () => window.clearTimeout(timer);
   }, [jumpTo, messages.length, jumpToMessage, clearJump]);
+  const { reactions, toggle: toggleReaction } = useReactions("chat", isGuest ? [] : messages.map((item) => String(item.id ?? "")));
+  const react = async (id: string, emoji: string) => {
+    const problem = await toggleReaction(id, emoji);
+    if (problem) setChatError(problem);
+  };
   const lastMentionId = [...messages].reverse().find((item) => !item.isBreadletBot && item.user !== player.username && mentionPattern.test(item.text || ""))?.id;
 
   const messageGroups = messages.reduce<Array<{ user: string; isBreadletBot: boolean; items: Array<{ item: (typeof messages)[number]; index: number }> }>>((groups, item, index) => {
@@ -4701,8 +4710,10 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                             </div>
                           </div>
                         ) : (
+                          <>
                           <div className="chat-message-content-row">
                             {renderMessageContent(item.text, item.isBreadletBot)}
+                            {!isGuest && isReactionTarget(messageId) && <ReactionButton className="chat-message-icon-button" onPick={(emoji) => void react(messageId, emoji)} />}
                             {(item.id != null || isGuest) && (
                               <button type="button" onClick={() => setReplyTarget({ id: item.id ?? `local-${item.user}-${index}`, user: item.user, message: item.text })} aria-label="Reply" title="Reply" className="chat-message-icon-button">
                                 <Reply size={16} />
@@ -4719,6 +4730,8 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                               </button>
                             )}
                           </div>
+                          <ReactionChips counts={reactions[messageId]} disabled={isGuest} onToggle={(emoji) => void react(messageId, emoji)} />
+                          </>
                         )}
                       </div>
                     );

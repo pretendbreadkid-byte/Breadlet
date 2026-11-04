@@ -46,7 +46,7 @@ export function TermsGate({ onAccept, onDecline }: { onAccept: () => Promise<boo
         <TermsText />
         <label className="terms-check">
           <input type="checkbox" checked={checked} onChange={(change) => setChecked(change.target.checked)} />
-          I have read and agree to the Terms of Service
+          I am 13 or older and agree to the Terms of Service
         </label>
         {failed && <p role="alert" className="terms-error">That didn't save. Please try again.</p>}
         <button type="button" disabled={!checked || busy} onClick={() => void accept()} className="terms-agree">{busy ? "Saving…" : "Agree and play"}</button>

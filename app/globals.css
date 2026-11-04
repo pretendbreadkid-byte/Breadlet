@@ -2930,6 +2930,23 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-error { color: #ffb4ad !imp
 .news-image { width: 100%; border-radius: 10px; margin-bottom: 12px; border: 2px solid #13120F; }
 .news-card p { margin: 0 0 10px; font-size: 1.05rem; line-height: 1.5; color: #e8e4da; white-space: pre-wrap; overflow-wrap: anywhere; }
 .news-card time { display: block; font-size: .8rem; opacity: .6; }
+.news-card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.news-react { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 30px; border-radius: 8px; color: #bde8ff; opacity: .8; }
+.news-react:hover { background: #13120F; opacity: 1; }
+.news-card .reaction-chips { margin-top: 8px; }
+
+/* Emoji reactions (chat and news) */
+.reaction-backdrop { position: fixed; inset: 0; z-index: 10000; }
+.reaction-picker { position: fixed; z-index: 10001; display: flex; gap: 2px; padding: 6px; border: 2px solid #3d91cd; border-radius: 14px; background: #0c2947; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+.reaction-picker button { width: 36px; height: 36px; border-radius: 10px; font-size: 1.35rem; line-height: 1; transition: transform 100ms ease, background 100ms ease; }
+.reaction-picker button:hover, .reaction-picker button:focus-visible { background: #18558f; transform: scale(1.18); }
+.reaction-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.reaction-chip { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 8px; border: 1px solid #3c3a34; border-radius: 999px; background: #1b1a17; color: #e8e4da; font-size: .85rem; }
+.reaction-chip span { font-size: 1rem; line-height: 1; }
+.reaction-chip b { font-weight: 800; }
+.reaction-chip:hover:not(:disabled) { border-color: #73c8ff; }
+.reaction-chip-mine { border-color: #3d91cd; background: #103f75; color: #ffffff; }
+.reaction-chip:disabled { cursor: default; }
 .news-remove { color: #ff8a80; opacity: .8; }
 .news-remove:hover { opacity: 1; }
 .news-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 60px; text-align: center; color: #9cc8e8; }

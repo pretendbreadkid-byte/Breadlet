@@ -721,6 +721,26 @@ test('the leaf shower runs for the first minutes of every hour', () => {
   assert.equal(catalog.isUniqueBreadlet('Skeleton Pirate'), false);
 });
 
+test('Breadlets removed from the game cannot be sold, listed or traded', () => {
+  for (const name of ['Worker', 'Red Rex', 'Shiny Pixel Toast', 'Gnome']) assert.equal(catalog.isUntradableBreadlet(name), true, name);
+  for (const name of ['Skeleton Pirate', 'Pumpkin Dragon', 'Lion']) assert.equal(catalog.isUntradableBreadlet(name), false, name);
+  // Nothing on the removed list can still be pulled from a pack or crafted.
+  const obtainable = new Set([...catalog.liveCapsules.flatMap((pack) => pack.pool.map((reward) => reward.name)), ...catalog.craftRecipes.map((recipe) => recipe.name)]);
+  assert.equal(obtainable.has('Worker'), false);
+  const snapshot = { tokens: 0, materials: {}, inventory: { Worker: { quantity: 3, rarity: 'Common' } }, wheelSpun: false };
+  assert.throws(() => planGameplay({ action: 'sell', quantities: { Worker: 1 } }, snapshot, () => 0, new Date('2026-11-03T00:30:00Z')), /removed from the game/);
+});
+
+test('reactions only accept the listed emojis on real messages', () => {
+  const reactions = loadModule('lib/reactions.ts');
+  assert.equal(reactions.REACTION_EMOJIS.length, 8);
+  assert.equal(reactions.isReactionType('chat'), true);
+  assert.equal(reactions.isReactionType('trades'), false);
+  assert.equal(reactions.isReactionTarget('pending-123'), false);
+  assert.equal(reactions.isReactionTarget('5f0c2a5e-1b2c-4d3e-8f9a-0b1c2d3e4f5a'), true);
+  assert.match(fs.readFileSync('supabase/migrations/0078_reactions.sql', 'utf8'), /on delete cascade[\s\S]*revoke all on public\.chat_reactions/);
+});
+
 test('leaves are capped per shower, cannot be overspent, and buy each reward once', async () => {
   const database = new PGlite();
   try {

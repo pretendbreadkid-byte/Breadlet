@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { CircleUserRound } from "lucide-react";
 import { createClient as createSupabaseClient, fetchTradeApi } from "../../lib/supabase/client";
 import { readSettings, useSettings } from "./settings-tab";
-import { isUniqueBreadlet } from "../../lib/gameplay-catalog";
+import { isUntradableBreadlet } from "../../lib/gameplay-catalog";
 import { CustomEmoji, EmojiPicker, renderEmojiText } from "./emoji-picker";
 
 type Offer = { tokens: number; blooks: { name: string; quantity: number }[] };
@@ -305,7 +305,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
   const emptyTrade = !serverMine?.tokens && !(serverMine?.blooks || []).length && !serverTheirs?.tokens && !(serverTheirs?.blooks || []).length;
   const visibleInventory = Array.from(owned.entries())
     // Locked Breadlets stay out of trades until they are unlocked in My Breadlets; Uniques always do.
-    .filter(([name]) => !(player.lockedBlooks || []).includes(name) && !isUniqueBreadlet(name) && name.toLowerCase().includes(search.trim().toLowerCase()))
+    .filter(([name]) => !(player.lockedBlooks || []).includes(name) && !isUntradableBreadlet(name) && name.toLowerCase().includes(search.trim().toLowerCase()))
     .map(([name, count]) => ({ name, left: count - (offer.blooks[name] || 0) }))
     .filter((entry) => entry.left > 0);
 

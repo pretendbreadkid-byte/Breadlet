@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePlus, Newspaper, Trash2, X } from "lucide-react";
 import { shrinkImage } from "../../lib/shrink-image";
+import { ReactionButton, ReactionChips, useReactions } from "./reactions";
 
 type NewsPost = { id: string; category: string; title: string; body: string; created_at: string; has_image: boolean };
 
@@ -19,6 +20,11 @@ export function NewsPanel({ open, onClose }: { open: boolean; onClose: () => voi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const { reactions, toggle } = useReactions("news", open ? (posts || []).map((post) => post.id) : []);
+  const react = async (id: string, emoji: string) => {
+    const problem = await toggle(id, emoji);
+    if (problem) setError(problem);
+  };
 
   const load = useCallback(async () => {
     const response = await fetch("/api/news", { cache: "no-store" }).catch(() => null);
@@ -109,6 +115,7 @@ export function NewsPanel({ open, onClose }: { open: boolean; onClose: () => voi
             </form>
           )}
 
+          {error && !writing && <p className="news-error" role="alert">{error}</p>}
           {posts === null && <p className="news-empty">Loading...</p>}
           {posts?.length === 0 && !writing && (
             <div className="news-empty">
@@ -126,7 +133,11 @@ export function NewsPanel({ open, onClose }: { open: boolean; onClose: () => voi
               <h3>{post.title}</h3>
               {post.has_image && <img src={`/api/news?image=${post.id}`} alt="" className="news-image" loading="lazy" />}
               {post.body.split(/\n+/).filter(Boolean).map((line, index) => <p key={index}>{line}</p>)}
-              <time dateTime={post.created_at}>{new Date(post.created_at).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</time>
+              <div className="news-card-bottom">
+                <time dateTime={post.created_at}>{new Date(post.created_at).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</time>
+                <ReactionButton className="news-react" size={18} onPick={(emoji) => void react(post.id, emoji)} />
+              </div>
+              <ReactionChips counts={reactions[post.id]} onToggle={(emoji) => void react(post.id, emoji)} />
             </article>
           ))}
         </div>

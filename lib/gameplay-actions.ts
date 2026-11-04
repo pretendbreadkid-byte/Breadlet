@@ -1,4 +1,4 @@
-import { chanceFor, craftRecipeFor, dismantleBundleFor, isUniqueBreadlet, liveCapsules, sellValueForBlook, wheelRewards } from './gameplay-catalog';
+import { chanceFor, craftRecipeFor, dismantleBundleFor, isUntradableBreadlet, liveCapsules, sellValueForBlook, untradableReason, wheelRewards } from './gameplay-catalog';
 import { isMarketPackInStock, isSeasonalPackLocked, seasonalPackOpensAt, type ForcedStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 
@@ -102,7 +102,7 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       const quantity = integer(value, 100000);
       const owned = snapshot.inventory[name];
       if (!owned || quantity >= owned.quantity) throw new Error(`Keep one copy of ${name}.`);
-      if (isUniqueBreadlet(name)) throw new Error(`${name} can't be sold.`);
+      if (isUntradableBreadlet(name)) throw new Error(`${untradableReason(name)} and can't be sold.`);
       addItem(name, -quantity);
       plan.sold[name] = quantity;
       plan.tokensEarned += quantity * sellValueForBlook(name, owned.rarity);

@@ -105,6 +105,28 @@ export const isUniqueBreadlet = (name: string) => {
   return baseName === "Ted" || baseName === "Walter White";
 };
 
+// Breadlets taken out of the game that players still own (Worker, Red Rex, the old Pixel Bag...).
+// For now they can't be sold, listed on the Bazaar or traded. Putting one back in a pack or on the
+// crafting table makes it tradable again.
+const removedBreadletNames = new Set([
+  "Actor", "Albino Crow", "Autumn Cat", "Bomb", "Brioche", "Burnt Toast", "Carmel", "Caveman", "Chef", "Chipmunk",
+  "Crimson Octopus", "Crow", "Doctor", "Donut", "Gnome", "Golden UFO", "Lava Slime", "Mr. Frog", "Mr. Receipt", "Ninja",
+  "Pixel Apple", "Pixel Aztec Coin", "Pixel Bomb", "Pixel Caramel", "Pixel Chick", "Pixel Constellation", "Pixel Crystal Ball",
+  "Pixel Ember", "Pixel Fuego", "Pixel Glacier", "Pixel Ice Slime", "Pixel Lagoon", "Pixel Relic", "Pixel Sprinkle Bread",
+  "Pixel Toast", "Pixel UFO", "Pixel Wizard", "Red Rex", "Shield", "Space Trooper", "Surgeon", "Worker",
+]);
+export const isRemovedBreadlet = (name: string) => {
+  const baseName = name.replace(/^Shiny /, "");
+  return removedBreadletNames.has(baseName)
+    && !liveCapsules.some((capsule) => capsule.pool.some((reward) => reward.name === baseName))
+    && !craftRecipeFor(baseName);
+};
+
+// Can't be sold, listed or traded: Ted, Walter White and removed Breadlets.
+export const isUntradableBreadlet = (name: string) => isUniqueBreadlet(name) || isRemovedBreadlet(name);
+export const untradableReason = (name: string) =>
+  isUniqueBreadlet(name) ? `${name} is Unique` : `${name} was removed from the game`;
+
 export const sellValueFor = (rarity: string) =>
   ({
     Common: 5,
