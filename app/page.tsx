@@ -16,7 +16,7 @@ import { TERMS_VERSION } from "../lib/terms";
 import { EditModePanel, SiteVisualEdits, TOGGLE_EDIT_MODE, useSiteEdits } from "./components/edit-mode";
 import { artOverrides } from "../lib/site-edits";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
-import { GamesTab } from "./components/casino-games";
+import { GamesTab } from "./components/casino-floor";
 import { NewsPanel } from "./components/news-panel";
 import { ReactionButton, ReactionChips, useReactions } from "./components/reactions";
 import { isReactionTarget } from "../lib/reactions";
@@ -2061,7 +2061,7 @@ function MainPage() {
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
-          {tab === "games" && player.username.toLowerCase() === ADMIN_USERNAME && <GamesTab tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
+          {tab === "games" && player.username.toLowerCase() === ADMIN_USERNAME && player.id && <GamesTab tokens={player.tokens} player={{ ...player, id: player.id }} artFor={artFor} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}

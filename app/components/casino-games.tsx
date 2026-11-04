@@ -1,23 +1,19 @@
 "use client";
 
-// Games tab: the Breadlet Casino. Buy chips at the Cashier, bet them on roulette, slots or dice, and
-// spend them in the Chip Shop. The server (/api/casino) rolls the result and moves the balances;
-// this only animates it.
+// The Breadlet Casino's tables: what opens when you walk up to roulette, slots, dice, the Cashier or
+// the Chip Shop on the casino floor (casino-floor.tsx). The server (/api/casino) rolls the result and
+// moves the balances; this only animates it.
 import { useEffect, useRef, useState } from "react";
 import { CASINO_MAX_BET, RED_NUMBERS, SLOT_SYMBOLS, type CasinoGame, type CasinoResult } from "../../lib/casino";
 
-const GAMES: { id: CasinoGame; name: string; blurb: string; art: string; suit: string; suitColor: string }[] = [
-  { id: "roulette", name: "Roulette", blurb: "Red, black, odd, even, or one lucky number for 36x.", art: "", suit: "♥", suitColor: "red" },
-  { id: "slots", name: "Slots", blurb: "Line up three Breadlets. Three Bread Bucks pays 150x.", art: "🎰", suit: "♠", suitColor: "black" },
-  { id: "dice", name: "Dice", blurb: "Roll two dice: low, high, or a seven for 5x.", art: "🎲", suit: "♦", suitColor: "red" },
-];
+const BLURBS: Record<CasinoGame, string> = {
+  roulette: "Red, black, odd, even, or one lucky number for 36x.",
+  slots: "Line up three Breadlets. Three Bread Bucks pays 150x.",
+  dice: "Roll two dice: low, high, or a seven for 5x.",
+};
 
-const VIEWS = [
-  { id: "tables", label: "Tables" },
-  { id: "cashier", label: "Cashier" },
-  { id: "shop", label: "Chip Shop" },
-] as const;
-type View = (typeof VIEWS)[number]["id"];
+export type Station = CasinoGame | "cashier" | "shop";
+export const STATION_NAMES: Record<Station, string> = { roulette: "Roulette", slots: "Slots", dice: "Dice", cashier: "Cashier", shop: "Chip Shop" };
 
 // Placeholders until the real prizes are picked.
 const SHOP_ITEMS = [
@@ -39,7 +35,6 @@ const DICE_PICKS = [
   { id: "seven", label: "Seven", note: "5x" },
   { id: "high", label: "High (8-12)", note: "2x" },
 ];
-const BULBS = Array.from({ length: 22 });
 const numberColor = (n: number) => (n === 0 ? "green" : RED_NUMBERS.includes(n) ? "red" : "black");
 
 // European wheel order, clockwise from 0.
@@ -64,7 +59,7 @@ const pocketPath = (index: number) => {
 };
 
 // The wheel itself: pockets, numbers and the turret in the middle.
-function WheelFace({ className, style }: { className?: string; style?: React.CSSProperties }) {
+export function WheelFace({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg viewBox="-120 -120 240 240" className={className} style={style} aria-hidden="true">
         <circle r="118" fill="#6b3f12" stroke="#c79a3b" strokeWidth="5" />
@@ -97,7 +92,7 @@ function RouletteWheel({ turn, spinning, landed }: { turn: number; spinning: boo
 // Pip spots on a 3x3 grid, read left to right, top to bottom.
 const PIPS: Record<number, number[]> = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 
-function Die({ face, rolling }: { face: number; rolling: boolean }) {
+export function Die({ face, rolling }: { face: number; rolling: boolean }) {
   return (
     <span className={rolling ? "casino-die casino-die-rolling" : "casino-die"} role="img" aria-label={`A die showing ${face}`}>
       {Array.from({ length: 9 }, (_, spot) => <i key={spot} className={PIPS[face].includes(spot) ? "casino-pip" : undefined} />)}
@@ -107,12 +102,10 @@ function Die({ face, rolling }: { face: number; rolling: boolean }) {
 const slotArt = (id: string) => SLOT_SYMBOLS.find((symbol) => symbol.id === id)?.art || "";
 const randomOf = <T,>(list: readonly T[]) => list[Math.floor(Math.random() * list.length)];
 
-export function GamesTab({ tokens, onBalance }: { tokens: number; onBalance: (tokens: number) => void }) {
-  const [view, setView] = useState<View>("tables");
-  const [chips, setChips] = useState(0);
-  const [game, setGame] = useState<CasinoGame | null>(null);
+export function CasinoStation({ station, tokens, chips, setChips, onBalance }: { station: Station; tokens: number; chips: number; setChips: (chips: number) => void; onBalance: (tokens: number) => void }) {
+  const game = station === "cashier" || station === "shop" ? null : station;
   const [bet, setBet] = useState(100);
-  const [pick, setPick] = useState("red");
+  const [pick, setPick] = useState(station === "dice" ? "low" : station === "roulette" ? "red" : "");
   const [number, setNumber] = useState(7);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -126,26 +119,6 @@ export function GamesTab({ tokens, onBalance }: { tokens: number; onBalance: (to
   const [diceShown, setDiceShown] = useState<[number, number]>([1, 6]);
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach((timer) => window.clearInterval(timer)), []);
-  useEffect(() => {
-    void fetch("/api/casino").then(async (response) => {
-      const data = await response.json().catch(() => null);
-      if (response.ok && typeof data?.chips === "number") setChips(data.chips);
-      else if (data?.error) setError(data.error);
-    }).catch(() => setError("Couldn't load your chips. Try again."));
-  }, []);
-
-  const openView = (next: View) => {
-    setView(next);
-    setError("");
-    setExchanged(0);
-  };
-
-  const choose = (next: CasinoGame) => {
-    setGame(next);
-    setOutcome(null);
-    setError("");
-    setPick(next === "dice" ? "low" : next === "roulette" ? "red" : "");
-  };
 
   const exchange = async () => {
     if (busy) return;
@@ -219,102 +192,65 @@ export function GamesTab({ tokens, onBalance }: { tokens: number; onBalance: (to
   const pushed = outcome && outcome.payout === outcome.bet;
 
   return (
-    <div className="casino-page mx-auto w-full max-w-4xl">
-      <header className="casino-sign">
-        <div className="casino-bulbs" aria-hidden="true">{BULBS.map((_, index) => <span key={index} />)}</div>
-        <p className="casino-suits" aria-hidden="true">♠ ♥ ♦ ♣</p>
-        <h1>Breadlet Casino</h1>
-        <p className="casino-tagline">Only you can see this tab while it&apos;s being tested.</p>
-        <div className="casino-bulbs" aria-hidden="true">{BULBS.map((_, index) => <span key={index} />)}</div>
-      </header>
-
-      <div className="casino-wallet">
-        <p className="casino-balance"><img src="/assets/Bread%20bucks.svg" alt="" aria-hidden="true" />{tokens.toLocaleString()} Bread Bucks</p>
-        <p className="casino-balance casino-balance-chips"><img src="/assets/casino-chip.svg" alt="" aria-hidden="true" />{chips.toLocaleString()} Chips</p>
-      </div>
-
-      <nav className="casino-tabs" aria-label="Casino">
-        {VIEWS.map((entry) => <button key={entry.id} type="button" aria-pressed={view === entry.id} onClick={() => openView(entry.id)} disabled={busy}>{entry.label}</button>)}
-      </nav>
-
-      {view === "tables" && (
-        <>
-          {chips < 1 && (
-            <div className="casino-notice">
-              <span>You need chips to play.</span>
-              <button type="button" onClick={() => openView("cashier")}>Go to the Cashier</button>
-            </div>
-          )}
-          <div className="casino-picker">
-            {GAMES.map((entry) => (
-              <button key={entry.id} type="button" onClick={() => choose(entry.id)} aria-pressed={game === entry.id} className="casino-game-card" disabled={busy}>
-                <i className="casino-card-suit" data-color={entry.suitColor} aria-hidden="true">{entry.suit}</i>
-                <span className="casino-game-art" aria-hidden="true">{entry.id === "roulette" ? <WheelFace className="casino-card-wheel" /> : entry.art}</span>
-                <b>{entry.name}</b>
-                <span>{entry.blurb}</span>
-                <i className="casino-card-suit casino-card-suit-end" data-color={entry.suitColor} aria-hidden="true">{entry.suit}</i>
-              </button>
-            ))}
+    <div className="casino-station">
+      <p className="casino-station-wallet"><img src="/assets/casino-chip.svg" alt="" aria-hidden="true" />{chips.toLocaleString()} Chips</p>
+      {game && (
+        <section className="casino-table" aria-label={STATION_NAMES[game]}>
+          <p className="casino-station-blurb">{BLURBS[game]}</p>
+          {chips < 1 && <div className="casino-notice"><span>You need chips to play. Buy some at the Cashier.</span></div>}
+          <div className="casino-stage" aria-live="polite">
+            {game === "roulette" && <RouletteWheel turn={wheelTurn} spinning={busy} landed={rouletteShown} />}
+            {game === "slots" && (
+              <div className="casino-reels">
+                {reelsShown.map((symbol, index) => <span key={index} className="casino-reel"><img src={slotArt(symbol)} alt={symbol} /></span>)}
+              </div>
+            )}
+            {game === "dice" && <div className="casino-dice">{diceShown.map((face, index) => <Die key={index} face={face} rolling={busy} />)}</div>}
           </div>
 
-          {game && (
-            <section className="casino-table" aria-label={GAMES.find((entry) => entry.id === game)?.name}>
-              <div className="casino-stage" aria-live="polite">
-                {game === "roulette" && <RouletteWheel turn={wheelTurn} spinning={busy} landed={rouletteShown} />}
-                {game === "slots" && (
-                  <div className="casino-reels">
-                    {reelsShown.map((symbol, index) => <span key={index} className="casino-reel"><img src={slotArt(symbol)} alt={symbol} /></span>)}
-                  </div>
-                )}
-                {game === "dice" && <div className="casino-dice">{diceShown.map((face, index) => <Die key={index} face={face} rolling={busy} />)}</div>}
-              </div>
-
-              {outcome && (
-                <p className={`casino-outcome ${won ? "casino-win" : pushed ? "" : "casino-lose"}`} role="status">
-                  {outcome.result.game === "roulette" && `Landed on ${outcome.result.number} ${outcome.result.color}. `}
-                  {outcome.result.game === "dice" && `Rolled ${outcome.result.total}. `}
-                  {won ? `You won ${(outcome.payout - outcome.bet).toLocaleString()} chips!` : pushed ? "You got your bet back." : outcome.payout > 0 ? `You got ${outcome.payout.toLocaleString()} back.` : `You lost ${outcome.bet.toLocaleString()} chips.`}
-                </p>
-              )}
-
-              {game === "roulette" && (
-                <div className="casino-picks">
-                  {ROULETTE_PICKS.map((option) => <button key={option.id} type="button" aria-pressed={pick === option.id} onClick={() => setPick(option.id)} className={`casino-pick casino-pick-${option.id}`} disabled={busy}>{option.label}<small>{option.note}</small></button>)}
-                  <label className={`casino-pick ${pick === "number" ? "casino-pick-on" : ""}`}>
-                    <button type="button" onClick={() => setPick("number")} disabled={busy} className="casino-number-button">Number<small>36x</small></button>
-                    <input type="number" min={0} max={36} value={number} onChange={(event) => { setNumber(Math.max(0, Math.min(36, Math.floor(Number(event.target.value) || 0)))); setPick("number"); }} aria-label="Number to bet on" disabled={busy} />
-                  </label>
-                </div>
-              )}
-              {game === "dice" && (
-                <div className="casino-picks">
-                  {DICE_PICKS.map((option) => <button key={option.id} type="button" aria-pressed={pick === option.id} onClick={() => setPick(option.id)} className="casino-pick" disabled={busy}>{option.label}<small>{option.note}</small></button>)}
-                </div>
-              )}
-              {game === "slots" && (
-                <ul className="casino-paytable">
-                  {SLOT_SYMBOLS.map((symbol) => <li key={symbol.id}><img src={symbol.art} alt="" aria-hidden="true" />{symbol.label}: three pays {symbol.three}x, first two pays {symbol.two}x</li>)}
-                </ul>
-              )}
-
-              <div className="casino-bet">
-                <label>Bet
-                  <input type="number" min={1} max={CASINO_MAX_BET} value={bet} onChange={(event) => setBet(Math.max(0, Math.min(CASINO_MAX_BET, Math.floor(Number(event.target.value) || 0))))} disabled={busy} />
-                </label>
-                <div className="casino-quick">
-                  {quickBets.map((amount) => <button key={amount} type="button" onClick={() => setBet(amount)} disabled={busy}>{amount.toLocaleString()}</button>)}
-                  <button type="button" onClick={() => setBet(Math.max(1, Math.floor(bet / 2)))} disabled={busy}>½</button>
-                  <button type="button" onClick={() => setBet(Math.min(CASINO_MAX_BET, bet * 2))} disabled={busy}>2x</button>
-                  <button type="button" onClick={() => setBet(Math.max(1, Math.min(CASINO_MAX_BET, chips)))} disabled={busy}>Max</button>
-                </div>
-                <button type="button" className="casino-play" onClick={() => void play()} disabled={busy || (game === "roulette" && !pick)}>{busy ? "Rolling..." : game === "slots" ? "Spin" : game === "dice" ? "Roll" : "Spin the wheel"}</button>
-              </div>
-            </section>
+          {outcome && (
+            <p className={`casino-outcome ${won ? "casino-win" : pushed ? "" : "casino-lose"}`} role="status">
+              {outcome.result.game === "roulette" && `Landed on ${outcome.result.number} ${outcome.result.color}. `}
+              {outcome.result.game === "dice" && `Rolled ${outcome.result.total}. `}
+              {won ? `You won ${(outcome.payout - outcome.bet).toLocaleString()} chips!` : pushed ? "You got your bet back." : outcome.payout > 0 ? `You got ${outcome.payout.toLocaleString()} back.` : `You lost ${outcome.bet.toLocaleString()} chips.`}
+            </p>
           )}
-        </>
-      )}
 
-      {view === "cashier" && (
+          {game === "roulette" && (
+            <div className="casino-picks">
+              {ROULETTE_PICKS.map((option) => <button key={option.id} type="button" aria-pressed={pick === option.id} onClick={() => setPick(option.id)} className={`casino-pick casino-pick-${option.id}`} disabled={busy}>{option.label}<small>{option.note}</small></button>)}
+              <label className={`casino-pick ${pick === "number" ? "casino-pick-on" : ""}`}>
+                <button type="button" onClick={() => setPick("number")} disabled={busy} className="casino-number-button">Number<small>36x</small></button>
+                <input type="number" min={0} max={36} value={number} onChange={(event) => { setNumber(Math.max(0, Math.min(36, Math.floor(Number(event.target.value) || 0)))); setPick("number"); }} aria-label="Number to bet on" disabled={busy} />
+              </label>
+            </div>
+          )}
+          {game === "dice" && (
+            <div className="casino-picks">
+              {DICE_PICKS.map((option) => <button key={option.id} type="button" aria-pressed={pick === option.id} onClick={() => setPick(option.id)} className="casino-pick" disabled={busy}>{option.label}<small>{option.note}</small></button>)}
+            </div>
+          )}
+          {game === "slots" && (
+            <ul className="casino-paytable">
+              {SLOT_SYMBOLS.map((symbol) => <li key={symbol.id}><img src={symbol.art} alt="" aria-hidden="true" />{symbol.label}: three pays {symbol.three}x, first two pays {symbol.two}x</li>)}
+            </ul>
+          )}
+
+          <div className="casino-bet">
+            <label>Bet
+              <input type="number" min={1} max={CASINO_MAX_BET} value={bet} onChange={(event) => setBet(Math.max(0, Math.min(CASINO_MAX_BET, Math.floor(Number(event.target.value) || 0))))} disabled={busy} />
+            </label>
+            <div className="casino-quick">
+              {quickBets.map((amount) => <button key={amount} type="button" onClick={() => setBet(amount)} disabled={busy}>{amount.toLocaleString()}</button>)}
+              <button type="button" onClick={() => setBet(Math.max(1, Math.floor(bet / 2)))} disabled={busy}>½</button>
+              <button type="button" onClick={() => setBet(Math.min(CASINO_MAX_BET, bet * 2))} disabled={busy}>2x</button>
+              <button type="button" onClick={() => setBet(Math.max(1, Math.min(CASINO_MAX_BET, chips)))} disabled={busy}>Max</button>
+            </div>
+            <button type="button" className="casino-play" onClick={() => void play()} disabled={busy || (game === "roulette" && !pick)}>{busy ? "Rolling..." : game === "slots" ? "Spin" : game === "dice" ? "Roll" : "Spin the wheel"}</button>
+          </div>
+        </section>
+      )}
+      {station === "cashier" && (
         <section className="casino-table casino-cashier" aria-label="Cashier">
           <h2>Cashier</h2>
           <p>1 Bread Buck buys 1 chip. Chips stay in the casino: bet them at the tables or spend them in the Chip Shop. They can&apos;t be turned back into Bread Bucks.</p>
@@ -332,7 +268,7 @@ export function GamesTab({ tokens, onBalance }: { tokens: number; onBalance: (to
         </section>
       )}
 
-      {view === "shop" && (
+      {station === "shop" && (
         <section className="casino-table casino-shop" aria-label="Chip Shop">
           <h2>Chip Shop</h2>
           <p>Trade your chips for prizes. The real prizes are coming soon.</p>

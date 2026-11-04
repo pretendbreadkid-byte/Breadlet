@@ -2910,6 +2910,79 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-play { border: 3px solid #1
 main.breadlet-blue-theme.breadlet-blue-theme .casino-shop-item button { border: 2px solid #13120F; border-radius: 10px; background: #3c3a34; padding: 6px 14px; opacity: .85; cursor: not-allowed; }
 .casino-error { margin: 12px 0 0; text-align: center; }
 main.breadlet-blue-theme.breadlet-blue-theme .casino-error { color: #ffb4ad !important; }
+/* The casino floor: a room you walk around in (casino-floor.tsx). */
+.casino-floor-page { height: calc(100vh - 11rem); min-height: 460px; }
+.casino-floor-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.casino-floor-top h1 { margin: 0 auto 0 0; font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 900; text-shadow: 0 3px 0 #7a4f00, 0 0 14px rgba(255, 176, 46, .5); }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-floor-top h1 { color: #ffd75e !important; }
+.casino-floor-top .casino-balance { padding: 4px 12px; font-size: 1rem; }
+.casino-floor-count { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; font-weight: 800; }
+.casino-floor-viewport { cursor: pointer; touch-action: none; user-select: none; border: 4px solid #c79a3b; border-radius: 24px; background: #2a0a0e; box-shadow: 0 0 0 4px #13120F, 0 8px 0 4px #090908; }
+.casino-floor-wall { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 18px; border-bottom: 10px solid #c79a3b; background: repeating-linear-gradient(90deg, #4a0f17 0 46px, #5c1520 46px 92px); box-shadow: inset 0 -20px 30px rgba(0, 0, 0, .45); }
+.casino-floor-neon { border: 3px solid #ff5fa2; border-radius: 14px; padding: 4px 18px; font-size: 1.6rem; font-weight: 900; letter-spacing: .08em; box-shadow: 0 0 14px #ff5fa2, inset 0 0 10px #ff5fa2; animation: casino-neon 2.4s ease-in-out infinite; }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-floor-neon { color: #ffe1f0 !important; text-shadow: 0 0 8px #ff5fa2, 0 0 18px #ff5fa2; }
+@keyframes casino-neon { 0%, 100% { opacity: 1; } 45% { opacity: .82; } 50% { opacity: 1; } 53% { opacity: .7; } }
+/* Red carpet with a gold diamond pattern. */
+.casino-floor-carpet { position: absolute; left: 0; right: 0; bottom: 0; background-color: #6d1420; background-image: radial-gradient(circle, rgba(231, 181, 60, .5) 3px, transparent 4px), linear-gradient(45deg, rgba(0, 0, 0, .14) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, .14) 75%), linear-gradient(45deg, rgba(0, 0, 0, .14) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, .14) 75%); background-size: 60px 60px, 60px 60px, 60px 60px; background-position: 0 0, 0 0, 30px 30px; }
+.casino-floor-rug { position: absolute; display: flex; width: 340px; height: 110px; align-items: center; justify-content: center; gap: 18px; border: 5px double #e7b53c; border-radius: 50%; background: radial-gradient(ellipse, #12653c, #0b4529); font-size: 1.5rem; font-weight: 900; opacity: .9; }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-floor-rug, main.breadlet-blue-theme.breadlet-blue-theme .casino-floor-rug span { color: #ffd75e !important; }
+.casino-floor-door { position: absolute; width: 180px; height: 26px; border-radius: 12px 12px 0 0; background: linear-gradient(#e7b53c, #9a6a17); }
+.casino-floor-plant { position: absolute; transform: translate(-50%, -100%); font-size: 3.4rem; pointer-events: none; filter: drop-shadow(0 6px 4px rgba(0, 0, 0, .4)); }
+
+/* Stations: tables, slot machines and counters. The button is the footprint on the floor; the art
+   can stick up above it so you can stand behind a table. */
+main.breadlet-blue-theme.breadlet-blue-theme .casino-spot { position: absolute; display: block; border: 0; background: transparent; padding: 0; box-shadow: none; cursor: pointer; }
+.casino-spot-sign { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); border: 3px solid #13120F; border-radius: 999px; background: #e7b53c; padding: 2px 14px; font-size: .95rem; font-weight: 900; white-space: nowrap; box-shadow: 0 3px 0 #13120F; }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-spot-sign { color: #13120F !important; }
+.casino-spot-near .casino-spot-sign { background: #ffd75e; box-shadow: 0 0 0 3px #fff4c2, 0 0 18px #ffd75e; }
+.casino-spot:hover > span:first-child, .casino-spot-near > span:first-child { filter: brightness(1.12); }
+.casino-spot:focus-visible { outline: 3px solid #ffd75e; outline-offset: 6px; border-radius: 20px; }
+.casino-spot-felt { position: absolute; inset: 0; display: flex; align-items: center; justify-content: space-around; gap: 10px; border: 8px solid #7a4a1c; border-radius: 90px; background: radial-gradient(ellipse at 50% 40%, #1f8a55, #0b4529); padding: 10px 26px; box-shadow: inset 0 0 0 3px #c79a3b, inset 0 0 26px rgba(0, 0, 0, .5), 0 10px 0 #3b220c, 0 18px 18px rgba(0, 0, 0, .45); }
+.casino-spot-wheel { width: 132px; height: 132px; flex: 0 0 auto; animation: casino-idle-spin 14s linear infinite; }
+@keyframes casino-idle-spin { to { transform: rotate(360deg); } }
+.casino-spot-board { display: grid; grid-template-columns: repeat(4, 30px); gap: 3px; border: 2px solid #e7b53c; padding: 3px; }
+.casino-spot-board i { height: 30px; background: #1d1d1d; }
+.casino-spot-board i[data-red] { background: #c4302b; }
+.casino-spot-felt-dice { border-radius: 26px; }
+.casino-spot-dice { display: flex; gap: 14px; }
+.casino-spot-dice .casino-die { width: 64px; height: 64px; padding: 8px; border-radius: 12px; }
+.casino-spot-dice .casino-die .casino-pip { width: 11px; height: 11px; }
+.casino-spot-chips { display: flex; flex-direction: column; }
+.casino-spot-chips img { width: 38px; height: 38px; margin-top: -24px; }
+.casino-spot-chips img:first-child { margin-top: 0; }
+/* Slot machines stand against the back wall. */
+.casino-spot-machines { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; height: 170px; }
+.casino-spot-machine { position: relative; display: flex; width: 104px; flex-direction: column; align-items: center; border: 4px solid #13120F; border-radius: 26px 26px 8px 8px; background: linear-gradient(#d9363e, #8c1820); padding-top: 22px; box-shadow: inset 0 0 0 4px #e7b53c, 0 8px 0 #3b0a0f, 0 14px 14px rgba(0, 0, 0, .45); }
+.casino-spot-machine::after { content: ""; position: absolute; bottom: 18px; width: 60%; height: 22px; border-radius: 6px; background: #13120F; }
+.casino-spot-screen { display: flex; gap: 2px; border: 3px solid #13120F; border-radius: 8px; background: #f6ecd8; padding: 4px 3px; }
+.casino-spot-screen img { width: 24px; height: 30px; object-fit: contain; }
+.casino-spot-lever { position: absolute; top: 34px; right: -14px; width: 6px; height: 48px; border-radius: 3px; background: #c9c9c9; }
+.casino-spot-lever::before { content: ""; position: absolute; top: -12px; left: -6px; width: 18px; height: 18px; border-radius: 50%; background: #e7302b; }
+/* Cashier and Chip Shop counters. */
+.casino-spot-counter { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 22px; border: 4px solid #13120F; border-radius: 14px; background: repeating-linear-gradient(90deg, #8a5a2b 0 28px, #7a4d22 28px 56px); box-shadow: inset 0 10px 0 #c79a3b, 0 10px 0 #3b220c, 0 16px 16px rgba(0, 0, 0, .45); }
+.casino-spot-bars { width: 110px; height: 60px; border: 4px solid #c79a3b; border-radius: 30px 30px 4px 4px; background: repeating-linear-gradient(90deg, #13120F 0 4px, #f6ecd8 4px 18px); }
+.casino-spot-counter-shop { background: repeating-linear-gradient(90deg, #5c0f17 0 28px, #4a0b12 28px 56px); }
+.casino-spot-prizes { font-size: 2.6rem; letter-spacing: .2em; }
+
+.casino-floor-prompt { position: absolute; bottom: 48px; left: 50%; z-index: 2000; display: inline-flex; white-space: nowrap; align-items: center; gap: 10px; transform: translateX(-50%); animation: casino-prompt 1.2s ease-in-out infinite; }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-floor-prompt { border: 3px solid #13120F; border-radius: 14px; background: #E77D22; padding: 10px 20px; font-size: 1.15rem; font-weight: 900; box-shadow: 0 4px 0 #13120F; }
+.casino-floor-prompt kbd { border: 2px solid #13120F; border-radius: 6px; background: #13120F; padding: 0 7px; font-size: .9rem; }
+@keyframes casino-prompt { 50% { transform: translateX(-50%) translateY(-4px); } }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-floor-say { padding: 10px 22px; }
+
+/* A table you walked up to. */
+.casino-station-card { width: min(640px, 100%); max-height: calc(100dvh - 24px); overflow-y: auto; border: 4px solid #c79a3b; border-radius: 24px; background: radial-gradient(ellipse at 50% 20%, #1f8a55, #0b4529); padding: 14px 18px 18px; box-shadow: 0 0 0 4px #13120F, 0 10px 0 4px #090908; }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-station-card header { display: flex; align-items: center; justify-content: space-between; border: 0 !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; }
+.casino-station-card h2 { margin: 0; font-size: 1.8rem; font-weight: 900; }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-station-card h2 { color: #ffd75e !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-station-card header button { display: grid; width: 42px; height: 42px; place-items: center; border: 3px solid #13120F; border-radius: 12px; background: #7d1420; box-shadow: 0 3px 0 #13120F; }
+.casino-station .casino-table { margin-top: 10px; }
+.casino-station-wallet { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px 0 0; font-weight: 900; font-size: 1.1rem; }
+.casino-station-wallet img { width: 26px; height: 26px; }
+.casino-station-blurb { margin: 0 0 8px; text-align: center; opacity: .9; }
+@media (max-width: 767px) { .casino-floor-page { height: calc(100dvh - 13rem); min-height: 380px; } .casino-floor-top .casino-balance { font-size: .85rem; } .casino-floor-hint { display: none; } .casino-floor-prompt { bottom: 16px; } }
+@media (prefers-reduced-motion: reduce) { .casino-floor-neon, .casino-spot-wheel, .casino-floor-prompt { animation: none; } }
+.casino-spot-slots .casino-spot-sign { top: auto; bottom: -40px; }
 @media (max-width: 640px) { .casino-page { padding: 12px; } .casino-reel { width: 84px; height: 84px; } .casino-reel img { width: 60px; height: 60px; } .casino-die { width: 78px; height: 78px; padding: 9px; } .casino-die .casino-pip { width: 14px; height: 14px; } .casino-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .casino-game-card > span:not(.casino-game-art) { display: none; } .casino-game-card b { font-size: 1rem; } .casino-card-suit { font-size: .9rem; } .casino-bulbs span:nth-child(3n) { display: none; } }
 @media (prefers-reduced-motion: reduce) { .casino-die-rolling, .casino-bulbs span { animation: none; } }
 
