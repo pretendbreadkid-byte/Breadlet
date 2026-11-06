@@ -699,6 +699,10 @@ test('edit mode changes packs, odds and rarities, and undoing puts the built-in 
     // "Just this one" picks save a path like "main > div:nth-of-type(2) > h1".
     assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'main.flex:nth-of-type(1) > div:nth-of-type(2) > h1.md\\:text-2xl:nth-of-type(1)', style: { color: '#ff0000' } }] }), 'object');
     assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'h1 </style><script>', style: { color: '#ff0000' } }] }), 'string');
+    // A replaced background picture must be an allowed picture address.
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'div.bag', style: { 'background-image': 'url("/api/site/image?id=b5556f76-e6ca-463a-b50f-a3077c0c8884")' } }] }), 'object');
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'div.bag', style: { 'background-image': 'url("javascript:alert(1)")' } }] }), 'string');
+    assert.equal(typeof edits.cleanVisualEdits({ rules: [{ id: 'a', selector: 'div.bag', style: { 'background-image': 'linear-gradient(red, blue)' } }] }), 'string');
   } finally {
     edits.applyCatalogEdits(edits.emptyCatalogEdits());
   }

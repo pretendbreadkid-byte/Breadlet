@@ -131,6 +131,12 @@ const toHex = (color: string) => {
   const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
   return match ? `#${match.slice(1, 4).map((part) => Number(part).toString(16).padStart(2, "0")).join("")}` : "#000000";
 };
+// The address inside a CSS background-image, as a path on this site when it is one.
+const backgroundUrl = (value: string) => {
+  const match = value.match(/^url\("?([^")]+)"?\)$/);
+  if (!match) return "";
+  return match[1].startsWith(window.location.origin) ? match[1].slice(window.location.origin.length) : match[1];
+};
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 // Highlights what the mouse is over, and hands back what gets clicked (instead of clicking it).
@@ -139,18 +145,22 @@ function usePicker(active: boolean, onPick: (element: Element) => void) {
   useEffect(() => {
     if (!active) { setBox(null); return; }
     const isEditor = (target: EventTarget | null) => target instanceof Element && Boolean(target.closest("[data-edit-ui]"));
-    const pickable = (target: EventTarget | null) => {
-      let element = target as Element;
+    // A picture under the mouse wins, even when an overlay or glow sits on top of it. Use "Pick the
+    // bigger box around it" to get the box instead.
+    const pickable = (event: MouseEvent) => {
+      const picture = document.elementsFromPoint(event.clientX, event.clientY).find((element) => element instanceof HTMLImageElement && !isEditor(element));
+      if (picture) return picture;
+      let element = event.target as Element;
       while (element instanceof SVGElement && element.parentElement) element = element.parentElement;
       return element;
     };
-    const move = (event: MouseEvent) => setBox(isEditor(event.target) ? null : pickable(event.target).getBoundingClientRect());
+    const move = (event: MouseEvent) => setBox(isEditor(event.target) ? null : pickable(event).getBoundingClientRect());
     const block = (event: Event) => { if (!isEditor(event.target)) { event.preventDefault(); event.stopPropagation(); } };
     const click = (event: MouseEvent) => {
       if (isEditor(event.target)) return;
       event.preventDefault();
       event.stopPropagation();
-      onPick(pickable(event.target));
+      onPick(pickable(event));
     };
     document.addEventListener("mousemove", move, true);
     document.addEventListener("mousedown", block, true);
@@ -172,7 +182,15 @@ function ImageField({ value, onChange }: { value: string; onChange: (value: stri
     setBusy(true);
     setError("");
     try {
-      const data = await shrinkImage(file, { maxLength: 600000, maxSide: 768 });
+      // SVGs stay SVGs (so animated ones keep moving) when they fit; bigger ones become a picture.
+      const data = file.type === "image/svg+xml" && file.size <= 500000
+        ? await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("Could not read that file."));
+          reader.readAsDataURL(file);
+        })
+        : await shrinkImage(file, { maxLength: 690000, maxSide: 1024 });
       const response = await fetch("/api/site/image", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data }) });
       const result = await response.json().catch(() => null);
       if (!response.ok) throw new Error(result?.error || "Upload failed.");
@@ -189,7 +207,7 @@ function ImageField({ value, onChange }: { value: string; onChange: (value: stri
       <input value={value} onChange={(change) => onChange(change.target.value)} placeholder="/assets/... or upload" />
       <label className="edit-button">
         {busy ? "Uploading..." : "Upload"}
-        <input type="file" accept="image/*" hidden disabled={busy} onChange={(change) => void upload(change.target.files?.[0])} />
+        <input type="file" accept="image/*" hidden disabled={busy} onChange={(change) => { void upload(change.target.files?.[0]); change.currentTarget.value = ""; }} />
       </label>
       {error && <p className="edit-error">{error}</p>}
     </div>
@@ -213,7 +231,7 @@ function PageTab({ edits }: { edits: SiteEdits }) {
   const [target, setTarget] = useState<Element | null>(null);
   const [scope, setScope] = useState<"one" | "all">("one");
   const [style, setStyle] = useState<Record<string, string>>({});
-  const [original, setOriginal] = useState({ text: null as string | null, src: "", href: "" });
+  const [original, setOriginal] = useState({ text: null as string | null, src: "", href: "", background: "" });
   const [text, setText] = useState("");
   const [src, setSrc] = useState("");
   const [href, setHref] = useState("");
@@ -224,13 +242,15 @@ function PageTab({ edits }: { edits: SiteEdits }) {
       text: ownText(element),
       src: element instanceof HTMLImageElement ? element.getAttribute("src") || "" : "",
       href: element instanceof HTMLAnchorElement ? element.getAttribute("href") || "" : "",
+      // A box whose picture is a CSS background (bag art, banners).
+      background: element instanceof HTMLImageElement ? "" : backgroundUrl(getComputedStyle(element).backgroundImage),
     };
     setTarget(element);
     setPicking(false);
     setStyle({});
     setOriginal(start);
     setText(start.text || "");
-    setSrc(start.src);
+    setSrc(start.src || start.background);
     setHref(start.href);
     setStatus("");
   }, []);
@@ -248,11 +268,12 @@ function PageTab({ edits }: { edits: SiteEdits }) {
   const saveFont = async (font: string) => setStatus(await saveEdits({ visual: { ...edits.visual, font: font || undefined } }) || "Site font saved.");
   const save = async () => {
     if (!target) return;
-    const rule: VisualRule = { id: newId(), label: labelFor(target), selector, style };
+    const rule: VisualRule = { id: newId(), label: labelFor(target), selector, style: { ...style } };
     if (original.text !== null && text !== original.text) rule.text = text;
     if (target instanceof HTMLImageElement && src && src !== original.src) rule.src = src;
+    if (!(target instanceof HTMLImageElement) && original.background && src && src !== original.background) rule.style["background-image"] = `url("${src}")`;
     if (target instanceof HTMLAnchorElement && href && href !== original.href) rule.href = href;
-    if (!Object.keys(style).length && rule.text === undefined && !rule.src && !rule.href) return setStatus("Change something first.");
+    if (!Object.keys(rule.style).length && rule.text === undefined && !rule.src && !rule.href) return setStatus("Change something first.");
     const error = await saveEdits({ visual: { ...edits.visual, rules: [...edits.visual.rules, rule] } });
     setStatus(error || "Saved! Everyone sees it after a refresh.");
     if (!error) setStyle({});
@@ -282,7 +303,7 @@ function PageTab({ edits }: { edits: SiteEdits }) {
             <label><input type="radio" checked={scope === "all"} onChange={() => setScope("all")} /> Every one like it</label>
           </div>
           {original.text !== null && <label className="edit-field"><span>Text</span><input value={text} onChange={(change) => setText(change.target.value)} /></label>}
-          {target instanceof HTMLImageElement && <div className="edit-field"><span>Picture</span><ImageField value={src} onChange={setSrc} /></div>}
+          {(target instanceof HTMLImageElement || original.background) && <div className="edit-field"><span>Picture</span><ImageField value={src} onChange={setSrc} /></div>}
           {target instanceof HTMLAnchorElement && <label className="edit-field"><span>Link goes to</span><input value={href} onChange={(change) => setHref(change.target.value)} placeholder="/ or https://..." /></label>}
           <label className="edit-field">
             <span>Font</span>
@@ -383,7 +404,7 @@ function PacksTab({ edits }: { edits: SiteEdits }) {
       <label className="edit-field"><span>Price</span><input type="number" min={0} value={draft.price} onChange={(change) => update({ price: Math.max(0, Math.floor(Number(change.target.value) || 0)) })} /></label>
       <div className="edit-field"><span>Bag picture</span><ImageField value={draft.art} onChange={(art) => update({ art })} /></div>
       {!(draft.name in seasonalPackOpensAt) && (
-        <label className="edit-field"><span>Chance it's in the shop each hour (%)</span><input type="number" min={0} max={100} value={Math.round(draft.stock * 1000) / 10} onChange={(change) => update({ stock: Math.min(1, Math.max(0, (Number(change.target.value) || 0) / 100)) })} /></label>
+        <label className="edit-field"><span>Chance it&apos;s in the shop each hour (%)</span><input type="number" min={0} max={100} value={Math.round(draft.stock * 1000) / 10} onChange={(change) => update({ stock: Math.min(1, Math.max(0, (Number(change.target.value) || 0) / 100)) })} /></label>
       )}
       <p className="edit-help">Leave a % blank to use the normal odds. A rarity % is shared by every Breadlet of that rarity.</p>
       {tiers.map((rarity) => (

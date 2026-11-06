@@ -144,7 +144,7 @@ export function cleanCatalogEdits(input: any): CatalogEdits | string {
   return { packs, blooks };
 }
 
-export const STYLE_PROPS = ['color', 'background', 'font-family', 'font-size', 'font-weight', 'text-shadow', 'box-shadow', 'border', 'border-radius', 'opacity', 'display'];
+export const STYLE_PROPS = ['color', 'background', 'background-image', 'font-family', 'font-size', 'font-weight', 'text-shadow', 'box-shadow', 'border', 'border-radius', 'opacity', 'display'];
 // No braces, angle brackets, semicolons or @, so a value can't break out of its CSS rule.
 // Selectors may use ">" (one element inside another), but never "<", so they can't end the <style> tag.
 const SAFE_VALUE = /^[^{}<>;@\\]{1,200}$/;
@@ -163,6 +163,9 @@ export function cleanVisualEdits(input: any): VisualEdits | string {
     const style: Record<string, string> = {};
     for (const [property, value] of Object.entries(raw.style || {})) {
       if (!STYLE_PROPS.includes(property) || typeof value !== 'string' || !SAFE_VALUE.test(value.trim())) return `"${String(value)}" can't be used for ${property}.`;
+      // A replaced background picture: only url("...") of a picture allowed by IMAGE.
+      const picture = value.trim().match(/^url\("([^"]+)"\)$/);
+      if (property === 'background-image' && !(picture && IMAGE.test(picture[1]))) return 'Use a picture from /assets, an https:// link, or upload one.';
       style[property] = value.trim();
     }
     const rule: VisualRule = { id: String(raw.id || '').slice(0, 40) || String(rules.length), label: String(raw.label || '').slice(0, 80), selector: raw.selector, style };

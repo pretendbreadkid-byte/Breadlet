@@ -18,7 +18,8 @@ export async function GET(request: Request) {
   return dataUrlImageResponse(data.data, 'public, max-age=31536000, s-maxage=31536000, immutable');
 }
 
-// Owner only. Body: { data } with a base64 PNG, JPEG, GIF or WebP data URL.
+/// Owner only. Body: { data } with a base64 PNG, JPEG, GIF, WebP or SVG data URL. SVGs are served with
+// a sandbox policy (image-response.ts) and only ever shown through <img>, so scripts in them can't run.
 export async function POST(request: Request) {
   const supabase = await createClient();
   const database = createAdminClient();
@@ -28,8 +29,8 @@ export async function POST(request: Request) {
   if (!(await hasAdminAccess(database, user.id))) return NextResponse.json({ error: 'Only the owner can use edit mode.' }, { status: 403 });
   const body = await request.json().catch(() => ({}));
   const data = String(body.data || '');
-  if (!/^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(data) || data.length > 700000) {
-    return NextResponse.json({ error: 'That picture could not be uploaded. Try a smaller PNG or JPEG.' }, { status: 400 });
+  if (!/^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/.test(data) || data.length > 700000) {
+    return NextResponse.json({ error: 'That picture could not be uploaded. Try a smaller PNG, JPEG or SVG.' }, { status: 400 });
   }
   const { data: row, error } = await database.from('site_images').insert({ data }).select('id').single();
   if (error) {
