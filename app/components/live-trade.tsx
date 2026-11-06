@@ -343,7 +343,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
             <input type="number" min={0} max={player.tokens} value={offer.tokens || ""} placeholder="0" aria-label="Bread Bucks to offer" onChange={(event) => change({ ...offer, tokens: Math.max(0, Math.min(player.tokens, Math.floor(Number(event.target.value) || 0))) })} className="w-full bg-transparent text-white outline-none" />
             <span className="whitespace-nowrap text-xs text-[#c9c7c0]">of {player.tokens.toLocaleString()}</span></label>
           {slots(toOffer(offer).blooks, true)}
-          <p className={`text-xs font-bold ${myConfirmed ? "text-green-300" : "text-[#c9c7c0]"}`}>{myConfirmed ? "You accepted" : "Not accepted yet"}</p>
+          <p className={`trade-accept-status ${myConfirmed ? "trade-accepted" : "trade-not-accepted"}`}>{myConfirmed ? "✓ You accepted" : "✗ Not accepted yet"}</p>
         </section>
         <section className="flex min-h-[18rem] flex-col rounded-2xl bg-[#1b1a17] p-3">
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search your Breadlets" className="w-full rounded-lg bg-[#13120F] px-3 py-2 text-center text-sm font-bold text-white outline-none placeholder:text-[#c9c7c0]" />
@@ -362,7 +362,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
           <div className="flex flex-row-reverse items-center gap-3 text-right">{avatar(otherEquipped)}<div><p className="text-xl font-black">{otherName}</p><p className="text-xs text-[#c9c7c0]">Their offer</p></div></div>
           <div className="flex items-center justify-end gap-2 rounded-xl bg-[#13120F] px-3 py-2 text-sm font-bold"><span>{Number(serverTheirs?.tokens || 0).toLocaleString()}</span><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" /></div>
           {slots(serverTheirs?.blooks || [], false)}
-          <p className={`text-right text-xs font-bold ${theirConfirmed ? "text-green-300" : "text-[#c9c7c0]"}`}>{theirConfirmed ? `${otherName} accepted` : "Not accepted yet"}</p>
+          <p className={`trade-accept-status ml-auto ${theirConfirmed ? "trade-accepted" : "trade-not-accepted"}`}>{theirConfirmed ? `✓ ${otherName} accepted` : "✗ Not accepted yet"}</p>
         </section>
       </div>
       <div className="px-4">

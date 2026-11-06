@@ -2982,6 +2982,10 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-station-card header button 
 .casino-station-blurb { margin: 0 0 8px; text-align: center; opacity: .9; }
 @media (max-width: 767px) { .casino-floor-page { height: calc(100dvh - 13rem); min-height: 380px; } .casino-floor-top .casino-balance { font-size: .85rem; } .casino-floor-hint { display: none; } .casino-floor-prompt { bottom: 16px; } }
 @media (prefers-reduced-motion: reduce) { .casino-floor-neon, .casino-spot-wheel, .casino-floor-prompt { animation: none; } }
+/* Live trade: each side's accept status, green once accepted and red until then. */
+.trade-accept-status { display: table; border: 3px solid; border-radius: 10px; padding: 6px 12px; font-size: .85rem; font-weight: 900; }
+.trade-accepted { border-color: #22c55e; background: rgba(34, 197, 94, .18); box-shadow: 0 0 10px rgba(34, 197, 94, .45); }
+.trade-not-accepted { border-color: #ef4444; background: rgba(239, 68, 68, .15); }
 .casino-spot-slots .casino-spot-sign { top: auto; bottom: -40px; }
 @media (max-width: 640px) { .casino-page { padding: 12px; } .casino-reel { width: 84px; height: 84px; } .casino-reel img { width: 60px; height: 60px; } .casino-die { width: 78px; height: 78px; padding: 9px; } .casino-die .casino-pip { width: 14px; height: 14px; } .casino-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .casino-game-card > span:not(.casino-game-art) { display: none; } .casino-game-card b { font-size: 1rem; } .casino-card-suit { font-size: .9rem; } .casino-bulbs span:nth-child(3n) { display: none; } }
 @media (prefers-reduced-motion: reduce) { .casino-die-rolling, .casino-bulbs span { animation: none; } }
