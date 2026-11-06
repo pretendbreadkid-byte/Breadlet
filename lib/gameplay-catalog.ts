@@ -345,29 +345,36 @@ export const liveCapsules: Capsule[] = [
     ]),
   },
   {
-    name: "BlookTuber Bag",
+    // Was the BlookTuber Bag. Blook Master, Waymore, Turtwix, Blooket Life and Lagoon became Silver
+    // Play Button, Green Screen, YouTube Logo, Camera and Microphone (migration 0079).
+    name: "YouTube Bag",
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
-    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.32 },
-    art: "/assets/blooktuber bag updatd (1).svg",
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.32, Secret: 0.05 },
+    art: "/assets/youtube-bag.svg",
     pool: rewards([
       ["Bread Blook", "Mythic"],
-      ["Blooket Life", "Uncommon"],
+      ["Camera", "Uncommon"],
       ["Blooket Gods", "Common"],
       ["Fasty Jay", "Epic"],
-      ["Lagoon", "Rare"],
-      ["Waymore", "Epic"],
+      ["Microphone", "Rare"],
+      ["Green Screen", "Epic"],
       ["Twisted Bread", "Uncommon"],
       ["SRN", "Uncommon"],
-      ["Blook Master", "Legendary"],
-      ["Turtwix", "Rare"],
+      ["Silver Play Button", "Legendary"],
+      ["YouTube Logo", "Rare"],
       ["Green Astronaut", "Uncommon"],
+      ["Gold Play Button", "Secret"],
     ], {
       "Twisted Bread": "/assets/twisted-bread-blooktuber.png",
       SRN: "/assets/srn-blooktuber.png",
-      "Blook Master": "/assets/blook-master.png",
-      Turtwix: "/assets/turtwix.png",
+      "Silver Play Button": "/assets/silver-play-button.svg",
+      "YouTube Logo": "/assets/youtube-logo.svg",
       "Green Astronaut": "/assets/green-astronaut-blooktuber.png",
+      Camera: "/assets/camera.svg",
+      Microphone: "/assets/microphone.svg",
+      "Green Screen": "/assets/green-screen.svg",
+      "Gold Play Button": "/assets/gold-play-button.svg",
     }),
   },
   {
@@ -416,7 +423,8 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     seasonal: true,
     // Same tiers as the other packs, so the average resale (~17) stays under the price.
-    rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.09 },
+    // Mythic fixed at 0.3%: by pool size alone this big bag would give Frozen Ted 0.7%.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.3, Secret: 0.09 },
     art: "/assets/winter/winter-bag.svg?v=2",
     pool: dailyRotation(rewards([
       ["Snowball", "Common"],
@@ -432,6 +440,7 @@ export const liveCapsules: Capsule[] = [
       ["Gingerbread Cookie", "Rare"],
       ["Present", "Epic"],
       ["Festive Breadlet", "Legendary"],
+      ["Frozen Ted", "Mythic"],
       ["Reindeer", "Secret"],
       ["Christmas Tree Dragon", "Breadled"],
     ], {}, { "Christmas Tree Dragon": 0.005 }), ["Chocolate Candy Cookie", "Sugar Cookie", "Macadamia Nut Cookie", "Gingerbread Cookie"]),

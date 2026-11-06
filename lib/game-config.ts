@@ -70,10 +70,10 @@ export const CHEST_DEFINITIONS = [
   },
   {
     id: 'blooktuber-chest',
-    name: 'BlookTuber Bag',
+    name: 'YouTube Bag',
     price: 25,
     description: 'Creator-themed collectibles.',
-    pool: ['Bread Blook', 'Blooket Life', 'Blooket Gods', 'Fasty Jay', 'Lagoon', 'Waymore', 'Twisted Bread', 'SRN', 'Blook Master', 'Turtwix', 'Green Astronaut'],
+    pool: ['Bread Blook', 'Camera', 'Blooket Gods', 'Fasty Jay', 'Microphone', 'Green Screen', 'Twisted Bread', 'SRN', 'Silver Play Button', 'YouTube Logo', 'Green Astronaut', 'Gold Play Button'],
     rarity: 'Mythic',
     isRetired: false,
     active: true,

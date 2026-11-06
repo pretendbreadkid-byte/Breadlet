@@ -58,7 +58,7 @@ test('server-generated rewards reject forged results and invalid gameplay reques
   const marsChance = catalog.chanceFor(space, space.pool.find((reward) => reward.name === 'Mars'));
   assert.ok(marsChance > 25 && marsChance < 40, `Mars chance is spread below 40% (was ${marsChance}%)`);
   const foodBag = catalog.liveCapsules.find((pack) => pack.name === 'Food Bag');
-  const blookTuberBag = catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag');
+  const blookTuberBag = catalog.liveCapsules.find((pack) => pack.name === 'YouTube Bag');
   const mythicChance = (pack) => catalog.chanceFor(pack, pack.pool.find((reward) => reward.rarity === 'Mythic'));
   assert.equal(mythicChance(foodBag), 0.5, 'the largest reward pool gives Mythic rewards 0.5% odds');
   const smallestMythicPack = catalog.legacyCapsules.find((pack) => pack.name === 'Legacy Bread Bag');
@@ -121,14 +121,19 @@ test('server-generated rewards reject forged results and invalid gameplay reques
     ...Array.from({ length: 7 }, (_, index) => `diamond sword${index + 2}.svg`),
   ]) assert.ok(fs.existsSync(`public/assets/${art}`), `${art} replacement artwork exists`);
   assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Food Bag').pool.find((reward) => reward.name === 'Avocado').rarity, 'Common');
-  assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag').pool.find((reward) => reward.name === 'Blooket Gods').rarity, 'Common');
-  const blookTuber = catalog.liveCapsules.find((pack) => pack.name === 'BlookTuber Bag');
+  assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'YouTube Bag').pool.find((reward) => reward.name === 'Blooket Gods').rarity, 'Common');
+  const blookTuber = catalog.liveCapsules.find((pack) => pack.name === 'YouTube Bag');
   const pageSource = fs.readFileSync('app/page.tsx', 'utf8');
   const stylesSource = fs.readFileSync('app/globals.css', 'utf8');
-  assert.equal(blookTuber.pool.length, 11);
-  for (const name of ['Twisted Bread', 'SRN', 'Blook Master', 'Turtwix', 'Green Astronaut']) {
+  assert.equal(blookTuber.pool.length, 12);
+  assert.ok(fs.existsSync(`public${blookTuber.art}`));
+  assert.equal(blookTuber.pool.find((item) => item.name === 'Gold Play Button').rarity, 'Secret');
+  assert.equal(catalog.liveCapsules.find((pack) => pack.name === 'Winter Bag').pool.find((item) => item.name === 'Frozen Ted').rarity, 'Mythic');
+  assert.ok(fs.existsSync('public/assets/winter/frozen-ted.svg'));
+  assert.equal(marketStock.marketPackStock.find((entry) => entry.name === 'YouTube Bag').chance, 0.2);
+  for (const name of ['Twisted Bread', 'SRN', 'Silver Play Button', 'YouTube Logo', 'Green Astronaut', 'Camera', 'Microphone', 'Green Screen', 'Gold Play Button']) {
     const reward = blookTuber.pool.find((item) => item.name === name);
-    assert.ok(reward, `${name} is in the BlookTuber Bag`);
+    assert.ok(reward, `${name} is in the YouTube Bag`);
     assert.ok(fs.existsSync(`public/${reward.art.slice(1)}`), `${name} artwork exists`);
     assert.ok(pageSource.split('\n').some((line) => line.includes(name) && line.includes(reward.art)), `${name} is mapped to its pack artwork`);
   }

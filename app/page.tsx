@@ -266,13 +266,15 @@ const artFor = (name: string) =>
     "Pixel Constellation": "/assets/Lost and found + food pack/Pixel constilation.png?v=2",
     "Pixel Aztec Coin": "/assets/Lost and found + food pack/Pixel axtect coin.png?v=2",
     "Pixel Lagoon": "/assets/Lost and found + food pack/Pixel lagon.png?v=2",
-    "Blooket Life": "/assets/new blooket life.png",
+    Camera: "/assets/camera.svg",
     "Blooket Gods": "/assets/new blooket gods.png",
     "Twisted Bread": "/assets/twisted-bread-blooktuber.png",
     SRN: "/assets/srn-blooktuber.png",
-    "Blook Master": "/assets/blook-master.png",
-    Turtwix: "/assets/turtwix.png",
-    Lagoon: "/assets/New Lag0n.png",
+    "Silver Play Button": "/assets/silver-play-button.svg",
+    "YouTube Logo": "/assets/youtube-logo.svg",
+    Microphone: "/assets/microphone.svg",
+    "Gold Play Button": "/assets/gold-play-button.svg",
+    "Frozen Ted": "/assets/winter/frozen-ted.svg",
     Shuriken: "/assets/shuricken 2.svg",
     "Albino Crow": "/assets/albino crow.svg",
     Baguette: "/assets/bagget.svg",
@@ -286,7 +288,7 @@ const artFor = (name: string) =>
     Ninja: "/assets/Ninja 2.0.svg",
     Santa: "/assets/santa pixel.png",
     "Fasty Jay": "/assets/fastyjaynew.png",
-    Waymore: "/assets/new waymore.png",
+    "Green Screen": "/assets/green-screen.svg",
     Shield: "/assets/sheild (1).svg",
     Spartan: "/assets/spartan-new.svg",
     Solider: "/assets/solider.svg",
@@ -2152,7 +2154,7 @@ function MainPage() {
 /* Signup is intentionally kept focused on authentication. */
 function SignupBlookPile() {
   const [items, setItems] = useState(() => [
-    "Bread Blook", "Astronaut", "Worker", "Mars", "Chef", "Earth", "Star", "Alien", "Caveman", "Blooket Life", "Doctor", "Ninja", "King", "Yeti", "Megabot", "Lion", "Butterfly", "Blackbeard",
+    "Bread Blook", "Astronaut", "Worker", "Mars", "Chef", "Earth", "Star", "Alien", "Caveman", "Camera", "Doctor", "Ninja", "King", "Yeti", "Megabot", "Lion", "Butterfly", "Blackbeard",
   ].map((name, index) => ({ name, x: 5 + (index * 11) % 88, y: -18 - index * 12, velocity: 0.2 + index * 0.03, rotation: (index % 2 ? -1 : 1) * (index * 7), dragging: false })));
 
   useEffect(() => {
@@ -3046,6 +3048,50 @@ function InventoryTab({
   const filteredOther = otherItems.filter((name) => matches(name, rarityFor(name), owned(name)));
   const filteredCrafted = craftRecipes.filter((recipe) => matches(recipe.name, craftedRarityFor(recipe.name), owned(recipe.name)));
   const showTed = !filtering || matches(tedReward.name, tedReward.rarity, tedQuantity);
+  // One Breadlet in the collection. Locked ones show as a silhouette; Ted and crafted Breadlets only
+  // open once you own them.
+  const collectionTile = (reward: Reward, inspectLocked = true) => {
+    const quantity = owned(reward.name);
+    return (
+      <button
+        key={reward.name}
+        title={quantity ? `${reward.name} (x${quantity})` : `${reward.name} (not collected yet)`}
+        onClick={() => (quantity || inspectLocked) && setSelected(reward)}
+        className={`blook-tilt relative flex aspect-square flex-col items-center justify-center transition-all p-0 ${quantity ? "cursor-pointer hover:-translate-y-1" : inspectLocked ? "cursor-pointer" : "cursor-default"}`}
+      >
+        {quantity ? (
+          <RewardArt
+            name={reward.name}
+            art={artFor(reward.name)}
+            className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`}
+          />
+        ) : (
+          <img src={artFor(reward.name)} alt="" className="locked-blook-art h-full w-full object-contain" />
+        )}
+
+        {/* Quantity badge */}
+        {quantity > 0 && (
+          <span className="absolute bottom-1.5 left-1.5 rounded-lg bg-[#22c55e] px-1.5 py-0.5 text-[10px] font-black text-white shadow">
+            {quantity}
+          </span>
+        )}
+
+        {locked.has(reward.name) && quantity > 0 && <span className="blook-lock-badge" title="Locked"><Lock size={11} aria-hidden="true" /></span>}
+        {!quantity && (player.wishlist || []).includes(reward.name) && <span className="blook-wish-badge" title="On your wishlist">★</span>}
+        {/* Equipped badge */}
+        {player.equipped === reward.name && (
+          <span className="absolute top-1.5 right-1.5 rounded-md bg-[#e9bd67] px-1 text-[9px] font-black text-[#031426]">
+            ✓
+          </span>
+        )}
+      </button>
+    );
+  };
+  const miscItems = [
+    ...(showTed ? [{ reward: tedReward, inspectLocked: false }] : []),
+    ...filteredOther.map((name) => ({ reward: { name, rarity: rarityFor(name), weight: 0, art: artFor(name) } as Reward, inspectLocked: true })),
+    ...filteredCrafted.map((recipe) => ({ reward: { name: recipe.name, rarity: craftedRarityFor(recipe.name), weight: 0, art: artFor(recipe.name) } as Reward, inspectLocked: false })),
+  ];
   const anyBagMatch = catalog.some((capsule) => capsule.pool.some((reward) => matches(reward.name, reward.rarity, owned(reward.name))));
   const rarityOptions = ["All", ...rarityOrder.filter((rarity) => rarity !== "Chroma")];
   const massSellTotal = sellableBreads.reduce((total, bread) => total + (sellQuantities[bread.name] || 0) * sellValueForBlook(bread.name, rarityFor(bread.name)), 0);
@@ -3090,126 +3136,20 @@ function InventoryTab({
                 )}
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {visible.map((reward) => {
-                  const quantity = owned(reward.name);
-                  return (
-                    <button
-                      key={reward.name}
-                      title={quantity ? `${reward.name} (x${quantity})` : `${reward.name} (not collected yet)`}
-                      onClick={() => setSelected(reward)}
-                        className={`blook-tilt relative flex aspect-square flex-col items-center justify-center transition-all p-0 cursor-pointer ${
-                        quantity
-                          ? "hover:-translate-y-1"
-                          : ""
-                      }`}
-                    >
-                      {quantity ? (
-                        <RewardArt
-                          name={reward.name}
-                          art={artFor(reward.name)}
-                          className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`}
-                        />
-                      ) : (
-                        <img src={artFor(reward.name)} alt="" className="locked-blook-art h-full w-full object-contain" />
-                      )}
-
-                      {/* Quantity badge */}
-                      {quantity > 0 && (
-                        <span className="absolute bottom-1.5 left-1.5 rounded-lg bg-[#22c55e] px-1.5 py-0.5 text-[10px] font-black text-white shadow">
-                          {quantity}
-                        </span>
-                      )}
-
-                      {locked.has(reward.name) && quantity > 0 && <span className="blook-lock-badge" title="Locked"><Lock size={11} aria-hidden="true" /></span>}
-                      {!quantity && (player.wishlist || []).includes(reward.name) && <span className="blook-wish-badge" title="On your wishlist">★</span>}
-                      {/* Equipped badge */}
-                      {player.equipped === reward.name && (
-                        <span className="absolute top-1.5 right-1.5 rounded-md bg-[#e9bd67] px-1 text-[9px] font-black text-[#031426]">
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+                {visible.map((reward) => collectionTile(reward))}
               </div>
             </section>
             );
           })}
-          {(!filtering || filteredOther.length > 0 || filteredCrafted.length > 0 || showTed) ? <section className="p-1">
-            <div className="mb-4 flex items-center justify-between border-b border-[#d49a4a]/20 pb-2">
-              <h2 className="text-xl font-black text-[#ffe2a0]">Other</h2>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#d7b88c]">Extra, secret, and crafted Breadlets</span>
+          {miscItems.length > 0 && <section className="p-1">
+            <div className="mb-4 flex items-center justify-between border-b border-[#3d91cd]/20 pb-2">
+              <h2 className="text-xl font-black text-[#bde8ff]">Misc</h2>
             </div>
-            <div className="space-y-6">
-              {filteredOther.length > 0 && <div>
-                <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-[#d7b88c]">Other rewards</h3>
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-                  {filteredOther.map((name) => {
-                    const reward: Reward = { name, rarity: rarityFor(name), weight: 0, art: artFor(name) };
-                    const quantity = owned(name);
-                    return (
-                      <button
-                        key={name}
-                        type="button"
-                        title={`${name} · ${reward.rarity} (x${quantity})`}
-                        onClick={() => setSelected(reward)}
-                        className="blook-tilt relative flex aspect-square flex-col items-center justify-center rounded-2xl bg-black/25 p-2"
-                      >
-                        <RewardArt name={name} art={reward.art || artFor(name)} className={`h-full w-full ${rewardEffectClassFor(name, reward.rarity)}`} />
-                        <span className="absolute bottom-1 left-1 rounded-md bg-[#e9bd67] px-1.5 py-0.5 text-[9px] font-black text-[#29170c]">{reward.rarity}</span>
-                        <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{quantity}</span>
-                        {player.equipped === name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>}
-              {showTed && <div>
-                <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-fuchsia-200">Secrets</h3>
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-                  <button
-                    type="button"
-                    title={tedQuantity ? `Ted · Unique (x${tedQuantity})` : "Ted · Unique (Secret)"}
-                    onClick={() => tedQuantity && setSelected(tedReward)}
-                    className={`relative flex aspect-square flex-col items-center justify-center rounded-2xl p-2 transition ${tedQuantity ? "bg-fuchsia-950/40 hover:-translate-y-1" : "cursor-not-allowed bg-black/40 opacity-60"}`}
-                  >
-                    {tedQuantity ? (
-                      <RewardArt name={tedReward.name} art={tedReward.art || artFor(tedReward.name)} className={`h-full w-full ${rewardEffectClassFor(tedReward.name, tedReward.rarity)}`} />
-                    ) : (
-                      <div className="relative flex h-full w-full items-center justify-center">
-                        <span className="h-full w-full rounded-xl bg-black/80" />
-                        <Lock size={16} className="absolute text-white/80" />
-                      </div>
-                    )}
-                    <span className="absolute bottom-1 left-1 rounded-md bg-fuchsia-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">Unique</span>
-                    {tedQuantity > 0 && <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{tedQuantity}</span>}
-                    {player.equipped === tedReward.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
-                  </button>
-                </div>
-              </div>}
-              {filteredCrafted.length > 0 && <div>
-                <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-[#ead4ff]">Crafted</h3>
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-                  {filteredCrafted.map((recipe) => {
-                    const reward: Reward = { name: recipe.name, rarity: craftedRarityFor(recipe.name), weight: 0, art: artFor(recipe.name) };
-                    const quantity = owned(recipe.name);
-                    return <button
-                      key={recipe.name}
-                      title={quantity ? `${recipe.name} · ${reward.rarity} (x${quantity})` : `${recipe.name} · ${reward.rarity} (Locked)`}
-                      onClick={() => quantity && setSelected(reward)}
-                      className={`relative flex aspect-square flex-col items-center justify-center p-2 transition ${quantity ? "hover:-translate-y-1" : "cursor-not-allowed opacity-55"}`}
-                    >
-                      {quantity ? <RewardArt name={recipe.name} art={reward.art || artFor(recipe.name)} className={`h-full w-full ${rewardEffectClassFor(recipe.name, reward.rarity)}`} /> : <div className="relative flex h-full w-full items-center justify-center"><span className="h-full w-full rounded-xl bg-black/80" /><Lock size={16} className="absolute text-white/80" /></div>}
-                      <span className={`absolute bottom-1 left-1 rounded-md px-1.5 py-0.5 text-[9px] font-black ${reward.rarity === "Mythic" ? "bg-fuchsia-300 text-slate-950" : "bg-amber-300 text-slate-950"}`}>{reward.rarity}</span>
-                      {quantity > 0 && <span className="absolute bottom-1 right-1 rounded-lg bg-emerald-500 px-1.5 py-0.5 text-[10px] font-black text-white">{quantity}</span>}
-                      {player.equipped === recipe.name && <span className="absolute right-1 top-1 rounded-md bg-amber-300 px-1 text-[9px] font-black text-slate-950">✓</span>}
-                    </button>;
-                  })}
-                </div>
-              </div>}
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {miscItems.map(({ reward, inspectLocked }) => collectionTile(reward, inspectLocked))}
             </div>
-          </section> : null}
-          {filtering && !anyBagMatch && !filteredOther.length && !filteredCrafted.length && !showTed && <p className="py-10 text-center font-bold text-white/70">No Breadlets match those filters.</p>}
+          </section>}
+          {filtering && !anyBagMatch && !miscItems.length && <p className="py-10 text-center font-bold text-white/70">No Breadlets match those filters.</p>}
         </div>
       </div>
 
