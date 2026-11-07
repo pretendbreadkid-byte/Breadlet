@@ -203,6 +203,21 @@ export async function PATCH(request: Request) {
     return NextResponse.json(data);
   }
 
+  if (action === 'kick') {
+    if (typeof body.targetProfileId !== 'string' || !body.targetProfileId) {
+      return NextResponse.json({ error: 'A member profile is required.' }, { status: 400 });
+    }
+    const admin = createAdminClient();
+    if (!admin) return NextResponse.json({ error: 'Clan member management is not configured.' }, { status: 503 });
+    const { data, error } = await admin.rpc('secure_clan_kick_member', {
+      p_owner_profile_id: user.id,
+      p_clan_id: clanId,
+      p_member_profile_id: body.targetProfileId,
+    });
+    if (error) return NextResponse.json({ error: error.message }, { status: 409 });
+    return NextResponse.json(data);
+  }
+
   if (action === 'join') {
     return NextResponse.json({ error: 'Use a clan request; the owner must approve it.' }, { status: 400 });
   }

@@ -44,6 +44,7 @@ import {
   Image as ImageIcon,
   HelpCircle,
   LogOut,
+  UserMinus,
   Search,
   GitBranch,
   CirclePlay,
@@ -5871,6 +5872,22 @@ function ClanTab({
     await loadClans();
   };
 
+  const kickClanMember = async (member: ClanMemberRecord) => {
+    if (!clan?.id || !isOwner || !member.profileId || member.profileId === player.id) return;
+    if (!window.confirm(`Kick ${member.username} from ${clan.name}?`)) return;
+    const response = await fetch("/api/clans", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "kick", clanId: clan.id, targetProfileId: member.profileId }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setCreateError(result.error || "That member could not be kicked.");
+      return;
+    }
+    await loadClans();
+  };
+
   const upgradeOptions = [
     { feature: "rename_unlock", title: "Custom clan name", detail: "Unlock the ability to rename your clan.", price: 5000, owned: clan?.nameChangeUnlocked || false },
     { feature: "banner_unlock", title: "Clan banner", detail: "Upload a wide banner visible to every clan member.", price: 10000, owned: clan?.bannerUnlocked || false },
@@ -5972,6 +5989,12 @@ function ClanTab({
                     <strong>{member.username}</strong>
                     <span className="clan-member-role">{member.role === "leader" ? <><Crown size={14} /> Leader</> : member.role === "admin" ? "Admin" : "Member"}</span>
                   </div>
+                  {isOwner && member.profileId !== player.id && <button
+                    type="button"
+                    onClick={() => void kickClanMember(member)}
+                    aria-label={`Kick ${member.username} from clan`}
+                    className="clan-secondary-button inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-black"
+                  ><UserMinus size={14} />Kick</button>}
                 </article>
               ))}
             </div>

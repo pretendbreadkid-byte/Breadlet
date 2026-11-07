@@ -7,7 +7,7 @@
     "build": "next build --no-lint",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --test tests/gameplay-security.test.cjs"
+    "test": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
