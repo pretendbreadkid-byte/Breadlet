@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { chatModerationRole, isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
-import { evilUntil, isEvilActive, isEvilFor } from '../../../lib/evil-ai';
+import { isEvilActive, isEvilFor } from '../../../lib/evil-ai';
 import { ogBadges } from '../../../lib/og-badge';
 import { mentionedNames, notify } from '../../../lib/inbox';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { filterProfanity, hasSevereSlur, isNameAllowed, isPastedChatLog } from '../../../lib/chat-filter';
+import { moderateChat } from '../../../lib/chat-moderation';
 import { NETWORK_BANNED_MESSAGE, isNetworkBanned } from '../../../lib/network-identity';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,6 @@ const hideSlurs = (message: string) => !isImage(message) && hasSevereSlur(messag
 // Rows from the light select (migration 0055) carry text_body/is_image instead of the full
 // message, so embedded images are served once from /api/chat/image (cached) instead of
 // being downloaded from the database on every chat refresh.
-const SPAM_MUTE_MINUTES = 5;
 const PASTED_CHAT_ERROR = "Please don't paste the chat back into the chat.";
 const LIGHT_SELECT = 'id, text_body, is_image, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
 const FULL_SELECT = 'id, message, created_at, profile_id, reply_to_message_id, is_breadlet_bot';
@@ -198,7 +198,8 @@ export async function POST(request: Request) {
       { status: 503 }
     );
   }
-  const database = createAdminClient() || supabase;
+  const database = createAdminClient();
+  if (!database) return NextResponse.json({ error: 'Chat moderation is not configured.' }, { status: 503 });
 
   const {
     data: { user },
@@ -222,18 +223,12 @@ export async function POST(request: Request) {
   }
 
   // These lookups are independent, so run them together instead of one after another.
-  const [{ data: sender }, networkBanned, body] = await Promise.all([
+  const [{ data: sender, error: senderError }, networkBanned, body] = await Promise.all([
     database.from('profiles').select('username, is_banned, account_status, stats').eq('id', user.id).maybeSingle(),
     isNetworkBanned(database, request),
     request.json().catch(() => ({})),
   ]);
-  if (sender && (sender.is_banned || (sender.account_status && sender.account_status !== 'active'))) {
-    return NextResponse.json({ error: 'Banned accounts cannot chat.' }, { status: 403 });
-  }
-  const mutedUntil = Date.parse(String(sender?.stats?.chatMutedUntil || ''));
-  if (Number.isFinite(mutedUntil) && mutedUntil > Date.now()) {
-    return NextResponse.json({ error: `You are timed out from chat for ${Math.ceil((mutedUntil - Date.now()) / 60000)} more minute(s).` }, { status: 403 });
-  }
+  if (senderError || !sender) return NextResponse.json({ error: 'Could not verify your account.' }, { status: 503 });
   if (networkBanned && !isProtectedFromMute(sender?.username || '')) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
   // Accounts named to look like staff (e.g. breadbIook) can't chat, so they can't impersonate.
   if (sender?.username && isStaffLookalike(sender.username)) {
@@ -248,16 +243,12 @@ export async function POST(request: Request) {
   const isImageMessage = /^\[img\]data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+\/=]+\[\/img\]$/.test(rawMessage) && rawMessage.length <= 600000;
   // A rejected image must not fall through and get posted as a chopped-up text message.
   if (rawMessage.startsWith('[img]') && !isImageMessage) return NextResponse.json({ error: 'That image could not be sent. Try a PNG or JPEG.' }, { status: 400 });
-  if (!isImageMessage && isPastedChatLog(rawMessage)) return NextResponse.json({ error: PASTED_CHAT_ERROR }, { status: 400 });
-  // Slurs are blocked outright and earn an automatic 30-minute timeout.
-  if (!isImageMessage && hasSevereSlur(rawMessage)) {
-    if (!isProtectedFromMute(sender?.username || '')) {
-      const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-      await database.from('profiles').update({ stats: { ...(sender?.stats || {}), chatMutedUntil: until, evilAiUntil: evilUntil() } }).eq('id', user.id);
-    }
-    return NextResponse.json({ error: 'That message has hate speech in it and was blocked. You are timed out from chat for 30 minutes.' }, { status: 400 });
+  if (isImageMessage && !(Array.isArray(sender.stats?.badges) && sender.stats.badges.includes('Verified'))) {
+    return NextResponse.json({ error: 'Only verified players can upload chat images.' }, { status: 403 });
   }
-  const message = isImageMessage ? rawMessage : filterProfanity(rawMessage.slice(0, 500));
+  const text = isImageMessage ? rawMessage : rawMessage.slice(0, 500);
+  if (!isImageMessage && isPastedChatLog(text)) return NextResponse.json({ error: PASTED_CHAT_ERROR }, { status: 400 });
+  const message = isImageMessage ? text : filterProfanity(text);
 
   if (!message) {
     return NextResponse.json(
@@ -266,28 +257,6 @@ export async function POST(request: Request) {
       },
       { status: 400 }
     );
-  }
-
-  // Spam: the bot mutes a player who sends several messages in a row, either 5 within 10
-  // seconds, or the same message 3 times in a row within a minute. One long message never counts.
-  if (!isProtectedFromMute(sender?.username || '')) {
-    // text_body (migration 0055) skips image data; without it, only the timing check runs.
-    const since = new Date(Date.now() - 60 * 1000).toISOString();
-    const lastQuery = (columns: string) => database.from('global_chat_messages').select(columns)
-      .eq('profile_id', user.id).eq('is_breadlet_bot', false).gte('created_at', since)
-      .order('created_at', { ascending: false }).limit(4);
-    let { data: lastMessages, error: lastError } = await lastQuery('text_body, created_at');
-    if (lastError) ({ data: lastMessages } = await lastQuery('created_at'));
-    const recentRows = ((lastMessages || []) as any[]).map((row) => ({ message: row.text_body ?? null, created_at: String(row.created_at) }));
-    const burst = recentRows.filter((row) => Date.now() - Date.parse(row.created_at) < 10 * 1000).length >= 4;
-    const normalized = (text: string) => String(text || '').trim().toLowerCase();
-    const repeated = !isImageMessage && recentRows.length >= 2 && recentRows.slice(0, 2).every((row) => row.message !== null && normalized(row.message) === normalized(message));
-    if (burst || repeated) {
-      const until = new Date(Date.now() + SPAM_MUTE_MINUTES * 60 * 1000).toISOString();
-      await database.from('profiles').update({ stats: { ...(sender?.stats || {}), chatMutedUntil: until } }).eq('id', user.id);
-      await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: `${sender?.username || 'A player'} was muted for ${SPAM_MUTE_MINUTES} minutes for spamming.` });
-      return NextResponse.json({ error: `Slow down! You were muted for ${SPAM_MUTE_MINUTES} minutes for spamming.` }, { status: 429 });
-    }
   }
 
   const replyToMessageId =
@@ -341,6 +310,8 @@ export async function POST(request: Request) {
     };
   }
 
+  const moderationResponse = await moderateChat(database, user.id, text, isImageMessage);
+  if (moderationResponse) return moderationResponse;
 
   const { data, error } =
     await database
@@ -448,7 +419,8 @@ export async function PATCH(request: Request) {
       { status: 503 }
     );
   }
-  const database = createAdminClient() || supabase;
+  const database = createAdminClient();
+  if (!database) return NextResponse.json({ error: 'Chat moderation is not configured.' }, { status: 503 });
 
   const {
     data: { user },
@@ -476,29 +448,25 @@ export async function PATCH(request: Request) {
     ? body.message.trim().slice(0, 500)
     : '';
 
-  // Edits get the same timeout and slur checks as new messages.
+  // Only an author may submit an edit to moderation.
   if (await isNetworkBanned(database, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
-  const { data: editor } = await database.from('profiles').select('username, stats').eq('id', user.id).maybeSingle();
-  const editorMutedUntil = Date.parse(String(editor?.stats?.chatMutedUntil || ''));
-  if (Number.isFinite(editorMutedUntil) && editorMutedUntil > Date.now()) {
-    return NextResponse.json({ error: 'You are timed out from chat and cannot edit messages.' }, { status: 403 });
-  }
-  if (isPastedChatLog(rawMessage)) return NextResponse.json({ error: PASTED_CHAT_ERROR }, { status: 400 });
-  if (hasSevereSlur(rawMessage)) {
-    if (!isProtectedFromMute(editor?.username || '')) {
-      const until = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-      await database.from('profiles').update({ stats: { ...(editor?.stats || {}), chatMutedUntil: until, evilAiUntil: evilUntil() } }).eq('id', user.id);
-    }
-    return NextResponse.json({ error: 'That message has hate speech in it and was blocked. You are timed out from chat for 30 minutes.' }, { status: 400 });
-  }
-  const message = filterProfanity(rawMessage);
-
-  if (!id || !message) {
+  if (!id || !rawMessage) {
     return NextResponse.json(
       { error: 'A message ID and non-empty message are required.' },
       { status: 400 }
     );
   }
+  if (rawMessage.startsWith('[img]')) {
+    return NextResponse.json({ error: 'Chat images cannot be uploaded through message edits.' }, { status: 400 });
+  }
+  if (isPastedChatLog(rawMessage)) return NextResponse.json({ error: PASTED_CHAT_ERROR }, { status: 400 });
+  const { data: existing, error: existingError } = await database.from('global_chat_messages')
+    .select('id').eq('id', id).eq('profile_id', user.id).eq('is_breadlet_bot', false).is('deleted_at', null).maybeSingle();
+  if (existingError) return NextResponse.json({ error: 'Could not verify the message.' }, { status: 500 });
+  if (!existing) return NextResponse.json({ error: 'Message not found or you do not have permission to edit it.' }, { status: 404 });
+  const moderationResponse = await moderateChat(database, user.id, rawMessage);
+  if (moderationResponse) return moderationResponse;
+  const message = filterProfanity(rawMessage);
 
   const { data, error } = await database
     .from('global_chat_messages')

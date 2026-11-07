@@ -28,8 +28,18 @@ export async function GET() {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     return { id: row.id, profileId: row.profile_id, username: profile?.username || 'Player', banReason: profile?.ban_reason || '', message: row.reason, status: row.status, note: row.admin_note || '', createdAt: row.created_at, reviewedAt: row.reviewed_at };
   });
+  const autoBannedIds = Array.from(new Set(rows.filter((row) => row.banReason.startsWith('Automatic permanent ban for a slur')).map((row) => row.profileId)));
+  const evidenceByProfile = new Map<string, string>();
+  if (autoBannedIds.length) {
+    const { data: evidence, error: evidenceError } = await session.database.from('chat_auto_ban_evidence')
+      .select('profile_id, message').in('profile_id', autoBannedIds).order('created_at', { ascending: false });
+    if (evidenceError) return NextResponse.json({ error: 'Could not load automatic ban evidence.' }, { status: 500 });
+    for (const entry of evidence || []) {
+      if (!evidenceByProfile.has(entry.profile_id)) evidenceByProfile.set(entry.profile_id, entry.message);
+    }
+  }
   rows.sort((a, b) => Number(b.status === 'pending') - Number(a.status === 'pending'));
-  return NextResponse.json(rows);
+  return NextResponse.json(rows.map((row) => ({ ...row, banEvidence: evidenceByProfile.get(row.profileId) || '' })));
 }
 
 export async function POST(request: Request) {

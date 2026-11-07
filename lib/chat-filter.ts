@@ -51,6 +51,29 @@ export function hasSevereSlur(text: string) {
   return words.some((word, index) => wordHasSlur(word) || slurAt(words.slice(index, index + 8).join(''), true));
 }
 
+// Automatic bans require a whole-word match; the broader display filter remains separate.
+export function hasBannableSlur(text: string) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const exact = (word: string) => {
+    const raw = letters(word);
+    const collapsed = raw.replace(/(.)\1+/g, '$1');
+    return /^(?:n+[iy]+[gq]{2,}(?:e+r|a+|u+h|u+r)|n+[iy]+b{2,}a+)s?$/.test(raw)
+      || /^(?:fag[oei]t|fag|fagy|trany|tranies|wetback|spic|kike|chink|beaner|dyke|retard)s?$/.test(collapsed);
+  };
+  return words.some((word, index) => {
+    const trimmed = word.replace(/^[^a-z0-9\u00c0-\uFFFF]+|[^a-z0-9\u00c0-\uFFFF]+$/gi, '');
+    if (exact(word) || exact(trimmed) || (normalize(trimmed).match(/[a-z]+/g) || []).some(exact)) return true;
+    let joined = '';
+    for (let i = index; i < words.length && i < index + 10; i += 1) {
+      const part = letters(words[i]);
+      if (part.length !== 1) break;
+      joined += part;
+      if (exact(joined)) return true;
+    }
+    return false;
+  });
+}
+
 // Masks any word containing profanity or a slur.
 export function filterProfanity(text: string) {
   return text.replace(/\S+/g, (word) => {

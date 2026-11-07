@@ -4114,7 +4114,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   const [editDraft, setEditDraft] = useState("");
   const [onlinePanelOpen, setOnlinePanelOpen] = useState(false);
   const supabase = useMemo(() => isGuest ? null : createSupabaseClient(), [isGuest]);
-  const canSendImages = player.badges?.includes("Verified") || canManageEmojis;
+  const canSendImages = player.badges?.includes("Verified");
   // Commands this player can use, for the "/" pop-up (the server checks again).
   const lowerName = player.username.toLowerCase();
   const commandRole = lowerName === ADMIN_USERNAME ? "admin" : MODERATOR_USERNAMES.includes(lowerName) ? "full" : LIMITED_MODERATOR_USERNAMES.includes(lowerName) ? "limited" : null;
@@ -5030,7 +5030,7 @@ function TokenBankTab({ isGuest }: { isGuest: boolean }) {
   );
 }
 
-type BanAppeal = { id: string; username: string; banReason: string; message: string; status: "pending" | "approved" | "declined"; note: string; createdAt: string };
+type BanAppeal = { id: string; username: string; banReason: string; banEvidence: string; message: string; status: "pending" | "approved" | "declined"; note: string; createdAt: string };
 
 // Ban appeals sent from the login screen; accepting one unbans the player.
 function BanAppealsPanel() {
@@ -5066,6 +5066,7 @@ function BanAppealsPanel() {
           <div key={appeal.id} className="rounded-xl bg-[#0c3b70] p-4">
             <p className="font-black">{appeal.username} <small className="font-bold opacity-60">· {new Date(appeal.createdAt).toLocaleString()}</small></p>
             {appeal.banReason && <p className="mt-1 text-xs font-bold opacity-75">Banned for: {appeal.banReason}</p>}
+            {appeal.banEvidence && <p className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-black/30 p-3 text-sm">Flagged message: {appeal.banEvidence}</p>}
             <p className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-black/30 p-3 text-sm">{appeal.message}</p>
             <input value={notes[appeal.id] || ""} onChange={(event) => setNotes((current) => ({ ...current, [appeal.id]: event.target.value.slice(0, 300) }))} placeholder="Note to the player (optional, shown if denied)" className="mt-2 w-full rounded-lg bg-[#103f75] px-3 py-2 text-sm outline-none" />
             <div className="mt-2 flex gap-2">

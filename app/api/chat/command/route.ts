@@ -6,6 +6,7 @@ import { commandsFor } from '../../../../lib/chat-commands';
 import { liveCapsules } from '../../../../lib/gameplay-catalog';
 import { loadSiteEdits } from '../../../../lib/site-edits-server';
 import { adminRenamePlayer } from '../../../../lib/admin-rename';
+import { moderateChat } from '../../../../lib/chat-moderation';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,8 @@ export async function POST(request: Request) {
   if (command === 'announce') {
     const text = args.join(' ').trim().slice(0, 400);
     if (!text) return reply('Usage: /announce <message>', 400);
+    const moderationResponse = await moderateChat(database, user.id, text);
+    if (moderationResponse) return moderationResponse;
     const { error } = await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: text });
     return error ? reply(error.message, 500) : reply('Announced.');
   }
@@ -86,7 +89,10 @@ export async function POST(request: Request) {
   if (command === 'unmute') {
     const { chatMutedUntil, ...stats } = target.stats || {};
     const { error } = await database.from('profiles').update({ stats }).eq('id', target.id);
-    return error ? reply(error.message, 500) : reply(chatMutedUntil ? `${target.username} can chat again.` : `${target.username} wasn't muted.`);
+    if (error) return reply(error.message, 500);
+    const { data: removedMutes, error: muteError } = await database.from('chat_auto_mutes').delete().eq('profile_id', target.id).select('profile_id');
+    if (muteError) return reply(muteError.message, 500);
+    return reply(chatMutedUntil || removedMutes?.length ? `${target.username} can chat again.` : `${target.username} wasn't muted.`);
   }
   if (command === 'ban') {
     const hours = /^\d+$/.test(String(args[1] || '')) ? Math.min(8760, Math.max(1, Number(args[1]))) : 0;

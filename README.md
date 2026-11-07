@@ -57,6 +57,8 @@ Apply `supabase/migrations/0076_edit_mode.sql` to use edit mode: the owner types
 
 Apply `supabase/migrations/0080_clan_crow_reward_and_kicking.sql` after the earlier migrations to award a Crow to members of “Vespa death”, remove it when they leave or are kicked, and enable owner-only member kicking across clans.
 
+Apply `supabase/migrations/0081_chat_auto_moderation.sql` after the earlier migrations to enable chat. Copy the file's SQL contents into the Supabase SQL Editor (not its path). Global and trade chat share spam checks: 10 messages in 10 seconds or 5 identical messages in a minute result in a 30-minute mute. High-confidence slur matches result in an appealable permanent account ban; owner and full moderators are exempt. Existing automatic alt bans remain unchanged. Image uploads require the Verified badge and are not text-scanned. Filters can miss disguised slurs and may make mistakes, so administrators should review appeals.
+
 Apply `supabase/migrations/0072_textbook_becomes_book.sql` to rename Textbook to Book in the database. Until then, a Lost and Found Bag that rolls a Book fails with a catalog error and charges nothing.
 
 Apply `supabase/migrations/0017_ted_secret.sql` as well to enable the signed-in Ted secret click counter and grant Ted as a Unique inventory item. Without it, the secret claim endpoint cannot save the reward.
