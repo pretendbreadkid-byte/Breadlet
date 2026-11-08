@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { hasAdminAccess } from '../../../lib/admin-access';
 import { adminRenamePlayer } from '../../../lib/admin-rename';
+import { banScreenFrom } from '../../../lib/ban-screen';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 
@@ -36,8 +37,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Choose a player, give a reason, and set a valid duration.' }, { status: 400 });
     }
     if (targetId === session.userId) return NextResponse.json({ error: 'You cannot ban your own account.' }, { status: 400 });
-    const { data: target, error: targetError } = await session.supabase.from('profiles').select('id').eq('id', targetId).maybeSingle();
+    const { data: target, error: targetError } = await session.supabase.from('profiles').select('id, stats').eq('id', targetId).maybeSingle();
     if (targetError || !target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+    // Optional Star Wars style ban screen (lib/ban-screen.ts), shown instead of the normal ban message.
+    const banScreen = body.banScreen ? banScreenFrom({ banScreen: body.banScreen }) : null;
     const { error: banError } = await session.supabase.from('bans').insert({
       profile_id: targetId,
       reason,
@@ -46,7 +49,8 @@ export async function POST(request: Request) {
       created_by_admin_id: session.userId,
     });
     if (banError) return NextResponse.json({ error: banError.message }, { status: 400 });
-    await session.supabase.from('profiles').update({ is_banned: true, ban_reason: reason, ban_expires_at: permanent ? null : new Date(Date.now() + hours * 60 * 60 * 1000).toISOString() }).eq('id', targetId);
+    const { banScreen: _oldScreen, ...stats } = (target.stats || {}) as Record<string, unknown>;
+    await session.supabase.from('profiles').update({ is_banned: true, ban_reason: reason, ban_expires_at: permanent ? null : new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(), stats: banScreen ? { ...stats, banScreen } : stats }).eq('id', targetId);
     return NextResponse.json({ ok: true });
   }
 
@@ -63,7 +67,8 @@ export async function POST(request: Request) {
     if (!target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
     const now = new Date().toISOString();
     await session.supabase.from('bans').update({ is_permanent: false, expires_at: now }).eq('profile_id', targetId).or(`is_permanent.eq.true,expires_at.is.null,expires_at.gt.${now}`);
-    const { error } = await session.supabase.from('profiles').update({ is_banned: false, ban_reason: null, ban_expires_at: null, stats: { ...(target.stats || {}), altAppealApproved: true } }).eq('id', targetId);
+    const { banScreen: _oldScreen, ...stats } = (target.stats || {}) as Record<string, unknown>;
+    const { error } = await session.supabase.from('profiles').update({ is_banned: false, ban_reason: null, ban_expires_at: null, stats: { ...stats, altAppealApproved: true } }).eq('id', targetId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     await session.supabase.from('network_bans').delete().eq('profile_id', targetId);
     return NextResponse.json({ ok: true });

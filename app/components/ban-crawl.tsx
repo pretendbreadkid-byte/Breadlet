@@ -1,15 +1,17 @@
 "use client";
 
 // A custom ban screen in the style of a Star Wars opening crawl. The crimes come from the banned
-// player's profile (lib/ban-screen.ts). There's no way out of it: the account can't play.
+// player's profile (lib/ban-screen.ts). A banned player has no way out of it; an admin previewing
+// one (onClose) gets a close button.
+import { createPortal } from "react-dom";
 import type { BanScreen } from "../../lib/ban-screen";
 
-export function BanCrawl({ screen }: { screen: BanScreen }) {
-  return (
+export function BanCrawl({ screen, onClose }: { screen: BanScreen; onClose?: () => void }) {
+  const crawl = (
     <div className="ban-crawl" role="alertdialog" aria-modal="true" aria-labelledby="ban-crawl-title">
       <p className="ban-crawl-intro">A long time ago, in a Breadlet far, far away....</p>
       <h1 id="ban-crawl-title" className="ban-crawl-logo">BANNED</h1>
-      <div className="ban-crawl-stage" aria-hidden="false">
+      <div className="ban-crawl-stage">
         <div className="ban-crawl-text">
           <p className="ban-crawl-episode">Episode ∞</p>
           <h2>{screen.title}</h2>
@@ -21,6 +23,9 @@ export function BanCrawl({ screen }: { screen: BanScreen }) {
           <p>Forever.</p>
         </div>
       </div>
+      {onClose && <button type="button" onClick={onClose} className="ban-crawl-close">Close preview</button>}
     </div>
   );
+  // A preview opens inside the game; on the page body it isn't recoloured by the game's theme.
+  return onClose ? createPortal(crawl, document.body) : crawl;
 }

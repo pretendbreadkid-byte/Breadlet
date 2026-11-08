@@ -5280,6 +5280,13 @@ function AdminTab({
   const [banReason, setBanReason] = useState("");
   const [banDuration, setBanDuration] = useState("24");
   const [banPermanent, setBanPermanent] = useState(false);
+  // Optional Star Wars style ban screen (title + one crime per line), and the admin's own preview of it.
+  const [crawlTitle, setCrawlTitle] = useState("");
+  const [crawlCrimes, setCrawlCrimes] = useState("");
+  const [crawlPreview, setCrawlPreview] = useState<BanScreen | null>(null);
+  const crawlCrimeList = crawlCrimes.split("\n").map((line) => line.trim()).filter(Boolean);
+  // Read when clicked or rendered, after the player list below exists.
+  const crawlScreenNow = () => crawlCrimeList.length ? { title: crawlTitle.trim() || `The Fall of ${players.find((profile) => profile.id === targetId)?.username || "a player"}`, crimes: crawlCrimeList } : null;
   const [giftTitle, setGiftTitle] = useState("");
   const [giftMessage, setGiftMessage] = useState("");
   const [giftBlook, setGiftBlook] = useState("");
@@ -5529,15 +5536,25 @@ function AdminTab({
               <input value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Reason" className="rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
             </div>
             <label className="flex items-center gap-2 text-sm font-bold text-rose-100"><input type="checkbox" checked={banPermanent} onChange={(event) => setBanPermanent(event.target.checked)} className="h-4 w-4 accent-rose-400" />Permanent ban</label>
+            <div className="space-y-2 rounded-xl border border-[#b85a77]/60 p-3">
+              <p className="text-sm font-black text-[#ffd6df]">Star Wars ban screen (optional)</p>
+              <p className="text-xs text-[#f2b9c7]">Fill in the crimes and the player sees a Star Wars style crawl instead of the normal ban message, on every account and device the ban covers.</p>
+              <input value={crawlTitle} maxLength={80} onChange={(e) => setCrawlTitle(e.target.value)} placeholder={`Title (e.g. The Fall of ${players.find((profile) => profile.id === targetId)?.username || "Player"})`} className="w-full rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
+              <textarea value={crawlCrimes} onChange={(e) => setCrawlCrimes(e.target.value)} rows={4} placeholder={"Crimes, one per line\nMaking alt accounts\nScamming other players"} className="w-full resize-y rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
+              <button type="button" disabled={!crawlCrimeList.length} onClick={() => setCrawlPreview(crawlScreenNow())} className="w-full rounded-xl border border-[#ef8b9d] px-4 py-2 text-sm font-black text-[#ffd6df] hover:bg-[#ef8b9d]/15 disabled:opacity-40">Preview it on yourself</button>
+            </div>
+            {crawlPreview && <BanCrawl screen={crawlPreview} onClose={() => setCrawlPreview(null)} />}
             <button
               disabled={!targetId || !banReason.trim() || (!banPermanent && Number(banDuration) < 1)}
               onClick={async () => {
                 const selected = players.find((profile) => profile.id === targetId);
                 if (!selected || !window.confirm(`Ban ${selected.username}${banPermanent ? " permanently" : ` for ${banDuration} hours`}?`)) return;
-                const banned = await moderateAccount("ban", { targetId, reason: banReason.trim(), permanent: banPermanent, durationHours: Number(banDuration) });
+                const banned = await moderateAccount("ban", { targetId, reason: banReason.trim(), permanent: banPermanent, durationHours: Number(banDuration), banScreen: crawlScreenNow() });
                 if (banned) {
                   setPlayers((current) => current.map((profile) => profile.id === targetId ? { ...profile, is_banned: true, ban_reason: banReason.trim() } : profile));
                   setBanReason("");
+                  setCrawlTitle("");
+                  setCrawlCrimes("");
                 }
               }}
               className="w-full rounded-xl bg-[#ef8b9d] px-4 py-3 font-black text-[#351c3a] hover:bg-[#ffb3c1] disabled:opacity-40"
