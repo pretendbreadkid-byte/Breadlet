@@ -4,6 +4,7 @@ import { createAdminClient } from '../../../lib/supabase/admin';
 import { isNameAllowed } from '../../../lib/chat-filter';
 import { recordAccountDevice } from '../../../lib/network-identity';
 import { autoBanDeviceAlts } from '../../../lib/alt-bans';
+import { banScreenFrom } from '../../../lib/ban-screen';
 import { ogBadges } from '../../../lib/og-badge';
 import { isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 
@@ -40,6 +41,9 @@ export async function GET(request: Request) {
     full ? inventoryAdmin.from('trades').select('id', { count: 'exact', head: true }).or(`sender_profile_id.eq.${user.id},receiver_profile_id.eq.${user.id}`).eq('status', 'completed') : skipped,
   ]);
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 });
+  // A player with a custom ban screen sees it instead of the game, even while still logged in.
+  const banScreen = profile.is_banned ? banScreenFrom(profile.stats) : null;
+  if (banScreen) return NextResponse.json({ error: 'Sorry, your account is banned.', banScreen }, { status: 403 });
   const { equipped: equippedRow, ...profileFields } = profile as any;
   const equipped = (Array.isArray(equippedRow) ? equippedRow[0] : equippedRow) as { name: string } | null;
 

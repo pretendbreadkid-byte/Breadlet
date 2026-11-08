@@ -5,6 +5,7 @@ import { isNameAllowed } from '../../../../lib/chat-filter';
 import { isStaffLookalike } from '../../../../lib/admin-access';
 import { notify } from '../../../../lib/inbox';
 import { NETWORK_BANNED_MESSAGE, deviceHasAccount, isNetworkBanned, networkIdentity, recordAccountDevice } from '../../../../lib/network-identity';
+import { deviceBanScreen } from '../../../../lib/ban-screen';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     if (!referrer) return NextResponse.json({ error: 'That referral code does not exist.' }, { status: 400 });
   }
 
-  if (await isNetworkBanned(admin, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });
+  if (await isNetworkBanned(admin, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE, banScreen: await deviceBanScreen(admin, request) }, { status: 403 });
   if (await deviceHasAccount(admin, request)) {
     return NextResponse.json({ error: 'This device already has a Breadlet account. Log in to it instead.' }, { status: 409 });
   }

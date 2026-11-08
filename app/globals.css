@@ -3156,3 +3156,26 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-station-card header button 
   .breadlet-blue-theme .crafting-workspace .craft-process { min-width: 0; }
   .chat-online-panel, .global-chat .chat-online-panel { bottom: calc(80px + env(safe-area-inset-bottom)) !important; }
 }
+
+/* Custom ban screen: a Star Wars style opening crawl (ban-crawl.tsx). */
+.ban-crawl { position: fixed; inset: 0; z-index: 2147483600; overflow: hidden; background-color: #000; background-image: radial-gradient(1px 1px at 12% 18%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 72% 34%, #fff 50%, transparent 51%), radial-gradient(1.5px 1.5px at 38% 74%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 88% 82%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 22% 58%, #ddd 50%, transparent 51%), radial-gradient(1.5px 1.5px at 56% 12%, #fff 50%, transparent 51%); background-size: 260px 260px, 340px 340px, 420px 420px, 300px 300px, 220px 220px, 380px 380px; font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif; }
+.ban-crawl-intro { position: absolute; top: 40%; left: 50%; width: min(90vw, 640px); margin: 0; transform: translateX(-50%); color: #4bd5ee; font-size: clamp(1.2rem, 3.5vw, 2rem); letter-spacing: .02em; opacity: 0; animation: ban-intro 5s ease-in-out 0.5s forwards; }
+.ban-crawl-logo { position: absolute; top: 50%; left: 50%; margin: 0; color: #000; font-size: clamp(4rem, 18vw, 12rem); font-weight: 900; letter-spacing: .08em; -webkit-text-stroke: 4px #ffe81f; transform: translate(-50%, -50%) scale(2.6); opacity: 0; animation: ban-logo 8s ease-in 6s forwards; }
+.ban-crawl-stage { position: absolute; inset: 0; display: flex; justify-content: center; perspective: 400px; opacity: 0; animation: ban-show 1ms 12s forwards; }
+@keyframes ban-show { to { opacity: 1; } }
+.ban-crawl-text { position: absolute; top: 100%; width: min(92vw, 720px); color: #ffe81f; font-size: clamp(1.4rem, 4.2vw, 2.6rem); font-weight: 700; line-height: 1.5; text-align: justify; transform-origin: 50% 100%; transform: rotateX(24deg); animation: ban-crawl 75s linear 12s forwards; }
+.ban-crawl-text h2 { margin: 0 0 1.2em; text-align: center; font-size: 1.5em; text-transform: uppercase; }
+.ban-crawl-episode { margin: 0; text-align: center; }
+.ban-crawl-text p { margin: 0 0 1.2em; }
+.ban-crawl-text ul { margin: 0 0 1.2em; padding-left: 1.2em; list-style: "★  "; }
+.ban-crawl-text li { margin-bottom: .4em; text-align: left; }
+@keyframes ban-intro { 0%, 100% { opacity: 0; } 15%, 75% { opacity: 1; } }
+@keyframes ban-logo { 0% { opacity: 1; transform: translate(-50%, -50%) scale(2.6); } 90% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(.05); } }
+@keyframes ban-crawl { from { top: 100%; } to { top: -260%; } }
+/* Without motion: the text sits still and can be scrolled. */
+@media (prefers-reduced-motion: reduce) {
+  .ban-crawl { overflow-y: auto; }
+  .ban-crawl-intro, .ban-crawl-logo { display: none; }
+  .ban-crawl-stage { position: static; perspective: none; opacity: 1; animation: none; }
+  .ban-crawl-text { position: static; margin: 40px auto; transform: none; animation: none; }
+}

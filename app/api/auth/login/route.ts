@@ -4,6 +4,7 @@ import { createAdminClient } from '../../../../lib/supabase/admin';
 import { NETWORK_BANNED_MESSAGE, isNetworkBanned, recordAccountDevice } from '../../../../lib/network-identity';
 import { isProtectedFromMute } from '../../../../lib/admin-access';
 import { autoBanDeviceAlts } from '../../../../lib/alt-bans';
+import { banScreenFor, deviceBanScreen } from '../../../../lib/ban-screen';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -20,7 +21,9 @@ export async function POST(request: Request) {
   }
 
   // Staff skip device/IP bans so banning a test alt made on the owner's computer can't lock them out.
-  if (!isProtectedFromMute(username) && await isNetworkBanned(admin, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE, canAppeal: true }, { status: 403 });
+  if (!isProtectedFromMute(username) && await isNetworkBanned(admin, request)) {
+    return NextResponse.json({ error: NETWORK_BANNED_MESSAGE, canAppeal: true, banScreen: await deviceBanScreen(admin, request) }, { status: 403 });
+  }
 
   const { data: profile, error: profileError } = await admin
     .from('profiles')
@@ -51,6 +54,11 @@ export async function POST(request: Request) {
     // Record the device first so logging into a second account on it bans the group right away.
     await recordAccountDevice(admin, request, user.id);
     await autoBanDeviceAlts(admin, request).catch(() => undefined);
+    const banScreen = await banScreenFor(admin, user.id);
+    if (banScreen) {
+      await supabase.auth.signOut();
+      return NextResponse.json({ error: 'Sorry, your account is banned.', banScreen }, { status: 403 });
+    }
     const { data: bans } = await admin.from('bans').select('reason, is_permanent, expires_at')
       .eq('profile_id', user.id).order('started_at', { ascending: false }).limit(25);
     const now = Date.now();

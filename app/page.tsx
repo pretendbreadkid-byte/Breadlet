@@ -13,6 +13,8 @@ import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
 import { FIESTA_SHOP } from "../lib/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
+import { BanCrawl } from "./components/ban-crawl";
+import type { BanScreen } from "../lib/ban-screen";
 import { TERMS_VERSION } from "../lib/terms";
 import { EditModePanel, SiteVisualEdits, TOGGLE_EDIT_MODE, useSiteEdits } from "./components/edit-mode";
 import { artOverrides } from "../lib/site-edits";
@@ -605,6 +607,8 @@ function MainPage() {
   const [forgotPassword, setForgotPassword] = useState(false);
   const [tab, setTab] = useState<Tab>("profile");
   const [notice, setNotice] = useState("");
+  // A player banned with a custom ban screen (lib/ban-screen.ts) sees only that.
+  const [banScreen, setBanScreen] = useState<BanScreen | null>(null);
   const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
   const seenNotificationIds = useRef(new Set<string>());
   const [inboxToast, setInboxToast] = useState<{ type: string; title: string; message: string } | null>(null);
@@ -761,7 +765,11 @@ function MainPage() {
         for (let attempt = 0; attempt < 4; attempt += 1) {
           if (attempt) await new Promise((resolve) => window.setTimeout(resolve, attempt * 2000));
           response = await fetch("/api/player?full=1", { signal: AbortSignal.timeout(12000) }).catch(() => null);
-          if (response?.ok || response?.status === 401) break;
+          if (response?.ok || response?.status === 401 || response?.status === 403) break;
+        }
+        if (response?.status === 403) {
+          const body = await response.json().catch(() => null);
+          if (body?.banScreen) return setBanScreen(body.banScreen);
         }
         if (response?.ok) {
           setIsGuest(false);
@@ -1005,6 +1013,7 @@ function MainPage() {
           body: JSON.stringify({ email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim(), acceptedTerms }),
         });
         const signupBody = await signupResponse.json().catch(() => null);
+        if (signupBody?.banScreen) return setBanScreen(signupBody.banScreen);
         if (!signupResponse.ok) {
           result = { error: { message: signupBody?.error || (signupResponse.status >= 500 ? UPDATING_MESSAGE : "Could not create your account.") } };
         } else {
@@ -1015,6 +1024,7 @@ function MainPage() {
             body: JSON.stringify({ username: username.trim(), password }),
           });
           const loginBody = await loginResponse.json().catch(() => null);
+          if (loginBody?.banScreen) return setBanScreen(loginBody.banScreen);
           result = { error: loginResponse.ok ? null : { message: loginBody?.error || "Account created, but automatic login failed." } };
         }
       } else {
@@ -1025,6 +1035,7 @@ function MainPage() {
           body: JSON.stringify({ username: username.trim(), password }),
         });
         const loginBody = await loginResponse.json().catch(() => null);
+        if (loginBody?.banScreen) return setBanScreen(loginBody.banScreen);
         // A 5xx with no JSON body means the server is restarting for an update, not a wrong password.
         result = { error: loginResponse.ok ? null : { message: loginBody?.error || (loginResponse.status >= 500 ? UPDATING_MESSAGE : "Log in failed. Check your username and password, then try again.") } };
       }
@@ -1763,6 +1774,7 @@ function MainPage() {
         </div>
       </div>
     );
+  if (banScreen) return <BanCrawl screen={banScreen} />;
   if (!player && booting) return <BootScreen />;
   if (!player)
     return (
