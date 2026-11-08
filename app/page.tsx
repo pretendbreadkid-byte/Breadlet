@@ -11,6 +11,7 @@ import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
+import { FIESTA_SHOP } from "../lib/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
 import { TERMS_VERSION } from "../lib/terms";
 import { EditModePanel, SiteVisualEdits, TOGGLE_EDIT_MODE, useSiteEdits } from "./components/edit-mode";
@@ -3598,7 +3599,7 @@ function Bazaar({
   const listedGroups = Array.from(new Set(listings.map((listing) => listing.blook)));
   const closedBooths = view === "mine" ? [] : Array.from(new Set(
     [...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool.map((reward) => reward.name))
-      .concat(craftRecipes.map((recipe) => recipe.name), Object.keys(raps)),
+      .concat(craftRecipes.map((recipe) => recipe.name), BOOTH_EXTRAS, Object.keys(raps)),
   )).filter((name) => !listedGroups.includes(name) && !isUntradableBreadlet(name) && matchesFilters(name))
     .sort((left, right) => (raps[right] || 0) - (raps[left] || 0) || left.localeCompare(right));
   const blookGroups = sortOrder === "Highest RAP"
@@ -4737,6 +4738,9 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     </div>
   );
 }
+
+// Tradable Breadlets that no bag or recipe gives (admin gifts and leaf shop prizes) still get a Bazaar booth.
+const BOOTH_EXTRAS = ["Skeleton Pirate", "Festive Skeleton Pirate", ...FIESTA_SHOP.filter((item) => !item.badge).map((item) => item.name)];
 
 type LeaderboardEntry = { key: string; rank: number; name: string; value: number; art: string; blook?: string; badges: string[]; own: boolean; sub?: string; profileName?: string };
 function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; openPlayerProfile: (username: string) => void | Promise<void> }) {
