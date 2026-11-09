@@ -628,6 +628,7 @@ function MainPage() {
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [tradeDoneNotice, setTradeDoneNotice] = useState("");
   const [newsOpen, setNewsOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
   const [capsuleToConfirm, setCapsuleToConfirm] = useState<Capsule | null>(null);
   const [reveal, setReveal] = useState<{
     capsule: Capsule;
@@ -1881,8 +1882,9 @@ function MainPage() {
           </div>
         )}
 
+        <button type="button" onClick={() => setProjectsOpen(true)} className="other-projects-link mx-auto mb-1 mt-auto text-xs font-bold text-white/70 underline-offset-2 hover:text-[#bde8ff] hover:underline">Other projects</button>
         {/* Sidebar Footer Controls */}
-        <div className="sidebar-footer mt-auto flex items-center justify-center gap-7 bg-[#13120F] py-4 text-white">
+        <div className="sidebar-footer flex items-center justify-center gap-7 bg-[#13120F] py-4 text-white">
           <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
           <a title="YouTube" href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><CirclePlay size={18} /></a>
           <a title="Discord" href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><MessageCircle size={18} /></a>
@@ -1891,6 +1893,24 @@ function MainPage() {
         </div>
       </aside>
       <NewsPanel open={newsOpen} onClose={() => setNewsOpen(false)} />
+      {projectsOpen && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4" onClick={() => setProjectsOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="other-projects-title" onClick={(event) => event.stopPropagation()} className="w-full max-w-md rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] p-5 text-white shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <h2 id="other-projects-title" className="text-xl font-black">Like Breadlet? Play our other projects!</h2>
+              <button type="button" onClick={() => setProjectsOpen(false)} aria-label="Close" className="text-2xl leading-none hover:text-red-300">×</button>
+            </div>
+            <a href="https://blooket-art-maker.onrender.com/#/" target="_blank" rel="noreferrer" className="mt-4 block rounded-xl bg-white/10 p-3 hover:bg-white/20">
+              <p className="font-black">BlookBerry (beta)</p>
+              <p className="text-sm text-white/75">A fun Blook creative website.</p>
+            </a>
+            <a href="https://www.roblox.com/games/119645210462656/Evolution-simulator" target="_blank" rel="noreferrer" className="mt-3 block rounded-xl bg-white/10 p-3 hover:bg-white/20">
+              <p className="font-black">Evolution Simulator (Roblox)</p>
+              <p className="text-sm text-white/75">A fun game about evolving and mutations.</p>
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Main Workspace Column */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen md:h-screen md:min-h-0 md:overflow-y-auto">
