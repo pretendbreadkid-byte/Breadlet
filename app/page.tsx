@@ -279,6 +279,7 @@ const artFor = (name: string) =>
     Microphone: "/assets/microphone.svg",
     "Gold Play Button": "/assets/gold-play-button.svg",
     "Frozen Ted": "/assets/winter/frozen-ted.svg",
+    Fireplace: "/assets/winter/fireplace.svg",
     Shuriken: "/assets/shuricken 2.svg",
     "Albino Crow": "/assets/albino crow.svg",
     Baguette: "/assets/bagget.svg",
@@ -4698,9 +4699,12 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       </div>
       <div className="relative z-10 h-0 shrink-0">
         {!chatAtBottom && <button type="button" onClick={scrollChatToBottom} className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border-2 border-[#CC5500] bg-[#3B1F0E] px-4 py-2 text-sm font-black text-white shadow-lg hover:bg-[#5a2f16]">Scroll to most recent message ↓</button>}
+      </div>
+      {/* Under the messages (not over them): who's typing, and a jump to your last mention. */}
+      <div className="chat-status-row">
+        <p className="chat-typing" aria-live="polite">{typingLabel && <><span className="chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>{typingLabel}</>}</p>
         {lastMentionId != null && <button type="button" onClick={() => jumpToMessage(String(lastMentionId))} className="chat-mention-jump" title="Jump to the last message that mentioned you">@ Jump to my mention</button>}
       </div>
-      <p className="chat-typing" aria-live="polite">{typingLabel && <><span className="chat-typing-dots" aria-hidden="true"><i /><i /><i /></span>{typingLabel}</>}</p>
       <div className="chat-input-row mt-1 flex shrink-0 items-center gap-3">
       <form onSubmit={send} className="flex min-w-0 flex-1 items-center gap-3">
         {canSendImages && (

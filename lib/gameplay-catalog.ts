@@ -439,6 +439,7 @@ export const liveCapsules: Capsule[] = [
       ["Macadamia Nut Cookie", "Rare"],
       ["Gingerbread Cookie", "Rare"],
       ["Present", "Epic"],
+      ["Fireplace", "Epic"],
       ["Festive Breadlet", "Legendary"],
       ["Frozen Ted", "Mythic"],
       ["Reindeer", "Secret"],

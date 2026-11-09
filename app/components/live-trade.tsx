@@ -319,7 +319,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
       {Array.from({ length: Math.max(8, items.length + (items.length % 4 ? 4 - (items.length % 4) : 0)) }).map((_, index) => {
         const item = items[index];
         return item ? (
-          <button key={item.name} type="button" disabled={!editable} onClick={() => removeBlook(item.name)} title={editable ? `Remove one ${item.name}` : item.name} className="relative flex aspect-square items-center justify-center rounded-xl bg-[#27251F] p-1 enabled:hover:bg-[#3c3a34]">
+          <button key={item.name} type="button" disabled={!editable} onClick={() => removeBlook(item.name)} title={editable ? `Remove one ${item.name}` : item.name} className="blook-tilt relative flex aspect-square items-center justify-center bg-transparent p-0">
             <BlookArt name={item.name} className="h-full w-full" />
             <span className="absolute -bottom-1 -right-1 rounded-full bg-[#e9bd67] px-1.5 text-[10px] font-black text-white">{item.quantity}</span>
           </button>
@@ -349,7 +349,7 @@ function TradeRoom({ trade, playerId, player, onlineProfileIds, presenceReady, o
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search your Breadlets" className="w-full rounded-lg bg-[#13120F] px-3 py-2 text-center text-sm font-bold text-white outline-none placeholder:text-[#c9c7c0]" />
           <div className="mt-3 grid flex-1 grid-cols-4 content-start gap-2 overflow-y-auto sm:grid-cols-5 lg:max-h-[22rem]">
             {visibleInventory.map(({ name, left }) => (
-              <button key={name} type="button" onClick={() => addBlook(name)} title={`${name} (${left} left)`} className="relative flex aspect-square items-center justify-center rounded-xl bg-[#27251F] p-1 hover:bg-[#3c3a34]">
+              <button key={name} type="button" onClick={() => addBlook(name)} title={`${name} (${left} left)`} className="blook-tilt relative flex aspect-square items-center justify-center bg-transparent p-0">
                 <BlookArt name={name} className="h-full w-full" />
                 {left > 1 && <span className="absolute -bottom-1 -right-1 rounded-full bg-[#e9bd67] px-1.5 text-[10px] font-black text-white">{left}</span>}
               </button>
