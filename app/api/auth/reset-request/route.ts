@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../../lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 
 export async function POST(request: Request) {
   const body = await request.json();
   const username = String(body.username || '').trim();
-  const supabase = await createClient();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  // The default (PKCE) link only works in the browser that asked for it, so opening the email on a
+  // phone failed. An implicit link carries its own sign-in token, which the game's
+  // "Choose a new password" screen (app/components/reset-password.tsx) uses on any device.
+  const supabase = url && key ? createClient(url, key, { auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false } }) : null;
   const admin = createAdminClient();
 
   if (!supabase || !admin) {
@@ -28,7 +33,10 @@ export async function POST(request: Request) {
   }
 
   if (email) {
-    const origin = new URL(request.url).origin;
+    // The address the player used. Behind the host's proxy request.url can be an internal address.
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const proto = request.headers.get('x-forwarded-proto') || new URL(request.url).protocol.replace(':', '');
+    const origin = request.headers.get('origin') || (host ? `${proto}://${host}` : new URL(request.url).origin);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/?reset=1`,
     });

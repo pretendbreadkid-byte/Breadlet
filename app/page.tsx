@@ -15,6 +15,7 @@ import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
 import { FIESTA_SHOP } from "../lib/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
 import { BanCrawl } from "./components/ban-crawl";
+import { ResetPasswordScreen, recoveryErrorFromUrl, recoveryTokenFromUrl } from "./components/reset-password";
 import type { BanScreen } from "../lib/ban-screen";
 import { TERMS_VERSION } from "../lib/terms";
 import { EditModePanel, SiteVisualEdits, TOGGLE_EDIT_MODE, useSiteEdits } from "./components/edit-mode";
@@ -611,6 +612,15 @@ function MainPage() {
   const [notice, setNotice] = useState("");
   // A player banned with a custom ban screen (lib/ban-screen.ts) sees only that.
   const [banScreen, setBanScreen] = useState<BanScreen | null>(null);
+  // A password reset email link lands here with a sign-in token in the #hash.
+  const [recoveryToken, setRecoveryToken] = useState<string | null>(null);
+  useEffect(() => {
+    const token = recoveryTokenFromUrl();
+    const linkError = recoveryErrorFromUrl();
+    if (token) setRecoveryToken(token);
+    else if (linkError) setAuthFeedback(linkError);
+    if (token || linkError || window.location.search.includes("reset=1")) window.history.replaceState(null, "", window.location.pathname);
+  }, []);
   const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
   const seenNotificationIds = useRef(new Set<string>());
   const [inboxToast, setInboxToast] = useState<{ type: string; title: string; message: string } | null>(null);
@@ -1777,6 +1787,7 @@ function MainPage() {
         </div>
       </div>
     );
+  if (recoveryToken) return <ResetPasswordScreen accessToken={recoveryToken} onDone={(message) => { setRecoveryToken(null); setAuthFeedback(message); }} />;
   if (banScreen) return <BanCrawl screen={banScreen} />;
   if (!player && booting) return <BootScreen />;
   if (!player)
