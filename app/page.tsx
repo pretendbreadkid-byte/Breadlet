@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { chanceFor, isRewardActive, isUntradableBreadlet, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, untradableReason, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
@@ -1893,8 +1894,8 @@ function MainPage() {
         </div>
       </aside>
       <NewsPanel open={newsOpen} onClose={() => setNewsOpen(false)} />
-      {projectsOpen && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4" onClick={() => setProjectsOpen(false)}>
+      {projectsOpen && createPortal(
+        <div className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/60 p-4" onClick={() => setProjectsOpen(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="other-projects-title" onClick={(event) => event.stopPropagation()} className="w-full max-w-md rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] p-5 text-white shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <h2 id="other-projects-title" className="text-xl font-black">Like Breadlet? Play our other projects!</h2>
@@ -1909,7 +1910,8 @@ function MainPage() {
               <p className="text-sm text-white/75">A fun game about evolving and mutations.</p>
             </a>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Main Workspace Column */}
