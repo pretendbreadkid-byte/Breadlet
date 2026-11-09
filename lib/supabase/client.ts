@@ -6,7 +6,9 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return null;
-  return createBrowserClient(url, key);
+  // Browsers slow timers down in background tabs, so the Realtime keep-alive ping missed its beat
+  // and the player dropped off the online list. A worker keeps pinging while the tab is hidden.
+  return createBrowserClient(url, key, { realtime: { worker: true } });
 }
 
 export function isSupabaseConfigured() {

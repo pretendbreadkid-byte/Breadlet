@@ -2689,6 +2689,7 @@ function TradeChatModal({
 function rarityFor(name: string) {
   const baseName = name.replace(/^Shiny /, "");
   if (["Ted", "Walter White", "Skeleton Pirate", "Festive Skeleton Pirate"].includes(baseName)) return "Unique";
+  if (baseName === "Gnome") return "Breadled";
   const craftedRarity = craftedRarityFor(baseName);
   if (craftRecipes.some((recipe) => recipe.name === baseName)) return craftedRarity;
   return (
@@ -3042,7 +3043,8 @@ function InventoryTab({
     const shinyRewards = capsule.pool
       .filter((reward) => shinyEligibleNames.has(reward.name))
       .map((reward) => ({ ...reward, name: `Shiny ${reward.name}` }));
-    return { ...capsule, pool: [...capsule.pool, ...shinyRewards] };
+    const extras = (PACK_EXTRAS[capsule.name] || []).map((name) => ({ name, rarity: rarityFor(name), weight: 0 }));
+    return { ...capsule, pool: [...capsule.pool, ...shinyRewards, ...extras] };
   });
   const assignedNames = new Set([
     ...catalog.flatMap((capsule) => capsule.pool.map((reward) => reward.name)),
@@ -3514,7 +3516,11 @@ function Bazaar({
   const [search, setSearch] = useState("");
   const [rarity, setRarity] = useState("All rarities");
   const [pack, setPack] = useState("All packs");
-  const packOf = (blook: string) => [...liveCapsules, ...legacyCapsules].find((capsule) => capsule.pool.some((reward) => reward.name === blook.replace(/^Shiny /, "")))?.name || "Other";
+  const packOf = (blook: string) => {
+    const baseName = blook.replace(/^Shiny /, "");
+    return Object.keys(PACK_EXTRAS).find((pack) => PACK_EXTRAS[pack].includes(baseName))
+      || [...liveCapsules, ...legacyCapsules].find((capsule) => capsule.pool.some((reward) => reward.name === baseName))?.name || "Other";
+  };
   const packNames = [...liveCapsules.map((capsule) => capsule.name), "Other"];
   const [sortOrder, setSortOrder] = useState("Newest");
   const [onlyMissing, setOnlyMissing] = useState(false);
@@ -4754,6 +4760,13 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     </div>
   );
 }
+
+/// Breadlets that belong with a bag in the collection and the Bazaar's bag filter, though the bag doesn't
+// give them: the Fall Fiesta leaf shop prizes go with the Fall Bag, the Gnome with the Winter Bag.
+const PACK_EXTRAS: Record<string, string[]> = {
+  "Fall Bag": FIESTA_SHOP.filter((item) => !item.badge).map((item) => item.name),
+  "Winter Bag": ["Gnome"],
+};
 
 // Tradable Breadlets that no bag or recipe gives (admin gifts and leaf shop prizes) still get a Bazaar booth.
 const BOOTH_EXTRAS = ["Skeleton Pirate", "Festive Skeleton Pirate", ...FIESTA_SHOP.filter((item) => !item.badge).map((item) => item.name)];
