@@ -197,7 +197,7 @@ export function CasinoStation({ station, tokens, chips, setChips, onBalance }: {
       {game && (
         <section className="casino-table" aria-label={STATION_NAMES[game]}>
           <p className="casino-station-blurb">{BLURBS[game]}</p>
-          {chips < 1 && <div className="casino-notice"><span>You need chips to play. Buy some at the Cashier.</span></div>}
+          {chips < 1 && <div className="casino-notice"><span>You need chips to play. Tap Buy chips at the top.</span></div>}
           <div className="casino-stage" aria-live="polite">
             {game === "roulette" && <RouletteWheel turn={wheelTurn} spinning={busy} landed={rouletteShown} />}
             {game === "slots" && (

@@ -30,11 +30,11 @@ h3,
 .breadlet-brand {
   font-family: "DynaPuff", Impact, sans-serif;
   font-weight: 700;
-  text-shadow: 0 1px 0 #13120F, 0 2px 7px #13120F88;
+  text-shadow: 0 2px 0 #13120F;
 }
 .breadlet-blue-theme .text-4xl,
 .breadlet-blue-theme .text-3xl,
-.breadlet-blue-theme .text-2xl { font-family: "DynaPuff", Impact, sans-serif; font-weight: 700; text-shadow: 0 1px 0 #13120F, 0 2px 7px #13120F88; }
+.breadlet-blue-theme .text-2xl { font-family: "DynaPuff", Impact, sans-serif; font-weight: 700; text-shadow: 0 2px 0 #13120F; }
 .teds-shop-heading { color: #FFFFFF; font-family: "DynaPuff", Impact, sans-serif; font-size: clamp(2.5rem, 6vw, 4.25rem); font-weight: 900; line-height: 1.05; text-shadow: 0 2px 0 #13120F, 0 4px 10px #13120F99; }
 .teds-shop-heading:hover { color: #FFFFFF; filter: brightness(1.08); }
 
@@ -1913,7 +1913,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 .global-chat .chat-group-header { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .global-chat .chat-username { font-size: 24px; font-weight: 900; line-height: 1.2; }
 .global-chat .chat-badge { width: 28px; height: 28px; flex: none; }
-.global-chat .chat-time { font-size: 14px; font-weight: 700; opacity: .7; }
+.global-chat .chat-time { font-size: 14px; font-weight: 700; text-shadow: 0 1px 0 #13120F; }
 .global-chat .chat-message-text { font-size: 20px; line-height: 1.4; }
 .global-chat .chat-message-content-row { align-items: center; gap: 6px; }
 .global-chat .chat-group-message + .chat-group-message { margin-top: 3px; }
@@ -3169,3 +3169,10 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-station-card header button 
   .ban-crawl-stage { position: static; perspective: none; opacity: 1; animation: none; }
   .ban-crawl-text { position: static; margin: 40px auto; transform: none; animation: none; }
 }
+
+/* "(You've friended)" under a friend's name on their profile. */
+main.breadlet-blue-theme.breadlet-blue-theme .profile-friended { display: block; margin-top: 2px; color: #b9f5c8 !important; font-family: inherit; font-size: .95rem; font-weight: 900; text-shadow: 0 1px 0 #13120F; }
+/* The casino page: the slot machine on the page, Buy chips and the Chip Shop in the corner. */
+.casino-corner-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+main.breadlet-blue-theme.breadlet-blue-theme .casino-corner-buttons .casino-play { display: inline-flex; width: auto; align-items: center; gap: 6px; margin: 0; padding: 8px 14px; font-size: .95rem; }
+.casino-slots-page { margin: 0 auto; max-height: none; overflow: visible; }

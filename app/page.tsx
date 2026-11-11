@@ -2111,7 +2111,7 @@ function MainPage() {
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
-          {tab === "games" && player.username.toLowerCase() === ADMIN_USERNAME && player.id && <GamesTab tokens={player.tokens} player={{ ...player, id: player.id }} artFor={artFor} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
+          {tab === "games" && player.username.toLowerCase() === ADMIN_USERNAME && player.id && <GamesTab tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
@@ -2643,7 +2643,7 @@ function ProfileTab({
       <div className="profile-top-grid">
         <section className="profile-player-panel">
           <div className="profile-avatar-frame profile-avatar-float"><span className="profile-float-inner">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span></div>
-          <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1><p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
+          <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1>{viewingOther && friendsData.relation === "friends" && <span className="profile-friended">(You've friended)</span>}<p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
             <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
           </div>
@@ -4672,13 +4672,13 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                   {group.items[0].item.createdAt && <time className="chat-time" dateTime={group.items[0].item.createdAt}>{new Date(group.items[0].item.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time>}
                   {latestItem.evilAi && <span title="Evil AI mode: Breadlet is rude to this player" className="text-sm" aria-label="Evil AI mode">😈</span>}
                   {latestItem.canMute && latestItem.profileId && (
-                    <button type="button" onClick={() => void muteChatter(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Timeout 30m</button>
+                    <button type="button" onClick={() => void muteChatter(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#7a3300] px-2 py-0.5 text-[10px] font-black text-white hover:bg-[#9a4400]">Timeout 30m</button>
                   )}
                   {canManageEmojis && !isGuest && !group.isBreadletBot && latestItem.profileId && (
                     <button type="button" onClick={() => void toggleEvilAi(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#7a1f1f] bg-[#3a1512] px-2 py-0.5 text-[10px] font-black text-[#fca5a5] hover:bg-[#5a1f1a]">{latestItem.evilAi ? "😇 Stop evil AI" : "😈 Evil AI"}</button>
                   )}
                   {canManageEmojis && !isGuest && !group.isBreadletBot && latestItem.profileId && latestItem.user !== player.username && (
-                    <button type="button" onClick={() => void giveWalterWhite(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#FFD9B3] px-2 py-0.5 text-[10px] font-black text-[#3B1F0E] hover:bg-white">Give Walter White</button>
+                    <button type="button" onClick={() => void giveWalterWhite(latestItem.profileId!, group.user)} className="rounded-md border-2 border-[#CC5500] bg-[#7a3300] px-2 py-0.5 text-[10px] font-black text-white hover:bg-[#9a4400]">Give Walter White</button>
                   )}
                 </div>
                 <div className="mt-1">
