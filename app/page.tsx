@@ -15,6 +15,7 @@ import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
 import { FIESTA_SHOP } from "../lib/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
 import { BanCrawl } from "./components/ban-crawl";
+import { limitedItemsOnSale, type LimitedShopItem } from "../lib/limited-shop";
 import { ResetPasswordScreen, recoveryErrorFromUrl, recoveryTokenFromUrl } from "./components/reset-password";
 import type { BanScreen } from "../lib/ban-screen";
 import { TERMS_VERSION } from "../lib/terms";
@@ -122,6 +123,8 @@ type Player = {
   // Locked Breadlets can't be sold, recycled or traded by mistake. Wishlist: Bazaar alerts.
   lockedBlooks?: string[];
   wishlist?: string[];
+  // Limited shelf Breadlets already bought (one each, lib/limited-shop.ts).
+  shopBought?: string[];
 };
 type PublicProfile = {
   id: string;
@@ -282,6 +285,7 @@ const artFor = (name: string) =>
     "Gold Play Button": "/assets/gold-play-button.svg",
     "Frozen Ted": "/assets/winter/frozen-ted.svg",
     Fireplace: "/assets/winter/fireplace.svg",
+    "American Flag": "/assets/american-flag.svg",
     Shuriken: "/assets/shuricken 2.svg",
     "Albino Crow": "/assets/albino crow.svg",
     Baguette: "/assets/bagget.svg",
@@ -527,6 +531,7 @@ function playerFromServer(data: any): Player {
     createdAt: data.profile.created_at || undefined,
     lockedBlooks: Array.isArray(data.profile.stats?.lockedBlooks) ? data.profile.stats.lockedBlooks : [],
     wishlist: Array.isArray(data.profile.stats?.wishlist) ? data.profile.stats.wishlist : [],
+    shopBought: Array.isArray(data.profile.stats?.shopBought) ? data.profile.stats.shopBought : [],
   };
 }
 
@@ -634,6 +639,14 @@ function MainPage() {
     const refreshed = await fetch(options?.full === true ? "/api/player?full=1" : "/api/player", { cache: "no-store" }).catch(() => null);
     if (refreshed?.ok) setPlayer(playerFromServer(await refreshed.json()));
   }, []);
+  // Buy a limited Breadlet off Ted's shelf (lib/limited-shop.ts). Returns an error, or "" when bought.
+  const buyLimited = async (item: LimitedShopItem) => {
+    const response = await fetch("/api/shop", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item: item.name }) }).catch(() => null);
+    const body = await response?.json().catch(() => null);
+    if (!response?.ok) return body?.error || "That didn't go through. Try again.";
+    await refreshPlayerFromServer();
+    return "";
+  };
   const [viewedProfile, setViewedProfile] = useState<PublicProfile | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [adminUnlocked, setAdminUnlocked] = useState(false);
@@ -2075,6 +2088,8 @@ function MainPage() {
               isGuest={isGuest}
               claimTed={claimTedSecret}
               inventory={player.inventory}
+              shopBought={player.shopBought || []}
+              buyLimited={buyLimited}
             />
           )}
           {tab === "inventory" && (
@@ -2721,7 +2736,7 @@ function TradeChatModal({
 
 function rarityFor(name: string) {
   const baseName = name.replace(/^Shiny /, "");
-  if (["Ted", "Walter White", "Skeleton Pirate", "Festive Skeleton Pirate"].includes(baseName)) return "Unique";
+  if (["Ted", "Walter White", "Skeleton Pirate", "Festive Skeleton Pirate", "American Flag"].includes(baseName)) return "Unique";
   if (baseName === "Gnome") return "Breadled";
   const craftedRarity = craftedRarityFor(baseName);
   if (craftRecipes.some((recipe) => recipe.name === baseName)) return craftedRarity;
@@ -2744,7 +2759,11 @@ function CapsulesTab({
   claimTed,
   inventory,
   forcedStock,
+  shopBought,
+  buyLimited,
 }: {
+  shopBought: string[];
+  buyLimited: (item: LimitedShopItem) => Promise<string>;
   inventory: string[];
   forcedStock: ForcedStock;
   openCapsule: (capsule: Capsule) => void;
@@ -2759,6 +2778,8 @@ function CapsulesTab({
 }) {
   const [now, setNow] = useState(() => new Date());
   const [selectedCapsule, setSelectedCapsule] = useState<Capsule | null>(null);
+  const [limitedItem, setLimitedItem] = useState<LimitedShopItem | null>(null);
+  const [limitedState, setLimitedState] = useState<{ busy: boolean; error: string; bought: boolean }>({ busy: false, error: "", bought: false });
   const [tedVisible, setTedVisible] = useState(false);
   const [tedCongrats, setTedCongrats] = useState(false);
   const shopClickCount = useRef(0);
@@ -2825,10 +2846,18 @@ function CapsulesTab({
   // Collection progress for each bag: different Breadlets owned out of the bag's pool.
   const ownedNames = new Set(inventory);
   const progressFor = (capsule: Capsule) => ({ owned: capsule.pool.filter((reward) => ownedNames.has(reward.name)).length, total: capsule.pool.length });
+  const limitedItems = limitedItemsOnSale(now.getTime());
   const cabinet = (label: string, bags: Capsule[], soldOut: boolean) => (
     <section className={`shop-cabinet ${soldOut ? "is-sold-out" : ""}`} aria-label={label}>
       <div className="shop-cabinet-sign"><span>{label}</span></div>
       <div className="shop-cabinet-shelves">
+        {!soldOut && limitedItems.map((item) => (
+          <button key={item.name} type="button" onClick={() => { setLimitedItem(item); setLimitedState({ busy: false, error: "", bought: false }); }} className="shop-shelf-bag shop-shelf-limited" data-name={item.name} aria-label={`Buy ${item.name}`}>
+            <img src={item.art} alt="" className="shop-shelf-art" />
+            {shopBought.includes(item.name) && <span className="shop-sold-stamp" aria-hidden="true">Owned</span>}
+            <span className="shop-price-tag"><img src="/assets/Bread%20bucks.svg" alt="" />{item.price.toLocaleString()}</span>
+          </button>
+        ))}
         {bags.map((capsule) => (
           <button key={capsule.name} type="button" onClick={() => setSelectedCapsule(capsule)} className={`shop-shelf-bag${isSeasonalPackLocked(capsule.name, now, forcedStock) ? " is-locked" : ""}`} data-name={capsule.name} aria-label={`View ${capsule.name}`}>
             <img src={capsule.art} alt="" className="shop-shelf-art" />
@@ -2862,6 +2891,24 @@ function CapsulesTab({
         {soldOutBags.length > 0 && cabinet("Sold out", soldOutBags, true)}
       </div>
       <div className="shop-floor" aria-hidden="true" />
+      {limitedItem && (
+        <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-5" onMouseDown={(event) => { if (event.target === event.currentTarget && !limitedState.busy) setLimitedItem(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="limited-item-title" className="w-full max-w-sm rounded-3xl border-4 border-[#CC5500] bg-[#7a3300] p-6 text-center text-white shadow-2xl">
+            <img src={limitedItem.art} alt={limitedItem.name} className="mx-auto h-40 w-40 object-contain" />
+            <h2 id="limited-item-title" className="mt-3 text-2xl font-black">{limitedState.bought ? `You got the ${limitedItem.name}!` : limitedItem.prompt}</h2>
+            {!limitedState.bought && <p className="mt-2 text-sm font-bold">Unique, one per player. Only until {new Date(limitedItem.endsAt).toLocaleDateString([], { month: "long", day: "numeric" })}.</p>}
+            {limitedState.error && <p role="alert" className="mt-3 text-sm font-black">{limitedState.error}</p>}
+            <div className="mt-5 flex gap-3">
+              <button type="button" disabled={limitedState.busy} onClick={() => setLimitedItem(null)} className="flex-1 rounded-xl border-2 border-[#13120F] bg-[#3a1a05] px-4 py-3 font-black">{limitedState.bought ? "Close" : "Cancel"}</button>
+              {!limitedState.bought && (isGuest
+                ? <p className="flex-1 self-center text-sm font-bold">Log in to buy this.</p>
+                : shopBought.includes(limitedItem.name)
+                  ? <p className="flex-1 self-center text-sm font-bold">You already bought this.</p>
+                  : <button type="button" disabled={limitedState.busy} onClick={async () => { setLimitedState({ busy: true, error: "", bought: false }); const error = await buyLimited(limitedItem); setLimitedState({ busy: false, error, bought: !error }); }} className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[#13120F] bg-[#E77D22] px-4 py-3 font-black disabled:opacity-60">{limitedState.busy ? "Buying..." : <>Buy for <img src="/assets/Bread%20bucks.svg" alt="" className="h-5 w-5" />{limitedItem.price.toLocaleString()}</>}</button>)}
+            </div>
+          </section>
+        </div>
+      )}
       {tedVisible && <div className="ted-secret-appearance" aria-hidden="true"><img src="/assets/ted-shopkeeper.svg" alt="" /></div>}
       {tedCongrats && (
         <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
