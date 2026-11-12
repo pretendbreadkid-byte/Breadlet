@@ -22,9 +22,11 @@ function loadModule(file, dependencies = {}) {
 
 const catalog = loadModule('lib/gameplay-catalog.ts');
 const marketStock = loadModule('lib/market-stock.ts');
+const limitedShop = loadModule('lib/limited-shop.ts');
 const { planGameplay, MAX_MASS_OPEN_COUNT } = loadModule('lib/gameplay-actions.ts', {
   './gameplay-catalog': catalog,
   './market-stock': marketStock,
+  './limited-shop': limitedShop,
 });
 
 test('server-generated rewards reject forged results and invalid gameplay requests', () => {

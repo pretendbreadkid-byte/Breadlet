@@ -16,7 +16,7 @@ import { FIESTA_SHOP } from "../lib/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
 import { BanCrawl } from "./components/ban-crawl";
 import { deviceFingerprint } from "../lib/device-fingerprint";
-import { limitedItemsOnSale, type LimitedShopItem } from "../lib/limited-shop";
+import { LIMITED_SHOP_NAMES, limitedItemsOnSale, type LimitedShopItem } from "../lib/limited-shop";
 import { ResetPasswordScreen, recoveryErrorFromUrl, recoveryTokenFromUrl } from "./components/reset-password";
 import type { BanScreen } from "../lib/ban-screen";
 import { TERMS_VERSION } from "../lib/terms";
@@ -3343,7 +3343,7 @@ function BlookDetail({
             {equipped ? "Equipped" : "Equip"}
           </button>
           <button
-            disabled={quantity <= 1 || locked}
+            disabled={quantity < 1 || (quantity === 1 && !LIMITED_SHOP_NAMES.includes(reward.name)) || locked}
             title={locked ? "Unlock this Breadlet to sell it" : undefined}
             onClick={() => {
               if (
@@ -4857,7 +4857,7 @@ const PACK_EXTRAS: Record<string, string[]> = {
 };
 
 // Tradable Breadlets that no bag or recipe gives (admin gifts and leaf shop prizes) still get a Bazaar booth.
-const BOOTH_EXTRAS = ["Skeleton Pirate", "Festive Skeleton Pirate", ...FIESTA_SHOP.filter((item) => !item.badge).map((item) => item.name)];
+const BOOTH_EXTRAS = ["Skeleton Pirate", "Festive Skeleton Pirate", ...LIMITED_SHOP_NAMES, ...FIESTA_SHOP.filter((item) => !item.badge).map((item) => item.name)];
 
 type LeaderboardEntry = { key: string; rank: number; name: string; value: number; art: string; blook?: string; badges: string[]; own: boolean; sub?: string; profileName?: string };
 function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; openPlayerProfile: (username: string) => void | Promise<void> }) {

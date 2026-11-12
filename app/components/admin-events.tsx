@@ -7,7 +7,9 @@ import { refreshFiesta } from "./fall-fiesta";
 
 // "Admin abuse": live events the owner starts for everyone online (see migration 0058).
 
-type AdminEvent = { id: string; kind: "disco" | "barrel_roll" | "announcement" | "bread_rain" | "leaf_shower"; message: string; created_at: string; ends_at: string };
+type EventKind = "disco" | "barrel_roll" | "announcement" | "bread_rain" | "leaf_shower"
+  | "upside_down" | "earthquake" | "snowstorm" | "confetti" | "lights_out" | "ted_jumpscare" | "parade";
+type AdminEvent = { id: string; kind: EventKind; message: string; created_at: string; ends_at: string };
 
 const MAX_CATCHES = 5;
 const isLive = (event: AdminEvent) => new Date(event.ends_at).getTime() > Date.now();
@@ -48,7 +50,21 @@ export function AdminEventsLayer({ onReward }: { onReward: () => void }) {
     });
   }, [events]);
 
-  const disco = events.some((event) => event.kind === "disco") && !reducedMotion();
+  // Whole-page effects stay on <html> while their event runs.
+  const live = (kind: EventKind) => events.some((event) => event.kind === kind);
+  const motion = !reducedMotion();
+  const upsideDown = live("upside_down");
+  const earthquake = live("earthquake") && motion;
+  useEffect(() => {
+    document.documentElement.classList.toggle("admin-upside-down", upsideDown);
+    document.documentElement.classList.toggle("admin-earthquake", earthquake);
+    return () => document.documentElement.classList.remove("admin-upside-down", "admin-earthquake");
+  }, [upsideDown, earthquake]);
+
+  const disco = live("disco") && motion;
+  const confetti = events.find((event) => event.kind === "confetti");
+  const jumpscare = events.find((event) => event.kind === "ted_jumpscare" && isFresh(event));
+  const parade = events.find((event) => event.kind === "parade");
   const announcement = [...events].reverse().find((event) => event.kind === "announcement");
   const rain = events.find((event) => event.kind === "bread_rain");
 
@@ -62,6 +78,11 @@ export function AdminEventsLayer({ onReward }: { onReward: () => void }) {
         </div>
       )}
       {rain && <BreadRain key={rain.id} event={rain} onReward={onReward} />}
+      {live("snowstorm") && <Snowstorm />}
+      {confetti && <Confetti key={confetti.id} />}
+      {live("lights_out") && <LightsOut />}
+      {jumpscare && <div key={jumpscare.id} className="admin-jumpscare" aria-hidden="true"><img src="/assets/ted-shopkeeper.svg" alt="" /><span>BOO!</span></div>}
+      {parade && <Parade key={parade.id} />}
     </>
   );
 }
@@ -124,47 +145,118 @@ function BreadRain({ event, onReward }: { event: AdminEvent; onReward: () => voi
   );
 }
 
-const EVENT_BUTTONS: { kind: AdminEvent["kind"]; label: string; detail: string }[] = [
-  { kind: "disco", label: "🪩 Disco Mode", detail: "Rainbow colors on everyone's screen for 60s" },
-  { kind: "barrel_roll", label: "🌀 Barrel Roll", detail: "Everyone's screen does a full spin" },
-  { kind: "bread_rain", label: "🍞 Bread Rain", detail: "45s of falling breads, +10 each, max 50 per player" },
-  { kind: "leaf_shower", label: "🍂 Leaf Shower", detail: `${SHOWER_MINUTES} minutes of falling leaves for the Fall Fiesta` },
+function Snowstorm() {
+  const flakes = useMemo(() => Array.from({ length: 70 }, (_, index) => ({ id: index, left: Math.random() * 100, size: 4 + Math.random() * 9, delay: -Math.random() * 10, duration: 6 + Math.random() * 7, drift: (Math.random() - 0.5) * 120 })), []);
+  return (
+    <div className="admin-snow" aria-hidden="true">
+      {flakes.map((flake) => <i key={flake.id} style={{ left: `${flake.left}%`, width: flake.size, height: flake.size, animationDelay: `${flake.delay}s`, animationDuration: `${flake.duration}s`, "--drift": `${flake.drift}px` } as React.CSSProperties} />)}
+    </div>
+  );
+}
+
+const CONFETTI_COLORS = ["#ff4d6d", "#ffd23f", "#3bceac", "#4cc9f0", "#b388ff", "#ff8c42"];
+function Confetti() {
+  const pieces = useMemo(() => Array.from({ length: 140 }, (_, index) => ({ id: index, left: Math.random() * 100, color: CONFETTI_COLORS[index % CONFETTI_COLORS.length], delay: Math.random() * 0.8, duration: 2.6 + Math.random() * 2.4, spin: (Math.random() < 0.5 ? -1 : 1) * (360 + Math.random() * 720), drift: (Math.random() - 0.5) * 260, wide: Math.random() < 0.5 })), []);
+  return (
+    <div className="admin-confetti" aria-hidden="true">
+      {pieces.map((piece) => <i key={piece.id} style={{ left: `${piece.left}%`, background: piece.color, width: piece.wide ? 12 : 7, height: piece.wide ? 7 : 14, animationDelay: `${piece.delay}s`, animationDuration: `${piece.duration}s`, "--spin": `${piece.spin}deg`, "--drift": `${piece.drift}px` } as React.CSSProperties} />)}
+    </div>
+  );
+}
+
+// Lights out: the screen goes dark except a flashlight that follows the mouse or finger.
+function LightsOut() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const move = (event: PointerEvent) => {
+      ref.current?.style.setProperty("--x", `${event.clientX}px`);
+      ref.current?.style.setProperty("--y", `${event.clientY}px`);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerdown", move);
+    return () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerdown", move); };
+  }, []);
+  return <div ref={ref} className="admin-lights-out" aria-hidden="true"><span>🔦 Lights out!</span></div>;
+}
+
+const PARADE = ["/assets/Bread.svg", "/assets/american-flag.svg", "/assets/winter/frozen-ted.svg", "/assets/megalodon.svg", "/assets/gold-play-button.svg", "/assets/sugar-glider.svg", "/assets/crimsonoctopus.svg", "/assets/camera.svg", "/assets/winter/fireplace.svg", "/assets/ted-shopkeeper.svg"];
+function Parade() {
+  return (
+    <div className="admin-parade" aria-hidden="true">
+      <div className="admin-parade-line">
+        {PARADE.map((art, index) => <img key={art} src={art} alt="" style={{ animationDelay: `${index * 0.12}s` }} />)}
+      </div>
+    </div>
+  );
+}
+
+type EventButton = { kind: EventKind; emoji: string; label: string; detail: string; tone: string };
+const EVENT_GROUPS: { title: string; buttons: EventButton[] }[] = [
+  { title: "Rewards", buttons: [
+    { kind: "bread_rain", emoji: "🍞", label: "Bread Rain", detail: "45s of falling breads · +10 each, max 50", tone: "gold" },
+    { kind: "leaf_shower", emoji: "🍂", label: "Leaf Shower", detail: `${SHOWER_MINUTES} min of leaves for the Fall Fiesta`, tone: "orange" },
+  ] },
+  { title: "Screen chaos", buttons: [
+    { kind: "disco", emoji: "🪩", label: "Disco Mode", detail: "Rainbow colors for 60s", tone: "pink" },
+    { kind: "barrel_roll", emoji: "🌀", label: "Barrel Roll", detail: "Everyone's screen spins once", tone: "blue" },
+    { kind: "upside_down", emoji: "🙃", label: "Upside Down", detail: "The whole site flips for 15s", tone: "purple" },
+    { kind: "earthquake", emoji: "🌋", label: "Earthquake", detail: "Screens shake for 8s", tone: "red" },
+    { kind: "lights_out", emoji: "🔦", label: "Lights Out", detail: "Pitch black + a flashlight for 30s", tone: "dark" },
+  ] },
+  { title: "Party", buttons: [
+    { kind: "confetti", emoji: "🎉", label: "Confetti", detail: "A big confetti blast", tone: "green" },
+    { kind: "snowstorm", emoji: "❄️", label: "Snowstorm", detail: "Snow falls for 60s", tone: "ice" },
+    { kind: "parade", emoji: "🎺", label: "Breadlet Parade", detail: "Breadlets march across the screen", tone: "gold" },
+    { kind: "ted_jumpscare", emoji: "👻", label: "Ted Jumpscare", detail: "Ted pops up. BOO!", tone: "dark" },
+  ] },
 ];
 
 // Owner controls in the Admin Panel.
 export function AdminAbusePanel() {
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<{ text: string; ok: boolean } | null>(null);
+  const [busy, setBusy] = useState<EventKind | null>(null);
 
-  const start = async (kind: AdminEvent["kind"]) => {
-    setBusy(true);
-    setStatus("");
+  const start = async (kind: EventKind) => {
+    setBusy(kind);
+    setStatus(null);
     const response = await fetch("/api/admin/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, message }) }).catch(() => null);
     const result = await response?.json().catch(() => null);
-    setBusy(false);
-    if (!response?.ok) return setStatus(result?.error || "Could not start that event.");
+    setBusy(null);
+    if (!response?.ok) return setStatus({ text: result?.error || "Could not start that event.", ok: false });
     if (kind === "announcement") setMessage("");
-    setStatus("Event started for everyone online!");
+    setStatus({ text: "Started for everyone online!", ok: true });
   };
 
   return (
-    <div className="rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-md">
-      <h2 className="text-xl font-black text-[#bde8ff]">😈 Admin Abuse</h2>
-      <p className="mt-1 text-sm opacity-80">Live events for every player online right now.</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {EVENT_BUTTONS.map((button) => (
-          <button key={button.kind} type="button" disabled={busy} onClick={() => void start(button.kind)} className="dark-action-button flex-col !items-start text-left disabled:opacity-50">
-            <span className="text-base">{button.label}</span>
-            <span className="text-xs font-bold opacity-70">{button.detail}</span>
-          </button>
-        ))}
-      </div>
-      <form onSubmit={(submit) => { submit.preventDefault(); void start("announcement"); }} className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <input value={message} onChange={(change) => setMessage(change.target.value)} maxLength={120} placeholder="Mega announcement for everyone…" className="min-w-0 flex-1 rounded-xl border border-[#3d91cd] bg-[#072a54] px-4 py-3 text-white placeholder:text-[#6ea3ce]" />
-        <button type="submit" disabled={busy || !message.trim()} className="dark-action-button justify-center disabled:opacity-50">📢 Announce</button>
+    <section className="abuse-panel">
+      <header className="abuse-panel-header">
+        <span className="abuse-panel-icon" aria-hidden="true">😈</span>
+        <div>
+          <h2>Admin Abuse</h2>
+          <p>Live events for every player online right now.</p>
+        </div>
+      </header>
+      <form onSubmit={(submit) => { submit.preventDefault(); void start("announcement"); }} className="abuse-announce">
+        <span aria-hidden="true">📢</span>
+        <input value={message} onChange={(change) => setMessage(change.target.value)} maxLength={120} placeholder="Mega announcement for everyone…" aria-label="Announcement" />
+        <button type="submit" disabled={Boolean(busy) || !message.trim()}>{busy === "announcement" ? "Sending…" : "Announce"}</button>
       </form>
-      {status && <p className="mt-2 text-sm font-bold">{status}</p>}
-    </div>
+      {EVENT_GROUPS.map((group) => (
+        <div key={group.title} className="abuse-group">
+          <h3>{group.title}</h3>
+          <div className="abuse-grid">
+            {group.buttons.map((button) => (
+              <button key={button.kind} type="button" disabled={Boolean(busy)} onClick={() => void start(button.kind)} className={`abuse-card abuse-${button.tone}`}>
+                <span className="abuse-card-emoji" aria-hidden="true">{button.emoji}</span>
+                <span className="abuse-card-label">{busy === button.kind ? "Starting…" : button.label}</span>
+                <span className="abuse-card-detail">{button.detail}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {status && <p role="status" className={`abuse-status ${status.ok ? "is-ok" : "is-error"}`}>{status.text}</p>}
+    </section>
   );
 }
