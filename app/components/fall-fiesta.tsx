@@ -135,6 +135,8 @@ const steps = [
 const UPCOMING_BREADLETS = [
   { name: "Heisenberg Sketch", art: "/assets/breaking-bad/heisenberg-sketch.png" },
   { name: "Methylamine", art: "/assets/breaking-bad/methylamine.png" },
+  { name: "Gus Fring", art: "/assets/breaking-bad/gus-fring.svg" },
+  { name: "Flask", art: "/assets/breaking-bad/flask.svg" },
 ];
 
 export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: () => void }) {
