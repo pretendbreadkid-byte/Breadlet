@@ -203,6 +203,23 @@ export async function PATCH(request: Request) {
     return NextResponse.json(data);
   }
 
+  if (action === 'disband') {
+    const admin = createAdminClient();
+    if (!admin) return NextResponse.json({ error: 'Clan management is not configured.' }, { status: 503 });
+    const { data, error } = await admin.rpc('secure_clan_disband', { p_profile_id: user.id, p_clan_id: clanId });
+    if (error) return NextResponse.json({ error: error.code === 'PGRST202' ? 'Run migration 0086 in Supabase to enable disbanding clans.' : error.message }, { status: 409 });
+    // Every member gets a pop-up with their share (and their Bread Bucks refresh).
+    const others = ((data?.members || []) as string[]).filter((id) => id !== user.id);
+    if (others.length) {
+      await admin.from('notifications').insert(others.map((profileId) => ({
+        profile_id: profileId,
+        type: 'admin_gift',
+        payload: { title: `${data.name} was disbanded`, message: `The clan leader disbanded ${data.name}. You got ${Number(data.share).toLocaleString()} Bread Bucks from the clan bank.` },
+      })));
+    }
+    return NextResponse.json(data);
+  }
+
   if (action === 'kick') {
     if (typeof body.targetProfileId !== 'string' || !body.targetProfileId) {
       return NextResponse.json({ error: 'A member profile is required.' }, { status: 400 });

@@ -3254,3 +3254,6 @@ main.breadlet-blue-theme.breadlet-blue-theme .abuse-ice { --tone: #1098ad; }
 main.breadlet-blue-theme.breadlet-blue-theme .abuse-status { margin: 14px 0 0; border: 3px solid #13120F; border-radius: 14px; padding: 10px 14px; font-weight: 900; }
 main.breadlet-blue-theme.breadlet-blue-theme .abuse-status.is-ok { background: #2b8a3e; }
 main.breadlet-blue-theme.breadlet-blue-theme .abuse-status.is-error { background: #c92a2a; }
+
+/* Disband clan (leader only): darker than Leave. */
+main.breadlet-blue-theme .clan-action-disband { background: #7a0d1a !important; border-color: #4d0710; box-shadow: 0 4px 0 #3a050c; }

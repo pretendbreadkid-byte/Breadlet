@@ -6026,6 +6026,32 @@ function ClanTab({
     await loadClans();
   };
 
+  // Leader only: split the clan bank between every member and delete the clan.
+  const handleDisbandClan = async () => {
+    if (!clan?.id || !isOwner || isGuest) return;
+    const memberTotal = Math.max(1, clanMembers.length || clan.members || 1);
+    const share = Math.floor(clan.treasury / memberTotal);
+    if (!window.confirm(`Disband ${clan.name}? This deletes the clan for everyone. The ${clan.treasury.toLocaleString()} Bread Bucks in the clan bank are split between all ${memberTotal} member${memberTotal === 1 ? "" : "s"} (about ${share.toLocaleString()} each).`)) return;
+    if (window.prompt(`Type the clan name (${clan.name}) to disband it.`)?.trim().toLowerCase() !== clan.name.trim().toLowerCase()) return;
+    const response = await fetch("/api/clans", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "disband", clanId: clan.id }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setCreateError(result.error || "The clan could not be disbanded.");
+      return;
+    }
+    savePlayer({ ...player, tokens: player.tokens + (Number(result.share) || 0) + (Number(result.leftover) || 0) });
+    setClanState(null);
+    setClanMembers([]);
+    setMembershipClanId("");
+    setClan("");
+    await loadClans();
+    window.alert(`${result.name || "Your clan"} was disbanded. You got ${((Number(result.share) || 0) + (Number(result.leftover) || 0)).toLocaleString()} Bread Bucks from the clan bank.`);
+  };
+
   const kickClanMember = async (member: ClanMemberRecord) => {
     if (!clan?.id || !isOwner || !member.profileId || member.profileId === player.id) return;
     if (!window.confirm(`Kick ${member.username} from ${clan.name}?`)) return;
@@ -6075,6 +6101,7 @@ function ClanTab({
             <button type="button" onClick={handleDonate} className="clan-action clan-action-deposit"><Wallet size={18} />Deposit 100</button>
             {isOwner && <button type="button" onClick={() => document.getElementById("clan-upgrades")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="clan-action clan-action-upgrades"><Sparkles size={18} />Upgrades</button>}
             {!isGuest && <button type="button" onClick={() => void handleLeaveClan()} className="clan-action clan-action-leave"><LogOut size={18} />Leave</button>}
+            {isOwner && !isGuest && <button type="button" onClick={() => void handleDisbandClan()} className="clan-action clan-action-leave clan-action-disband"><Trash2 size={18} />Disband</button>}
             {!membershipClanId && <button type="button" aria-label="Create a clan" onClick={() => setShowCreate(true)} className="clan-action clan-action-discover"><Users size={18} />Create</button>}
           </div>
         </div>
