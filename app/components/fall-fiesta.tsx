@@ -131,6 +131,12 @@ const steps = [
   { title: "Spend your leaves", text: "Buy the Fall Fiesta Breadlets and badge in the leaf shop above. You can buy each one once." },
 ];
 
+// The next event, Breadlet Breaks Bad: Breadlets revealed so far.
+const UPCOMING_BREADLETS = [
+  { name: "Heisenberg Sketch", art: "/assets/breaking-bad/heisenberg-sketch.png" },
+  { name: "Methylamine", art: "/assets/breaking-bad/methylamine.png" },
+];
+
 export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: () => void }) {
   const now = useNow();
   const shower = showerAt(now);
@@ -188,6 +194,17 @@ export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: ()
         <ol>
           {steps.map((step, index) => <li key={step.title}><span className="event-step-number">{index + 1}</span><div><h3>{step.title}</h3><p>{step.text}</p></div></li>)}
         </ol>
+      </section>
+
+      {/* Teaser for the next event. On purpose it says nothing about how it works yet. */}
+      <section className="event-upcoming" aria-labelledby="event-upcoming-title">
+        <p id="event-upcoming-title" className="event-upcoming-tag">Upcoming event</p>
+        <img src="/assets/breaking-bad/logo.svg" alt="Breadlet Breaks Bad" className="event-upcoming-logo" />
+        <h3>Breadlets so far</h3>
+        <ul>
+          {UPCOMING_BREADLETS.map((breadlet) => <li key={breadlet.name}><img src={breadlet.art} alt="" /><span>{breadlet.name}</span></li>)}
+          <li className="event-upcoming-more"><span className="event-upcoming-question" aria-hidden="true">?</span><span>More coming soon</span></li>
+        </ul>
       </section>
     </div>
   );
