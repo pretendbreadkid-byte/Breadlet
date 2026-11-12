@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FIESTA_SHOP, LEAVES_PER_SHOWER, SHOWER_MINUTES, showerAt } from "../../lib/fall-fiesta";
+import { BREAKING_BAD_BREADLETS } from "../../lib/breaking-bad";
 
 // Breadlet Fall Fiesta: the hourly leaf shower over the whole game, and the Event tab's leaf shop.
 
@@ -131,13 +132,8 @@ const steps = [
   { title: "Spend your leaves", text: "Buy the Fall Fiesta Breadlets and badge in the leaf shop above. You can buy each one once." },
 ];
 
-// The next event, Breadlet Breaks Bad: Breadlets revealed so far.
-const UPCOMING_BREADLETS = [
-  { name: "Heisenberg Sketch", art: "/assets/breaking-bad/heisenberg-sketch.png" },
-  { name: "Methylamine", art: "/assets/breaking-bad/methylamine.png" },
-  { name: "Gus Fring", art: "/assets/breaking-bad/gus-fring.svg" },
-  { name: "Flask", art: "/assets/breaking-bad/flask.svg" },
-];
+// The next event, Breadlet Breaks Bad: Breadlets revealed so far (lib/breaking-bad.ts).
+const UPCOMING_BREADLETS = BREAKING_BAD_BREADLETS;
 
 export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: () => void }) {
   const now = useNow();

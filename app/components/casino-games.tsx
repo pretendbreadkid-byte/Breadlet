@@ -99,7 +99,37 @@ export function Die({ face, rolling }: { face: number; rolling: boolean }) {
     </span>
   );
 }
-const slotArt = (id: string) => SLOT_SYMBOLS.find((symbol) => symbol.id === id)?.art || "";
+const slotIndex = (id: string) => Math.max(0, SLOT_SYMBOLS.findIndex((symbol) => symbol.id === id));
+const slotAt = (index: number) => SLOT_SYMBOLS[((index % SLOT_SYMBOLS.length) + SLOT_SYMBOLS.length) % SLOT_SYMBOLS.length];
+
+// A real-looking slot machine: lit marquee, three reels behind glass with the symbols above and
+// below showing, a payline, a lever to pull and a coin tray.
+function SlotMachine({ reels, spinning, win, onPull, disabled }: { reels: string[]; spinning: boolean[]; win: boolean; onPull: () => void; disabled: boolean }) {
+  const pulled = spinning.some(Boolean);
+  return (
+    <div className={`slot-machine${win ? " is-win" : ""}${pulled ? " is-spinning" : ""}`}>
+      <div className="slot-marquee"><b>BREADLET SLOTS</b></div>
+      <div className="slot-body">
+        <div className="slot-window">
+          {reels.map((id, reel) => (
+            <div key={reel} className="slot-reel">
+              {spinning[reel]
+                ? <div className="slot-strip" style={{ animationDelay: `${-reel * 0.07}s` }}>{[...SLOT_SYMBOLS, ...SLOT_SYMBOLS].map((symbol, index) => <img key={index} src={symbol.art} alt="" />)}</div>
+                : <div className="slot-stopped">{[-1, 0, 1].map((offset) => { const symbol = slotAt(slotIndex(id) + offset); return <img key={offset} src={symbol.art} alt={offset === 0 ? symbol.label : ""} className={offset === 0 ? "is-center" : ""} />; })}</div>}
+            </div>
+          ))}
+          <i className="slot-payline" aria-hidden="true" />
+        </div>
+        <button type="button" className={`slot-lever${pulled ? " is-pulled" : ""}`} onClick={onPull} disabled={disabled} aria-label="Pull the lever to spin">
+          <span className="slot-lever-knob" aria-hidden="true" />
+          <span className="slot-lever-arm" aria-hidden="true" />
+          <span className="slot-lever-base" aria-hidden="true" />
+        </button>
+      </div>
+      <div className="slot-tray" aria-hidden="true">{win && Array.from({ length: 6 }, (_, index) => <img key={index} src="/assets/casino-chip.svg" alt="" style={{ animationDelay: `${index * 0.08}s` }} />)}</div>
+    </div>
+  );
+}
 const randomOf = <T,>(list: readonly T[]) => list[Math.floor(Math.random() * list.length)];
 
 export function CasinoStation({ station, tokens, chips, setChips, onBalance }: { station: Station; tokens: number; chips: number; setChips: (chips: number) => void; onBalance: (tokens: number) => void }) {
@@ -116,6 +146,7 @@ export function CasinoStation({ station, tokens, chips, setChips, onBalance }: {
   const [rouletteShown, setRouletteShown] = useState(0);
   const [wheelTurn, setWheelTurn] = useState(0);
   const [reelsShown, setReelsShown] = useState<string[]>(["bread", "acorn", "leaf"]);
+  const [reelsSpinning, setReelsSpinning] = useState([false, false, false]);
   const [diceShown, setDiceShown] = useState<[number, number]>([1, 6]);
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach((timer) => window.clearInterval(timer)), []);
@@ -152,6 +183,7 @@ export function CasinoStation({ station, tokens, chips, setChips, onBalance }: {
       if (game === "dice") setDiceShown([1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)]);
     }, 80);
     timers.current.push(spin);
+    if (game === "slots") setReelsSpinning([true, true, true]);
     const sentPick = game === "roulette" && pick === "number" ? `number:${number}` : pick;
     const started = Date.now();
     const response = await fetch("/api/casino", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ game, bet: wager, pick: sentPick }) }).catch(() => null);
@@ -160,6 +192,7 @@ export function CasinoStation({ station, tokens, chips, setChips, onBalance }: {
     if (game !== "roulette") await new Promise((resolve) => window.setTimeout(resolve, Math.max(0, 1500 - (Date.now() - started))));
     window.clearInterval(spin);
     if (!response?.ok || !data?.result) {
+      setReelsSpinning([false, false, false]);
       setBusy(false);
       setError(data?.error || "That didn't go through. Try again.");
       return;
@@ -179,6 +212,7 @@ export function CasinoStation({ station, tokens, chips, setChips, onBalance }: {
         await new Promise((resolve) => window.setTimeout(resolve, 350));
         window.clearInterval(rolling);
         setReelsShown((current) => current.map((symbol, index) => (index <= reel ? result.reels[index] : symbol)));
+        setReelsSpinning((current) => current.map((value, index) => (index <= reel ? false : value)));
       }
     }
     setOutcome({ result, bet: data.bet, payout: data.payout });
@@ -200,11 +234,7 @@ export function CasinoStation({ station, tokens, chips, setChips, onBalance }: {
           {chips < 1 && <div className="casino-notice"><span>You need chips to play. Tap Buy chips at the top.</span></div>}
           <div className="casino-stage" aria-live="polite">
             {game === "roulette" && <RouletteWheel turn={wheelTurn} spinning={busy} landed={rouletteShown} />}
-            {game === "slots" && (
-              <div className="casino-reels">
-                {reelsShown.map((symbol, index) => <span key={index} className="casino-reel"><img src={slotArt(symbol)} alt={symbol} /></span>)}
-              </div>
-            )}
+            {game === "slots" && <SlotMachine reels={reelsShown} spinning={reelsSpinning} win={Boolean(won) && !busy} onPull={() => void play()} disabled={busy} />}
             {game === "dice" && <div className="casino-dice">{diceShown.map((face, index) => <Die key={index} face={face} rolling={busy} />)}</div>}
           </div>
 

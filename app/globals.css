@@ -3267,3 +3267,40 @@ main.breadlet-blue-theme.breadlet-blue-theme .event-upcoming-tag { display: inli
 .event-upcoming li { display: flex; width: 132px; flex-direction: column; align-items: center; gap: 6px; border: 3px solid #13120F; border-radius: 18px; background: rgba(19, 18, 15, .7); padding: 10px; font-weight: 900; box-shadow: 0 4px 0 #13120F; }
 .event-upcoming li img { width: 100px; height: 100px; object-fit: contain; }
 .event-upcoming-question { display: grid; width: 100px; height: 100px; place-items: center; border: 3px dashed #6fbf5a; border-radius: 16px; font-family: "DynaPuff", Impact, sans-serif; font-size: 3.4rem; }
+
+/* The slot machine (casino-games.tsx SlotMachine). */
+.slot-machine { --reel-w: 104px; --row: 72px; position: relative; display: flex; flex-direction: column; align-items: center; margin: 4px auto 0; padding-right: 34px; }
+.slot-marquee { position: relative; z-index: 1; width: calc(3 * var(--reel-w) + 64px); border: 4px solid #13120F; border-bottom: 0; border-radius: 28px 28px 0 0; background: linear-gradient(#c81d25, #8e0f15); padding: 12px 10px 10px; text-align: center; box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .25); }
+.slot-marquee::before { content: ""; position: absolute; inset: 5px; border-radius: 22px 22px 0 0; background: radial-gradient(circle, #fff3b0 0 3px, transparent 4px) 0 0 / 16px 16px; -webkit-mask: linear-gradient(#000 0 0) top / 100% 10px no-repeat, linear-gradient(#000 0 0) left / 10px 100% no-repeat, linear-gradient(#000 0 0) right / 10px 100% no-repeat; mask: linear-gradient(#000 0 0) top / 100% 10px no-repeat, linear-gradient(#000 0 0) left / 10px 100% no-repeat, linear-gradient(#000 0 0) right / 10px 100% no-repeat; animation: slot-bulbs .6s steps(2) infinite; }
+@keyframes slot-bulbs { 50% { background-position: 8px 0; opacity: .55; } }
+main.breadlet-blue-theme.breadlet-blue-theme .slot-marquee b { position: relative; font-family: "DynaPuff", Impact, sans-serif; font-size: clamp(1.15rem, 4vw, 1.7rem); letter-spacing: .06em; color: #ffe066 !important; text-shadow: 0 3px 0 #5a0a0e, 0 0 14px rgba(255, 214, 80, .7); }
+.slot-body { position: relative; display: flex; width: calc(3 * var(--reel-w) + 64px); justify-content: center; border: 4px solid #13120F; border-top-width: 3px; border-radius: 0 0 18px 18px; background: linear-gradient(90deg, #8d97a3, #e8edf2 18%, #b9c2cc 50%, #e8edf2 82%, #8d97a3); padding: 18px 14px 20px; box-shadow: 0 8px 0 #13120F; }
+.slot-window { position: relative; display: flex; gap: 6px; overflow: hidden; border: 5px solid #2b2b2b; border-radius: 14px; background: #2b2b2b; box-shadow: inset 0 0 0 3px #c79a3b, 0 3px 0 rgba(0, 0, 0, .3); }
+.slot-window::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(0, 0, 0, .55), transparent 28%, transparent 72%, rgba(0, 0, 0, .55)), linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .22) 46%, transparent 52%); }
+.slot-reel { width: var(--reel-w); height: calc(3 * var(--row)); overflow: hidden; background: linear-gradient(90deg, #d9cfb8, #fffaf0 30%, #fffaf0 70%, #d9cfb8); }
+.slot-stopped, .slot-strip { display: flex; flex-direction: column; }
+.slot-stopped img, .slot-strip img { width: var(--reel-w); height: var(--row); flex: none; object-fit: contain; padding: 9px 16px; }
+.slot-stopped { animation: slot-stop .28s cubic-bezier(.3, 1.6, .5, 1); }
+.slot-stopped img:not(.is-center) { opacity: .55; }
+@keyframes slot-stop { from { transform: translateY(-22px); } }
+.slot-strip { animation: slot-roll .32s linear infinite; filter: blur(2px); }
+@keyframes slot-roll { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+.slot-payline { position: absolute; top: 50%; right: -5px; left: -5px; height: 3px; transform: translateY(-50%); background: rgba(230, 30, 40, .85); box-shadow: 0 0 8px rgba(255, 40, 40, .8); pointer-events: none; }
+.slot-machine.is-win .slot-window { animation: slot-win-flash .35s steps(2) 6; }
+@keyframes slot-win-flash { 50% { box-shadow: inset 0 0 0 3px #fff36b, 0 0 26px 6px #ffd23f; } }
+.slot-machine.is-win .slot-stopped img.is-center { animation: slot-win-pop .5s ease-in-out 3 alternate; }
+@keyframes slot-win-pop { to { transform: scale(1.18); } }
+.slot-lever { position: absolute; top: 4px; right: -40px; width: 34px; height: calc(3 * var(--row) + 20px); border: 0; background: none; padding: 0; cursor: pointer; }
+.slot-lever:disabled { cursor: default; }
+.slot-lever:hover:not(:disabled) { box-shadow: none; }
+.slot-lever-base { position: absolute; bottom: 0; left: 4px; width: 26px; height: 46px; border: 3px solid #13120F; border-radius: 8px; background: linear-gradient(90deg, #6d7782, #d7dde3, #6d7782); }
+.slot-lever-arm { position: absolute; bottom: 30px; left: 13px; width: 8px; height: calc(100% - 52px); transform-origin: bottom center; border: 2px solid #13120F; border-radius: 4px; background: linear-gradient(90deg, #8d97a3, #f1f4f7, #8d97a3); transition: transform .25s ease; }
+.slot-lever-knob { position: absolute; top: 0; left: 1px; z-index: 1; width: 32px; height: 32px; border: 3px solid #13120F; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8a8a, #d11a22 55%, #7a0b10); transition: transform .25s ease; }
+.slot-lever:hover:not(:disabled) .slot-lever-knob { transform: translateY(6px); }
+.slot-lever.is-pulled .slot-lever-arm { transform: scaleY(.25); }
+.slot-lever.is-pulled .slot-lever-knob { transform: translateY(calc(3 * var(--row) - 46px)); }
+.slot-tray { position: relative; display: flex; width: calc(3 * var(--reel-w) - 10px); height: 26px; align-items: flex-end; justify-content: center; gap: 4px; margin-top: 4px; border: 4px solid #13120F; border-top: 0; border-radius: 0 0 16px 16px; background: linear-gradient(#1b1b1b, #3a3a3a); padding-bottom: 3px; }
+.slot-tray img { width: 22px; height: 22px; animation: slot-coin .45s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes slot-coin { from { transform: translateY(-30px); opacity: 0; } }
+@media (max-width: 640px) { .slot-machine { --reel-w: 78px; --row: 58px; } .slot-stopped img, .slot-strip img { padding: 7px 10px; } }
+@media (prefers-reduced-motion: reduce) { .slot-strip { animation-duration: 1.2s; filter: none; } .slot-marquee::before { animation: none; } }

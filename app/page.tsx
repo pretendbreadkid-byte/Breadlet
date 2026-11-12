@@ -16,6 +16,7 @@ import { FIESTA_SHOP } from "../lib/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
 import { BanCrawl } from "./components/ban-crawl";
 import { deviceFingerprint } from "../lib/device-fingerprint";
+import { BREAKING_BAD_BREADLETS, BREAKING_BAD_NAMES } from "../lib/breaking-bad";
 import { LIMITED_SHOP_NAMES, limitedItemsOnSale, type LimitedShopItem } from "../lib/limited-shop";
 import { ResetPasswordScreen, recoveryErrorFromUrl, recoveryTokenFromUrl } from "./components/reset-password";
 import type { BanScreen } from "../lib/ban-screen";
@@ -287,6 +288,7 @@ const artFor = (name: string) =>
     "Frozen Ted": "/assets/winter/frozen-ted.svg",
     Fireplace: "/assets/winter/fireplace.svg",
     "American Flag": "/assets/american-flag.svg",
+    ...Object.fromEntries(BREAKING_BAD_BREADLETS.map((breadlet) => [breadlet.name, breadlet.art])),
     Shuriken: "/assets/shuricken 2.svg",
     "Albino Crow": "/assets/albino crow.svg",
     Baguette: "/assets/bagget.svg",
@@ -2744,7 +2746,7 @@ function TradeChatModal({
 
 function rarityFor(name: string) {
   const baseName = name.replace(/^Shiny /, "");
-  if (["Ted", "Walter White", "Skeleton Pirate", "Festive Skeleton Pirate", "American Flag"].includes(baseName)) return "Unique";
+  if (["Ted", "Walter White", "Skeleton Pirate", "Festive Skeleton Pirate", "American Flag", ...BREAKING_BAD_NAMES].includes(baseName)) return "Unique";
   if (baseName === "Gnome") return "Breadled";
   const craftedRarity = craftedRarityFor(baseName);
   if (craftRecipes.some((recipe) => recipe.name === baseName)) return craftedRarity;
@@ -5421,7 +5423,7 @@ function AdminTab({
 
   const allBlooks = Array.from(new Set(
     [...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool.map((reward) => reward.name))
-      .concat(craftRecipes.map((recipe) => recipe.name)),
+      .concat(craftRecipes.map((recipe) => recipe.name), BOOTH_EXTRAS, BREAKING_BAD_NAMES),
   )).sort((left, right) => left.localeCompare(right));
 
   const filteredBlooks = allBlooks.filter((b) =>
