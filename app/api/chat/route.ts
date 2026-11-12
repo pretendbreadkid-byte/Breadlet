@@ -7,14 +7,14 @@ import { ogBadges } from '../../../lib/og-badge';
 import { mentionedNames, notify } from '../../../lib/inbox';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
-import { filterProfanity, hasSevereSlur, isNameAllowed, isPastedChatLog } from '../../../lib/chat-filter';
+import { blockedContentError, filterProfanity, hasSevereSlur, hasSexualContent, isNameAllowed, isPastedChatLog } from '../../../lib/chat-filter';
 import { moderateChat } from '../../../lib/chat-moderation';
 import { NETWORK_BANNED_MESSAGE, isNetworkBanned } from '../../../lib/network-identity';
 
 export const dynamic = 'force-dynamic';
 
 const isImage = (message: string) => message.startsWith('[img]');
-const hideSlurs = (message: string) => !isImage(message) && hasSevereSlur(message) ? '[message removed]' : message;
+const hideSlurs = (message: string) => !isImage(message) && (hasSevereSlur(message) || hasSexualContent(message)) ? '[message removed]' : message;
 
 // Rows from the light select (migration 0055) carry text_body/is_image instead of the full
 // message, so embedded images are served once from /api/chat/image (cached) instead of
@@ -310,6 +310,8 @@ export async function POST(request: Request) {
     };
   }
 
+  const blocked = isImageMessage ? '' : blockedContentError(text, isProtectedFromMute(sender.username || ''));
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 400 });
   const moderationResponse = await moderateChat(database, user.id, text, isImageMessage);
   if (moderationResponse) return moderationResponse;
 
@@ -464,6 +466,9 @@ export async function PATCH(request: Request) {
     .select('id').eq('id', id).eq('profile_id', user.id).eq('is_breadlet_bot', false).is('deleted_at', null).maybeSingle();
   if (existingError) return NextResponse.json({ error: 'Could not verify the message.' }, { status: 500 });
   if (!existing) return NextResponse.json({ error: 'Message not found or you do not have permission to edit it.' }, { status: 404 });
+  const { data: editor } = await database.from('profiles').select('username').eq('id', user.id).maybeSingle();
+  const blocked = blockedContentError(rawMessage, isProtectedFromMute(editor?.username || ''));
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 400 });
   const moderationResponse = await moderateChat(database, user.id, rawMessage);
   if (moderationResponse) return moderationResponse;
   const message = filterProfanity(rawMessage);

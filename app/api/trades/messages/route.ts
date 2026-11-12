@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
-import { filterProfanity } from '../../../../lib/chat-filter';
+import { blockedContentError, filterProfanity } from '../../../../lib/chat-filter';
 import { moderateChat } from '../../../../lib/chat-moderation';
 
 async function getSession() {
@@ -46,6 +46,8 @@ export async function POST(request: Request) {
   if (!tradeId || !message) return NextResponse.json({ error: 'Trade and message are required.' }, { status: 400 });
   const access = await verifyCompletedTrade(session.admin, tradeId, session.userId);
   if ('error' in access) return NextResponse.json({ error: access.error }, { status: 403 });
+  const blocked = blockedContentError(message);
+  if (blocked) return NextResponse.json({ error: blocked }, { status: 400 });
   const moderationResponse = await moderateChat(session.admin, session.userId, message);
   if (moderationResponse) return moderationResponse;
   const { data, error } = await session.admin.from('trade_messages').insert({ trade_id: tradeId, profile_id: session.userId, message: filterProfanity(message) }).select('id, trade_id, profile_id, message, created_at').single();
