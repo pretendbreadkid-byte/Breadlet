@@ -1632,7 +1632,7 @@ function MainPage() {
     if (action === "delete") setNotice(`${result.username || "Account"} deleted. Its username is available again.`);
     else if (action === "unban") setNotice("Player unbanned. They can log in again.");
     else {
-      setNotice("Ban applied. The player will see the reason when they try to log in.");
+      setNotice(`Ban applied. The player will see the reason when they try to log in.${typeof result.devices === "number" ? ` Banned ${result.devices} device${result.devices === 1 ? "" : "s"} and ${result.ips} IP${result.ips === 1 ? "" : "s"}.` : ""}`);
     }
     return true;
   };
@@ -5377,6 +5377,9 @@ function AdminTab({
   const [banReason, setBanReason] = useState("");
   const [banDuration, setBanDuration] = useState("24");
   const [banPermanent, setBanPermanent] = useState(false);
+  // Device and IP bans that go with an account ban (app/api/admin).
+  const [banDevices, setBanDevices] = useState(true);
+  const [banIps, setBanIps] = useState<"none" | "week" | "full">("week");
   // Optional Star Wars style ban screen (title + one crime per line), and the admin's own preview of it.
   const [crawlTitle, setCrawlTitle] = useState("");
   const [crawlCrimes, setCrawlCrimes] = useState("");
@@ -5634,6 +5637,18 @@ function AdminTab({
             </div>
             <label className="flex items-center gap-2 text-sm font-bold text-rose-100"><input type="checkbox" checked={banPermanent} onChange={(event) => setBanPermanent(event.target.checked)} className="h-4 w-4 accent-rose-400" />Permanent ban</label>
             <div className="space-y-2 rounded-xl border border-[#b85a77]/60 p-3">
+              <p className="text-sm font-black text-[#ffd6df]">Device and IP ban</p>
+              <p className="text-xs text-[#f2b9c7]">Blocks new accounts and logins from every device and network this player used. IP bans can hit other people on shared Wi-Fi (schools, families).</p>
+              <label className="flex items-center gap-2 text-sm font-bold text-rose-100"><input type="checkbox" checked={banDevices} onChange={(event) => setBanDevices(event.target.checked)} className="h-4 w-4 accent-rose-400" />Ban their devices (for the whole ban)</label>
+              <label className="flex items-center gap-2 text-sm font-bold text-rose-100">IP ban
+                <select value={banIps} onChange={(event) => setBanIps(event.target.value as "none" | "week" | "full")} className="rounded-lg border border-[#b85a77] bg-[#351c3a] px-2 py-1 text-sm text-white">
+                  <option value="none">No IP ban</option>
+                  <option value="week">Up to 7 days</option>
+                  <option value="full">For the whole ban</option>
+                </select>
+              </label>
+            </div>
+            <div className="space-y-2 rounded-xl border border-[#b85a77]/60 p-3">
               <p className="text-sm font-black text-[#ffd6df]">Star Wars ban screen (optional)</p>
               <p className="text-xs text-[#f2b9c7]">Fill in the crimes and the player sees a Star Wars style crawl instead of the normal ban message, on every account and device the ban covers.</p>
               <input value={crawlTitle} maxLength={80} onChange={(e) => setCrawlTitle(e.target.value)} placeholder={`Title (e.g. The Fall of ${players.find((profile) => profile.id === targetId)?.username || "Player"})`} className="w-full rounded-xl border border-[#b85a77] bg-[#351c3a] px-3 py-2.5 text-sm text-white" />
@@ -5646,7 +5661,7 @@ function AdminTab({
               onClick={async () => {
                 const selected = players.find((profile) => profile.id === targetId);
                 if (!selected || !window.confirm(`Ban ${selected.username}${banPermanent ? " permanently" : ` for ${banDuration} hours`}?`)) return;
-                const banned = await moderateAccount("ban", { targetId, reason: banReason.trim(), permanent: banPermanent, durationHours: Number(banDuration), banScreen: crawlScreenNow() });
+                const banned = await moderateAccount("ban", { targetId, reason: banReason.trim(), permanent: banPermanent, durationHours: Number(banDuration), banScreen: crawlScreenNow(), deviceBan: banDevices, ipBan: banIps });
                 if (banned) {
                   setPlayers((current) => current.map((profile) => profile.id === targetId ? { ...profile, is_banned: true, ban_reason: banReason.trim() } : profile));
                   setBanReason("");

@@ -50,8 +50,29 @@ export async function POST(request: Request) {
     });
     if (banError) return NextResponse.json({ error: banError.message }, { status: 400 });
     const { banScreen: _oldScreen, ...stats } = (target.stats || {}) as Record<string, unknown>;
-    await session.supabase.from('profiles').update({ is_banned: true, ban_reason: reason, ban_expires_at: permanent ? null : new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(), stats: banScreen ? { ...stats, banScreen } : stats }).eq('id', targetId);
-    return NextResponse.json({ ok: true });
+    const expiresAt = permanent ? null : new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+    await session.supabase.from('profiles').update({ is_banned: true, ban_reason: reason, ban_expires_at: expiresAt, stats: banScreen ? { ...stats, banScreen } : stats }).eq('id', targetId);
+
+    // Device and IP bans, chosen in the admin panel. Banning the profile already added the default
+    // ones (devices for the whole ban, IPs for up to 7 days, migration 0052); replace them with the
+    // admin's choice. They also apply when the player was already banned.
+    const deviceBan = body.deviceBan !== false;
+    const ipBan = ['none', 'week', 'full'].includes(body.ipBan) ? body.ipBan as 'none' | 'week' | 'full' : 'week';
+    const { data: seen } = await session.supabase.from('account_devices').select('device_hash, ip_hash').eq('profile_id', targetId);
+    const devices = Array.from(new Set((seen || []).map((row: any) => row.device_hash).filter(Boolean)));
+    const ips = Array.from(new Set((seen || []).map((row: any) => row.ip_hash).filter(Boolean)));
+    const week = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const ipExpires = ipBan === 'full' ? expiresAt : (!expiresAt || expiresAt > week ? week : expiresAt);
+    const rows = [
+      ...(deviceBan ? devices.map((hash) => ({ kind: 'device', value_hash: hash, profile_id: targetId, expires_at: expiresAt })) : []),
+      ...(ipBan !== 'none' ? ips.map((hash) => ({ kind: 'ip', value_hash: hash, profile_id: targetId, expires_at: ipExpires })) : []),
+    ];
+    await session.supabase.from('network_bans').delete().eq('profile_id', targetId);
+    if (rows.length) {
+      const { error: networkError } = await session.supabase.from('network_bans').insert(rows);
+      if (networkError) return NextResponse.json({ error: `The account is banned, but its devices and IPs couldn't be: ${networkError.message}` }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, devices: deviceBan ? devices.length : 0, ips: ipBan !== 'none' ? ips.length : 0 });
   }
 
   if (body.action === 'rename') {
