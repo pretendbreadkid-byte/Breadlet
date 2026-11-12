@@ -15,6 +15,7 @@ import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
 import { FIESTA_SHOP } from "../lib/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
 import { BanCrawl } from "./components/ban-crawl";
+import { deviceFingerprint } from "../lib/device-fingerprint";
 import { limitedItemsOnSale, type LimitedShopItem } from "../lib/limited-shop";
 import { ResetPasswordScreen, recoveryErrorFromUrl, recoveryTokenFromUrl } from "./components/reset-password";
 import type { BanScreen } from "../lib/ban-screen";
@@ -796,6 +797,13 @@ function MainPage() {
         if (response?.status === 403) {
           const body = await response.json().catch(() => null);
           if (body?.banScreen) return setBanScreen(body.banScreen);
+          // A banned device or network: sign out and show why, with the appeal form.
+          if (body?.signOut) {
+            await supabaseClient.auth.signOut().catch(() => undefined);
+            setNotice(body.error || "This device or network is banned from Breadlet.");
+            restoreGuest();
+            return;
+          }
         }
         if (response?.ok) {
           setIsGuest(false);
@@ -1035,7 +1043,7 @@ function MainPage() {
         const signupResponse = await fetch("/api/auth/signup", {
           method: "POST",
           signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-breadlet-fp": await deviceFingerprint() },
           body: JSON.stringify({ email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim(), acceptedTerms }),
         });
         const signupBody = await signupResponse.json().catch(() => null);
@@ -1046,7 +1054,7 @@ function MainPage() {
           const loginResponse = await fetch("/api/auth/login", {
             method: "POST",
             signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "x-breadlet-fp": await deviceFingerprint() },
             body: JSON.stringify({ username: username.trim(), password }),
           });
           const loginBody = await loginResponse.json().catch(() => null);
@@ -1057,7 +1065,7 @@ function MainPage() {
         const loginResponse = await fetch("/api/auth/login", {
           method: "POST",
           signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-breadlet-fp": await deviceFingerprint() },
           body: JSON.stringify({ username: username.trim(), password }),
         });
         const loginBody = await loginResponse.json().catch(() => null);

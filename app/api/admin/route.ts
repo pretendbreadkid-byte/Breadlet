@@ -58,13 +58,19 @@ export async function POST(request: Request) {
     // admin's choice. They also apply when the player was already banned.
     const deviceBan = body.deviceBan !== false;
     const ipBan = ['none', 'week', 'full'].includes(body.ipBan) ? body.ipBan as 'none' | 'week' | 'full' : 'week';
-    const { data: seen } = await session.supabase.from('account_devices').select('device_hash, ip_hash').eq('profile_id', targetId);
+    // fingerprint_hash comes with migration 0084.
+    const withFingerprints = await session.supabase.from('account_devices').select('device_hash, ip_hash, fingerprint_hash').eq('profile_id', targetId);
+    const seen: any[] | null = withFingerprints.error
+      ? (await session.supabase.from('account_devices').select('device_hash, ip_hash').eq('profile_id', targetId)).data
+      : withFingerprints.data;
     const devices = Array.from(new Set((seen || []).map((row: any) => row.device_hash).filter(Boolean)));
     const ips = Array.from(new Set((seen || []).map((row: any) => row.ip_hash).filter(Boolean)));
+    const fingerprints = Array.from(new Set((seen || []).map((row: any) => row.fingerprint_hash).filter(Boolean)));
     const week = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const ipExpires = ipBan === 'full' ? expiresAt : (!expiresAt || expiresAt > week ? week : expiresAt);
     const rows = [
       ...(deviceBan ? devices.map((hash) => ({ kind: 'device', value_hash: hash, profile_id: targetId, expires_at: expiresAt })) : []),
+      ...(deviceBan ? fingerprints.map((hash) => ({ kind: 'fingerprint', value_hash: hash, profile_id: targetId, expires_at: expiresAt })) : []),
       ...(ipBan !== 'none' ? ips.map((hash) => ({ kind: 'ip', value_hash: hash, profile_id: targetId, expires_at: ipExpires })) : []),
     ];
     await session.supabase.from('network_bans').delete().eq('profile_id', targetId);

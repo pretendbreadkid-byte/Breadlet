@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
-import { NETWORK_BANNED_MESSAGE, isNetworkBanned, recordAccountDevice } from '../../../../lib/network-identity';
+import { NETWORK_BANNED_MESSAGE, banFingerprintFor, isNetworkBanned, recordAccountDevice } from '../../../../lib/network-identity';
 import { isProtectedFromMute } from '../../../../lib/admin-access';
 import { autoBanDeviceAlts } from '../../../../lib/alt-bans';
 import { banScreenFor, deviceBanScreen } from '../../../../lib/ban-screen';
@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     await autoBanDeviceAlts(admin, request).catch(() => undefined);
     const banScreen = await banScreenFor(admin, user.id);
     if (banScreen) {
+      await banFingerprintFor(admin, request, user.id, null);
       await supabase.auth.signOut();
       return NextResponse.json({ error: 'Sorry, your account is banned.', banScreen }, { status: 403 });
     }
@@ -66,6 +67,8 @@ export async function POST(request: Request) {
       ban.is_permanent || !ban.expires_at || new Date(ban.expires_at).getTime() > now,
     );
     if (activeBan) {
+      // Now the banned player's browser is known, block new accounts from it for the same time.
+      await banFingerprintFor(admin, request, user.id, activeBan.is_permanent ? null : activeBan.expires_at);
       await supabase.auth.signOut();
       return NextResponse.json(
         { error: `Sorry, your account is banned. Reason: ${activeBan.reason}${activeBan.is_permanent ? ' (permanent)' : ` (until ${new Date(activeBan.expires_at).toLocaleString()})`}`, canAppeal: true },

@@ -16,10 +16,33 @@ export function networkIdentity(request: Request) {
   const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
   const ip = forwardedFor || request.headers.get('x-real-ip') || 'unknown';
   const device = readCookie(request, DEVICE_COOKIE);
+  // The browser fingerprint (lib/device-fingerprint.ts), sent on signup and login.
+  const fingerprint = request.headers.get('x-breadlet-fp') || '';
   return {
     ipHash: hash(ip),
     deviceHash: /^[0-9a-f-]{36}$/i.test(device) ? hash(`device:${device.toLowerCase()}`) : '',
+    fingerprintHash: /^[0-9a-f]{64}$/.test(fingerprint) ? hash(`fp:${fingerprint}`) : '',
   };
+}
+
+// A banned player's browser fingerprint. Only checked when making a new account: identical school
+// computers can share a fingerprint, so it never locks anyone out of an account they already have.
+// Needs migration 0084; before that it never matches.
+export async function isFingerprintBanned(admin: any, request: Request) {
+  const { fingerprintHash } = networkIdentity(request);
+  if (!fingerprintHash) return false;
+  const { data, error } = await admin.from('network_bans').select('expires_at').eq('kind', 'fingerprint').eq('value_hash', fingerprintHash);
+  return !error && (data || []).some((ban: any) => !ban.expires_at || Date.parse(ban.expires_at) > Date.now());
+}
+
+// Bans this request's fingerprint for a banned account (it tried to log in, so now we know it).
+export async function banFingerprintFor(admin: any, request: Request, profileId: string, expiresAt: string | null) {
+  const { fingerprintHash } = networkIdentity(request);
+  if (!fingerprintHash) return;
+  await admin.from('network_bans').upsert(
+    { kind: 'fingerprint', value_hash: fingerprintHash, profile_id: profileId, expires_at: expiresAt },
+    { onConflict: 'kind,value_hash,profile_id' },
+  ).then(() => undefined, () => undefined);
 }
 
 export async function isNetworkBanned(admin: any, request: Request) {
@@ -34,8 +57,8 @@ export async function isNetworkBanned(admin: any, request: Request) {
 const RECORD_EVERY_MS = 15 * 60 * 1000;
 const recentlyRecorded = new Map<string, number>();
 export async function recordAccountDevice(admin: any, request: Request, profileId: string) {
-  const { ipHash, deviceHash } = networkIdentity(request);
-  const key = `${profileId}|${deviceHash}|${ipHash}`;
+  const { ipHash, deviceHash, fingerprintHash } = networkIdentity(request);
+  const key = `${profileId}|${deviceHash}|${ipHash}|${fingerprintHash}`;
   const now = Date.now();
   if (now - (recentlyRecorded.get(key) || 0) < RECORD_EVERY_MS) return false;
   recentlyRecorded.set(key, now);
@@ -44,6 +67,11 @@ export async function recordAccountDevice(admin: any, request: Request, profileI
     { profile_id: profileId, device_hash: deviceHash, ip_hash: ipHash, last_seen_at: new Date().toISOString() },
     { onConflict: 'profile_id,device_hash,ip_hash' },
   ).then(() => undefined, () => undefined);
+  // Separate write so device tracking keeps working before migration 0084 adds the column.
+  if (fingerprintHash) {
+    await admin.from('account_devices').update({ fingerprint_hash: fingerprintHash })
+      .match({ profile_id: profileId, device_hash: deviceHash, ip_hash: ipHash }).then(() => undefined, () => undefined);
+  }
   return true;
 }
 

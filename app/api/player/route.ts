@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { isNameAllowed } from '../../../lib/chat-filter';
-import { recordAccountDevice } from '../../../lib/network-identity';
+import { NETWORK_BANNED_MESSAGE, isNetworkBanned, recordAccountDevice } from '../../../lib/network-identity';
 import { autoBanDeviceAlts } from '../../../lib/alt-bans';
 import { banScreenFrom } from '../../../lib/ban-screen';
 import { ogBadges } from '../../../lib/og-badge';
-import { isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
+import { isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 
 const materialNames = ['Gold', 'Cloth', 'Gem', 'Sugar', 'Flower', 'Metal'];
 
@@ -44,6 +44,11 @@ export async function GET(request: Request) {
   // A player with a custom ban screen sees it instead of the game, even while still logged in.
   const banScreen = profile.is_banned ? banScreenFrom(profile.stats) : null;
   if (banScreen) return NextResponse.json({ error: 'Sorry, your account is banned.', banScreen }, { status: 403 });
+  // A banned device or network can't keep playing on an account that was already logged in
+  // (login and signup check this too). Staff skip it, like at login.
+  if (!isProtectedFromMute(profile.username) && await isNetworkBanned(inventoryAdmin, request)) {
+    return NextResponse.json({ error: NETWORK_BANNED_MESSAGE, canAppeal: true, signOut: true }, { status: 403 });
+  }
   const { equipped: equippedRow, ...profileFields } = profile as any;
   const equipped = (Array.isArray(equippedRow) ? equippedRow[0] : equippedRow) as { name: string } | null;
 
