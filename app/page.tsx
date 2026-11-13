@@ -1363,6 +1363,8 @@ function MainPage() {
   const [chatJump, setChatJump] = useState("");
   // Claim reminder: a button (and one chime) once the hourly Bread Bucks claim is ready again.
   const [claimReady, setClaimReady] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
+  const closeClaim = useCallback(() => setClaimOpen(false), []);
   const claimWasReady = useRef<boolean | null>(null);
   useEffect(() => {
     if (!player || isGuest) { setClaimReady(false); return; }
@@ -2073,8 +2075,8 @@ function MainPage() {
               </div>
             </div>
           )}
-          {claimReady && tab !== "wheel" && tab !== "capsules" && (
-            <button type="button" onClick={() => setTab("wheel")} className={`claim-ready-pill ${tab === "chat" ? "claim-ready-pill-top" : ""}`} title="Your hourly Bread Bucks claim is ready">
+          {claimReady && !claimOpen && tab !== "wheel" && tab !== "capsules" && (
+            <button type="button" onClick={() => setClaimOpen(true)} className={`claim-ready-pill ${tab === "chat" ? "claim-ready-pill-top" : ""}`} title="Your hourly Bread Bucks claim is ready">
               <img src="/assets/Bread%20bucks.svg" alt="" aria-hidden="true" />Claim ready!
             </button>
           )}
@@ -2085,8 +2087,9 @@ function MainPage() {
             </button>
           )}
           {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} openMention={(messageId) => { setInboxOpen(false); setChatJump(messageId); setTab("chat"); }} />}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} />}
-          {tab === "wheel" && <WheelTab player={player} spin={spinWheel} isGuest={isGuest} />}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} />}
+          {tab === "wheel" && <WheelTab player={player} isGuest={isGuest} onClaim={() => setClaimOpen(true)} />}
+          {claimOpen && <ClaimPopup player={player} isGuest={isGuest} spin={spinWheel} onClose={closeClaim} />}
           {tab === "capsules" && (
             <CapsulesTab
               forcedStock={forcedStock}
@@ -2499,6 +2502,7 @@ function InboxModal({ unreadCount, markRead, close, openMention }: { unreadCount
 function ProfileTab({
   player,
   setTab,
+  openClaim,
   showBadge,
   savePlayer,
   addFriend,
@@ -2514,6 +2518,7 @@ function ProfileTab({
 }: {
   player: Player;
   setTab: (tab: Tab) => void;
+  openClaim: () => void;
   showBadge: (badge: string) => void;
   savePlayer: (player: Player) => void;
   addFriend: (username: string) => void;
@@ -2672,7 +2677,7 @@ function ProfileTab({
           <div className="profile-avatar-frame profile-avatar-float"><span className="profile-float-inner">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span></div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1>{viewingOther && friendsData.relation === "friends" && <span className="profile-friended">(You&apos;ve friended)</span>}<p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
-            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={() => setTab("wheel")}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
+            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={openClaim}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
           </div>
         </section>
         <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{["1M Tokens", "100K Tokens", "10K Tokens"].find((badge) => displayedBadges.includes(badge)) || "Token milestones: 10K · 100K · 1M"}</div></section>
@@ -3441,56 +3446,95 @@ function ConfirmOpenModal({
   );
 }
 
-function WheelTab({
-  player,
-  spin,
-  isGuest,
-}: {
-  player: Player;
-  spin: () => Promise<(typeof wheelRewards)[number] | null>;
-  isGuest: boolean;
-}) {
-  const [oddsOpen, setOddsOpen] = useState(false);
-  const [phase, setPhase] = useState<"ready" | "spinning" | "result">("ready");
-  const [result, setResult] = useState<(typeof wheelRewards)[number] | null>(null);
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const [track, setTrack] = useState<(typeof wheelRewards)[number][]>(() => Array.from({ length: 62 }, () => wheelRewards[Math.floor(Math.random() * wheelRewards.length)]));
-  const [beltOffset, setBeltOffset] = useState(0);
-  const winnerIndex = 54;
+// Hourly claim cooldown (guests can claim any time).
+function useClaimCooldown(player: Player, isGuest: boolean) {
   const [now, setNow] = useState(() => Date.now());
   const spunAtMs = player.wheelSpunAt ? new Date(player.wheelSpunAt).getTime() : 0;
-  const cooldownActive = !isGuest && spunAtMs + 3600000 > now;
+  const waitMs = isGuest ? 0 : Math.max(0, spunAtMs + 3600000 - now);
+  const waiting = waitMs > 0;
   useEffect(() => {
-    if (!cooldownActive) return;
+    if (!waiting) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [cooldownActive]);
-  const waitMs = isGuest ? 0 : Math.max(0, spunAtMs + 3600000 - now);
-  const locked = waitMs > 0;
+  }, [waiting]);
   const waitLabel = `${String(Math.floor(waitMs / 60000)).padStart(2, "0")}:${String(Math.floor((waitMs % 60000) / 1000)).padStart(2, "0")}`;
-  const spinNow = async () => {
-    if (phase === "spinning" || locked) return;
-    setResult(null);
-    setBeltOffset(0);
-    setPhase("spinning");
-    const reward = await spin();
-    if (!reward) {
-      setPhase("ready");
-      return;
-    }
-    setTrack(Array.from({ length: 62 }, (_, index) => index === winnerIndex ? reward : wheelRewards[Math.floor(Math.random() * wheelRewards.length)]));
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-      const viewport = viewportRef.current;
-      if (viewport) setBeltOffset(viewport.clientWidth / 2 - winnerIndex * 120 - 56);
-    }));
-    window.setTimeout(() => {
-      setResult(reward);
-      setPhase("result");
-    }, 7000);
+  return { locked: waiting, waitLabel };
+}
+
+type WheelReward = (typeof wheelRewards)[number];
+
+// The claim popup: opens over whatever page you're on. Tap Claim, the number counts up from 1 to
+// what you won, then tap Claim again to collect it.
+function ClaimPopup({ player, isGuest, spin, onClose }: { player: Player; isGuest: boolean; spin: () => Promise<WheelReward | null>; onClose: () => void }) {
+  const [phase, setPhase] = useState<"ready" | "opening" | "counting" | "done">("ready");
+  const [result, setResult] = useState<WheelReward | null>(null);
+  const [shown, setShown] = useState(1);
+  const { locked, waitLabel } = useClaimCooldown(player, isGuest);
+  const closable = phase === "ready" || phase === "done";
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && closable) onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [closable, onClose]);
+  const claim = async () => {
+    if (phase !== "ready" || locked) return;
+    setPhase("opening");
+    const [reward] = await Promise.all([spin(), new Promise((resolve) => window.setTimeout(resolve, 900))]);
+    if (!reward) { setPhase("ready"); return; }
+    setResult(reward);
+    setShown(1);
+    setPhase("counting");
+    const duration = Math.min(2200, 900 + reward.amount * 4);
+    const started = performance.now();
+    const tick = (time: number) => {
+      const progress = Math.min(1, (time - started) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setShown(Math.max(1, Math.round(1 + (reward.amount - 1) * eased)));
+      if (progress < 1) window.requestAnimationFrame(tick);
+      else setPhase("done");
+    };
+    window.requestAnimationFrame(tick);
   };
-  const resultIcon = result?.type === "tokens"
-    ? "/assets/Bread%20bucks.svg"
-    : materialArtFor(result?.material || "Gold");
+  const rarity = result ? wheelRarityFor(result) : "";
+  const icon = result?.type === "material" ? materialArtFor(result.material || "Gold") : "/assets/Bread%20bucks.svg";
+  const unit = result?.type === "material" ? result.material : "Bread Bucks";
+  const counted = phase === "counting" || phase === "done";
+  return createPortal(
+    <div className="claim-pop-layer" onClick={(event) => { if (event.target === event.currentTarget && closable) onClose(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="claim-pop-title" className={`claim-pop claim-pop-${phase}${rarity ? ` claim-rarity-${rarity.toLowerCase()}` : ""}`}>
+        {closable && <button type="button" className="claim-pop-close" onClick={onClose} aria-label="Close">×</button>}
+        <div className="claim-pop-rays" aria-hidden="true" />
+        <p className="claim-pop-kicker">{phase === "done" ? `You won · ${rarity}` : isGuest ? "Free claim" : "Hourly claim"}</p>
+        <h2 id="claim-pop-title" className="claim-pop-title">{phase === "done" ? "Nice!" : phase === "counting" ? "Counting…" : locked ? "Not yet!" : "Your Bread Bucks are ready!"}</h2>
+        <div className="claim-pop-stage">
+          {phase === "done" && <RewardBurst rarity={rarity} />}
+          <img src={icon} alt="" className="claim-pop-icon" />
+        </div>
+        <div className="claim-pop-amount" aria-live="polite">
+          {counted
+            ? <><b className={phase === "done" ? "is-final" : ""}>{shown.toLocaleString()}</b><span>{unit}</span></>
+            : <span className="claim-pop-hint">{locked ? `Next claim in ${waitLabel}` : phase === "opening" ? "Opening…" : "Tap Claim to see what you get"}</span>}
+        </div>
+        <button type="button" className="claim-pop-button" disabled={phase === "opening" || phase === "counting" || (phase === "ready" && locked)} onClick={phase === "done" ? onClose : () => void claim()}>
+          {phase === "done" ? "Claim" : phase === "ready" ? (locked ? waitLabel : "Claim") : "…"}
+        </button>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
+function WheelTab({
+  player,
+  isGuest,
+  onClaim,
+}: {
+  player: Player;
+  isGuest: boolean;
+  onClaim: () => void;
+}) {
+  const [oddsOpen, setOddsOpen] = useState(false);
+  const { locked, waitLabel } = useClaimCooldown(player, isGuest);
   return (
     <div className="max-w-6xl">
       <div className="flex items-start justify-between gap-4">
@@ -3501,43 +3545,9 @@ function WheelTab({
         <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
       </div>
       <div className="mt-8">
-        <button onClick={spinNow} disabled={phase === "spinning" || locked} className="sidebar-dark-action rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
-          {locked ? `Next claim in ${waitLabel}` : phase === "spinning" ? "Claiming..." : "Claim Bread Bucks"}
+        <button onClick={onClaim} className="sidebar-dark-action rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200">
+          {locked ? `Next claim in ${waitLabel}` : "Claim Bread Bucks"}
         </button>
-        <div>
-          {phase === "spinning" && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-            <section role="dialog" aria-modal="true" aria-label="Claiming Bread Bucks" className="w-full max-w-6xl rounded-2xl border border-[#3c3a34] bg-[#13120F] p-4 text-center sm:p-7">
-              <div ref={viewportRef} className="roulette-viewport relative h-36 overflow-hidden border-y border-white/10 bg-[#090e1b] sm:h-44">
-                <div className="roulette-pointer" />
-                <div className="roulette-belt" style={{ transform: `translateX(${beltOffset}px)`, transitionDuration: "6.5s" }}>
-                  {track.map((reward, index) => {
-                    const rarity = wheelRarityFor(reward);
-                    const icon = reward.type === "tokens" ? "/assets/Bread%20bucks.svg" : materialArtFor(reward.material || "Gold");
-                    return <div key={`${index}-${reward.label}`} className={`roulette-prize ${rarityTileClass(rarity)}`}>
-                      <img src={icon} alt="" className="h-9 w-9 object-contain sm:h-10 sm:w-10" />
-                      <span className="max-w-full truncate text-[9px] font-black sm:text-[10px]">{reward.type === "tokens" ? reward.amount.toLocaleString() : `x${reward.amount}`} {reward.type === "tokens" ? "Bread Bucks" : reward.material}</span>
-                      <span className="text-[8px] font-bold opacity-70">{rarity}</span>
-                    </div>;
-                  })}
-                </div>
-              </div>
-              <p role="status" className="mt-5 text-sm font-bold">Your reward is on the way...</p>
-            </section>
-          </div>}
-          {result && phase === "result" && (
-            <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-              <div role="dialog" aria-modal="true" aria-labelledby="crate-result-title" className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[#3c3a34] bg-[#13120F] p-6 text-center text-white shadow-2xl">
-              <RewardBurst rarity={wheelRarityFor(result)} />
-              <img src={resultIcon} alt="" className="reveal-win-slam relative z-10 mx-auto h-28 w-28 object-contain" />
-              <div className="reveal-win-slam relative z-10 mt-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/50">You won · {wheelRarityFor(result)}</p>
-                <h2 id="crate-result-title" className="mt-2 text-2xl font-black text-white">{result.type === "tokens" ? `${result.amount.toLocaleString()} Bread Bucks` : `${result.amount} ${result.material}`}</h2>
-              </div>
-              <button onClick={() => { setResult(null); setPhase("ready"); }} className="relative z-10 mt-6 w-full rounded-xl bg-sky-400 px-5 py-3 font-black text-slate-950 hover:bg-sky-300">Collect reward</button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
       {oddsOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
         <section role="dialog" aria-modal="true" aria-labelledby="crate-odds-title" className="w-full max-w-md rounded-2xl border border-sky-300/30 bg-[#10182b] p-5 text-white shadow-2xl sm:p-6">

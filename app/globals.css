@@ -3308,3 +3308,42 @@ main.breadlet-blue-theme.breadlet-blue-theme .slot-marquee b { position: relativ
 /* Breadlet Breaks Bad badge in the upcoming-event teaser. */
 .event-upcoming-badge { display: inline-flex; align-items: center; gap: 10px; margin-top: 6px; border: 3px solid #13120F; border-radius: 999px; background: rgba(19, 18, 15, .7); padding: 6px 16px 6px 6px; font-weight: 900; box-shadow: 0 4px 0 #13120F; }
 .event-upcoming-badge img { width: 54px; height: 54px; object-fit: contain; }
+
+/* The claim popup (page.tsx ClaimPopup). Portalled to <body>, so outside the theme's forced colors. */
+.claim-pop-layer { position: fixed; inset: 0; z-index: 2147482000; display: grid; place-items: center; padding: 16px; background: radial-gradient(circle at 50% 40%, rgba(20, 30, 60, .55), rgba(0, 0, 0, .86)); backdrop-filter: blur(4px); animation: claim-fade .25s ease both; }
+@keyframes claim-fade { from { opacity: 0; } }
+.claim-pop { --glow: #ffd23f; position: relative; width: min(100%, 400px); overflow: hidden; border: 4px solid #13120F; border-radius: 30px; background: linear-gradient(180deg, #1f6fd1, #123f86 70%); padding: 26px 22px 22px; text-align: center; color: #fff; box-shadow: 0 10px 0 #13120F, 0 0 60px rgba(0, 0, 0, .5); animation: claim-pop-in .45s cubic-bezier(.2, 1.5, .4, 1) both; }
+@keyframes claim-pop-in { from { transform: scale(.6) translateY(30px); opacity: 0; } }
+.claim-pop-close { position: absolute; top: 10px; right: 12px; z-index: 3; width: 38px; height: 38px; border: 3px solid #13120F; border-radius: 50%; background: #fff; font-size: 22px; font-weight: 900; line-height: 1; color: #13120F; box-shadow: 0 3px 0 #13120F; cursor: pointer; }
+.claim-pop-rays { position: absolute; top: 40%; left: 50%; width: 640px; height: 640px; margin: -320px 0 0 -320px; background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .13) 0 12deg, transparent 12deg 24deg); -webkit-mask: radial-gradient(circle, #000 0 20%, transparent 62%); mask: radial-gradient(circle, #000 0 20%, transparent 62%); animation: claim-rays 14s linear infinite; pointer-events: none; }
+@keyframes claim-rays { to { transform: rotate(360deg); } }
+.claim-pop > *:not(.claim-pop-rays):not(.claim-pop-close) { position: relative; z-index: 1; }
+.claim-pop-kicker { margin: 0; font-size: .75rem; font-weight: 900; letter-spacing: .2em; text-transform: uppercase; color: #bde8ff; }
+.claim-pop-title { margin: 6px 0 0; font-family: "DynaPuff", Impact, sans-serif; font-size: 1.7rem; line-height: 1.1; color: #ffe066; text-shadow: 0 3px 0 #13120F; }
+.claim-pop-stage { position: relative; display: grid; height: 150px; margin-top: 10px; place-items: center; }
+.claim-pop-icon { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 8px 0 rgba(0, 0, 0, .35)); animation: claim-bob-icon 1.8s ease-in-out infinite; }
+@keyframes claim-bob-icon { 50% { transform: translateY(-10px) rotate(-4deg); } }
+.claim-pop-opening .claim-pop-icon { animation: claim-shake .12s linear infinite; }
+@keyframes claim-shake { 25% { transform: translateX(-6px) rotate(-8deg) scale(1.05); } 75% { transform: translateX(6px) rotate(8deg) scale(1.05); } }
+.claim-pop-counting .claim-pop-icon { animation: claim-pulse .25s ease-in-out infinite alternate; }
+@keyframes claim-pulse { to { transform: scale(1.12); } }
+.claim-pop-done .claim-pop-icon { animation: reveal-win-slam 650ms cubic-bezier(.16, .9, .25, 1.25) both; filter: drop-shadow(0 0 22px var(--glow)) drop-shadow(0 8px 0 rgba(0, 0, 0, .35)); }
+.claim-pop-amount { display: flex; min-height: 70px; flex-direction: column; align-items: center; justify-content: center; }
+.claim-pop-amount b { font-family: "DynaPuff", Impact, sans-serif; font-size: 3rem; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 4px 0 #13120F; }
+.claim-pop-amount b.is-final { color: var(--glow); animation: claim-final .5s cubic-bezier(.2, 1.8, .4, 1) both; }
+@keyframes claim-final { from { transform: scale(1.5); } }
+.claim-pop-amount span { font-weight: 900; color: #e3f2ff; }
+.claim-pop-amount .claim-pop-hint { font-size: .95rem; }
+.claim-pop-button { width: 100%; margin-top: 14px; border: 4px solid #13120F; border-radius: 18px; background: linear-gradient(#ffd84d, #f5a300); padding: 14px; font-size: 1.35rem; font-weight: 900; color: #13120F; box-shadow: 0 6px 0 #13120F; cursor: pointer; transition: transform .1s ease, box-shadow .1s ease; }
+.claim-pop-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 0 #13120F; }
+.claim-pop-button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #13120F; }
+.claim-pop-button:disabled { cursor: default; filter: grayscale(.4); opacity: .7; }
+.claim-pop-done .claim-pop-button { background: linear-gradient(#7ee26b, #2f9e44); animation: claim-ready-pulse 1s ease-in-out infinite; }
+@keyframes claim-ready-pulse { 50% { box-shadow: 0 6px 0 #13120F, 0 0 0 6px rgba(126, 226, 107, .35); } }
+.claim-rarity-common { --glow: #e5e7eb; }
+.claim-rarity-uncommon { --glow: #86efac; }
+.claim-rarity-rare { --glow: #7dd3fc; }
+.claim-rarity-epic { --glow: #d8b4fe; }
+.claim-rarity-legendary { --glow: #fcd34d; }
+.claim-rarity-mythic { --glow: #fda4af; }
+@media (prefers-reduced-motion: reduce) { .claim-pop-rays, .claim-pop-icon, .claim-pop-done .claim-pop-button { animation: none !important; } }
