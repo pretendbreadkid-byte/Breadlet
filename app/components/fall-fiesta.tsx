@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FIESTA_SHOP, LEAVES_PER_SHOWER, SHOWER_MINUTES, showerAt } from "../../lib/fall-fiesta";
-import { BREAKING_BAD_BADGE, BREAKING_BAD_BREADLETS } from "../../lib/breaking-bad";
+import { BATTLE_PASS_TIERS, BREAKING_BAD_BADGE, BREAKING_BAD_BREADLETS, CRYSTAL_ART } from "../../lib/breaking-bad";
 
 // Breadlet Fall Fiesta: the hourly leaf shower over the whole game, and the Event tab's leaf shop.
 
@@ -204,7 +204,45 @@ export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: ()
           {UPCOMING_BREADLETS.map((breadlet) => <li key={breadlet.name}><img src={breadlet.art} alt="" /><span>{breadlet.name}</span></li>)}
           <li className="event-upcoming-more"><span className="event-upcoming-question" aria-hidden="true">?</span><span>More coming soon</span></li>
         </ul>
+        <BattlePassPreview />
       </section>
+    </div>
+  );
+}
+
+// The Breaking Bad battle pass, PREVIEW ONLY: everything is greyed out and nothing can be clicked.
+const breadletArt = (name: string) => BREAKING_BAD_BREADLETS.find((breadlet) => breadlet.name === name)?.art || "";
+function BattlePassPreview() {
+  return (
+    <div className="bp-preview" aria-disabled="true">
+      <div className="bp-head">
+        <div className="bp-crystals" aria-hidden="true">{CRYSTAL_ART.map((art) => <img key={art} src={art} alt="" />)}</div>
+        <div>
+          <h3>Breaking Bad Battle Pass</h3>
+          <p>Cook a batch every hour to collect crystals. Crystals fill up the battle pass, and every tier pays out more.</p>
+        </div>
+      </div>
+      <div className="bp-controls">
+        <button type="button" disabled className="bp-cook">🧪 Cook a batch</button>
+        <div className="bp-progress"><span style={{ width: "0%" }} /><b><img src={CRYSTAL_ART[0]} alt="" />0 / {BATTLE_PASS_TIERS[BATTLE_PASS_TIERS.length - 1].crystals} crystals</b></div>
+      </div>
+      <ol className="bp-track">
+        {BATTLE_PASS_TIERS.map((tier, index) => (
+          <li key={tier.tier} className={tier.breadlet ? "has-breadlet" : ""}>
+            <span className="bp-tier-number">Tier {tier.tier}</span>
+            <span className="bp-tier-reward">
+              {tier.breadlet
+                ? <img src={breadletArt(tier.breadlet)} alt="" />
+                : <img src="/assets/Bread%20bucks.svg" alt="" className="bp-bucks" />}
+            </span>
+            <span className="bp-tier-name">{tier.breadlet || "Bread Bucks"}</span>
+            <span className="bp-tier-tokens"><img src="/assets/Bread%20bucks.svg" alt="" />{tier.tokens.toLocaleString()}</span>
+            {tier.badge && <span className="bp-tier-badge"><img src={BREAKING_BAD_BADGE.art} alt="" />+ Badge</span>}
+            <span className="bp-tier-cost"><img src={CRYSTAL_ART[index % CRYSTAL_ART.length]} alt="" />{tier.crystals}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="bp-lock"><span>🔒 Coming soon</span></div>
     </div>
   );
 }

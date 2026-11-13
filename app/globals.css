@@ -3347,3 +3347,39 @@ main.breadlet-blue-theme.breadlet-blue-theme .slot-marquee b { position: relativ
 .claim-rarity-legendary { --glow: #fcd34d; }
 .claim-rarity-mythic { --glow: #fda4af; }
 @media (prefers-reduced-motion: reduce) { .claim-pop-rays, .claim-pop-icon, .claim-pop-done .claim-pop-button { animation: none !important; } }
+
+/* Breaking Bad battle pass preview (fall-fiesta.tsx BattlePassPreview). Greyed out on purpose. */
+.bp-preview { position: relative; margin-top: 26px; overflow: hidden; border: 4px solid #13120F; border-radius: 22px; background: linear-gradient(160deg, #1d3a1b, #0f1f0e); padding: 50px 16px 18px; text-align: left; box-shadow: 0 5px 0 #13120F; }
+.bp-preview > :not(.bp-lock) { filter: grayscale(.85) brightness(.75); opacity: .75; pointer-events: none; user-select: none; }
+.bp-head { display: flex; align-items: center; gap: 14px; }
+.bp-head h3 { margin: 0; font-size: 1.35rem; text-shadow: 0 3px 0 #13120F; }
+.bp-head p { margin: 4px 0 0; font-size: .9rem; font-weight: 700; line-height: 1.35; }
+.bp-crystals { position: relative; width: 84px; height: 70px; flex: none; }
+.bp-crystals img { position: absolute; width: 46px; height: 46px; object-fit: contain; }
+.bp-crystals img:nth-child(1) { left: 0; top: 18px; transform: rotate(-14deg); }
+.bp-crystals img:nth-child(2) { left: 20px; top: 0; z-index: 1; width: 50px; height: 50px; }
+.bp-crystals img:nth-child(3) { left: 40px; top: 20px; transform: rotate(12deg); }
+.bp-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; }
+main.breadlet-blue-theme.breadlet-blue-theme .bp-cook { flex: none; border: 3px solid #13120F; border-radius: 14px; background: #3fbf5a; padding: 10px 18px; font-weight: 900; box-shadow: 0 4px 0 #13120F; }
+.bp-progress { position: relative; height: 34px; min-width: 200px; flex: 1; overflow: hidden; border: 3px solid #13120F; border-radius: 999px; background: #0a140a; }
+.bp-progress > span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #4fd1c5, #7ee2ff); }
+.bp-progress b { position: relative; display: flex; height: 100%; align-items: center; justify-content: center; gap: 6px; font-size: .9rem; }
+.bp-progress b img { width: 20px; height: 20px; object-fit: contain; }
+.bp-track { display: flex; gap: 10px; margin: 16px 0 0; padding: 0 0 6px; overflow-x: auto; list-style: none; }
+.bp-track li { position: relative; display: flex; width: 116px; flex: none; flex-direction: column; align-items: center; gap: 4px; border: 3px solid #13120F; border-radius: 16px; background: rgba(19, 18, 15, .7); padding: 8px 8px 10px; text-align: center; font-weight: 900; }
+.bp-track li.has-breadlet { background: linear-gradient(#2c5a28, rgba(19, 18, 15, .8)); }
+.bp-tier-number { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
+.bp-tier-reward { display: grid; width: 74px; height: 74px; place-items: center; }
+.bp-tier-reward img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.bp-tier-reward img.bp-bucks { width: 54px; }
+.bp-tier-name { min-height: 2.2em; font-size: .78rem; line-height: 1.1; }
+.bp-tier-tokens, .bp-tier-cost, .bp-tier-badge { display: flex; align-items: center; gap: 4px; font-size: .8rem; }
+.bp-tier-tokens img, .bp-tier-cost img, .bp-tier-badge img { width: 18px; height: 18px; object-fit: contain; }
+.bp-tier-cost { margin-top: 2px; border-radius: 999px; background: #0a140a; padding: 2px 8px; }
+.bp-preview > .bp-track { pointer-events: auto; }
+.bp-lock { position: absolute; top: 10px; right: 10px; z-index: 2; pointer-events: none; }
+main.breadlet-blue-theme.breadlet-blue-theme .bp-lock span { border: 3px solid #13120F; border-radius: 999px; background: #ffd23f; display: block; padding: 6px 16px; font-size: 1rem; font-weight: 900; color: #13120F !important; box-shadow: 0 4px 0 #13120F; transform: rotate(-4deg); }
+@media (max-width: 640px) { .bp-head { align-items: flex-start; } .bp-crystals { width: 64px; transform: scale(.8); transform-origin: left top; } }
+
+/* "N exist" on Bazaar stalls. */
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-stall-exist { display: block; margin-top: 2px; font-size: .72rem; font-weight: 800; opacity: .85; }

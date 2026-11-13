@@ -3103,6 +3103,22 @@ function BlookImg({ name, className }: { name: string; className: string }) {
   return <RewardArt name={name} art={artFor(name)} className={`${className} ${rewardEffectClassFor(name, rarityFor(name))}`} />;
 }
 
+// How many of each Breadlet exist in the whole game. Fetched once and shared by every screen.
+let existCountsCache: Promise<Record<string, number>> | null = null;
+function useExistCounts() {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    existCountsCache ||= fetch("/api/marketplace?exist=1")
+      .then((response) => (response.ok ? response.json() : {}))
+      .then((data) => (data && typeof data === "object" && !Array.isArray(data) ? data as Record<string, number> : {}))
+      .catch(() => ({}));
+    let alive = true;
+    void existCountsCache.then((data) => { if (alive) setCounts(data); });
+    return () => { alive = false; };
+  }, []);
+  return counts;
+}
+
 function InventoryTab({
   player,
   equip,
@@ -3311,6 +3327,7 @@ function BlookDetail({
   toggleLock: () => void;
   toggleWish: () => void;
 }) {
+  const existCounts = useExistCounts();
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl">
@@ -3334,6 +3351,7 @@ function BlookDetail({
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Stat label="Rarity" value={reward.rarity} />
           <Stat label="Quantity" value={String(quantity)} />
+          <Stat label="Exist" value={existCounts[reward.name] ? existCounts[reward.name].toLocaleString() : "0"} />
           <Stat label="Shiny" value={shinyEligibleNames.has(reward.name.replace(/^Shiny /, "")) ? "Eligible · 1/100" : "Not eligible"} />
           <Stat
             label="Sell value"
@@ -3636,6 +3654,7 @@ function Bazaar({
   const [detailsOpen, setDetailsOpen] = useState(false);
   // Recent average price of every Breadlet that has sold (average of its last 10 sales).
   const [raps, setRaps] = useState<Record<string, number>>({});
+  const existCounts = useExistCounts();
   const supabase = useMemo(() => createSupabaseClient(), []);
   useEffect(() => {
     void fetch("/api/marketplace?rap=1").then((response) => (response.ok ? response.json() : {})).then((data) => {
@@ -3814,6 +3833,7 @@ function Bazaar({
                     {raps[name]
                       ? <span className="bazaar-stall-rap" title="Recent average price: the average of the last 10 sales"><small>RAP</small><img src="/assets/Bread%20bucks.svg" alt="" />{raps[name].toLocaleString()}</span>
                       : <span className="bazaar-stall-rap bazaar-stall-rap-none">No sales yet</span>}
+                    {existCounts[name] ? <span className="bazaar-stall-exist" title="How many exist in the whole game">{existCounts[name].toLocaleString()} exist</span> : null}
                   </span>
                 </span>
                 <span className="bazaar-price-sign">{quantity ? <><img src="/assets/Bread%20bucks.svg" alt="" />from {lowest.toLocaleString()}<small>· {quantity} for sale</small></> : "Not for sale"}</span>

@@ -50,9 +50,25 @@ async function recentAveragePrices() {
   return NextResponse.json(raps, { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600' } });
 }
 
+// How many of each Breadlet exist (inventories + active Bazaar listings). Needs migration 0089;
+// before that it returns {} and the game just doesn't show the numbers.
+async function existCounts() {
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({});
+  const { data, error } = await admin.rpc('blook_exist_counts');
+  if (error) return NextResponse.json({});
+  const counts: Record<string, number> = {};
+  for (const row of (data || []) as { name: string; total: number }[]) {
+    const name = row.name.replace(/^(Shiny )?Surgeon$/, '$1Doctor');
+    counts[name] = (counts[name] || 0) + Number(row.total || 0);
+  }
+  return NextResponse.json(counts, { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600' } });
+}
+
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   if (params.get('rap')) return recentAveragePrices();
+  if (params.get('exist')) return existCounts();
   const history = params.get('history');
   if (history) return priceHistory(history.slice(0, 80));
   const supabase = await createClient();
