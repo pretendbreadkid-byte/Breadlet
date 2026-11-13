@@ -3304,3 +3304,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .slot-marquee b { position: relativ
 @keyframes slot-coin { from { transform: translateY(-30px); opacity: 0; } }
 @media (max-width: 640px) { .slot-machine { --reel-w: 78px; --row: 58px; } .slot-stopped img, .slot-strip img { padding: 7px 10px; } }
 @media (prefers-reduced-motion: reduce) { .slot-strip { animation-duration: 1.2s; filter: none; } .slot-marquee::before { animation: none; } }
+
+/* Breadlet Breaks Bad badge in the upcoming-event teaser. */
+.event-upcoming-badge { display: inline-flex; align-items: center; gap: 10px; margin-top: 6px; border: 3px solid #13120F; border-radius: 999px; background: rgba(19, 18, 15, .7); padding: 6px 16px 6px 6px; font-weight: 900; box-shadow: 0 4px 0 #13120F; }
+.event-upcoming-badge img { width: 54px; height: 54px; object-fit: contain; }

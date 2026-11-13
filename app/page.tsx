@@ -217,6 +217,7 @@ const badgeDescriptions: Record<string, string> = {
   Artist: "Drew artwork for Breadlet.",
   Birthday: "Happy birthday! Given by an admin on your birthday.",
   "Fall Fiesta": "Earned in the Breadlet Fall Fiesta.",
+  "Breadlet Breaks Bad": "From the Breadlet Breaks Bad event.",
 };
 // Badges an admin can hand out. Token milestones are automatic and kept once earned, OG from the
 // account age, and Owner / Moderator are tied to the staff usernames, so granting those by hand
@@ -242,6 +243,7 @@ const badgeIconFor = (badge: string) => ({
   Artist: "/assets/artist-badge.svg?v=2",
   Birthday: "/assets/birthday-badge.svg",
   "Fall Fiesta": "/assets/fall-badge.svg",
+  "Breadlet Breaks Bad": "/assets/breaking-bad/badge.svg",
 })[badge] || "/assets/verified-badge.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>

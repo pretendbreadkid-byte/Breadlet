@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FIESTA_SHOP, LEAVES_PER_SHOWER, SHOWER_MINUTES, showerAt } from "../../lib/fall-fiesta";
-import { BREAKING_BAD_BREADLETS } from "../../lib/breaking-bad";
+import { BREAKING_BAD_BADGE, BREAKING_BAD_BREADLETS } from "../../lib/breaking-bad";
 
 // Breadlet Fall Fiesta: the hourly leaf shower over the whole game, and the Event tab's leaf shop.
 
@@ -198,6 +198,7 @@ export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: ()
       <section className="event-upcoming" aria-labelledby="event-upcoming-title">
         <p id="event-upcoming-title" className="event-upcoming-tag">Upcoming event</p>
         <img src="/assets/breaking-bad/logo.svg" alt="Breadlet Breaks Bad" className="event-upcoming-logo" />
+        <div className="event-upcoming-badge"><img src={BREAKING_BAD_BADGE.art} alt="" /><span>Event badge</span></div>
         <h3>Breadlets so far</h3>
         <ul>
           {UPCOMING_BREADLETS.map((breadlet) => <li key={breadlet.name}><img src={breadlet.art} alt="" /><span>{breadlet.name}</span></li>)}
