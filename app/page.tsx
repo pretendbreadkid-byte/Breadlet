@@ -247,6 +247,8 @@ const badgeIconFor = (badge: string) => ({
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' rx='16' fill='#b91c1c' stroke='#7f1d1d' stroke-width='8'/><text x='50%' y='50%' fill='#ffffff' font-family='sans-serif' font-size='22' font-weight='700' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`)}`;
+// Art set on a bag's own pool (lib/gameplay-catalog.ts), so new Breadlets show up without a second entry here.
+const catalogArt: Record<string, string> = Object.fromEntries([...liveCapsules, ...legacyCapsules].flatMap((capsule) => capsule.pool.filter((reward) => reward.art).map((reward) => [reward.name, reward.art as string])));
 const artFor = (name: string) =>
   artOverrides[name.replace(/^Shiny /, "")] || ({
     Mars: "/assets/mars-3.svg",
@@ -411,7 +413,7 @@ const artFor = (name: string) =>
     "Pilgrim Hat": "/assets/fall/pilgrim-hat.webp",
     "Fall Leaf": "/assets/fall/fall-leaf.webp",
     "Pumpkin Dragon": "/assets/fall/pumpkin-dragon.svg",
-  })[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
+  })[name.replace(/^Shiny /, "")] || catalogArt[name.replace(/^Shiny /, "")] || "/assets/Bread.svg";
 const artForBlook = (name: string, artworkKey?: string) => {
   const mappedArt = artFor(name);
   if (mappedArt !== "/assets/Bread.svg" || !artworkKey) return mappedArt;
@@ -1233,7 +1235,7 @@ function MainPage() {
   };
   // How long each step of the pack opening lasts (ms); Quick open makes it much shorter.
   const revealTimes = () => quickRef.current
-    ? { drop: 500, done: 1000, dwell: 450 }
+    ? { drop: 180, done: 400, dwell: 250 }
     : { drop: REVEAL_DROP_AT_MS, done: REVEAL_DONE_AT_MS, dwell: 1500 };
   // Plays the bag animation. Resolves once it's dismissed: by a click, or by itself during auto open.
   const playReveal = (capsule: Capsule, reward: Reward) => new Promise<void>((resolve) => {
@@ -4072,7 +4074,7 @@ function RevealModal({
       tabIndex={0}
       aria-label="Pack opening. Click to continue."
       className="modal-layer reveal-overlay fixed inset-0 z-[9999] flex min-h-screen cursor-pointer select-none flex-col items-center justify-center gap-4 overflow-hidden px-4 py-6"
-      style={{ "--rs": quick ? 0.4 : 1, "--glow": REVEAL_GLOW[reward.rarity] || "#cbd5e1" } as React.CSSProperties}
+      style={{ "--rs": quick ? 0.15 : 1, "--glow": REVEAL_GLOW[reward.rarity] || "#cbd5e1" } as React.CSSProperties}
     >
       {autoCount !== null && <p className="reveal-hud">🔁 Auto opening · {autoCount} opened · click anywhere to stop</p>}
       <div className="reveal-stage">
