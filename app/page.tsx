@@ -55,7 +55,6 @@ import {
   UserMinus,
   Search,
   GitBranch,
-  CirclePlay,
   Package,
   Gift,
   Info,
@@ -69,7 +68,7 @@ import {
   Repeat,
   Clock,
   CalendarDays,
-  Leaf,
+  PartyPopper,
   Dices,
   Newspaper,
 } from "lucide-react";
@@ -658,6 +657,7 @@ function MainPage() {
   const [tradeDoneNotice, setTradeDoneNotice] = useState("");
   const [newsOpen, setNewsOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [socialsOpen, setSocialsOpen] = useState(false);
   const [capsuleToConfirm, setCapsuleToConfirm] = useState<Capsule | null>(null);
   const [reveal, setReveal] = useState<{
     capsule: Capsule;
@@ -1844,7 +1844,7 @@ function MainPage() {
       />
     );
   const nav: NavItem[] = [
-    { id: "event", label: "Event", icon: <Leaf size={20} strokeWidth={2.2} /> },
+    { id: "event", label: "Event", icon: <PartyPopper size={20} strokeWidth={2.2} /> },
     {
       id: "capsules",
       label: "Goodybags",
@@ -1925,28 +1925,54 @@ function MainPage() {
         {/* Sidebar Footer Controls */}
         <div className="sidebar-footer flex items-center justify-center gap-7 bg-[#13120F] py-4 text-white">
           <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
-          <a title="YouTube" href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><CirclePlay size={18} /></a>
-          <a title="Discord" href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><MessageCircle size={18} /></a>
+          <button type="button" title="Socials" aria-label="Breadlet socials" onClick={() => setSocialsOpen(true)} className="hover:text-[#ffb36b] transition"><Users size={18} /></button>
           <button type="button" title="Breadlet News" aria-label="Breadlet News" onClick={() => setNewsOpen(true)} className="hover:text-[#bde8ff] transition"><Newspaper size={18} /></button>
           <button title={isGuest ? "End guest session" : "Log out"} onClick={leaveSession} className="hover:text-red-300 transition"><LogOut size={20} /></button>
         </div>
       </aside>
       <NewsPanel open={newsOpen} onClose={() => setNewsOpen(false)} />
       {projectsOpen && createPortal(
-        <div className="fixed inset-0 z-[2147483000] flex items-center justify-center bg-black/60 p-4" onClick={() => setProjectsOpen(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="other-projects-title" onClick={(event) => event.stopPropagation()} className="w-full max-w-md rounded-2xl border border-[#3d91cd]/50 bg-[#103f75] p-5 text-white shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <h2 id="other-projects-title" className="text-xl font-black">Like Breadlet? Play our other projects!</h2>
-              <button type="button" onClick={() => setProjectsOpen(false)} aria-label="Close" className="text-2xl leading-none hover:text-red-300">×</button>
+        <div className="link-popup-layer" onClick={() => setProjectsOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="other-projects-title" onClick={(event) => event.stopPropagation()} className="link-popup">
+            <header className="link-popup-header">
+              <h2 id="other-projects-title">Like Breadlet? Play our other projects!</h2>
+              <button type="button" onClick={() => setProjectsOpen(false)} aria-label="Close" className="link-popup-close">×</button>
+            </header>
+            <div className="link-popup-body">
+              <a href="https://blooket-art-maker.onrender.com/#/" target="_blank" rel="noreferrer" className="link-popup-row">
+                <span className="link-popup-icon" style={{ background: "#c2185b" }}>🫐</span>
+                <span><b>BlookBerry (beta)</b><small>A fun Blook creative website.</small></span>
+              </a>
+              <a href="https://www.roblox.com/games/119645210462656/Evolution-simulator" target="_blank" rel="noreferrer" className="link-popup-row">
+                <span className="link-popup-icon" style={{ background: "#2e7d32" }}>🧬</span>
+                <span><b>Evolution Simulator (Roblox)</b><small>A fun game about evolving and mutations.</small></span>
+              </a>
             </div>
-            <a href="https://blooket-art-maker.onrender.com/#/" target="_blank" rel="noreferrer" className="mt-4 block rounded-xl bg-white/10 p-3 hover:bg-white/20">
-              <p className="font-black">BlookBerry (beta)</p>
-              <p className="text-sm text-white/75">A fun Blook creative website.</p>
-            </a>
-            <a href="https://www.roblox.com/games/119645210462656/Evolution-simulator" target="_blank" rel="noreferrer" className="mt-3 block rounded-xl bg-white/10 p-3 hover:bg-white/20">
-              <p className="font-black">Evolution Simulator (Roblox)</p>
-              <p className="text-sm text-white/75">A fun game about evolving and mutations.</p>
-            </a>
+          </div>
+        </div>,
+        document.body,
+      )}
+      {socialsOpen && createPortal(
+        <div className="link-popup-layer" onClick={() => setSocialsOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-labelledby="socials-title" onClick={(event) => event.stopPropagation()} className="link-popup">
+            <header className="link-popup-header">
+              <h2 id="socials-title">Breadlet socials</h2>
+              <button type="button" onClick={() => setSocialsOpen(false)} aria-label="Close" className="link-popup-close">×</button>
+            </header>
+            <div className="link-popup-body">
+              <a href="https://discord.gg/ENBbs6ewb" target="_blank" rel="noreferrer" className="link-popup-row">
+                <span className="link-popup-icon" style={{ background: "#5865F2" }}><MessageCircle size={22} /></span>
+                <span><b>Discord</b><small>Chat, trade and get help.</small></span>
+              </a>
+              <a href="https://www.youtube.com/@Breadblook" target="_blank" rel="noreferrer" className="link-popup-row">
+                <span className="link-popup-icon" style={{ background: "#ffffff" }}><img src="/assets/youtube-logo.svg" alt="" /></span>
+                <span><b>YouTube</b><small>@Breadblook</small></span>
+              </a>
+              <a href="https://x.com/Breadlet_News" target="_blank" rel="noreferrer" className="link-popup-row">
+                <span className="link-popup-icon" style={{ background: "#000000" }}><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="#fff" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></span>
+                <span><b>X</b><small>@Breadlet_News</small></span>
+              </a>
+            </div>
           </div>
         </div>,
         document.body,
