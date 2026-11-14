@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { chanceFor, isRewardActive, isUntradableBreadlet, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, untradableReason, wheelRewards } from "../lib/gameplay-catalog";
+import { luckyChanceFor as chanceFor, POWER_HOUR_LUCK, powerHourAt, isRewardActive, isUntradableBreadlet, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, untradableReason, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -2764,6 +2764,29 @@ function rarityFor(name: string) {
   );
 }
 
+// Power Hour banner at the top of the shop: live with a countdown, or when the next one starts.
+function PowerHourBanner() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const hour = powerHourAt(now);
+  const left = Math.max(0, (hour.live ? hour.endsAt : hour.nextAt) - now);
+  const clock = [Math.floor(left / 3600000), Math.floor((left % 3600000) / 60000), Math.floor((left % 60000) / 1000)]
+    .map((part, index) => (index ? String(part).padStart(2, "0") : String(part))).join(":");
+  return (
+    <div className={`power-hour${hour.live ? " is-live" : ""}`} role="status">
+      <img src="/assets/power-hour.svg" alt="" className="power-hour-symbol" />
+      <div className="power-hour-text">
+        <b>{hour.live ? "POWER HOUR!" : "Power Hour"}</b>
+        <span>{hour.live ? `${POWER_HOUR_LUCK}x luck on Legendary and rarer Breadlets` : `${POWER_HOUR_LUCK}x luck every 3 hours`}</span>
+      </div>
+      <div className="power-hour-clock"><small>{hour.live ? "Ends in" : "Starts in"}</small>{clock}</div>
+    </div>
+  );
+}
+
 function CapsulesTab({
   openCapsule,
   showOdds,
@@ -2903,6 +2926,7 @@ function CapsulesTab({
           <button type="button" onClick={showStockOdds} className="shop-chip-button" title="Chance for each bag to be in stock" aria-label="Show stock chances"><Info size={18} /></button>
         </div>
       </div>
+      <PowerHourBanner />
       <div className="shop-cabinets">
         {cabinet("Fresh stock", freshBags, false)}
         {soldOutBags.length > 0 && cabinet("Sold out", soldOutBags, true)}

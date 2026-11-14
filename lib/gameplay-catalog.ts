@@ -542,3 +542,25 @@ export const legacyCapsules: Capsule[] = [
     ]),
   },
 ];
+
+// Power Hour: 3x luck on Goodybags for an hour every 3 hours. It starts 30 minutes before a Fall
+// Fiesta leaf shower (those fall on every UTC hour): 02:30-03:30, 05:30-06:30, ... UTC.
+// The server rolls with luckyChanceFor, so the boost can't be faked.
+export const POWER_HOUR_LUCK = 3;
+const POWER_HOUR_EVERY = 3 * 3600000;
+const POWER_HOUR_OFFSET = 2.5 * 3600000;
+const POWER_HOUR_LENGTH = 3600000;
+export const powerHourAt = (now: number) => {
+  const startsAt = Math.floor((now - POWER_HOUR_OFFSET) / POWER_HOUR_EVERY) * POWER_HOUR_EVERY + POWER_HOUR_OFFSET;
+  const endsAt = startsAt + POWER_HOUR_LENGTH;
+  return { live: now < endsAt, startsAt, endsAt, nextAt: startsAt + POWER_HOUR_EVERY };
+};
+// Legendary and rarer Breadlets are 3x as likely; everything else shrinks so the odds still add up.
+const luckyRarity = (rarity: string) => rarityOrder.indexOf(rarity) >= rarityOrder.indexOf("Legendary");
+export const luckyChanceFor = (capsule: Capsule, reward: Reward, date = new Date()) => {
+  const chance = chanceFor(capsule, reward, date);
+  if (!chance || !powerHourAt(date.getTime()).live) return chance;
+  const total = capsule.pool.reduce((sum, item) => sum + chanceFor(capsule, item, date), 0);
+  const boosted = capsule.pool.reduce((sum, item) => sum + chanceFor(capsule, item, date) * (luckyRarity(item.rarity) ? POWER_HOUR_LUCK : 1), 0);
+  return boosted ? (chance * (luckyRarity(reward.rarity) ? POWER_HOUR_LUCK : 1) * total) / boosted : chance;
+};

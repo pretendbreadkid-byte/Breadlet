@@ -1,4 +1,4 @@
-import { chanceFor, craftRecipeFor, dismantleBundleFor, isUntradableBreadlet, liveCapsules, sellValueForBlook, untradableReason, wheelRewards } from './gameplay-catalog';
+import { luckyChanceFor as chanceFor, craftRecipeFor, dismantleBundleFor, isUntradableBreadlet, liveCapsules, sellValueForBlook, untradableReason, wheelRewards } from './gameplay-catalog';
 import { isMarketPackInStock, isSeasonalPackLocked, seasonalPackOpensAt, type ForcedStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 import { LIMITED_SHOP_NAMES } from './limited-shop';
