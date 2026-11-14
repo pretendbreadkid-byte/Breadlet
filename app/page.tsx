@@ -257,7 +257,7 @@ const artFor = (name: string) =>
     Worker: "/assets/worker.svg",
     "Aztec Coin": "/assets/Aztect Coin 2.0.svg",
     "Magnifying Glass": "/assets/magnifying-glass-2.svg",
-    "Coffee Mug": "/assets/coffee-mug.svg",
+    "Coffee Mug": "/assets/coffee-mug-2.svg",
     "Clay Vase": "/assets/clay-vase.svg",
     Map: "/assets/map-2.svg",
     Wallet: "/assets/wallet.svg",
@@ -292,6 +292,7 @@ const artFor = (name: string) =>
     "Gold Play Button": "/assets/gold-play-button.svg",
     "Frozen Ted": "/assets/winter/frozen-ted.svg",
     Fireplace: "/assets/winter/fireplace.svg",
+    Igloo: "/assets/winter/igloo.svg",
     "American Flag": "/assets/american-flag.svg",
     ...Object.fromEntries(BREAKING_BAD_BREADLETS.map((breadlet) => [breadlet.name, breadlet.art])),
     Shuriken: "/assets/shuricken 2.svg",
@@ -318,8 +319,8 @@ const artFor = (name: string) =>
     "Lost and Found Box": "/assets/lost-and-found-box-animated.svg",
     "Stone Tablet": "/assets/stone-tablet-2.svg",
     Actor: "/assets/actor.svg",
-    Alien: "/assets/alien.webp?v=2",
-    Wheel: "/assets/wheel.svg",
+    Alien: "/assets/alien-animated.svg",
+    Wheel: "/assets/wheel-2.svg",
     Letter: "/assets/letter-2.svg",
     Gears: "/assets/gears-2.svg",
     Antibiotics: "/assets/antibiotics-2.svg",
@@ -2104,7 +2105,7 @@ function MainPage() {
           {tab !== "capsules" && <BreadDrift className="page-drift" />}
           {player && !isGuest && !kidMode && <CoinFlipPopup onFinished={refreshPlayerFromServer} />}
           {player && !isGuest && <AdminEventsLayer onReward={refreshPlayerFromServer} />}
-          {player && !isGuest && <FallFiestaLayer />}
+          {player && !isGuest && <FallFiestaLayer onlineIds={onlineProfileIds} onTanuki={() => { void refreshPlayerFromServer({ full: true }); setNotice("You caught the Tanuki! 🦝 It's in your Breadlets now."); }} />}
           {player && !kidMode && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} BlookArt={BlookImg} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (

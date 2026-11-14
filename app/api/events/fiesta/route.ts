@@ -17,6 +17,20 @@ const signedIn = async () => {
   return user ? { user, database } : null;
 };
 
+// When the leaf shower that's falling right now started (an admin shower wins), or null if none is.
+const liveShowerAt = async (database: any) => {
+  const { data: adminShowers } = await database.from('admin_events').select('created_at')
+    .eq('kind', 'leaf_shower').gt('ends_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(1);
+  if (adminShowers?.[0]) return String(adminShowers[0].created_at);
+  const shower = showerAt(Date.now());
+  return shower.live ? new Date(shower.startsAt).toISOString() : null;
+};
+
+// The Tanuki drop needs this many real, unbanned players online (counted from the ids the
+// browser sees online, like /api/online-record, so a made-up list can't unlock it).
+const TANUKI_MIN_ONLINE = 12;
+const isUuid = (value: unknown) => typeof value === 'string' && /^[0-9a-f-]{36}$/i.test(value);
+
 // The player's leaves, what they caught in this hour's shower and what they already bought.
 export async function GET() {
   const session = await signedIn();
@@ -50,7 +64,22 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
 
   let call;
-  if (body.action === 'catch') {
+  if (body.action === 'tanuki' || body.action === 'catch-tanuki') {
+    const at = await liveShowerAt(database);
+    if (!at) return NextResponse.json({ tanuki: false });
+    if (body.action === 'catch-tanuki') {
+      const { data, error } = await database.rpc('catch_fall_tanuki', { p_profile_id: user.id, p_shower_at: at });
+      if (error) return NextResponse.json({ error: NOT_INSTALLED.has(error.code) ? 'The Tanuki drop is still being set up.' : error.message }, { status: 409 });
+      return NextResponse.json(data);
+    }
+    const ids = Array.from(new Set((Array.isArray(body.ids) ? body.ids : []).filter(isUuid))).slice(0, 300) as string[];
+    if (!ids.includes(user.id)) ids.push(user.id);
+    if (ids.length < TANUKI_MIN_ONLINE) return NextResponse.json({ tanuki: false });
+    const { count } = await database.from('profiles').select('id', { count: 'exact', head: true }).in('id', ids).eq('is_banned', false);
+    if ((count || 0) < TANUKI_MIN_ONLINE) return NextResponse.json({ tanuki: false });
+    const { data, error } = await database.rpc('pick_fall_tanuki', { p_profile_id: user.id, p_shower_at: at });
+    return NextResponse.json({ tanuki: !error && data === true });
+  } else if (body.action === 'catch') {
     call = database.rpc('catch_fall_leaf', { p_profile_id: user.id, p_minutes: SHOWER_MINUTES, p_limit: LEAVES_PER_SHOWER });
   } else if (body.action === 'buy') {
     const item = FIESTA_SHOP.find((entry) => entry.name === body.item);

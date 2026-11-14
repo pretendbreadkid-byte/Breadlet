@@ -13,7 +13,7 @@ const FIESTA_REFRESH = "breadlet-fiesta-refresh";
 // Reload the player's leaves: an admin just started a leaf shower.
 export const refreshFiesta = () => window.dispatchEvent(new Event(FIESTA_REFRESH));
 const announce = (changes: Partial<Fiesta>) => window.dispatchEvent(new CustomEvent(FIESTA_CHANGED, { detail: changes }));
-const fiestaPost = (body: Record<string, string>) => fetch("/api/events/fiesta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+const fiestaPost = (body: Record<string, unknown>) => fetch("/api/events/fiesta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
 
 const useNow = () => {
   const [now, setNow] = useState(() => Date.now());
@@ -66,21 +66,44 @@ const newLeaf = (id: number, delay: number) => ({
   spin: Math.random() < 0.5 ? -1 : 1,
 });
 
-export function FallFiestaLayer() {
+// ids: who this browser sees online. With 12+ online, 1 in 12 showers has a Tanuki for one player.
+export function FallFiestaLayer({ onlineIds = [], onTanuki }: { onlineIds?: string[]; onTanuki?: () => void }) {
   const now = useNow();
   const shower = showerAt(now);
   const fiesta = useFiesta(shower.live ? shower.startsAt : null);
   const until = fallingUntil(fiesta, now);
   if (!until || !fiesta?.ready || fiesta.caught >= LEAVES_PER_SHOWER) return null;
-  return <LeafShower key={until} caught={fiesta.caught} />;
+  return <LeafShower key={until} caught={fiesta.caught} onlineIds={onlineIds} onTanuki={onTanuki} />;
 }
 
-function LeafShower({ caught }: { caught: number }) {
+function LeafShower({ caught, onlineIds, onTanuki }: { caught: number; onlineIds: string[]; onTanuki?: () => void }) {
   const count = useRef(5);
   // A negative delay starts a leaf partway down, so leaves are falling straight away.
   const [leaves, setLeaves] = useState(() => Array.from({ length: 5 }, (_, index) => newLeaf(index, -Math.random() * 3)));
   const [pops, setPops] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
   const busy = useRef(false);
+  const ids = useRef(onlineIds);
+  ids.current = onlineIds;
+  // The Tanuki falls in place of a leaf. Ask at a random moment in the first 20 seconds, so it's
+  // anyone's luck who the server picks.
+  const [tanuki, setTanuki] = useState<{ left: number; size: number } | null>(null);
+  useEffect(() => {
+    let stale = false;
+    const timer = window.setTimeout(async () => {
+      if (ids.current.length < 12) return;
+      const result = await (await fiestaPost({ action: "tanuki", ids: ids.current }))?.json().catch(() => null);
+      if (!stale && result?.tanuki) setTanuki({ left: 10 + Math.random() * 70, size: 170 });
+    }, 2000 + Math.random() * 18000);
+    return () => { stale = true; window.clearTimeout(timer); };
+  }, []);
+  const catchTanuki = async (x: number, y: number) => {
+    if (busy.current) return;
+    busy.current = true;
+    const response = await fiestaPost({ action: "catch-tanuki" });
+    busy.current = false;
+    setTanuki(null);
+    if (response?.ok) { pop(x, y, "You caught a Tanuki! 🦝"); onTanuki?.(); } else pop(x, y, "It got away!");
+  };
 
   const pop = (x: number, y: number, text: string) => {
     const id = Date.now() + Math.random();
@@ -120,6 +143,11 @@ function LeafShower({ caught }: { caught: number }) {
           <img src="/assets/fall/fall-leaf.webp" alt="" draggable={false} />
         </button>
       ))}
+      {tanuki && (
+        <button type="button" aria-label="Catch the Tanuki" className="admin-bread fiesta-leaf fiesta-tanuki" onClick={(click) => void catchTanuki(click.clientX, click.clientY)} style={{ left: `${tanuki.left}%`, width: tanuki.size, height: tanuki.size, animationDuration: "4.5s", "--bread-spin": 0 } as React.CSSProperties}>
+          <img src="/assets/fall/tanuki-animated.svg" alt="" draggable={false} />
+        </button>
+      )}
       {pops.map((item) => <span key={item.id} className="admin-bread-pop" style={{ left: item.x, top: item.y }}>{item.text}</span>)}
       <p className="admin-rain-counter">🍂 Leaf Shower! Click the leaves · {caught}/{LEAVES_PER_SHOWER} caught</p>
     </div>
