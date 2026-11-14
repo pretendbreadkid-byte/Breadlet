@@ -275,7 +275,7 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Bag",
     price: 25,
-    art: "/assets/lost and found.svg",
+    art: "/assets/lost-and-found-2.svg",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Hand Mirror", "Common"],
@@ -293,7 +293,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.06 },
-    art: "/assets/food bag updated (1).svg",
+    art: "/assets/food-bag-2.svg",
     pool: rewards([
       ["Rock", "Common"],
       ["Apple", "Common"],
@@ -319,7 +319,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.01 },
-    art: "/assets/artifact bag2.svg",
+    art: "/assets/artifact-bag-3.svg",
     pool: rewards([
       ["Aztec Coin", "Common"],
       ["Clay Vase", "Common"],
@@ -337,7 +337,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
-    art: "/assets/combat bag (1).svg",
+    art: "/assets/combat-bag-2.svg",
     pool: rewards([
       ["Olive Grenade", "Common"],
       ["The Bomb", "Uncommon"],
@@ -386,7 +386,7 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Bread Bag",
     price: 30,
-    art: "/assets/Bread bag Updated for refresh3.svg",
+    art: "/assets/bread-bag-4.svg",
     pool: rewards([
       ["Sour Dough", "Common"],
       ["Toaster", "Rare"],
@@ -431,7 +431,7 @@ export const liveCapsules: Capsule[] = [
     // Same tiers as the other packs, so the average resale (~17) stays under the price.
     // Mythic fixed at 0.3%: by pool size alone this big bag would give Frozen Ted 0.7%.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.3, Secret: 0.09 },
-    art: "/assets/winter/winter-bag.svg?v=2",
+    art: "/assets/winter-bag-3.svg",
     pool: dailyRotation(rewards([
       ["Snowball", "Common"],
       ["Mitten", "Common"],
@@ -460,7 +460,7 @@ export const liveCapsules: Capsule[] = [
     seasonal: true,
     // Same tier odds as the Winter Bag (no Epic yet).
     rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.01 },
-    art: "/assets/fall/fall-bag.svg",
+    art: "/assets/fall-bag-2.svg",
     pool: rewards([
       ["Pumpkin", "Common"],
       ["Chai Tea", "Common"],
