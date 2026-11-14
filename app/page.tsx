@@ -314,7 +314,7 @@ const artFor = (name: string) =>
     "Lost and Found Box": "/assets/lost-and-found-box-animated.svg",
     "Stone Tablet": "/assets/stone-tablet-2.svg",
     Actor: "/assets/actor.svg",
-    Alien: "/assets/alien-animated.svg",
+    Alien: "/assets/alien.webp?v=2",
     Wheel: "/assets/wheel.svg",
     Letter: "/assets/letter-2.svg",
     Gears: "/assets/gears-2.svg",

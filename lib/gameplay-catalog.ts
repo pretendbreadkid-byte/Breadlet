@@ -249,7 +249,7 @@ export const liveCapsules: Capsule[] = [
     name: "Space Bag",
     price: 25,
     // Secret odds run 0.01% (smallest pack) to 0.09% (biggest pack) by pool size.
-    rarityChances: { Legendary: 1.5, Mythic: 0.3, Secret: 0.04 },
+    rarityChances: { Mythic: 0.3, Secret: 0.04 },
     art: "/assets/space-bag-3.svg",
     pool: rewards([
       ["Mars", "Common"],
@@ -260,7 +260,6 @@ export const liveCapsules: Capsule[] = [
       ["Consolation", "Uncommon"],
       ["Sun", "Rare"],
       ["Eclipse", "Epic"],
-      ["Martian", "Legendary"],
       ["Astronaut", "Mythic"],
       ["Alien", "Secret"],
       ["Star Ship", "Breadled"],
@@ -269,9 +268,7 @@ export const liveCapsules: Capsule[] = [
       Globe: "/assets/earth-globe.svg",
       Sun: "/assets/sun.svg",
       Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
-      // An animated SVG (it plays by itself, no frame switching).
-      Alien: "/assets/alien-animated.svg",
-      Martian: "/assets/martian.webp",
+      Alien: "/assets/alien.webp?v=2",
       Astronaut: "/assets/astronaut.webp",
     }, { "Star Ship": 0.005 }),
   },
