@@ -2777,12 +2777,15 @@ function PowerHourBanner() {
     .map((part, index) => (index ? String(part).padStart(2, "0") : String(part))).join(":");
   return (
     <div className={`power-hour${hour.live ? " is-live" : ""}`} role="status">
-      <img src="/assets/power-hour.svg" alt="" className="power-hour-symbol" />
-      <div className="power-hour-text">
-        <b>{hour.live ? "POWER HOUR!" : "Power Hour"}</b>
-        <span>{hour.live ? `${POWER_HOUR_LUCK}x luck on Legendary and rarer Breadlets` : `${POWER_HOUR_LUCK}x luck every 3 hours`}</span>
+      <div className="power-hour-board">
+        <span className="power-hour-bolt"><img src="/assets/power-hour.svg" alt="" /></span>
+        <div className="power-hour-text">
+          <span className="power-hour-kicker">{hour.live ? "On now" : "Every 3 hours"}</span>
+          <b>Power Hour</b>
+          <span className="power-hour-perk"><em>{POWER_HOUR_LUCK}x</em> luck on Legendary &amp; rarer</span>
+        </div>
+        <div className="power-hour-clock"><small>{hour.live ? "Ends in" : "Starts in"}</small><span>{clock}</span></div>
       </div>
-      <div className="power-hour-clock"><small>{hour.live ? "Ends in" : "Starts in"}</small>{clock}</div>
     </div>
   );
 }
