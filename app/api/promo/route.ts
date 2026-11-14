@@ -4,13 +4,15 @@ import { createAdminClient } from "../../../lib/supabase/admin";
 
 // Beta access code for Breadlet Explore; unlocks the Explore tab for the account.
 const EXPLORE_BETA_CODE = "breadletislands32";
+// BAD: 500 tokens, once per account (migration 0092).
+const BAD_CODE = "bad";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const code = String(body.code || "").trim();
 
-    if (code !== "Breadlet2.0" && code.toLowerCase() !== EXPLORE_BETA_CODE) {
+    if (code !== "Breadlet2.0" && code.toLowerCase() !== EXPLORE_BETA_CODE && code.toLowerCase() !== BAD_CODE) {
       return NextResponse.json(
         { error: "That promo code is not active." },
         { status: 400 },
@@ -52,6 +54,12 @@ export async function POST(request: Request) {
       const { error: unlockError } = await admin.from("profiles").update({ stats: { ...(profile.stats || {}), exploreBeta: true } }).eq("id", user.id);
       if (unlockError) return NextResponse.json({ error: unlockError.message }, { status: 500 });
       return NextResponse.json({ ok: true, unlocked: "explore" });
+    }
+
+    if (code.toLowerCase() === BAD_CODE) {
+      const { error: badError } = await admin.rpc("secure_bad_promo", { p_profile_id: user.id });
+      if (badError) return NextResponse.json({ error: badError.code === "PGRST202" ? "This code isn't switched on yet." : badError.message }, { status: 409 });
+      return NextResponse.json({ ok: true, amount: 500 });
     }
 
     const { error } = await admin.rpc("secure_builtin_promo", { p_profile_id: user.id });

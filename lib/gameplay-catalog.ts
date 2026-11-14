@@ -250,7 +250,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Secret odds run 0.01% (smallest pack) to 0.09% (biggest pack) by pool size.
     rarityChances: { Mythic: 0.3, Secret: 0.04 },
-    art: "/assets/space-bag-3.svg",
+    art: "/assets/space-bag-4.svg",
     pool: rewards([
       ["Mars", "Common"],
       ["Earth", "Uncommon"],

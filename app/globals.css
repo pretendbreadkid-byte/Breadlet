@@ -3440,3 +3440,15 @@ main.breadlet-blue-theme.breadlet-blue-theme .power-hour.is-live .power-hour-per
 .link-popup-row small { font-size: .85rem; color: #d8d2c4; }
 .link-popup-icon { display: grid; width: 44px; height: 44px; flex: none; place-items: center; border: 3px solid #13120F; border-radius: 12px; font-size: 1.4rem; color: #fff; }
 .link-popup-icon img { width: 28px; height: 28px; object-fit: contain; }
+
+/* Pack opening build-up and light (page.tsx RevealModal). Rare and up: a rarity glow swells behind the
+   bag while it wiggles, then soft light beams turn slowly behind the Breadlet as it comes up. */
+.reveal-aura { position: absolute; inset: -12%; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, color-mix(in srgb, var(--glow, #fff) 70%, transparent) 0%, transparent 65%); animation: reveal-aura-swell calc(1500ms * var(--rs, 1)) ease-in both, reveal-aura-pulse calc(500ms * var(--rs, 1)) ease-in-out infinite alternate; }
+@keyframes reveal-aura-swell { from { transform: scale(.4); filter: opacity(0); } to { transform: scale(1.15); filter: opacity(1); } }
+@keyframes reveal-aura-pulse { to { filter: brightness(1.25); } }
+.reveal-bag-wiggle-hard { animation-duration: calc(260ms * var(--rs, 1)); animation-name: reveal-bag-shake; }
+@keyframes reveal-bag-shake { 0%, 100% { transform: rotate(-5deg) translateX(-3px); } 50% { transform: rotate(5deg) translateX(3px); } }
+.reveal-beams { position: absolute; inset: -45%; pointer-events: none; opacity: 0; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--glow, #fff) 55%, transparent) 0deg 9deg, transparent 9deg 30deg); -webkit-mask: radial-gradient(circle, #000 12%, transparent 62%); mask: radial-gradient(circle, #000 12%, transparent 62%); animation: reveal-beams-in calc(700ms * var(--rs, 1)) ease-out calc(420ms * var(--rs, 1)) forwards, reveal-beams-spin 18s linear infinite; }
+@keyframes reveal-beams-in { from { opacity: 0; transform: scale(.5); } to { opacity: var(--beams, .5); } }
+@keyframes reveal-beams-spin { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .reveal-aura, .reveal-bag-wiggle-hard { animation: none; } .reveal-beams { animation: none; opacity: var(--beams, .5); } }

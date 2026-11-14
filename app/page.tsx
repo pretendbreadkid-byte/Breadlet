@@ -370,11 +370,11 @@ const artFor = (name: string) =>
     Book: "/assets/book.svg",
     Tablet: "/assets/Lost and found + food pack/tablet.svg",
     Apple: "/assets/Lost and found + food pack/apple.svg",
-    Avocado: "/assets/avocado-2.svg",
-    Potato: "/assets/potato-2.svg",
-    Carrot: "/assets/carrot-2.svg",
+    Avocado: "/assets/avocado-3.svg",
+    Potato: "/assets/potato-3.webp",
+    Carrot: "/assets/carrot-3.webp",
     Fries: "/assets/fries-2.svg",
-    Egg: "/assets/egg-2.svg",
+    Egg: "/assets/egg-3.webp",
     "Candy Corn": "/assets/candy-corn-refreshed.svg",
     Caramel: "/assets/Lost and found + food pack/carmel.svg",
     "Sprinkle Bread": "/assets/Sprinkle bread improved.svg",
@@ -1611,6 +1611,13 @@ function MainPage() {
       setPlayer((current) => current ? { ...current, tokens: current.tokens + Number(result.amount || 1000) } : current);
       setPromoCode("");
       setNotice("Promo redeemed: +1,000 Bread Bucks.");
+    } else if (code.toLowerCase() === "bad") {
+      const response = await fetch("/api/promo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) return setNotice(result.error || "Promo redemption failed.");
+      setPlayer((current) => current ? { ...current, tokens: current.tokens + Number(result.amount || 500) } : current);
+      setPromoCode("");
+      setNotice("Promo redeemed: +500 tokens.");
     } else if (code.toLowerCase() === "breadletislands32") {
       const response = await fetch("/api/promo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
       const result = await response.json().catch(() => ({}));
@@ -2713,7 +2720,7 @@ function ProfileTab({
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/Bread%20bucks.svg" />
         <ProfileMetric label="Breadlets Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
-        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space-bag-3.svg" />
+        <ProfileMetric label="Bags Opened" value={String(profileCapsulesOpened)} icon="/assets/space-bag-4.svg" />
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
         <ProfileMetric label="Account Age" value={accountAgeLabel(profileCreatedAt)} icon={<CalendarDays size={38} strokeWidth={2.4} />} />
       </div></section>
@@ -4033,6 +4040,7 @@ function BlookListingsModal({
   );
 }
 
+const REVEAL_TIER: Record<string, number> = { Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4, Mythic: 5, Secret: 6, Unique: 6, Breadled: 6, Chroma: 6 };
 const REVEAL_GLOW: Record<string, string> = { Common: "#cbd5e1", Uncommon: "#4ade80", Rare: "#38bdf8", Epic: "#c084fc", Legendary: "#fbbf24", Mythic: "#f472b6", Secret: "#818cf8", Unique: "#fb923c", Breadled: "#f43f5e", Chroma: "#22d3ee" };
 
 // Pack opening over a blurred copy of the shop: the bag pops in, shakes, then drops off the bottom of
@@ -4057,6 +4065,8 @@ function RevealModal({
 }) {
   const { capsule, reward, phase } = reveal;
   const done = phase === "result";
+  // How special the pull is: Rare and up get a build-up glow and light beams, Legendary and up shake harder.
+  const tier = REVEAL_TIER[reward.rarity] ?? 0;
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
@@ -4079,6 +4089,8 @@ function RevealModal({
       {autoCount !== null && <p className="reveal-hud">🔁 Auto opening · {autoCount} opened · click anywhere to stop</p>}
       <div className="reveal-stage">
         <span className={`reveal-glow ${phase === "charging" ? "" : "reveal-glow-on"}`} aria-hidden="true" />
+        {tier >= 2 && phase === "charging" && <span className="reveal-aura" style={{ opacity: Math.min(1, 0.35 + tier * 0.12) }} aria-hidden="true" />}
+        {tier >= 2 && phase !== "charging" && <span className="reveal-beams" style={{ "--beams": Math.min(1, 0.3 + tier * 0.12) } as React.CSSProperties} aria-hidden="true" />}
         <span className="reveal-shadow" aria-hidden="true" />
         <div className={`reveal-prize reveal-prize-${phase}`}>
           {done && <RewardBurst rarity={reward.rarity} />}
@@ -4086,7 +4098,7 @@ function RevealModal({
         </div>
         {!done && (
           <div className={`reveal-bag ${phase === "spinning" ? "reveal-bag-drop" : "reveal-bag-appear"}`}>
-            <img src={capsule.art} alt={capsule.name} className="reveal-bag-wiggle" />
+            <img src={capsule.art} alt={capsule.name} className={tier >= 4 ? "reveal-bag-wiggle reveal-bag-wiggle-hard" : "reveal-bag-wiggle"} />
           </div>
         )}
       </div>
