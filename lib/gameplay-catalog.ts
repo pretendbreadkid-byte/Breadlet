@@ -265,7 +265,7 @@ export const liveCapsules: Capsule[] = [
       ["Star Ship", "Breadled"],
     ], {
       Earth: "/assets/earth-3.svg",
-      Globe: "/assets/earth-globe.svg",
+      Globe: "/assets/earth-globe-2.svg",
       Sun: "/assets/sun.svg",
       Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
       Alien: "/assets/alien-animated.svg",
@@ -329,7 +329,7 @@ export const liveCapsules: Capsule[] = [
       ["Stone Tablet", "Legendary"],
       ["Timeglass", "Secret"],
     ], {
-      "Clay Vase": "/assets/clay-vase.svg",
+      "Clay Vase": "/assets/clay-vase-2.svg",
     }),
   },
   {
@@ -398,9 +398,9 @@ export const liveCapsules: Capsule[] = [
       ["Gold Bread", "Legendary"],
       ["Holy Bread", "Mythic"],
     ], {
-      "Sour Dough": "/assets/sour-dough-refreshed.svg",
+      "Sour Dough": "/assets/sour-dough-2.svg",
       Toaster: "/assets/toaster-bread.svg",
-      Croissant: "/assets/croissant.svg",
+      Croissant: "/assets/croissant-2.svg",
       "Cinnamon Roll": "/assets/cinnamon-roll-refreshed.svg",
       "Robo Bread": "/assets/robo-bread-2.svg",
       "Slime Bread": "/assets/slime-bread.svg",
@@ -435,6 +435,7 @@ export const liveCapsules: Capsule[] = [
     pool: dailyRotation(rewards([
       ["Snowball", "Common"],
       ["Mitten", "Common"],
+      ["Winter Hat", "Common"],
       ["Christmas Candy", "Common"],
       ["Santa Hat", "Uncommon"],
       ["Ornament", "Uncommon"],

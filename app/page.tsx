@@ -232,7 +232,7 @@ const tokenBadgesFor = (tokens: number) => [
 ];
 const badgeIconFor = (badge: string) => ({
   "First 50": "/assets/first-50-badge.svg",
-  Verified: "/assets/verified-badge.svg",
+  Verified: "/assets/verified-badge-2.svg",
   BlookTuber: "/assets/blooktuber-badge.svg?v=2",
   "10K Tokens": "/assets/token-badge-10k.svg?v=2",
   "100K Tokens": "/assets/token-badge-100k.svg?v=2",
@@ -245,7 +245,7 @@ const badgeIconFor = (badge: string) => ({
   Birthday: "/assets/birthday-badge.svg",
   "Fall Fiesta": "/assets/fall-badge.svg",
   "Breadlet Breaks Bad": "/assets/breaking-bad/badge.svg",
-})[badge] || "/assets/verified-badge.svg";
+})[badge] || "/assets/verified-badge-2.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>
   `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' rx='16' fill='#b91c1c' stroke='#7f1d1d' stroke-width='8'/><text x='50%' y='50%' fill='#ffffff' font-family='sans-serif' font-size='22' font-weight='700' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`)}`;
@@ -258,7 +258,7 @@ const artFor = (name: string) =>
     "Aztec Coin": "/assets/Aztect Coin 2.0.svg",
     "Magnifying Glass": "/assets/magnifying-glass-2.svg",
     "Coffee Mug": "/assets/coffee-mug-2.svg",
-    "Clay Vase": "/assets/clay-vase.svg",
+    "Clay Vase": "/assets/clay-vase-2.svg",
     Map: "/assets/map-2.svg",
     Wallet: "/assets/wallet.svg",
     "Pixel Apple": "/assets/Lost and found + food pack/Pixel apple.png?v=2",
@@ -269,12 +269,12 @@ const artFor = (name: string) =>
     "Walter White": "/assets/walter-white.svg?v=2",
     "Olive Grenade": "/assets/grenade2.svg",
     "Golden Grenade": "/assets/gold grenade2.svg",
-    "Sour Dough": "/assets/sour-dough-refreshed.svg",
+    "Sour Dough": "/assets/sour-dough-2.svg",
     "Burnt Toast": "/assets/Burnt toast.svg",
     Brioche: "/assets/brioche.svg",
     Chef: "/assets/chef (1).svg",
     Earth: "/assets/earth-3.svg",
-    Globe: "/assets/earth-globe.svg",
+    Globe: "/assets/earth-globe-2.svg",
     Surgeon: "/assets/doctor 2.0.svg",
     Doctor: "/assets/doctor 2.0.svg",
     "Crystal Ball": "/assets/crystal-ball-3.svg",
@@ -292,6 +292,7 @@ const artFor = (name: string) =>
     "Gold Play Button": "/assets/gold-play-button.svg",
     "Frozen Ted": "/assets/winter/frozen-ted.svg",
     Fireplace: "/assets/winter/fireplace.svg",
+    "Winter Hat": "/assets/winter/winter-hat.svg",
     Igloo: "/assets/winter/igloo.svg",
     "American Flag": "/assets/american-flag.svg",
     ...Object.fromEntries(BREAKING_BAD_BREADLETS.map((breadlet) => [breadlet.name, breadlet.art])),
@@ -346,7 +347,7 @@ const artFor = (name: string) =>
     "Mr. Frog": "/assets/Mr.frog.svg",
     Donut: "/assets/bagel.svg",
     "Cinnamon Roll": "/assets/cinnamon-roll-refreshed.svg",
-    Croissant: "/assets/croissant.svg",
+    Croissant: "/assets/croissant-2.svg",
     "Robo Bread": "/assets/robo-bread-2.svg",
     "Slime Bread": "/assets/slime-bread.svg",
     Toaster: "/assets/toaster-bread.svg",
