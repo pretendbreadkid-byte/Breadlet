@@ -269,7 +269,7 @@ export const liveCapsules: Capsule[] = [
       Sun: "/assets/sun.svg",
       Eclipse: "/assets/solar%20ecplise%20but%20good.svg",
       Alien: "/assets/alien.webp?v=2",
-      Astronaut: "/assets/astronaut.webp",
+      Astronaut: "/assets/astronaut-2.svg",
     }, { "Star Ship": 0.005 }),
   },
   {
