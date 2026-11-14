@@ -346,7 +346,7 @@ const artFor = (name: string) =>
     "Slime Bread": "/assets/slime-bread.svg",
     Toaster: "/assets/toaster-bread.svg",
     "Green Astronaut": "/assets/green-astronaut-blooktuber.png",
-    Astronaut: "/assets/new the green astronaut.png",
+    Astronaut: "/assets/astronaut.webp",
     "Rainbow Astro": "/assets/rainbowastronaut.svg",
     "Phantom Kind": "/assets/phantomking.svg",
     "Phantom King": "/assets/phantomking.svg",
