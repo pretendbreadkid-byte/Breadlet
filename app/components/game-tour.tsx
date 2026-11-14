@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, Backpack, CircleUserRound, Hammer, Hand, Message
 
 export type TourTab = "profile" | "wheel" | "capsules" | "inventory" | "crafting" | "clan" | "market" | "chat";
 
-const steps: { title: string; description: string; tab: TourTab; target?: TourTab; icon: typeof Hand }[] = [
+const allSteps: { title: string; description: string; tab: TourTab; target?: TourTab; icon: typeof Hand }[] = [
   { title: "Welcome to Breadlet!", description: "Take a quick tour of your profile, Goodybags, collection, and the rest of Breadlet. You can skip at any time.", tab: "profile", icon: Hand },
   { title: "Your Profile", description: "Click the Breadlet logo to open your profile. View your tokens, owned Breadlets, badges, and activity. Find players here to send friend and trade requests.", tab: "profile", target: "profile", icon: CircleUserRound },
   { title: "Claim Tokens", description: "Claim your daily tokens or crafting materials. Signed-in players can claim once per UTC day.", tab: "wheel", target: "wheel", icon: Package },
@@ -18,7 +18,9 @@ const steps: { title: string; description: string; tab: TourTab; target?: TourTa
   { title: "Global Chat", description: "Talk to other players, reply to messages, and click a username to view their profile. The online-player control shows who is currently around.", tab: "chat", target: "chat", icon: MessageCircle },
 ];
 
-export function GameTour({ onSelect, onClose }: { onSelect: (tab: TourTab) => void; onClose: () => void }) {
+export function GameTour({ onSelect, onClose, hidden = [] }: { onSelect: (tab: TourTab) => void; onClose: () => void; hidden?: string[] }) {
+  // Kid accounts skip the steps for tabs they can't see.
+  const steps = hidden.length ? allSteps.filter((step) => !hidden.includes(step.tab)) : allSteps;
   const [index, setIndex] = useState(0);
   const [spotlight, setSpotlight] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const dialogRef = useRef<HTMLElement>(null);

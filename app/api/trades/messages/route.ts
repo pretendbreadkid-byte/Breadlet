@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kidModeBlock } from '../../../../lib/kid-mode';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { blockedContentError, filterProfanity } from '../../../../lib/chat-filter';
@@ -11,6 +12,7 @@ async function getSession() {
   if (!user) return { response: NextResponse.json({ error: 'Sign in to chat.' }, { status: 401 }) };
   const admin = createAdminClient();
   if (!admin) return { response: NextResponse.json({ error: 'Trade chat is not configured.' }, { status: 503 }) };
+  { const kid = await kidModeBlock(user.id, admin); if (kid) return { response: kid }; }
   return { admin, userId: user.id };
 }
 

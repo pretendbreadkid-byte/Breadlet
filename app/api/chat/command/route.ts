@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kidModeBlock } from '../../../../lib/kid-mode';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { chatModerationRole, hasAdminAccess, isProtectedFromMute } from '../../../../lib/admin-access';
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
   if (!supabase || !database) return reply('Commands are unavailable.', 503);
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return reply('Sign in to use commands.', 401);
+  { const kid = await kidModeBlock(user.id); if (kid) return kid; }
   const body = await request.json().catch(() => ({}));
   const [head = '', ...args] = String(body.text || '').trim().split(/\s+/);
   const command = head.replace(/^\//, '').toLowerCase();

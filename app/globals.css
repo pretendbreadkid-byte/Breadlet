@@ -3452,3 +3452,16 @@ main.breadlet-blue-theme.breadlet-blue-theme .power-hour.is-live .power-hour-per
 @keyframes reveal-beams-in { from { opacity: 0; transform: scale(.5); } to { opacity: var(--beams, .5); } }
 @keyframes reveal-beams-spin { to { rotate: 360deg; } }
 @media (prefers-reduced-motion: reduce) { .reveal-aura, .reveal-bag-wiggle-hard { animation: none; } .reveal-beams { animation: none; opacity: var(--beams, .5); } }
+
+/* Kid accounts: signup choice, sidebar pill and Settings > Kid mode. */
+main.auth-screen .kid-signup-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 22px; }
+main.auth-screen.auth-screen .kid-signup-switch button { border: 2px solid #3c3a34; border-radius: 12px; background: #13120F !important; padding: 9px 6px; font-size: 14px; font-weight: 900; color: #fff; }
+main.auth-screen.auth-screen .kid-signup-switch button[aria-checked="true"] { border-color: #E77D22; background: #3a2412 !important; box-shadow: 0 0 0 2px rgba(231, 125, 34, .35); }
+main.auth-screen .kid-signup-info { margin-top: 14px; border: 2px dashed #E77D22; border-radius: 14px; background: rgba(231, 125, 34, .08); padding: 12px 14px; }
+main.auth-screen.auth-screen .kid-signup-info p { margin: 0 0 10px; font-size: 13px; line-height: 1.45; }
+main.auth-screen.auth-screen .kid-signup-info label { display: block; font-size: 12px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+main.auth-screen.auth-screen .kid-signup-info input { margin-top: 6px; width: 9rem; border-radius: 12px; padding: 10px 14px; font-size: 20px; font-weight: 900; letter-spacing: .4em; }
+main.auth-screen .kid-signup-info small { display: block; margin-top: 6px; font-size: 12px; color: #d9cfc2; }
+main.breadlet-blue-theme.breadlet-blue-theme .kid-mode-pill { margin: auto auto 6px; border: 2px solid #13120F; border-radius: 999px; background: #ffd27a; padding: 4px 14px; font-size: 13px; font-weight: 900; color: #3B1F0E !important; box-shadow: 0 3px 0 #13120F; cursor: help; }
+.kid-mode-list { display: grid; gap: 6px; padding-left: 18px; list-style: disc; color: #c9c7c0; font-size: 14px; }
+.kid-pin-input { width: 8.5rem; font-size: 1.15rem; font-weight: 900; letter-spacing: .35em; }

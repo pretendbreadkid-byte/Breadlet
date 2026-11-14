@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kidModeBlock } from '../../../lib/kid-mode';
 import { chatModerationRole, isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
@@ -205,6 +206,7 @@ export async function POST(request: Request) {
     data: { user },
     error: authError
   } = await supabase.auth.getUser();
+  if (user) { const kid = await kidModeBlock(user.id); if (kid) return kid; }
 
   console.log(
     '[CHAT_POST] User:',
@@ -427,6 +429,7 @@ export async function PATCH(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (user) { const kid = await kidModeBlock(user.id, database); if (kid) return kid; }
 
   if (!user) {
     return NextResponse.json(

@@ -119,6 +119,8 @@ type Player = {
   completedTrades?: number;
   trainScore?: number;
   exploreBeta?: boolean;
+  // Kid account (Settings > Kid mode): no chat, trading, Bazaar, friends, clans or outside links.
+  kidMode?: boolean;
   chatMutedUntil?: string;
   createdAt?: string;
   // Locked Breadlets can't be sold, recycled or traded by mistake. Wishlist: Bazaar alerts.
@@ -533,6 +535,7 @@ function playerFromServer(data: any): Player {
     completedTrades: data.activity?.completedTrades || 0,
     trainScore: data.mine?.total_tokens_mined || 0,
     exploreBeta: Boolean(data.profile.stats?.exploreBeta),
+    kidMode: data.profile.stats?.kidMode === true,
     chatMutedUntil: data.profile.stats?.chatMutedUntil || undefined,
     createdAt: data.profile.created_at || undefined,
     lockedBlooks: Array.isArray(data.profile.stats?.lockedBlooks) ? data.profile.stats.lockedBlooks : [],
@@ -616,6 +619,8 @@ function MainPage() {
   const [email, setEmail] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [kidAccount, setKidAccount] = useState(false);
+  const [parentPin, setParentPin] = useState("");
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [forgotPassword, setForgotPassword] = useState(false);
@@ -660,6 +665,11 @@ function MainPage() {
   const [newsOpen, setNewsOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
+  // Kid accounts never land on a social tab (from a saved tab, a link or a shortcut).
+  const kidMode = Boolean(player?.kidMode) && !isGuest;
+  useEffect(() => {
+    if (kidMode && KID_HIDDEN_TABS.includes(tab)) setTab("capsules");
+  }, [kidMode, tab]);
   const [capsuleToConfirm, setCapsuleToConfirm] = useState<Capsule | null>(null);
   const [reveal, setReveal] = useState<{
     capsule: Capsule;
@@ -1050,7 +1060,7 @@ function MainPage() {
           method: "POST",
           signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
           headers: { "Content-Type": "application/json", "x-breadlet-fp": await deviceFingerprint() },
-          body: JSON.stringify({ email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim(), acceptedTerms }),
+          body: JSON.stringify(kidAccount ? { username: username.trim(), password, acceptedTerms, kidAccount: true, parentPin } : { email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim(), acceptedTerms }),
         });
         const signupBody = await signupResponse.json().catch(() => null);
         if (signupBody?.banScreen) return setBanScreen(signupBody.banScreen);
@@ -1838,6 +1848,10 @@ function MainPage() {
         setReferralCode={setReferralCode}
         acceptedTerms={acceptedTerms}
         setAcceptedTerms={setAcceptedTerms}
+        kidAccount={kidAccount}
+        setKidAccount={setKidAccount}
+        parentPin={parentPin}
+        setParentPin={setParentPin}
         setPassword={setPassword}
         authMode={authMode}
         setAuthMode={setAuthMode}
@@ -1886,7 +1900,7 @@ function MainPage() {
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
-    : nav;
+    : kidMode ? nav.filter((item) => !KID_HIDDEN_TABS.includes(item.id)) : nav;
   shortcutTabsRef.current = visibleNav.map((item) => item.id);
   openShopCapsuleRef.current = (capsule) => { if (autoOpen) void startAutoOpen(capsule); else setCapsuleToConfirm(capsule); };
   shortcutStateRef.current = { tab, busy: Boolean(reveal) || autoCount !== null, auto: autoOpen };
@@ -1930,17 +1944,18 @@ function MainPage() {
           </div>
         )}
 
-        <button type="button" onClick={() => setProjectsOpen(true)} className="other-projects-link mx-auto mb-1 mt-auto text-xs font-bold text-white/70 underline-offset-2 hover:text-[#bde8ff] hover:underline">Other projects</button>
+        {kidMode && <p className="kid-mode-pill" title="Chat, trading and outside links are off. A grown-up can change this in Settings.">🧸 Kid mode</p>}
+        {!kidMode && <button type="button" onClick={() => setProjectsOpen(true)} className="other-projects-link mx-auto mb-1 mt-auto text-xs font-bold text-white/70 underline-offset-2 hover:text-[#bde8ff] hover:underline">Other projects</button>}
         {/* Sidebar Footer Controls */}
         <div className="sidebar-footer flex items-center justify-center gap-7 bg-[#13120F] py-4 text-white">
-          <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>
-          <button type="button" title="Socials" aria-label="Breadlet socials" onClick={() => setSocialsOpen(true)} className="hover:text-[#ffb36b] transition"><Users size={18} /></button>
+          {!kidMode && <a title="GitHub" href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" className="hover:text-[#bde8ff] transition"><GitBranch size={18} /></a>}
+          {!kidMode && <button type="button" title="Socials" aria-label="Breadlet socials" onClick={() => setSocialsOpen(true)} className="hover:text-[#ffb36b] transition"><Users size={18} /></button>}
           <button type="button" title="Breadlet News" aria-label="Breadlet News" onClick={() => setNewsOpen(true)} className="hover:text-[#bde8ff] transition"><Newspaper size={18} /></button>
           <button title={isGuest ? "End guest session" : "Log out"} onClick={leaveSession} className="hover:text-red-300 transition"><LogOut size={20} /></button>
         </div>
       </aside>
-      <NewsPanel open={newsOpen} onClose={() => setNewsOpen(false)} />
-      {projectsOpen && createPortal(
+      <NewsPanel open={newsOpen} onClose={() => setNewsOpen(false)} canReact={!kidMode} />
+      {projectsOpen && !kidMode && createPortal(
         <div className="link-popup-layer" onClick={() => setProjectsOpen(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="other-projects-title" onClick={(event) => event.stopPropagation()} className="link-popup">
             <header className="link-popup-header">
@@ -1961,7 +1976,7 @@ function MainPage() {
         </div>,
         document.body,
       )}
-      {socialsOpen && createPortal(
+      {socialsOpen && !kidMode && createPortal(
         <div className="link-popup-layer" onClick={() => setSocialsOpen(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="socials-title" onClick={(event) => event.stopPropagation()} className="link-popup">
             <header className="link-popup-header">
@@ -2087,10 +2102,10 @@ function MainPage() {
         {/* Dynamic Page Section */}
         <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
           {tab !== "capsules" && <BreadDrift className="page-drift" />}
-          {player && !isGuest && <CoinFlipPopup onFinished={refreshPlayerFromServer} />}
+          {player && !isGuest && !kidMode && <CoinFlipPopup onFinished={refreshPlayerFromServer} />}
           {player && !isGuest && <AdminEventsLayer onReward={refreshPlayerFromServer} />}
           {player && !isGuest && <FallFiestaLayer />}
-          {player && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} BlookArt={BlookImg} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
+          {player && !kidMode && <LiveTrade player={player} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} onlinePlayers={onlinePlayers} artFor={artFor} BlookArt={BlookImg} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} onPlayerRefresh={refreshPlayerFromServer} notify={setNotice} onTradeComplete={setTradeDoneNotice} />}
           {isGuest && <div className="guest-mode-banner mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm"><span>Guest mode · all game actions are free · {guestProgressUnlocked ? "progress saves in this browser" : "progress lasts until you end this session"}</span><button onClick={leaveSession} className="font-black underline underline-offset-4">{guestProgressUnlocked ? "Exit guest" : "End session"}</button></div>}
           {notice && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
@@ -2122,7 +2137,7 @@ function MainPage() {
             </button>
           )}
           {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} openMention={(messageId) => { setInboxOpen(false); setChatJump(messageId); setTab("chat"); }} />}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} />}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} kidMode={kidMode} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} />}
           {tab === "wheel" && <WheelTab player={player} isGuest={isGuest} onClaim={() => setClaimOpen(true)} />}
           {claimOpen && <ClaimPopup player={player} isGuest={isGuest} spin={spinWheel} onClose={closeClaim} />}
           {tab === "capsules" && (
@@ -2145,7 +2160,7 @@ function MainPage() {
           {tab === "inventory" && (
             <InventoryTab player={player} equip={equip} sell={sell} massSell={massSell} toggleLock={toggleLock} toggleWish={toggleWish} />
           )}
-          {tab === "market" && (
+          {tab === "market" && !kidMode && (
             <Bazaar
               player={player}
               createListing={createListing}
@@ -2158,9 +2173,9 @@ function MainPage() {
             />
           )}
           {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
-          {tab === "explore" && player.exploreBeta && !isGuest && player.id && <BreadletExplore player={{ ...player, id: player.id }} artFor={artFor} />}
-          {tab === "chat" && <ChatTab jumpTo={chatJump} clearJump={() => setChatJump("")} refreshPlayer={refreshPlayerFromServer} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
-          {tab === "clan" && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
+          {tab === "explore" && player.exploreBeta && !isGuest && !kidMode && player.id && <BreadletExplore player={{ ...player, id: player.id }} artFor={artFor} />}
+          {tab === "chat" && !kidMode && <ChatTab jumpTo={chatJump} clearJump={() => setChatJump("")} refreshPlayer={refreshPlayerFromServer} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
+          {tab === "clan" && !kidMode && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "crafting" && (
             <CraftingTab player={player} salvage={(name) => (player.lockedBlooks || []).includes(name) ? setNotice(`${name} is locked. Unlock it in My Breadlets to recycle it.`) : setPendingDismantle(name)} massDismantle={massDismantle} craft={craft} isGuest={isGuest} />
           )}
@@ -2171,12 +2186,12 @@ function MainPage() {
               redeem={redeemPromo}
             />
           )}
-          {tab === "settings" && <SettingsTab username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} />}
-          {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} />}
+          {tab === "settings" && <SettingsTab username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} kidMode={kidMode} onKidModeChanged={(value) => setPlayer((current) => current ? { ...current, kidMode: value } : current)} />}
+          {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} kidMode={kidMode} />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
-          {tab === "referrals" && <ReferralsTab isGuest={isGuest} />}
+          {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
-          {tab === "games" && player.username.toLowerCase() === ADMIN_USERNAME && player.id && <GamesTab tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
+          {tab === "games" && !kidMode && player.username.toLowerCase() === ADMIN_USERNAME && player.id && <GamesTab tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
@@ -2204,7 +2219,7 @@ function MainPage() {
           )}
         </section>
       </div>
-      {tourOpen && <GameTour onSelect={setTab} onClose={() => { setTourOpen(false); setViewedProfile(null); setTab("profile"); }} />}
+      {tourOpen && <GameTour hidden={kidMode ? KID_HIDDEN_TABS : []} onSelect={setTab} onClose={() => { setTourOpen(false); setViewedProfile(null); setTab("profile"); }} />}
       {guestWelcomeOpen && (
         <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-emerald-300/40 bg-[#10251f] p-6 text-white shadow-2xl">
@@ -2356,6 +2371,10 @@ function LoginScreen({
   setReferralCode,
   acceptedTerms,
   setAcceptedTerms,
+  kidAccount,
+  setKidAccount,
+  parentPin,
+  setParentPin,
   setPassword,
   authMode,
   setAuthMode,
@@ -2378,6 +2397,10 @@ function LoginScreen({
   setReferralCode: (value: string) => void;
   acceptedTerms: boolean;
   setAcceptedTerms: (value: boolean) => void;
+  kidAccount: boolean;
+  setKidAccount: (value: boolean) => void;
+  parentPin: string;
+  setParentPin: (value: string) => void;
   setPassword: (value: string) => void;
   authMode: "login" | "signup";
   setAuthMode: (value: "login" | "signup") => void;
@@ -2428,13 +2451,27 @@ function LoginScreen({
           placeholder="Choose a username"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />
-        {!forgotPassword && authMode === "signup" && <label
+        {!forgotPassword && authMode === "signup" && (
+          <div className="kid-signup-switch" role="radiogroup" aria-label="Who is this account for?">
+            <button type="button" role="radio" aria-checked={!kidAccount} onClick={() => setKidAccount(false)}>🙋 For me (13+)</button>
+            <button type="button" role="radio" aria-checked={kidAccount} onClick={() => setKidAccount(true)}>🧸 For a kid</button>
+          </div>
+        )}
+        {!forgotPassword && authMode === "signup" && kidAccount && (
+          <div className="kid-signup-info">
+            <p><b>Kid accounts</b> can open bags, collect Breadlets, craft and play events. Chat, trading, the Bazaar, friends and clans are switched off.</p>
+            <label htmlFor="parent-pin">Grown-up PIN</label>
+            <input id="parent-pin" required type="password" inputMode="numeric" autoComplete="off" pattern="[0-9]{4}" maxLength={4} value={parentPin} onChange={(event) => setParentPin(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="4 numbers" />
+            <small>A grown-up needs this PIN to turn kid mode off later (Settings, Kid mode). Keep it secret from the kid!</small>
+          </div>
+        )}
+        {!forgotPassword && authMode === "signup" && !kidAccount && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="email"
         >
           Email <span className="normal-case tracking-normal text-white/50">(optional)</span>
         </label>}
-        {!forgotPassword && authMode === "signup" && <input
+        {!forgotPassword && authMode === "signup" && !kidAccount && <input
           id="email"
           type="email"
           value={email}
@@ -2442,9 +2479,9 @@ function LoginScreen({
           placeholder="Skip to use username login only"
           className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]"
         />}
-        {!forgotPassword && authMode === "signup" && <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]" htmlFor="referral">Referral code <span className="normal-case tracking-normal text-white/50">(optional)</span></label>}
-        {!forgotPassword && authMode === "signup" && <input id="referral" value={referralCode} maxLength={16} onChange={(event) => setReferralCode(event.target.value.toUpperCase())} placeholder="Got a friend's code?" className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]" />}
-        {!forgotPassword && authMode === "signup" && <p className="mt-1 text-xs text-white/55">Without email, you can’t receive password reset links.</p>}
+        {!forgotPassword && authMode === "signup" && !kidAccount && <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]" htmlFor="referral">Referral code <span className="normal-case tracking-normal text-white/50">(optional)</span></label>}
+        {!forgotPassword && authMode === "signup" && !kidAccount && <input id="referral" value={referralCode} maxLength={16} onChange={(event) => setReferralCode(event.target.value.toUpperCase())} placeholder="Got a friend's code?" className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]" />}
+        {!forgotPassword && authMode === "signup" && !kidAccount && <p className="mt-1 text-xs text-white/55">Without email, you can’t receive password reset links.</p>}
         {!forgotPassword && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"
           htmlFor="password"
@@ -2463,7 +2500,7 @@ function LoginScreen({
         />}
         {!forgotPassword && authMode === "signup" && <label className="auth-terms">
           <input type="checkbox" required checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} />
-          <span>I am 13 or older and agree to the <button type="button" onClick={() => setTermsOpen(true)}>Terms of Service</button></span>
+          <span>{kidAccount ? "I'm a grown-up making this account for my kid, and I agree to the " : "I am 13 or older and agree to the "}<button type="button" onClick={() => setTermsOpen(true)}>Terms of Service</button></span>
         </label>}
         {termsOpen && <TermsModal close={() => setTermsOpen(false)} />}
         {notice && (
@@ -2541,6 +2578,7 @@ function ProfileTab({
   showBadge,
   savePlayer,
   addFriend,
+  kidMode = false,
   isGuest,
   onlineProfileIds,
   presenceReady,
@@ -2557,6 +2595,7 @@ function ProfileTab({
   showBadge: (badge: string) => void;
   savePlayer: (player: Player) => void;
   addFriend: (username: string) => void;
+  kidMode?: boolean;
   isGuest: boolean;
   onlineProfileIds: string[];
   presenceReady: boolean;
@@ -2712,7 +2751,7 @@ function ProfileTab({
           <div className="profile-avatar-frame profile-avatar-float"><span className="profile-float-inner">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span></div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1>{viewingOther && friendsData.relation === "friends" && <span className="profile-friended">(You&apos;ve friended)</span>}<p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
-            <div className="profile-quick-actions">{viewingOther ? <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={openClaim}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
+            <div className="profile-quick-actions">{viewingOther ? !kidMode && <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={openClaim}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
           </div>
         </section>
         <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{["1M Tokens", "100K Tokens", "10K Tokens"].find((badge) => displayedBadges.includes(badge)) || "Token milestones: 10K · 100K · 1M"}</div></section>
@@ -2724,13 +2763,13 @@ function ProfileTab({
         <ProfileMetric label="Messages Sent" value={String(profileMessagesSent)} icon={<MessageCircle size={38} strokeWidth={2.4} />} />
         <ProfileMetric label="Account Age" value={accountAgeLabel(profileCreatedAt)} icon={<CalendarDays size={38} strokeWidth={2.4} />} />
       </div></section>
-      <div className="profile-lower-grid"><section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends{friendsData.friends.length ? ` (${friendsData.friends.length})` : ""}</h2>{!viewingOther ? <button onClick={openLookup}>Find Player</button> : !isGuest && (friendsData.relation === "none" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Add Friend</button> : friendsData.relation === "pending-in" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Accept</button> : friendsData.relation === "pending-out" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Request Sent (Cancel)</button> : friendsData.relation === "friends" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Unfriend</button> : null)}</div><div className="profile-list-body">
+      {!kidMode && <div className="profile-lower-grid"><section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends{friendsData.friends.length ? ` (${friendsData.friends.length})` : ""}</h2>{!viewingOther ? <button onClick={openLookup}>Find Player</button> : !isGuest && (friendsData.relation === "none" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Add Friend</button> : friendsData.relation === "pending-in" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Accept</button> : friendsData.relation === "pending-out" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Request Sent (Cancel)</button> : friendsData.relation === "friends" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Unfriend</button> : null)}</div><div className="profile-list-body">
         {!viewingOther && friendsData.incoming.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} wants to be friends</span><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "accept" })}>Accept</button><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "decline" })}>Decline</button></div>)}
         {friendsData.friends.length ? friendsData.friends.map((friend) => <div key={friend.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><button onClick={() => void openPlayerProfile(friend.username)} className="min-w-0 flex-1 truncate text-left font-bold">{friend.username}</button>{!viewingOther && <button onClick={() => void friendAction("DELETE", { friendProfileId: friend.id })}>Remove</button>}</div>) : !friendsData.incoming.length && <p className="profile-empty">{isGuest ? "Sign in to add friends." : "No friends yet."}</p>}
         {!viewingOther && friendsData.outgoing.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} (request sent)</span><button onClick={() => void friendAction("DELETE", { friendProfileId: request.id })}>Cancel</button></div>)}
-      </div></section></div>
+      </div></section></div>}
       {!viewingOther && <div className="profile-lower-grid">
-        {!isGuest && <section className="profile-list-panel" id="profile-trades"><div className="profile-list-heading"><h2>Trades</h2><div className="flex gap-2"><button aria-pressed={tradesCompletedOnly} onClick={() => setTradesCompletedOnly(!tradesCompletedOnly)}>{tradesCompletedOnly ? "Showing completed" : "Completed only"}</button><button onClick={() => void loadTrades()}>Refresh</button></div></div>{tradeMessage && <p role="status" className="profile-alert-inline">{tradeMessage}</p>}<div className="profile-list-body profile-trade-list">{trades.filter((trade) => !tradesCompletedOnly || trade.status === "completed").map((trade) => {
+        {!isGuest && !kidMode && <section className="profile-list-panel" id="profile-trades"><div className="profile-list-heading"><h2>Trades</h2><div className="flex gap-2"><button aria-pressed={tradesCompletedOnly} onClick={() => setTradesCompletedOnly(!tradesCompletedOnly)}>{tradesCompletedOnly ? "Showing completed" : "Completed only"}</button><button onClick={() => void loadTrades()}>Refresh</button></div></div>{tradeMessage && <p role="status" className="profile-alert-inline">{tradeMessage}</p>}<div className="profile-list-body profile-trade-list">{trades.filter((trade) => !tradesCompletedOnly || trade.status === "completed").map((trade) => {
           const sentByMe = trade.sender_profile_id === player.id;
           const otherName = sentByMe ? trade.receiver_username : trade.sender_username;
           const myOffer = sentByMe ? trade.sender_offer_json : trade.receiver_offer_json;
@@ -2739,7 +2778,7 @@ function ProfileTab({
           return <article key={trade.id} className="profile-trade-row"><div className="profile-trade-head"><strong>{otherName}</strong>{trade.updated_at && <small className="profile-trade-date">{new Date(trade.updated_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small>}<span className={`profile-trade-status status-${trade.status}`}>{trade.status}</span></div><p>You: {offerSummary(myOffer)}</p><p>Them: {offerSummary(theirOffer)}</p><div className="profile-trade-actions">{trade.status === "pending" && <span className="profile-empty">Open in the live trade window</span>}{trade.status === "completed" && <button className="profile-action-primary" onClick={() => { setChatTrade(trade); setTradeMessages([]); }}>Open live chat</button>}</div></article>;
         })}{!trades.filter((trade) => !tradesCompletedOnly || trade.status === "completed").length && <p className="profile-empty">{tradesCompletedOnly ? "No completed trades yet." : "No trades yet. Find a player to send a trade request."}</p>}</div></section>}
       </div>}
-      {profileLookupOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"><section role="dialog" aria-modal="true" className="profile-popup"><div className="profile-list-heading"><h2>Find a Player</h2><button aria-label="Close player lookup" onClick={() => setProfileLookupOpen(false)}>×</button></div><div className="profile-search-row"><input value={lookup} onChange={(event) => setLookup(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchPlayers()} placeholder="Search username" /><button onClick={() => void searchPlayers()}>Search</button></div><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{matches.map((match) => <div key={match.id} className="profile-friend-row"><button onClick={() => { setProfileLookupOpen(false); void openPlayerProfile(match.username); }} className="min-w-0 flex-1 truncate text-left font-bold">{match.username}</button><button onClick={() => addFriend(match.username)}>Add</button><button disabled={isGuest} onClick={() => { setProfileLookupOpen(false); void requestTrade(match.id, match.username); }}>Trade</button></div>)}{!matches.length && <p className="profile-empty">Search for a username to add, trade, or view.</p>}</div></section></div>}
+      {profileLookupOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"><section role="dialog" aria-modal="true" className="profile-popup"><div className="profile-list-heading"><h2>Find a Player</h2><button aria-label="Close player lookup" onClick={() => setProfileLookupOpen(false)}>×</button></div><div className="profile-search-row"><input value={lookup} onChange={(event) => setLookup(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void searchPlayers()} placeholder="Search username" /><button onClick={() => void searchPlayers()}>Search</button></div><div className="mt-3 max-h-72 space-y-2 overflow-y-auto">{matches.map((match) => <div key={match.id} className="profile-friend-row"><button onClick={() => { setProfileLookupOpen(false); void openPlayerProfile(match.username); }} className="min-w-0 flex-1 truncate text-left font-bold">{match.username}</button>{!kidMode && <><button onClick={() => addFriend(match.username)}>Add</button><button disabled={isGuest} onClick={() => { setProfileLookupOpen(false); void requestTrade(match.id, match.username); }}>Trade</button></>}</div>)}{!matches.length && <p className="profile-empty">Search for a username to add, trade, or view.</p>}</div></section></div>}
       {chatTrade && <TradeChatModal trade={chatTrade} playerId={player.id || ""} username={player.username} messages={tradeMessages} input={tradeChatInput} setInput={setTradeChatInput} close={() => setChatTrade(null)} send={sendTradeMessage} />}
       {tradeErrorPopup && <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 px-4"><section role="alertdialog" aria-modal="true" className="profile-popup w-full max-w-sm"><h2 className="text-xl font-black">Trade unavailable</h2><p className="mt-3 text-sm">{tradeErrorPopup}</p><button autoFocus onClick={() => setTradeErrorPopup("")} className="profile-action-primary mt-5 w-full rounded-lg px-4 py-3 font-black">OK</button></section></div>}
     </div>
@@ -4040,6 +4079,8 @@ function BlookListingsModal({
   );
 }
 
+// Tabs a kid account never sees (Settings > Kid mode).
+const KID_HIDDEN_TABS: Tab[] = ["chat", "market", "clan", "explore", "games", "referrals"];
 const REVEAL_TIER: Record<string, number> = { Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4, Mythic: 5, Secret: 6, Unique: 6, Breadled: 6, Chroma: 6 };
 const REVEAL_GLOW: Record<string, string> = { Common: "#cbd5e1", Uncommon: "#4ade80", Rare: "#38bdf8", Epic: "#c084fc", Legendary: "#fbbf24", Mythic: "#f472b6", Secret: "#818cf8", Unique: "#fb923c", Breadled: "#f43f5e", Chroma: "#22d3ee" };
 
@@ -5111,7 +5152,7 @@ function PromoTab({
     </div>
   );
 }
-function ResourcesTab({ open }: { open: (tab: "promo" | "bank" | "referrals") => void }) {
+function ResourcesTab({ open, kidMode = false }: { open: (tab: "promo" | "bank" | "referrals") => void; kidMode?: boolean }) {
   const resources = [
     { title: "Promo Codes", description: "Redeem a Breadlet code for its reward.", icon: <Percent size={22} />, tab: "promo" as const },
     { title: "Refer a Friend", description: "Share your code and earn 500 Bread Bucks per signup.", icon: <Gift size={22} />, tab: "referrals" as const },
@@ -5125,7 +5166,7 @@ function ResourcesTab({ open }: { open: (tab: "promo" | "bank" | "referrals") =>
         <p className="resources-description mt-3 max-w-2xl leading-7">Guides, account tools, and the artwork behind Breadlet, all in one place.</p>
       </header>
       <div className="grid gap-4 sm:grid-cols-2">
-        {resources.map((resource) => (
+        {resources.filter((resource) => !(kidMode && resource.tab === "referrals")).map((resource) => (
           <button key={resource.title} type="button" onClick={() => open(resource.tab)} className="resource-card group flex min-h-36 items-start gap-4 rounded-2xl border p-5 text-left shadow-lg shadow-[#031426]/10">
             <span className="resource-icon grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-white/10">{resource.icon}</span>
             <span className="min-w-0 flex-1">

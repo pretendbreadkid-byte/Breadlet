@@ -9,7 +9,7 @@ import { ReactionButton, ReactionChips, useReactions } from "./reactions";
 
 type NewsPost = { id: string; category: string; title: string; body: string; created_at: string; has_image: boolean };
 
-export function NewsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function NewsPanel({ open, onClose, canReact = true }: { open: boolean; onClose: () => void; canReact?: boolean }) {
   const [posts, setPosts] = useState<NewsPost[] | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [writing, setWriting] = useState(false);
@@ -135,9 +135,9 @@ export function NewsPanel({ open, onClose }: { open: boolean; onClose: () => voi
               {post.body.split(/\n+/).filter(Boolean).map((line, index) => <p key={index}>{line}</p>)}
               <div className="news-card-bottom">
                 <time dateTime={post.created_at}>{new Date(post.created_at).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</time>
-                <ReactionButton className="news-react" size={18} onPick={(emoji) => void react(post.id, emoji)} />
+                {canReact && <ReactionButton className="news-react" size={18} onPick={(emoji) => void react(post.id, emoji)} />}
               </div>
-              <ReactionChips counts={reactions[post.id]} onToggle={(emoji) => void react(post.id, emoji)} />
+              <ReactionChips counts={reactions[post.id]} onToggle={(emoji) => void react(post.id, emoji)} disabled={!canReact} />
             </article>
           ))}
         </div>

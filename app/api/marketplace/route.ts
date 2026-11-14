@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kidModeBlock } from '../../../lib/kid-mode';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { notify } from '../../../lib/inbox';
@@ -147,6 +148,7 @@ export async function POST(request: Request) {
   if (!supabase) return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  { const kid = await kidModeBlock(user.id); if (kid) return kid; }
 
   const body = await request.json().catch(() => ({}));
   const action = body.action || 'create';

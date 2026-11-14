@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kidModeBlock } from '../../../lib/kid-mode';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { createClient } from '../../../lib/supabase/server';
 import { hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
@@ -117,6 +118,7 @@ export async function POST(request: Request) {
   if (!supabase) return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  { const kid = await kidModeBlock(user.id); if (kid) return kid; }
 
   const body = await request.json();
   const name = String(body.name || '').trim().slice(0, 30);
@@ -149,6 +151,7 @@ export async function PATCH(request: Request) {
   if (!supabase) return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  { const kid = await kidModeBlock(user.id); if (kid) return kid; }
 
   const body = await request.json();
   const clanId = body.clanId;

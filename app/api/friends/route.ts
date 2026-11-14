@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kidModeBlock, isKidAccount, KID_TARGET_MESSAGE } from '../../../lib/kid-mode';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { createClient } from '../../../lib/supabase/server';
 
@@ -61,6 +62,8 @@ export async function POST(request: Request) {
 
   const { data: target } = await admin.from('profiles').select('id, username').eq('id', friendProfileId).maybeSingle();
   if (!target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+  { const kid = await kidModeBlock(user.id, admin); if (kid) return kid; }
+  if (await isKidAccount(friendProfileId, admin)) return NextResponse.json({ error: KID_TARGET_MESSAGE }, { status: 403 });
 
   const { data: reverse } = await admin.from('friends').select('profile_id, status').eq('profile_id', friendProfileId).eq('friend_profile_id', user.id).maybeSingle();
   if (reverse) {
@@ -80,6 +83,7 @@ export async function PATCH(request: Request) {
   const { admin, user } = state;
   const { requesterId, decision } = await request.json().catch(() => ({}));
   if (!requesterId || !['accept', 'decline'].includes(decision)) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+  if (decision === 'accept') { const kid = await kidModeBlock(user.id, admin); if (kid) return kid; }
   const { error } = await admin.from('friends')
     .update({ status: decision === 'accept' ? 'accepted' : 'declined' })
     .eq('profile_id', requesterId).eq('friend_profile_id', user.id).eq('status', 'pending');

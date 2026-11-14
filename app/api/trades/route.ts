@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kidModeBlock, isKidAccount, KID_TARGET_MESSAGE } from '../../../lib/kid-mode';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { notify } from '../../../lib/inbox';
@@ -32,6 +33,7 @@ async function auth(request: Request) {
   if (!user) return { response: NextResponse.json({ error: 'Your login session has expired or could not be verified. Log out and sign in again to trade.' }, { status: 401 }) };
   const admin = createAdminClient();
   if (!admin) return { response: NextResponse.json({ error: 'Server trading is not configured.' }, { status: 503 }) };
+  if (await isKidAccount(user.id, admin)) return { response: await kidModeBlock(user.id, admin) as NextResponse };
   await loadSiteEdits(admin);
   return { admin, userId: user.id };
 }
@@ -101,6 +103,7 @@ export async function POST(request: Request) {
     const { data: receiver, error: receiverError } = await session.admin.from('profiles').select('id, username').ilike('username', receiverUsername).maybeSingle();
     if (receiverError || !receiver) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
     if (receiver.id === session.userId) return NextResponse.json({ error: 'You cannot trade with yourself.' }, { status: 400 });
+    if (await isKidAccount(receiver.id, session.admin)) return NextResponse.json({ error: KID_TARGET_MESSAGE }, { status: 403 });
     const { data: busyTrades } = await session.admin.from('trades').select('id').eq('status', 'pending').or(`sender_profile_id.in.(${session.userId},${receiver.id}),receiver_profile_id.in.(${session.userId},${receiver.id})`).limit(1);
     if (busyTrades?.length) return NextResponse.json({ error: 'One of you is already in a trade. Finish or cancel it first.' }, { status: 409 });
     const offer = parseOffer(body.offer);

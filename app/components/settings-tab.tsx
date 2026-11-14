@@ -49,7 +49,7 @@ export function useSettings() {
   return { settings, update };
 }
 
-const sections = ["Account", "Chat", "Trading & Social", "Account Management"] as const;
+const sections = ["Account", "Chat", "Trading & Social", "Kid mode", "Account Management"] as const;
 
 type Row = { key: keyof Settings; title: string; description: string };
 
@@ -129,7 +129,47 @@ function AccountForms({ username, onRenamed }: { username: string; onRenamed: ()
   );
 }
 
-export function SettingsTab({ username, onLogout, isGuest, onRenamed }: { username: string; onLogout: () => void; isGuest: boolean; onRenamed: () => void }) {
+// Kid mode: a grown-up sets a 4-number PIN to turn it on, and needs that PIN to turn it off.
+function KidModeSection({ kidMode, onChanged }: { kidMode: boolean; onChanged: (kidMode: boolean) => void }) {
+  const [pin, setPin] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState({ ok: false, message: "" });
+  const send = async () => {
+    if (!kidMode && pin !== confirm) return setNote({ ok: false, message: "The PINs don't match." });
+    setBusy(true);
+    const response = await fetch("/api/kid-mode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: kidMode ? "off" : "on", pin }) }).catch(() => null);
+    const result = await response?.json().catch(() => ({})) || {};
+    setBusy(false);
+    if (!response?.ok) return setNote({ ok: false, message: result.error || "Kid mode could not be changed." });
+    setPin(""); setConfirm("");
+    setNote({ ok: true, message: result.kidMode ? "Kid mode is on." : "Kid mode is off." });
+    onChanged(Boolean(result.kidMode));
+  };
+  const pinInput = (value: string, set: (value: string) => void, label: string) => (
+    <input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={value} onChange={(event) => set(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder={label} aria-label={label} className={`${inputClass} kid-pin-input`} />
+  );
+  return (
+    <>
+      <p className="mb-4 text-[#c9c7c0]">{kidMode ? "Kid mode is on. 🧸" : "A safer Breadlet for young kids."}</p>
+      <ul className="kid-mode-list mb-6">
+        <li><b>Still on:</b> opening bags, collecting Breadlets, crafting, claims, events and the leaderboard.</li>
+        <li><b>Turned off:</b> chat, trading, the Bazaar, friends, clans, reactions, coin flips, Explore and links to other websites.</li>
+        <li>Other players can't send kid accounts trades or friend requests.</li>
+      </ul>
+      <h3 className="text-2xl font-black text-white">{kidMode ? "Turn off kid mode" : "Turn on kid mode"}</h3>
+      <p className="mb-2 text-sm text-[#c9c7c0]">{kidMode ? "Grown-ups only: enter the PIN that was set when kid mode was turned on." : "Grown-ups: pick a 4-number PIN. You'll need it to turn kid mode off again."}</p>
+      <div className="flex flex-wrap gap-2">
+        {pinInput(pin, setPin, kidMode ? "PIN" : "New PIN")}
+        {!kidMode && pinInput(confirm, setConfirm, "PIN again")}
+        <button type="button" disabled={busy || pin.length !== 4 || (!kidMode && confirm.length !== 4)} onClick={() => void send()} className={saveClass}>{kidMode ? "Turn off" : "Turn on"}</button>
+      </div>
+      {note.message && <p role="status" className={`mt-2 text-sm font-bold ${note.ok ? "text-[#9be38f]" : "text-red-300"}`}>{note.message}</p>}
+    </>
+  );
+}
+
+export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = false, onKidModeChanged }: { username: string; onLogout: () => void; isGuest: boolean; onRenamed: () => void; kidMode?: boolean; onKidModeChanged?: (kidMode: boolean) => void }) {
   const { settings, update } = useSettings();
   const [section, setSection] = useState<(typeof sections)[number]>("Account");
 
@@ -150,7 +190,7 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed }: { userna
   return (
     <div className="settings-workspace mx-auto grid w-full max-w-5xl gap-4 md:grid-cols-[14rem_minmax(0,1fr)]">
       <nav className="ui-panel rounded-2xl bg-[#13120F] p-3" aria-label="Settings sections">
-        {sections.map((name) => (
+        {sections.filter((name) => (kidMode ? name !== "Chat" && name !== "Trading & Social" : true) && (name !== "Kid mode" || !isGuest)).map((name) => (
           <button
             key={name}
             type="button"
@@ -171,6 +211,7 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed }: { userna
             {!isGuest && <AccountForms username={username} onRenamed={onRenamed} />}
           </>
         )}
+        {section === "Kid mode" && !isGuest && <KidModeSection kidMode={kidMode} onChanged={(value) => onKidModeChanged?.(value)} />}
         {section === "Chat" && renderRows(chatRows)}
         {section === "Trading & Social" && renderRows(socialRows)}
         {section === "Account Management" && (

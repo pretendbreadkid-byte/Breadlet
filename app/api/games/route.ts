@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { kidModeBlock } from '../../../lib/kid-mode';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { newWordGame } from '../../../lib/chat-games';
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
   const state = await session();
   if ('error' in state) return state.error;
   const { admin, user } = state;
+  { const kid = await kidModeBlock(user.id, admin); if (kid) return kid; }
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || '');
   const args: Record<string, unknown> = { p_profile_id: user.id, p_action: action };

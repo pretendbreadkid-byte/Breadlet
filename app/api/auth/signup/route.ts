@@ -6,6 +6,7 @@ import { isStaffLookalike } from '../../../../lib/admin-access';
 import { notify } from '../../../../lib/inbox';
 import { NETWORK_BANNED_MESSAGE, deviceHasAccount, isFingerprintBanned, isNetworkBanned, networkIdentity, recordAccountDevice } from '../../../../lib/network-identity';
 import { deviceBanScreen } from '../../../../lib/ban-screen';
+import { isPin, turnOnKidMode } from '../../../../lib/kid-mode';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
   if (!isNameAllowed(username)) {
     return NextResponse.json({ error: 'That username is not allowed. Please pick a different one.' }, { status: 400 });
   }
+  // Kid accounts need a 4-digit grown-up PIN, which is what turns kid mode off later.
+  const kidAccount = body.kidAccount === true;
+  if (kidAccount && !isPin(String(body.parentPin || ''))) return NextResponse.json({ error: 'Kid accounts need a 4-number grown-up PIN.' }, { status: 400 });
   if (suppliedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(suppliedEmail)) {
     return NextResponse.json({ error: 'Enter a valid email address or leave it blank.' }, { status: 400 });
   }
@@ -82,6 +86,10 @@ export async function POST(request: Request) {
   }
 
   if (created?.user) await recordAccountDevice(admin, request, created.user.id);
+  if (created?.user && kidAccount) {
+    const problem = await turnOnKidMode(admin, created.user.id, String(body.parentPin));
+    if (problem) console.error('[KID_MODE] signup failed:', problem);
+  }
 
   if (referralCode) {
     const { data: reward, error: rewardError } = await admin.rpc('referral_reward', { p_code: referralCode });

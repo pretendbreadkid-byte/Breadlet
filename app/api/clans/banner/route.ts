@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { kidModeBlock } from '../../../../lib/kid-mode';
 import { createAdminClient } from "../../../../lib/supabase/admin";
 import { createClient } from "../../../../lib/supabase/server";
 
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   if (!client) return NextResponse.json({ error: "Clan banner uploads are not configured." }, { status: 503 });
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: "Sign in to update your clan banner." }, { status: 401 });
+  { const kid = await kidModeBlock(user.id); if (kid) return kid; }
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > MAX_BANNER_BYTES * 1.4) return NextResponse.json({ error: "Clan banners must be under 1 MB." }, { status: 413 });
   const body = await request.json().catch(() => null);
