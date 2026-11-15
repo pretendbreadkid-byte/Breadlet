@@ -28,6 +28,7 @@ const SEED_ART: Record<SeedName, string> = {
   Potato: "/assets/garden/seed-potato.svg",
   Pumpkin: "/assets/garden/seed-pumpkin.svg",
   Avocado: "/assets/garden/seed-avocado.svg",
+  "Pumpkin Dragon": "/assets/garden/seed-pumpkin-dragon.svg",
 };
 
 type GardenResponse = FieldsView & { tokens?: number; message?: string; breadlet?: string; payout?: number };
@@ -222,7 +223,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                 aria-label={!plot ? "Empty bed: plant a seed" : ready ? `Harvest ${plot.seed}` : `${plot.seed} growing`}
                 className={`garden-plot${ready ? " is-ready" : ""}${isNearest ? " is-near" : ""}`} style={{ left: spot.x, top: spot.y, zIndex: 5 }}>
                 <BedArt />
-                {plot && seed && <CropArt seed={seed.name} stage={ready ? 4 : Math.min(3, Math.floor(progress * 4))} />}
+                {plot && seed && <CropArt seed={seed.name} progress={progress} />}
                 {ready && <span className="garden-sparkles" aria-hidden="true"><i /><i /><i /><i /></span>}
                 {plot && !ready && <span className="garden-timer">{theirs ? `${plot.plantedByName || "Friend"} · ` : ""}{clock(plot.plantedAt + (seed?.growMs || 0) - now)}</span>}
                 {plot && ready && <span className="garden-ready">{theirs ? `${plot.plantedByName || "Friend"}'s` : "Ready!"}</span>}

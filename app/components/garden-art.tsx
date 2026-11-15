@@ -428,146 +428,26 @@ export const Ambient = memo(function Ambient() {
   );
 });
 
-// A raised wooden bed: plank frame with corner posts, dark soil and three mounded rows.
+// The raised bed every crop grows in.
 export function BedArt() {
-  return (
-    <svg className="garden-bed-art" viewBox="0 0 200 140" preserveAspectRatio="none" aria-hidden="true">
-      <rect x="3" y="9" width="194" height="130" rx="16" fill="#4a2a12" />
-      <rect x="3" y="3" width="194" height="128" rx="16" fill="#b0763c" stroke="#3B1F0E" strokeWidth="5" />
-      <path d="M20 11 H180 M20 123 H180 M11 22 V110 M189 22 V110" stroke="#8f5a2a" strokeWidth="2.5" strokeDasharray="22 10" />
-      <rect x="18" y="18" width="164" height="100" rx="8" fill="#4a2a12" />
-      <rect x="18" y="18" width="164" height="10" rx="5" fill="#341c0b" />
-      {[42, 68, 94].map((y) => (
-        <g key={y}>
-          <rect x="24" y={y - 9} width="152" height="20" rx="10" fill="#6e4220" />
-          <rect x="28" y={y - 8} width="144" height="6" rx="3" fill="#86532a" />
-          <rect x="24" y={y + 9} width="152" height="4" rx="2" fill="#3a200c" opacity=".55" />
-        </g>
-      ))}
-      {[[34, 56], [150, 82], [96, 108], [60, 82], [128, 56]].map(([cx, cy], index) => <circle key={index} cx={cx} cy={cy} r={index % 2 ? 2.5 : 3.4} fill={index % 2 ? "#a99c86" : "#3a200c"} />)}
-      {[[3, 3], [173, 3], [3, 107], [173, 107]].map(([x, y], index) => (
-        <g key={index}><rect x={x} y={y} width="24" height="24" rx="6" fill="#d08a4c" stroke="#3B1F0E" strokeWidth="4" /><circle cx={x + 12} cy={y + 12} r="2.6" fill="#3B1F0E" /></g>
-      ))}
-    </svg>
-  );
+  return <img src="/assets/garden/plot.svg" alt="" className="garden-bed-art" draggable={false} />;
 }
 
-// Crop growth art, stages 0-3 while growing and 4 when ready. Carrots use the drawn assets.
-const CARROT_STAGES = [1, 2, 3, 4, 5].map((stage) => `/assets/garden/carrot-${stage}.svg`);
+// Each crop's growth frames: the last one is the ready crop, the others play out while it grows.
+const frames = (name: string, count: number) => Array.from({ length: count }, (_, index) => `/assets/garden/${name}-${index + 1}.svg`);
+const CROP_FRAMES: Record<SeedName, string[]> = {
+  Carrot: frames("carrot", 5),
+  Potato: frames("potato", 3),
+  Pumpkin: frames("pumpkin", 4),
+  Avocado: frames("avocado", 4),
+  "Pumpkin Dragon": frames("pumpkin-dragon", 4),
+};
 
-const leaf = (x: number, y: number, length: number, angle: number, width: number, fill: string, key?: string | number) => (
-  <g key={key} transform={`translate(${x} ${y}) rotate(${angle})`}>
-    <path d={`M0 0 C${length * 0.3} ${-width} ${length * 0.7} ${-width} ${length} 0 C${length * 0.7} ${width} ${length * 0.3} ${width} 0 0Z`} fill={fill} stroke="#1f5e22" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d={`M2 0 H${length * 0.8}`} stroke="#1f5e22" strokeWidth="1.2" opacity=".55" />
-  </g>
-);
-const Mound = () => <><ellipse cx="64" cy="104" rx="32" ry="9" fill="#3a200c" opacity=".55" /><ellipse cx="64" cy="100" rx="26" ry="7" fill="#7a4a22" /><ellipse cx="60" cy="98" rx="12" ry="2.5" fill="#94602f" /></>;
-const Stem = ({ top, bend = 0, width = 4 }: { top: number; bend?: number; width?: number }) => <path d={`M64 100 Q${64 + bend} ${(100 + top) / 2} ${64 + bend / 2} ${top}`} stroke="#2a7f2a" strokeWidth={width} fill="none" strokeLinecap="round" />;
-
-function Potato({ stage }: { stage: number }) {
-  const bush = (top: number, spread: number, count: number) => Array.from({ length: count }, (_, index) => {
-    const t = index / Math.max(1, count - 1);
-    const angle = -165 + t * 150;
-    const y = 96 - (index % 3) * ((96 - top) / 3) - 6;
-    return leaf(64, y, spread * (0.7 + (index % 2) * 0.3), angle, spread * 0.36, index % 2 ? "#3fae3c" : "#58c652", index);
-  });
-  return (
-    <>
-      <Mound />
-      {stage === 0 && <><ellipse cx="64" cy="97" rx="11" ry="7" fill="#c8955a" stroke="#7a4f22" strokeWidth="2" /><circle cx="60" cy="96" r="1.4" fill="#7a4f22" /><circle cx="67" cy="98" r="1.2" fill="#7a4f22" /></>}
-      {stage === 1 && <><Stem top={80} />{leaf(64, 84, 18, -150, 7, "#58c652")}{leaf(64, 82, 18, -30, 7, "#4cbb47")}</>}
-      {stage >= 2 && <><Stem top={stage === 2 ? 64 : 46} bend={-4} /><Stem top={stage === 2 ? 70 : 54} bend={10} width={3.5} />{bush(stage === 2 ? 62 : 44, stage === 2 ? 26 : 34, stage === 2 ? 7 : 11)}</>}
-      {stage === 3 && [[50, 50], [78, 44], [64, 38], [88, 58]].map(([cx, cy]) => <g key={cx}>{[0, 72, 144, 216, 288].map((angle) => <ellipse key={angle} cx={cx} cy={cy - 4} rx="2.6" ry="4" fill="#fff" stroke="#c9b6e6" strokeWidth="0.8" transform={`rotate(${angle} ${cx} ${cy})`} />)}<circle cx={cx} cy={cy} r="2.4" fill="#ffd23f" /></g>)}
-      {stage === 4 && <>
-        <Stem top={50} bend={-4} /><Stem top={58} bend={10} width={3.5} />{bush(48, 32, 10)}
-        {[[42, 104, -10], [64, 108, 4], [88, 103, 14]].map(([cx, cy, tilt]) => <g key={cx} transform={`rotate(${tilt} ${cx} ${cy})`}><ellipse cx={cx} cy={cy} rx="15" ry="11" fill="#d29d5f" stroke="#7a4f22" strokeWidth="2.5" /><ellipse cx={cx - 4} cy={cy - 4} rx="6" ry="3" fill="#e9c08a" /><circle cx={cx + 5} cy={cy + 2} r="1.6" fill="#7a4f22" /><circle cx={cx - 6} cy={cy + 4} r="1.4" fill="#7a4f22" /></g>)}
-      </>}
-    </>
-  );
-}
-
-const lobedLeaf = (x: number, y: number, size: number, key: string | number) => (
-  <g key={key}>
-    {[[-0.55, 0.1], [0.55, 0.1], [0, -0.45], [-0.3, 0.45], [0.3, 0.45]].map(([dx, dy], index) => <circle key={index} cx={x + dx * size} cy={y + dy * size} r={size * 0.62} fill="#3a9c3a" stroke="#1f5e22" strokeWidth="1.8" />)}
-    <circle cx={x} cy={y} r={size * 0.7} fill="#4cb84a" />
-    <path d={`M${x} ${y + size * 0.5} L${x} ${y - size * 0.5} M${x} ${y} L${x - size * 0.5} ${y - size * 0.25} M${x} ${y} L${x + size * 0.5} ${y - size * 0.25}`} stroke="#2a7f2a" strokeWidth="1.6" strokeLinecap="round" />
-  </g>
-);
-
-function Pumpkin({ stage }: { stage: number }) {
-  const vine = <path d="M30 100 C44 90 54 102 64 96 C76 90 84 100 98 94 C104 92 108 86 104 82 C100 80 98 86 102 88" stroke="#2a7f2a" strokeWidth="3.5" fill="none" strokeLinecap="round" />;
-  return (
-    <>
-      <Mound />
-      {stage === 0 && <ellipse cx="64" cy="96" rx="7" ry="4.5" fill="#fff3df" stroke="#c9b48a" strokeWidth="1.5" transform="rotate(-20 64 96)" />}
-      {stage === 1 && <><Stem top={78} /><ellipse cx="54" cy="78" rx="11" ry="7" fill="#58c652" stroke="#1f5e22" strokeWidth="1.8" transform="rotate(-20 54 78)" /><ellipse cx="74" cy="78" rx="11" ry="7" fill="#4cbb47" stroke="#1f5e22" strokeWidth="1.8" transform="rotate(20 74 78)" />{lobedLeaf(64, 70, 6, "true")}</>}
-      {stage === 2 && <>{vine}<Stem top={74} />{lobedLeaf(44, 86, 12, "a")}{lobedLeaf(84, 82, 13, "b")}{lobedLeaf(64, 70, 14, "c")}</>}
-      {stage === 3 && <>{vine}<Stem top={66} />{lobedLeaf(38, 84, 13, "a")}{lobedLeaf(90, 80, 14, "b")}{lobedLeaf(62, 64, 16, "c")}
-        <path d="M80 72 C80 66 78 62 80 58" stroke="#2a7f2a" strokeWidth="3" fill="none" /><path d="M80 44 L83 51 L91 50 L85 55 L88 63 L80 58 L72 63 L75 55 L69 50 L77 51Z" fill="#ffd23f" stroke="#c98a1a" strokeWidth="1.8" strokeLinejoin="round" /><circle cx="80" cy="54" r="3" fill="#f0a020" />
-        <ellipse cx="66" cy="96" rx="13" ry="10" fill="#7cbf4a" stroke="#3f7a22" strokeWidth="2" /><path d="M60 88 Q58 96 60 104 M72 88 Q74 96 72 104" stroke="#5a9a32" strokeWidth="1.6" fill="none" />
-      </>}
-      {stage === 4 && <>{vine}{lobedLeaf(30, 78, 14, "a")}{lobedLeaf(100, 74, 15, "b")}
-        <g>
-          <ellipse cx="64" cy="106" rx="36" ry="5" fill="rgba(0,0,0,.25)" />
-          <ellipse cx="44" cy="86" rx="20" ry="22" fill="#e86d0c" stroke="#8a3a06" strokeWidth="2.5" />
-          <ellipse cx="84" cy="86" rx="20" ry="22" fill="#e86d0c" stroke="#8a3a06" strokeWidth="2.5" />
-          <ellipse cx="64" cy="86" rx="22" ry="24" fill="#ff8a1f" stroke="#8a3a06" strokeWidth="2.5" />
-          <ellipse cx="56" cy="74" rx="6" ry="9" fill="#ffb066" opacity=".8" />
-          <path d="M64 62 C62 54 66 50 72 48" stroke="#5e3a17" strokeWidth="6" fill="none" strokeLinecap="round" />
-          <path d="M66 54 C76 50 84 54 82 62 C78 58 72 58 66 60Z" fill="#4cb84a" stroke="#1f5e22" strokeWidth="1.6" />
-        </g>
-      </>}
-    </>
-  );
-}
-
-function Avocado({ stage }: { stage: number }) {
-  const pit = (y: number) => <><ellipse cx="64" cy={y} rx="12" ry="14" fill="#8a5a2b" stroke="#4a2a12" strokeWidth="2.5" /><ellipse cx="60" cy={y - 5} rx="4" ry="5" fill="#b07a42" /></>;
-  const fruit = (x: number, y: number, key: number) => (
-    <g key={key}>
-      <path d={`M${x} ${y - 12} V${y - 18}`} stroke="#5e3a17" strokeWidth="2.5" strokeLinecap="round" />
-      <path d={`M${x} ${y - 13} C${x + 6} ${y - 13} ${x + 8} ${y - 4} ${x + 9} ${y + 3} C${x + 10} ${y + 11} ${x + 5} ${y + 15} ${x} ${y + 15} C${x - 5} ${y + 15} ${x - 10} ${y + 11} ${x - 9} ${y + 3} C${x - 8} ${y - 4} ${x - 6} ${y - 13} ${x} ${y - 13}Z`} fill="#3d6b1f" stroke="#1f3a10" strokeWidth="2.2" />
-      <ellipse cx={x - 3} cy={y - 2} rx="2.5" ry="5" fill="#6a9c35" />
-    </g>
-  );
-  // A round dome of leaves: a solid body of foliage with leaves poking out all around it.
-  const canopy = (count: number, top: number, length: number) => {
-    const center = { x: 64, y: top + length * 0.75 };
-    return [
-      <ellipse key="body" cx={center.x} cy={center.y} rx={length * 0.95} ry={length * 0.7} fill="#2f9a35" stroke="#1f5e22" strokeWidth="2" />,
-      ...[0, 1].flatMap((layer) => Array.from({ length: count }, (_, index) => {
-        const angle = (index + layer * 0.5) * (360 / count) - 90;
-        const radians = (angle * Math.PI) / 180;
-        const reach = length * (layer ? 0.25 : 0.45);
-        return leaf(center.x + Math.cos(radians) * reach, center.y + Math.sin(radians) * reach * 0.7, length * (layer ? 0.75 : 0.85), angle, length * 0.24, layer ? (index % 2 ? "#58c652" : "#4cbb47") : "#3fae3c", `${layer}-${index}`);
-      })),
-    ];
-  };
-  return (
-    <>
-      <Mound />
-      {stage === 0 && pit(96)}
-      {stage === 1 && <>{pit(98)}<Stem top={62} width={3} />{leaf(64, 64, 16, -145, 5, "#58c652")}{leaf(64, 62, 16, -35, 5, "#4cbb47")}</>}
-      {stage === 2 && <><Stem top={56} width={4} />{canopy(6, 34, 18)}</>}
-      {stage >= 3 && <>
-        <path d="M60 100 Q62 70 64 40 L68 40 Q68 70 70 100Z" fill="#8a5a2b" stroke="#4a2a12" strokeWidth="2.5" />
-        {canopy(10, 12, 28)}
-        {stage === 4 && [fruit(42, 52, 1), fruit(86, 50, 2), fruit(64, 62, 3)]}
-      </>}
-    </>
-  );
-}
-
-export function CropArt({ seed, stage }: { seed: SeedName; stage: number }) {
-  const ready = stage >= 4;
-  if (seed === "Carrot") return <img src={CARROT_STAGES[Math.min(4, stage)]} alt="" className={`garden-growth${ready ? " is-ready" : ""}`} draggable={false} />;
-  return (
-    <svg className={`garden-growth${ready ? " is-ready" : ""}`} viewBox="14 13 100 100" aria-hidden="true">
-      {seed === "Potato" && <Potato stage={stage} />}
-      {seed === "Pumpkin" && <Pumpkin stage={stage} />}
-      {seed === "Avocado" && <Avocado stage={stage} />}
-    </svg>
-  );
+export function CropArt({ seed, progress }: { seed: SeedName; progress: number }) {
+  const list = CROP_FRAMES[seed];
+  const ready = progress >= 1;
+  const frame = ready ? list.length - 1 : Math.min(list.length - 2, Math.floor(progress * (list.length - 1)));
+  return <img src={list[frame]} alt="" className={`garden-growth${ready ? " is-ready" : ""}`} draggable={false} />;
 }
 
 export function SeedStand({ near }: { near: boolean }) {

@@ -2,7 +2,7 @@
 // them, come back and harvest. Owners can invite players with a link and let them plant too.
 // Shared by the API route (app/api/fields) and the Games tab (app/components/fields-world.tsx).
 
-export type SeedName = "Carrot" | "Potato" | "Pumpkin" | "Avocado";
+export type SeedName = "Carrot" | "Potato" | "Pumpkin" | "Avocado" | "Pumpkin Dragon";
 export type Seed = { name: SeedName; cost: number; growMs: number; payout: number; breadletChance: number };
 
 // Every seed sells for more than it costs once grown; slower crops pay more per plant.
@@ -12,6 +12,8 @@ export const SEEDS: Seed[] = [
   { name: "Potato", cost: 40, growMs: 10 * 60_000, payout: 95, breadletChance: 1 / 40 },
   { name: "Pumpkin", cost: 90, growMs: 25 * 60_000, payout: 210, breadletChance: 1 / 35 },
   { name: "Avocado", cost: 150, growMs: 60 * 60_000, payout: 360, breadletChance: 1 / 25 },
+  // The rare one: it can hatch the Pumpkin Dragon Breadlet (Unique, normally from the leaf shop).
+  { name: "Pumpkin Dragon", cost: 300, growMs: 2 * 60 * 60_000, payout: 720, breadletChance: 1 / 60 },
 ];
 export const seedNamed = (name: unknown) => SEEDS.find((seed) => seed.name === name);
 
