@@ -3511,3 +3511,54 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-tag, .chat-clan-tag { ma
 main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info b, .chat-clan-info b { overflow: hidden; font-size: 1.05rem; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; color: #ff9a4a !important; }
 main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-info span { display: flex; align-items: center; gap: 6px; font-size: .85rem; font-weight: 800; color: #f3eadb !important; }
 .chat-clan-info img { width: 16px; height: 16px; }
+
+/* Breadlet Fields (fields-world.tsx): garden + dig site you walk around in. Warm Breadlet colours. */
+.fields-page { display: flex; flex-direction: column; gap: 12px; }
+.fields-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.fields-top h1 { margin: 0; font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: 1.7rem; font-weight: 900; }
+.fields-chip, .fields-chip-test { display: inline-flex; align-items: center; gap: 6px; border: 3px solid #13120F; border-radius: 999px; background: #27251F; padding: 3px 12px; font-weight: 900; color: #fff; box-shadow: 0 3px 0 #13120F; }
+.fields-chip img { width: 20px; height: 20px; }
+.fields-chip small { font-size: .72rem; opacity: .75; }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-chip-test, .fields-chip-test { background: #ED7117; font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: #fff !important; }
+.fields-viewport { position: relative; flex: 1; overflow: hidden; border: 4px solid #13120F; border-radius: 24px; background: #5f9e3a; box-shadow: 0 6px 0 #13120F; }
+.fields-world { position: absolute; left: 0; top: 0; background: radial-gradient(circle at 30% 40%, #7cc04b, #5f9e3a 70%); }
+.fields-garden-ground { position: absolute; left: 70px; top: 210px; width: 600px; height: 470px; border: 6px solid #7a4a22; border-radius: 34px; background: repeating-linear-gradient(90deg, #8fd05a 0 26px, #84c653 26px 52px); box-shadow: inset 0 6px 0 rgba(255, 255, 255, .15); }
+.fields-dig-ground { position: absolute; left: 820px; top: 210px; width: 610px; height: 480px; border: 6px solid #7a4a22; border-radius: 40px; background: radial-gradient(circle at 30% 30%, #e0b77a, #c9965a 75%); box-shadow: inset 0 -10px 0 rgba(0, 0, 0, .08); }
+.fields-path { position: absolute; left: 640px; top: 600px; width: 220px; height: 70px; border-radius: 40px; background: #d8b98a; opacity: .8; }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-sign, .fields-sign { position: absolute; display: inline-flex; align-items: center; gap: 8px; transform: translate(-50%, 0) rotate(-2deg); border: 4px solid #3B1F0E; border-radius: 14px; background: #d08a4c; padding: 6px 16px; font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: 1.3rem; font-weight: 900; color: #fff3df !important; text-shadow: 0 2px 0 #71330f; box-shadow: 0 5px 0 #3B1F0E; pointer-events: none; }
+.fields-plot { position: absolute; display: grid; width: 150px; height: 120px; transform: translate(-50%, -50%); place-items: center; border: 4px solid #3B1F0E; border-radius: 18px; background: repeating-linear-gradient(0deg, #6b3f1e 0 16px, #5a3317 16px 22px); box-shadow: 0 5px 0 #3B1F0E; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+.fields-plot.is-near, .fields-tile.is-near { box-shadow: 0 5px 0 #3B1F0E, 0 0 0 4px #ffcb73; }
+.fields-plot:hover, .fields-tile:hover { transform: translate(-50%, -52%); }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-plot-empty, .fields-plot-empty { border-radius: 999px; background: rgba(0, 0, 0, .35); padding: 2px 12px; font-weight: 900; color: #fff3df !important; }
+.fields-sprout { font-size: 2.6rem; transition: transform .6s ease; }
+.fields-bar { position: absolute; bottom: 8px; left: 14px; right: 14px; height: 9px; overflow: hidden; border: 2px solid #13120F; border-radius: 999px; background: #27251F; }
+.fields-bar i { display: block; height: 100%; background: #7ed957; transition: width 1s linear; }
+.fields-crop { width: 76px; height: 76px; object-fit: contain; animation: fields-bob 1s ease-in-out infinite; }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-ready, .fields-ready { position: absolute; top: -14px; border: 3px solid #13120F; border-radius: 999px; background: #7ed957; padding: 0 10px; font-size: .8rem; font-weight: 900; color: #13120F !important; }
+.fields-plot.is-ready { background: repeating-linear-gradient(0deg, #7a4a22 0 16px, #6b3f1e 16px 22px); }
+@keyframes fields-bob { 50% { transform: translateY(-6px) rotate(4deg); } }
+.fields-tile { position: absolute; display: flex; width: 96px; height: 96px; transform: translate(-50%, -50%); align-items: center; justify-content: center; gap: 4px; border: 4px solid #8a5a2b; border-radius: 50% 50% 46% 46%; background: radial-gradient(circle at 40% 35%, #b07a42, #8f5c2c); box-shadow: 0 5px 0 #6b4220; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+.fields-tile.is-dug { border-color: #4a2c12; background: radial-gradient(circle, #3a220e 0 55%, #5a3517 70%); cursor: default; }
+.fields-tile img { width: 28px; height: 28px; object-fit: contain; }
+.fields-tile .fields-find { width: 64px; height: 64px; filter: drop-shadow(0 0 10px #ffcb73); }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-tile b, .fields-tile b { font-weight: 900; color: #ffcb73 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-dirt, .fields-dirt { font-size: .75rem; font-weight: 900; color: #b08a66 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-hint, .fields-hint { position: absolute; bottom: 12px; left: 12px; margin: 0; border-radius: 999px; background: rgba(19, 18, 15, .7); padding: 4px 12px; font-size: .8rem; font-weight: 800; color: #fff !important; pointer-events: none; }
+.fields-hint b { color: #ffcb73; }
+.fields-toast { position: absolute; top: 14px; left: 50%; z-index: 5; margin: 0; transform: translateX(-50%); border: 3px solid #13120F; border-radius: 14px; background: #ED7117; padding: 8px 16px; font-weight: 900; color: #fff; box-shadow: 0 4px 0 #13120F; animation: link-popup-in .2s cubic-bezier(.2, 1.4, .4, 1) both; pointer-events: none; }
+.fields-seeds { position: absolute; top: 50%; left: 50%; z-index: 6; display: flex; width: min(92%, 360px); flex-direction: column; gap: 8px; transform: translate(-50%, -50%); border: 4px solid #13120F; border-radius: 20px; background: #1b1a16; padding: 12px; box-shadow: 0 8px 0 #13120F, 0 20px 40px rgba(0, 0, 0, .45); cursor: default; }
+.fields-seeds header { display: flex; align-items: center; justify-content: space-between; color: #fff; font-size: 1.15rem; }
+.fields-seeds header button { font-size: 1.6rem; font-weight: 900; line-height: 1; color: #fff; }
+.fields-seeds > button { display: flex; align-items: center; gap: 10px; border: 3px solid #13120F; border-radius: 14px; background: #27251F; padding: 6px 10px; text-align: left; color: #fff; box-shadow: 0 4px 0 #13120F; }
+.fields-seeds > button:hover:not(:disabled) { background: #332f27; }
+.fields-seeds > button:disabled { opacity: .45; cursor: not-allowed; }
+.fields-seeds > button > img { width: 44px; height: 44px; object-fit: contain; }
+.fields-seeds > button > span { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-seeds small, .fields-seeds small { font-size: .75rem; color: #d8d2c4 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .fields-seeds em, .fields-seeds em { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-weight: 900; color: #ffcb73 !important; }
+.fields-seeds em img { width: 18px; height: 18px; }
+.fields-page form input { border: 3px solid #13120F !important; background: #27251F !important; color: #fff !important; }
+.fields-page form input::placeholder { color: #a89f8f !important; }
+.fields-say { display: flex; align-items: center; gap: 8px; border: 3px solid #13120F; border-radius: 12px; background: #ED7117; padding: 0 18px; font-weight: 900; color: #fff; box-shadow: 0 4px 0 #13120F; }
+.fields-error { border: 3px solid #13120F; border-radius: 14px; background: #27251F; padding: 14px; font-weight: 800; color: #ffcb73; }
+@media (prefers-reduced-motion: reduce) { .fields-crop, .fields-toast { animation: none; } }

@@ -24,7 +24,7 @@ import { TERMS_VERSION } from "../lib/terms";
 import { EditModePanel, SiteVisualEdits, TOGGLE_EDIT_MODE, useSiteEdits } from "./components/edit-mode";
 import { artOverrides } from "../lib/site-edits";
 import { CoinFlipPopup, GamesMenu, postGameAction } from "./components/chat-games";
-import { GamesTab } from "./components/casino-floor";
+import { FieldsTab } from "./components/fields-world";
 import { NewsPanel } from "./components/news-panel";
 import { ReactionButton, ReactionChips, useReactions } from "./components/reactions";
 import { isReactionTarget } from "../lib/reactions";
@@ -40,6 +40,7 @@ import {
   Backpack,
   CircleUserRound,
   Crown,
+  Sprout,
   Hammer,
   Lock,
   MessageCircle,
@@ -69,7 +70,6 @@ import {
   Clock,
   CalendarDays,
   PartyPopper,
-  Dices,
   Newspaper,
 } from "lucide-react";
 
@@ -1928,7 +1928,7 @@ function MainPage() {
     },
     { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
     // Games is only open to the admin while it is being tested.
-    ...(player.username.toLowerCase() === ADMIN_USERNAME ? [{ id: "games" as Tab, label: "Games", icon: <Dices size={20} strokeWidth={2.2} /> }] : []),
+    ...(player.username.toLowerCase() === ADMIN_USERNAME ? [{ id: "games" as Tab, label: "Fields", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
@@ -2223,7 +2223,7 @@ function MainPage() {
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
-          {tab === "games" && !kidMode && player.username.toLowerCase() === ADMIN_USERNAME && player.id && <GamesTab tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} />}
+          {tab === "games" && !kidMode && player.username.toLowerCase() === ADMIN_USERNAME && player.id && <FieldsTab player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onBreadlet={() => void refreshPlayerFromServer()} artFor={artFor} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
