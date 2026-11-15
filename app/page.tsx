@@ -3673,31 +3673,32 @@ function WheelTab({
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bde8ff]">{isGuest ? "Claim Bread Bucks · unlimited free claims" : "Claim Bread Bucks · once every hour"}</p>
           <h1 className="page-sign mt-2 text-4xl font-black">Claim Bread Bucks</h1>
         </div>
-        <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-sky-300/50 bg-[#10182b] text-lg font-black text-sky-200 shadow-lg transition hover:bg-sky-300 hover:text-slate-950">i</button>
+        <button type="button" onClick={() => setOddsOpen(true)} aria-label="View possible prizes and chances" title="Possible prizes and chances" className="odds-info-button">i</button>
       </div>
       <div className="mt-8">
         <button onClick={onClaim} className="sidebar-dark-action rounded-xl bg-amber-300 px-10 py-3 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-200">
           {locked ? `Next claim in ${waitLabel}` : "Claim Bread Bucks"}
         </button>
       </div>
-      {oddsOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm">
-        <section role="dialog" aria-modal="true" aria-labelledby="crate-odds-title" className="w-full max-w-md rounded-2xl border border-sky-300/30 bg-[#10182b] p-5 text-white shadow-2xl sm:p-6">
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300">Claim Bread Bucks</p><h2 id="crate-odds-title" className="mt-1 text-2xl font-black">Possible prizes</h2></div>
-            <button onClick={() => setOddsOpen(false)} aria-label="Close prize chances" className="flex h-10 w-10 items-center justify-center rounded-lg text-xl text-white/60 hover:bg-white/10 hover:text-white">×</button>
-          </div>
-          <div className="mt-4 space-y-2">
+      {oddsOpen && <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 py-6 backdrop-blur-sm" onClick={() => setOddsOpen(false)}>
+        <section role="dialog" aria-modal="true" aria-labelledby="crate-odds-title" className="odds-card" onClick={(event) => event.stopPropagation()}>
+          <header className="odds-header">
+            <img src="/assets/Bread%20bucks.svg" alt="" className="odds-bag" />
+            <div className="min-w-0 flex-1"><small>Claim Bread Bucks</small><h2 id="crate-odds-title">Possible prizes</h2></div>
+            <button type="button" onClick={() => setOddsOpen(false)} aria-label="Close prize chances" className="odds-close">×</button>
+          </header>
+          <div className="odds-list">
             {wheelRewards.map((reward) => {
               const rarity = wheelRarityFor(reward);
               const icon = reward.type === "tokens" ? "/assets/Bread%20bucks.svg" : materialArtFor(reward.material || "Gold");
-              return <div key={reward.label} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${rarityTileClass(rarity)}`}>
-                <img src={icon} alt="" className="h-9 w-9 shrink-0 object-contain" />
-                <span className="min-w-0 flex-1 truncate text-sm font-bold">{reward.type === "tokens" ? `${reward.amount.toLocaleString()} Bread Bucks` : `${reward.amount} ${reward.material}`}</span>
-                <span className="text-xs font-black">{reward.chance}%</span>
+              return <div key={reward.label} className="odds-row" style={{ ["--rarity" as string]: ODDS_RARITY_COLOR[rarity] || "#d8d2c4" }}>
+                <span className="odds-art"><img src={icon} alt="" className="h-full w-full object-contain" /></span>
+                <span className="odds-name"><b>{reward.type === "tokens" ? `${reward.amount.toLocaleString()} Bread Bucks` : `${reward.amount} ${reward.material}`}</b><em>{rarity}</em></span>
+                <span className="odds-chance">{reward.chance}%</span>
               </div>;
             })}
           </div>
-          <p className="mt-4 flex items-center gap-2 border-t border-white/10 pt-3 text-sm font-bold text-amber-100"><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" />Balance: {player.tokens.toLocaleString()} tokens</p>
+          <p className="odds-footer"><img src="/assets/Bread%20bucks.svg" alt="" />Balance: {player.tokens.toLocaleString()} tokens</p>
         </section>
       </div>}
     </div>
@@ -4184,6 +4185,9 @@ function ListingModal({ listing, close, buy, isGuest }: { listing: Listing; clos
   );
 }
 
+// Rarity colours for the chances popups. No blue: warm Breadlet colours only.
+const ODDS_RARITY_COLOR: Record<string, string> = { Common: "#d8d2c4", Uncommon: "#7ed957", Rare: "#ff8c42", Epic: "#c084fc", Legendary: "#fbbf24", Mythic: "#f472b6", Secret: "#ff4d4d", Unique: "#fb923c", Breadled: "#f43f5e", Chroma: "#a3e635" };
+
 function OddsModal({
   capsule,
   close,
@@ -4207,7 +4211,7 @@ function OddsModal({
             const resting = reward.rotation && !isRewardActive(reward);
             const chance = chanceFor(capsule, reward);
             return (
-              <div key={reward.name} className={`odds-row${resting ? " is-resting" : ""}`} style={{ ["--rarity" as string]: REVEAL_GLOW[reward.rarity] || "#cbd5e1" }}>
+              <div key={reward.name} className={`odds-row${resting ? " is-resting" : ""}`} style={{ ["--rarity" as string]: ODDS_RARITY_COLOR[reward.rarity] || "#d8d2c4" }}>
                 <span className="odds-art">
                   <RewardArt name={reward.name} art={reward.art || artFor(reward.name)} className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
                 </span>
