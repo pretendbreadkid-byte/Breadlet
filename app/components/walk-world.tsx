@@ -191,7 +191,7 @@ export function useWalkWorld({ room, player, world, clamp, spawn }: { room: stri
 export function WalkerSprite({ walker, isMe, artFor }: { walker: Walker; isMe: boolean; artFor: (name: string) => string }) {
   return (
     <div className={`explore-walker pointer-events-none absolute ${isMe ? "" : "explore-walker-remote"}`} style={{ left: 0, top: 0, transform: `translate3d(${walker.x}px, ${walker.y}px, 0)`, zIndex: Math.round(walker.y) }}>
-      {walker.bubble && <div className="explore-bubble absolute bottom-[84px] left-1/2 w-max max-w-[220px] -translate-x-1/2 break-words rounded-2xl border-2 border-white/80 bg-[#0b2a4d] px-3 py-2 text-center text-sm font-bold text-white shadow-lg">{walker.bubble.text}</div>}
+      {walker.bubble && <div className="explore-bubble absolute bottom-[84px] left-1/2 w-max max-w-[220px] -translate-x-1/2 break-words rounded-2xl border-2 border-white/80 bg-[#27251F] px-3 py-2 text-center text-sm font-bold text-white shadow-lg">{walker.bubble.text}</div>}
       <img src={artFor(walker.blook || "Bread Blook")} alt="" draggable={false} className="absolute bottom-0 left-1/2 h-16 w-16 max-w-none object-contain drop-shadow-lg" style={{ transform: `translateX(-50%) scaleX(${walker.facing})` }} />
       <span className={`absolute left-1/2 top-1 w-max -translate-x-1/2 rounded-full px-2 py-0.5 text-xs font-black ${isMe ? "bg-[#ED7117] text-white" : "bg-black/60 text-white"}`}>{walker.username}</span>
     </div>

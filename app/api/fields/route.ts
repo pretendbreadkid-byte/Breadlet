@@ -3,51 +3,45 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { hasAdminAccess } from '../../../lib/admin-access';
-import { DIG_TILES, PLOT_COUNT, SHOVELS_PER_HOUR, hourKey, nextHourAt, rollDigPrize, seedNamed, type DigPrize, type FieldsView, type Plot } from '../../../lib/fields';
+import { MAX_SEEDS_PER_BUY, PLOT_COUNT, SEEDS, seedNamed, type FieldsView, type Plot, type SeedName } from '../../../lib/fields';
 
 export const dynamic = 'force-dynamic';
 
-// Breadlet Fields (garden + dig site). Admin only while it's being tested. State lives in
-// breadlet_fields (migration 0101), which players can't read, so buried prizes stay secret.
-type DigState = { hour: string; buried: DigPrize[]; dug: Record<number, DigPrize> };
-type State = { plots: Plot[]; dig: DigState };
+// Breadlet Garden. Admin only while it's being tested. State lives in breadlet_fields
+// (migration 0101), which only the server can read or write.
+type State = { plots: Plot[]; seeds: Record<SeedName, number> };
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
 const random = () => randomInt(0, 1_000_000_000) / 1_000_000_000;
-const freshDig = (): DigState => ({ hour: hourKey(), buried: Array.from({ length: DIG_TILES }, () => rollDigPrize(random)), dug: {} });
 
 function normalize(raw: any): State {
   const plots: Plot[] = Array.from({ length: PLOT_COUNT }, (_, index) => {
     const plot = raw?.plots?.[index];
     return plot && seedNamed(plot.seed) && Number.isFinite(plot.plantedAt) ? { seed: plot.seed, plantedAt: plot.plantedAt } : null;
   });
-  const dig: DigState = raw?.dig?.hour === hourKey() && Array.isArray(raw.dig.buried) ? raw.dig : freshDig();
-  return { plots, dig };
+  const seeds = Object.fromEntries(SEEDS.map((seed) => [seed.name, Math.max(0, Math.floor(Number(raw?.seeds?.[seed.name]) || 0))])) as Record<SeedName, number>;
+  return { plots, seeds };
 }
 
-const view = (state: State): FieldsView => ({
-  plots: state.plots,
-  dig: { hour: state.dig.hour, dug: state.dig.dug, shovels: Math.max(0, SHOVELS_PER_HOUR - Object.keys(state.dig.dug).length), refillsAt: nextHourAt() },
-  now: Date.now(),
-});
+const view = (state: State): FieldsView => ({ plots: state.plots, seeds: state.seeds, now: Date.now() });
 
 async function session() {
   const supabase = await createClient();
   const database = createAdminClient();
-  if (!supabase || !database) return { response: fail('Fields are unavailable.', 503) };
+  if (!supabase || !database) return { response: fail('The garden is unavailable.', 503) };
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { response: fail('Sign in to play.', 401) };
-  if (!(await hasAdminAccess(database, user.id))) return { response: fail('Fields are not open yet.', 403) };
+  if (!(await hasAdminAccess(database, user.id))) return { response: fail('The garden is not open yet.', 403) };
   return { database, userId: user.id };
 }
 
 async function load(database: any, userId: string) {
   const { data, error } = await database.from('breadlet_fields').select('state, rev').eq('profile_id', userId).maybeSingle();
-  if (error) return { error: error.code === '42P01' || error.code === 'PGRST205' ? 'Apply migration 0101_breadlet_fields.sql to turn on Fields.' : error.message };
+  if (error) return { error: error.code === '42P01' || error.code === 'PGRST205' ? 'Apply migration 0101_breadlet_fields.sql to turn on the garden.' : error.message };
   return { state: normalize(data?.state), rev: data ? Number(data.rev) : -1 };
 }
 
-// Saves only if nobody else saved in between (two quick clicks can't both dig the same shovel).
+// Saves only if nobody else saved in between, so two quick clicks can't both use the same seed.
 async function save(database: any, userId: string, state: State, rev: number) {
   if (rev < 0) {
     const { error } = await database.from('breadlet_fields').insert({ profile_id: userId, state, rev: 1 });
@@ -83,12 +77,10 @@ export async function GET() {
   if ('response' in current) return current.response;
   const loaded = await load(current.database, current.userId);
   if ('error' in loaded) return fail(loaded.error!, 503);
-  // A new hour's board gets saved the first time it's seen, so its prizes are fixed from then on.
-  if (loaded.rev < 0 || loaded.state.dig.hour !== hourKey()) await save(current.database, current.userId, loaded.state, loaded.rev);
   return NextResponse.json(view(loaded.state));
 }
 
-// POST { action: 'plant', plot, seed } | { action: 'harvest', plot } | { action: 'dig', tile }
+// POST { action: 'buy', seed, amount } | { action: 'plant', plot, seed } | { action: 'harvest', plot }
 export async function POST(request: Request) {
   const current = await session();
   if ('response' in current) return current.response;
@@ -99,20 +91,32 @@ export async function POST(request: Request) {
   const { state, rev } = loaded;
   const busy = () => fail('Something changed. Try again.', 409);
 
+  if (body.action === 'buy') {
+    const seed = seedNamed(body.seed);
+    const amount = Math.floor(Number(body.amount));
+    if (!seed) return fail('Pick a seed.');
+    if (!Number.isInteger(amount) || amount < 1 || amount > MAX_SEEDS_PER_BUY) return fail(`Buy 1 to ${MAX_SEEDS_PER_BUY} seeds at a time.`);
+    const paid = await changeTokens(database, userId, -seed.cost * amount);
+    if ('error' in paid) return fail(paid.error!);
+    state.seeds[seed.name] += amount;
+    if (!(await save(database, userId, state, rev))) {
+      await changeTokens(database, userId, seed.cost * amount);
+      return busy();
+    }
+    return NextResponse.json({ ...view(state), tokens: paid.tokens, message: `Bought ${amount} ${seed.name} seed${amount === 1 ? '' : 's'}.` });
+  }
+
   if (body.action === 'plant') {
     const index = Number(body.plot);
     const seed = seedNamed(body.seed);
     if (!Number.isInteger(index) || index < 0 || index >= PLOT_COUNT) return fail('Pick a plot.');
     if (!seed) return fail('Pick a seed.');
     if (state.plots[index]) return fail('Something is already growing there.');
-    const paid = await changeTokens(database, userId, -seed.cost);
-    if ('error' in paid) return fail(paid.error!);
+    if (state.seeds[seed.name] < 1) return fail(`You have no ${seed.name} seeds. Buy some at Ted's Seed Stand.`);
+    state.seeds[seed.name] -= 1;
     state.plots[index] = { seed: seed.name, plantedAt: Date.now() };
-    if (!(await save(database, userId, state, rev))) {
-      await changeTokens(database, userId, seed.cost);
-      return busy();
-    }
-    return NextResponse.json({ ...view(state), tokens: paid.tokens, message: `Planted a ${seed.name}.` });
+    if (!(await save(database, userId, state, rev))) return busy();
+    return NextResponse.json({ ...view(state), message: `Planted a ${seed.name}.` });
   }
 
   if (body.action === 'harvest') {
@@ -131,26 +135,6 @@ export async function POST(request: Request) {
       breadlet: lucky ? seed.name : undefined,
       message: lucky ? `WOW! You grew a ${seed.name} Breadlet, plus ${seed.payout} Bread Bucks!` : `Harvested a ${seed.name} for ${seed.payout} Bread Bucks.`,
     });
-  }
-
-  if (body.action === 'dig') {
-    const tile = Number(body.tile);
-    if (!Number.isInteger(tile) || tile < 0 || tile >= DIG_TILES) return fail('Pick a spot to dig.');
-    if (state.dig.dug[tile]) return fail('You already dug there.');
-    if (Object.keys(state.dig.dug).length >= SHOVELS_PER_HOUR) return fail('Out of shovels. More next hour!');
-    const prize = state.dig.buried[tile] || { kind: 'nothing' };
-    state.dig.dug = { ...state.dig.dug, [tile]: prize };
-    if (!(await save(database, userId, state, rev))) return busy();
-    let tokens: number | undefined;
-    let message = 'Just dirt. Try another spot!';
-    if (prize.kind === 'tokens') {
-      const paid = await changeTokens(database, userId, prize.amount);
-      tokens = 'tokens' in paid ? paid.tokens : undefined;
-      message = `Dug up ${prize.amount} Bread Bucks!`;
-    } else if (prize.kind === 'breadlet') {
-      message = (await giveBreadlet(database, userId, prize.name)) ? `WOW! You dug up a ${prize.name}!` : `You found a ${prize.name}, but it crumbled. Tell an admin.`;
-    }
-    return NextResponse.json({ ...view(state), tokens, breadlet: prize.kind === 'breadlet' ? prize.name : undefined, message });
   }
 
   return fail('Unknown action.');
