@@ -108,6 +108,35 @@ export async function GET() {
     ])
   );
 
+  // Each chatter's clan, for the clan tag by their name. Never blocks chat if it fails.
+  const clanByProfile = new Map<string, { name: string; members: number; capacity: number; treasury: number; owner: string; blook: string }>();
+  try {
+    if (profileIds.length > 0) {
+      const { data: memberRows } = await database.from('clan_members').select('profile_id, clan_id').in('profile_id', profileIds);
+      const clanIds = Array.from(new Set((memberRows || []).map((row: any) => row.clan_id).filter(Boolean)));
+      if (clanIds.length > 0) {
+        const { data: clanRows } = await database.from('clans').select('id, name, treasury, member_count, member_capacity, owner_profile_id, profile_blook').in('id', clanIds);
+        const ownerIds = Array.from(new Set((clanRows || []).map((clan: any) => clan.owner_profile_id).filter(Boolean)));
+        const { data: ownerRows } = ownerIds.length > 0 ? await database.from('profiles').select('id, username').in('id', ownerIds) : { data: [] as any[] };
+        const ownerNames = new Map((ownerRows || []).map((owner: any) => [owner.id, owner.username]));
+        const clans = new Map((clanRows || []).map((clan: any) => [clan.id, {
+          name: String(clan.name || 'Clan'),
+          members: Number(clan.member_count) || 1,
+          capacity: Number(clan.member_capacity) || 0,
+          treasury: Number(clan.treasury) || 0,
+          owner: String(ownerNames.get(clan.owner_profile_id) || ''),
+          blook: typeof clan.profile_blook === 'string' ? clan.profile_blook : '',
+        }]));
+        for (const row of memberRows || []) {
+          const clan = clans.get(row.clan_id);
+          if (clan && !clanByProfile.has(row.profile_id)) clanByProfile.set(row.profile_id, clan);
+        }
+      }
+    }
+  } catch (clanError) {
+    console.error('[CHAT_GET] Clan lookup failed:', clanError);
+  }
+
   // Format the messages for the game.
   const normalized = messages.map((row: any) => {
     const profile = profileMap.get(row.profile_id);
@@ -170,6 +199,7 @@ export async function GET() {
 
       user: username,
       equippedBlook,
+      clan: isBreadletBot ? null : clanByProfile.get(row.profile_id) || null,
       badges: isBreadletBot ? [] : badges,
       isBreadletBot,
       canMute: viewerCanMute &&!isBreadletBot && Boolean(profile) && row.profile_id !== viewer?.id && !isProtectedFromMute(profile?.username),

@@ -367,8 +367,8 @@ const artFor = (name: string) =>
     Sandwich: "/assets/sandwich.svg",
     Butterfly: "/assets/butterfly (1).svg",
     Blackbeard: "/assets/captainblackbeard (1).svg",
-    Rock: "/assets/rock-refreshed.svg",
-    Button: "/assets/Lost and found + food pack/button.svg",
+    Rock: "/assets/rock-3.svg",
+    Button: "/assets/button-3.svg",
     "Car Keys": "/assets/Lost and found + food pack/car keys .svg",
     "Hand Mirror": "/assets/hand-mirror.svg",
     Hat: "/assets/Lost and found + food pack/hat.svg",
@@ -4343,10 +4343,34 @@ function SimplePanel({
   );
 }
 
+type ChatClan = { name: string; members: number; capacity: number; treasury: number; owner: string; blook: string };
+
+// The [Clan] tag by a name in chat. Click it to see the clan's card.
+function ChatClanTag({ clan }: { clan: ChatClan }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="chat-clan">
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} title={`${clan.name} clan`} className="chat-clan-tag">[{clan.name}]</button>
+      {open && <>
+        <button type="button" aria-label="Close clan info" className="chat-clan-backdrop" onClick={() => setOpen(false)} />
+        <span role="dialog" aria-label={`${clan.name} clan`} className="chat-clan-card">
+          <span className="chat-clan-art">{clan.blook ? <BlookImg name={clan.blook} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span>
+          <span className="chat-clan-info">
+            <b>{clan.name}</b>
+            {clan.owner && <span><Crown size={14} /> Owned by {clan.owner}</span>}
+            <span><Users size={14} /> {clan.members}{clan.capacity ? `/${clan.capacity}` : ""} members</span>
+            <span><img src="/assets/Bread%20bucks.svg" alt="" /> {clan.treasury.toLocaleString()}</span>
+          </span>
+        </span>
+      </>}
+    </span>
+  );
+}
+
 function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis, refreshPlayer, jumpTo = "", clearJump = () => undefined }: { jumpTo?: string; clearJump?: () => void; refreshPlayer: () => void | Promise<void>; emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
-  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; evilAi?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
+  const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; clan?: ChatClan | null; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; evilAi?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
     { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
   ]);
   const messagesRef = useRef(messages);
@@ -4523,6 +4547,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 user: username,
                 text: row.message,
                 equippedBlook: row.equippedBlook || "",
+                clan: row.clan && typeof row.clan.name === "string" ? row.clan as ChatClan : null,
                 isBreadletBot: row.isBreadletBot === true,
                 canDelete: row.canDelete === true,
                 canMute: row.canMute === true,
@@ -4870,6 +4895,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
               </button>
               <div className="min-w-0 flex-1">
                 <div className="chat-group-header">
+                  {latestItem.clan && <ChatClanTag clan={latestItem.clan} />}
                   <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="chat-username hover:underline disabled:cursor-default disabled:no-underline">{group.user}{group.isBreadletBot ? " 🤖" : ""}</button>
                   {(group.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : latestItem.badges || []).map((badge) => (
                     <button key={badge} onClick={() => showBadge(badge)} title={badge} className="chat-badge">
