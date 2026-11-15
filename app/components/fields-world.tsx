@@ -6,10 +6,10 @@
 // plant. Everything that costs or pays is decided by /api/fields.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Link2, Sprout, Users } from "lucide-react";
+import { ArrowLeft, Gift, Hand, Link2, ShoppingBasket, Sprout, Users } from "lucide-react";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
-import { DAILY_EARN_LIMIT, MAX_SEEDS_PER_BUY, SEEDS, gardenInviteLink, seedNamed, type FieldsView, type SeedName } from "../../lib/fields";
-import { Ambient, BedArt, gardenCollide, CropArt, GARDEN, GATE, Meadow, PLOTS, STAND, SeedStand, WORLD } from "./garden-art";
+import { DAILY_EARN_LIMIT, MAX_BASKET, MAX_SEEDS_PER_BUY, SEEDS, cropValue, gardenInviteLink, seedNamed, sizeLabel, type Crop, type FieldsView, type SeedName } from "../../lib/fields";
+import { Ambient, BedArt, gardenCollide, CropArt, cropImage, GARDEN, GATE, Meadow, PLOTS, STAND, SeedStand, WORLD } from "./garden-art";
 
 const REACH = 130;
 
@@ -31,7 +31,8 @@ const SEED_ART: Record<SeedName, string> = {
   "Pumpkin Dragon": "/assets/garden/seed-pumpkin-dragon.svg",
 };
 
-type GardenResponse = FieldsView & { tokens?: number; message?: string; breadlet?: string; payout?: number };
+type GardenResponse = FieldsView & { tokens?: number; message?: string; breadlet?: string; payout?: number; crop?: Crop };
+const cropName = (crop: Crop) => `${sizeLabel(crop.size)} ${crop.seed}`;
 
 export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onExit, artFor }: {
   player: { id: string; username: string; equipped: string; chatMutedUntil?: string };
@@ -52,7 +53,12 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [selected, setSelected] = useState<SeedName>("Carrot");
   const [now, setNow] = useState(Date.now());
-  const [floaters, setFloaters] = useState<{ id: number; x: number; y: number; text: string; kind: "coins" | "puff" }[]>([]);
+  const [floaters, setFloaters] = useState<{ id: number; x: number; y: number; text: string; kind: "coins" | "puff" | "crop"; seed?: SeedName }[]>([]);
+  const [basketOpen, setBasketOpen] = useState(false);
+  // The crop in your hand (the extra hotbar slot). Hover a player while holding one to give it.
+  const [heldId, setHeldId] = useState<string | null>(null);
+  const [giveTo, setGiveTo] = useState<string | null>(null);
+  const seenCropsRef = useRef<Set<string> | null>(null);
   const skewRef = useRef(0);
   const pendingRef = useRef<Target | null>(null);
 
@@ -67,7 +73,13 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
 
   const apply = useCallback((data: GardenResponse, quiet = false) => {
     skewRef.current = data.now - Date.now();
-    setFields(data);
+    // Someone gave you a crop since the last refresh: say so.
+    const crops = data.crops || [];
+    const seen = seenCropsRef.current;
+    const gift = seen && crops.find((crop) => crop.from && !seen.has(crop.id));
+    seenCropsRef.current = new Set(crops.map((crop) => crop.id));
+    setFields({ ...data, crops });
+    if (gift && !data.message) setToast(`${gift.from} gave you a ${cropName(gift)}!`);
     if (typeof data.tokens === "number") onBalance(data.tokens);
     if (data.breadlet) onBreadlet();
     if (data.message && !quiet) setToast(data.message);
@@ -110,9 +122,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     return null;
   };
 
-  const float = (x: number, y: number, text: string, kind: "coins" | "puff" = "coins") => {
+  const float = (x: number, y: number, text: string, kind: "coins" | "puff" | "crop" = "coins", seed?: SeedName) => {
     const id = Date.now() + Math.random();
-    setFloaters((list) => [...list, { id, x, y, text, kind }]);
+    setFloaters((list) => [...list, { id, x, y, text, kind, seed }]);
     window.setTimeout(() => setFloaters((list) => list.filter((item) => item.id !== id)), 1400);
   };
 
@@ -142,7 +154,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
       const planter = plot.plantedBy || fields.owner.id;
       if (planter !== player.id) return setToast(`That's ${plot.plantedByName || fields.owner.username}'s ${seed.name}.`);
       if (now < plot.plantedAt + seed.growMs) return setToast(`${seed.name} is still growing: ${clock(plot.plantedAt + seed.growMs - now)} left.`);
-      void post({ action: "harvest", plot: target.index }).then((data) => data && float(spot.x, spot.y - 60, `+${data.payout ?? seed.payout}`));
+      void post({ action: "harvest", plot: target.index }).then((data) => data?.crop && float(spot.x, spot.y - 60, cropName(data.crop), "crop", data.crop.seed));
       return;
     }
     if (!fields.canPlant) return setToast(`Ask ${fields.owner.username} to let you plant here.`);
@@ -197,9 +209,10 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (["INPUT", "TEXTAREA"].includes((event.target as HTMLElement)?.tagName)) return;
-      if (event.key === "Escape") { setShopOpen(false); setPeopleOpen(false); return; }
+      if (event.key === "Escape") { setShopOpen(false); setPeopleOpen(false); setBasketOpen(false); setGiveTo(null); return; }
       const number = Number(event.key);
       if (number >= 1 && number <= SEEDS.length) return setSelected(SEEDS[number - 1].name);
+      if (number === SEEDS.length + 1 || event.key.toLowerCase() === "b") return setBasketOpen((open) => !open);
       if (event.key.toLowerCase() !== "e" && event.key !== " ") return;
       event.preventDefault();
       if (shopOpen) return;
@@ -214,8 +227,21 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     const seed = plot && seedNamed(plot.seed);
     if (!plot || !seed) return fields && !fields.canPlant ? `Only players ${fields.owner.username} allows can plant here` : `Press E to plant a ${selected} seed`;
     if ((plot.plantedBy || fields?.owner.id) !== player.id) return `${plot.plantedByName || fields?.owner.username}'s ${seed.name}`;
-    return now >= plot.plantedAt + seed.growMs ? `Press E to harvest your ${seed.name}` : `${seed.name} ready in ${clock(plot.plantedAt + seed.growMs - now)}`;
+    return now >= plot.plantedAt + seed.growMs ? `Press E to pick your ${plot.size ? sizeLabel(plot.size) + " " : ""}${seed.name}` : `${seed.name} ready in ${clock(plot.plantedAt + seed.growMs - now)}`;
   })();
+
+  const crops = fields?.crops || [];
+  const held = crops.find((crop) => crop.id === heldId) || null;
+  // A held crop that got sold or given away leaves your hand.
+  useEffect(() => { if (heldId && fields && !held) setHeldId(null); }, [heldId, fields, held]);
+  useEffect(() => { if (!held) setGiveTo(null); }, [held]);
+  const basketValue = crops.reduce((total, crop) => total + cropValue(crop.seed, crop.size), 0);
+  const sell = (body: Record<string, unknown>) => void post({ action: "sell", ...body }).then((data) => data?.payout && float(me.x, me.y - 90, `+${data.payout}`));
+  const give = (profileId: string) => {
+    if (!held) return;
+    const friend = others[profileId];
+    void post({ action: "give", crop: held.id, profileId }).then((data) => { if (data) { setGiveTo(null); if (friend) float(friend.x, friend.y - 90, "", "crop", held.seed); } });
+  };
 
   // Owners pick who can plant: everyone here right now, plus anyone already allowed.
   const visitors = useMemo(() => {
@@ -247,7 +273,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                 aria-label={!plot ? "Empty bed: plant a seed" : ready ? `Harvest ${plot.seed}` : `${plot.seed} growing`}
                 className={`garden-plot${ready ? " is-ready" : ""}${isNearest ? " is-near" : ""}`} style={{ left: spot.x, top: spot.y, zIndex: 5 }}>
                 <BedArt />
-                {plot && seed && <CropArt seed={seed.name} progress={progress} />}
+                {plot && seed && <CropArt seed={seed.name} progress={progress} size={plot.size} />}
                 {ready && <span className="garden-sparkles" aria-hidden="true"><i /><i /><i /><i /></span>}
                 {plot && !ready && <span className="garden-timer">{theirs ? `${plot.plantedByName || "Friend"} · ` : ""}{clock(plot.plantedAt + (seed?.growMs || 0) - now)}</span>}
                 {plot && ready && <span className="garden-ready">{theirs ? `${plot.plantedByName || "Friend"}'s` : "Ready!"}</span>}
@@ -258,8 +284,24 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
 
           <Ambient />
           {walkers.map((walker) => <WalkerSprite key={walker.id} walker={walker} isMe={walker.id === player.id} artFor={artFor} />)}
+          {held && <img src={cropImage(held.seed)} alt="" className="garden-held" style={{ left: me.x + 30 * me.facing, top: me.y - 34, zIndex: Math.round(me.y) + 1 }} draggable={false} />}
+          {held && Object.values(others).map((walker) => (
+            <div key={walker.id} className="garden-give" style={{ left: walker.x, top: walker.y, zIndex: 3000 + Math.round(walker.y) }}
+              onPointerEnter={() => setGiveTo(walker.id)} onPointerLeave={() => setGiveTo((id) => (id === walker.id ? null : id))} onPointerDown={(event) => { event.stopPropagation(); setGiveTo(walker.id); }}>
+              <span className="garden-give-hit" aria-hidden="true" />
+              {giveTo === walker.id && (
+                <div className="garden-give-pop" role="dialog" aria-label={`Give to ${walker.username}`}>
+                  <img src={cropImage(held.seed)} alt="" />
+                  <span>Give your <b>{cropName(held)}</b> to <b>{walker.username}</b>?</span>
+                  <button type="button" disabled={busy} onClick={() => give(walker.id)}><Gift size={16} />Give</button>
+                </div>
+              )}
+            </div>
+          ))}
           {floaters.map((item) => item.kind === "puff"
             ? <span key={item.id} className="garden-puff" style={{ left: item.x, top: item.y }} aria-hidden="true"><i /><i /><i /><i /><i /></span>
+            : item.kind === "crop" && item.seed
+            ? <span key={item.id} className="garden-floater" style={{ left: item.x, top: item.y }}><img src={cropImage(item.seed)} alt="" className="garden-floater-crop" />{item.text}</span>
             : <span key={item.id} className="garden-floater" style={{ left: item.x, top: item.y }}><span className="garden-burst" aria-hidden="true"><i /><i /><i /><i /><i /><i /></span><img src="/assets/Bread%20bucks.svg" alt="" />{item.text}</span>)}
         </div>
       </div>
@@ -301,9 +343,53 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
               <small>{index + 1}</small>
             </button>
           ))}
+          <span className="garden-pouch-divider" aria-hidden="true" />
+          <button type="button" onClick={() => setBasketOpen((open) => !open)} className={`garden-pouch-slot garden-hand-slot${held ? " is-holding" : ""}${basketOpen ? " is-selected" : ""}`} title={held ? `Holding a ${cropName(held)}. Hover a player to give it (${SEEDS.length + 1})` : `Basket: pick a crop to hold (${SEEDS.length + 1})`}>
+            {held ? <img src={cropImage(held.seed)} alt="" /> : <Hand size={30} />}
+            <b>{crops.length}</b>
+            <small>{SEEDS.length + 1}</small>
+          </button>
         </div>
         <div className="garden-chat"><WalkChat placeholder="Say something…" say={say} buttonClassName="garden-say" /></div>
       </div>
+
+      {basketOpen && fields && (
+        <div className="garden-shop-layer" onPointerDown={() => setBasketOpen(false)}>
+          <section role="dialog" aria-modal="true" aria-labelledby="garden-basket-title" className="garden-shop garden-basket" onPointerDown={(event) => event.stopPropagation()}>
+            <header>
+              <span className="garden-basket-icon"><ShoppingBasket size={34} /></span>
+              <div><small>{crops.length} / {MAX_BASKET} crops</small><h2 id="garden-basket-title">Your basket</h2></div>
+              <button type="button" onClick={() => setBasketOpen(false)} aria-label="Close">×</button>
+            </header>
+            {crops.length === 0
+              ? <p className="garden-basket-empty">Nothing here yet. Grow something and pick it to fill your basket!</p>
+              : (
+                <>
+                  <div className="garden-basket-all">
+                    <span>Bigger crops sell for more. Hold one, then hover a player to give it to them.</span>
+                    <button type="button" disabled={busy} onClick={() => sell({ all: true })}>Sell all<img src="/assets/Bread%20bucks.svg" alt="" />{basketValue.toLocaleString()}</button>
+                  </div>
+                  <div className="garden-shop-list">
+                    {crops.map((crop) => (
+                      <div key={crop.id} className={`garden-shop-row${crop.id === heldId ? " is-held" : ""}`}>
+                        <span className="garden-shop-art"><img src={cropImage(crop.seed)} alt="" style={{ scale: String(0.7 + crop.size * 0.25) }} /></span>
+                        <span className="garden-shop-info">
+                          <b>{cropName(crop)}</b>
+                          <small>Size {crop.size}x · sells for <em>{cropValue(crop.seed, crop.size)}</em></small>
+                          {crop.from && <small>A gift from {crop.from}</small>}
+                        </span>
+                        <span className="garden-shop-buy">
+                          <button type="button" onClick={() => { setHeldId(crop.id === heldId ? null : crop.id); if (crop.id !== heldId) setBasketOpen(false); }}>{crop.id === heldId ? "Put away" : "Hold"}</button>
+                          <button type="button" disabled={busy} onClick={() => sell({ crop: crop.id })}>Sell<img src="/assets/Bread%20bucks.svg" alt="" />{cropValue(crop.seed, crop.size)}</button>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+          </section>
+        </div>
+      )}
 
       {shopOpen && fields && (
         <div className="garden-shop-layer" onPointerDown={() => setShopOpen(false)}>
@@ -319,7 +405,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                   <span className="garden-shop-art"><img src={SEED_ART[seed.name]} alt="" /></span>
                   <span className="garden-shop-info">
                     <b>{seed.name} seed</b>
-                    <small>Grows in {clock(seed.growMs)} · sells for <em>{seed.payout}</em></small>
+                    <small>Grows in {clock(seed.growMs)} · sells for about <em>{seed.payout}</em> (more if it grows big)</small>
                     <small>You have {fields.seeds[seed.name]}</small>
                   </span>
                   <span className="garden-shop-buy">

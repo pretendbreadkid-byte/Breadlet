@@ -345,11 +345,15 @@ const CROP_FRAMES: Record<SeedName, string[]> = {
   "Pumpkin Dragon": frames("pumpkin-dragon", 4),
 };
 
-export function CropArt({ seed, progress }: { seed: SeedName; progress: number }) {
+// The fully grown picture of a crop (for the basket and your hand).
+export const cropImage = (seed: SeedName) => CROP_FRAMES[seed][CROP_FRAMES[seed].length - 1];
+
+// size: once it's grown the crop shows at its size (a bit toned down so giants still fit the bed).
+export function CropArt({ seed, progress, size = 1 }: { seed: SeedName; progress: number; size?: number }) {
   const list = CROP_FRAMES[seed];
   const ready = progress >= 1;
   const frame = ready ? list.length - 1 : Math.min(list.length - 2, Math.floor(progress * (list.length - 1)));
-  return <img src={list[frame]} alt="" className={`garden-growth${ready ? " is-ready" : ""}`} draggable={false} />;
+  return <img src={list[frame]} alt="" className={`garden-growth${ready ? " is-ready" : ""}`} style={ready ? { scale: String(0.75 + size * 0.3) } : undefined} draggable={false} />;
 }
 
 export function SeedStand({ near }: { near: boolean }) {

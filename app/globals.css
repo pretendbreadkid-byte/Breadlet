@@ -3685,3 +3685,28 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
   main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-footer { gap: 16px; padding-top: 10px; padding-bottom: 10px; }
   main.breadlet-blue-theme > aside.breadlet-sidebar .other-projects-link { font-size: 10px; }
 }
+
+/* Garden basket, the hand slot, the crop you're holding and the give pop-up. */
+.garden-pouch-divider { width: 4px; align-self: stretch; margin: 4px 2px; border-radius: 4px; background: #3B1F0E; opacity: .5; }
+.garden-hand-slot { color: #8a5a2b; }
+.garden-hand-slot.is-holding { background: #ffe9c7; box-shadow: 0 0 0 3px #F0894A, inset 0 -5px 0 rgba(59, 31, 14, .15); }
+.garden-basket-icon { display: grid; width: 58px; height: 58px; place-items: center; border: 3px solid #fff; border-radius: 16px; background: #c27b3e; color: #fff; }
+.garden-basket .garden-shop-list { max-height: min(56vh, 460px); overflow-y: auto; }
+.garden-basket-empty { margin: 0; padding: 22px 18px; text-align: center; font-weight: 800; color: #e9d9c4; }
+.garden-basket-all { display: flex; align-items: center; gap: 10px; padding: 10px 12px 0; font-size: .8rem; font-weight: 800; color: #d8c3a8; }
+.garden-basket-all span { flex: 1; }
+.garden-basket-all button { display: flex; flex: none; align-items: center; gap: 5px; border: 3px solid #13120F; border-radius: 12px; background: #7ed957; padding: 6px 12px; font-weight: 900; color: #13120F; box-shadow: 0 3px 0 #13120F; }
+.garden-basket-all button img { width: 18px; height: 18px; }
+.garden-basket-all button:disabled { opacity: .5; }
+.garden-shop-row.is-held { box-shadow: 0 0 0 3px #F0894A, 0 4px 0 #13120F; }
+.garden-floater-crop { width: 44px !important; height: 44px !important; object-fit: contain; }
+.garden-held { position: absolute; width: 40px; height: 40px; object-fit: contain; pointer-events: none; transform: translate(-50%, -50%) rotate(-12deg); filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .25)); }
+.garden-give { position: absolute; width: 0; height: 0; }
+.garden-give-hit { position: absolute; left: -38px; top: -84px; width: 76px; height: 90px; border-radius: 18px; cursor: pointer; }
+.garden-give:hover .garden-give-hit { box-shadow: 0 0 0 3px #ffe27a; background: rgba(255, 226, 122, .12); }
+.garden-give-pop { position: absolute; left: 0; bottom: 76px; display: flex; width: max-content; max-width: 240px; align-items: center; gap: 8px; border: 4px solid #13120F; border-radius: 16px; background: #1b1a16; padding: 8px 10px; font-size: .85rem; font-weight: 800; color: #fff; box-shadow: 0 5px 0 #13120F, 0 12px 24px rgba(0, 0, 0, .35); transform: translateX(-50%); animation: link-popup-in .18s cubic-bezier(.2, 1.4, .4, 1) both; }
+.garden-give-pop::after { content: ""; position: absolute; left: 50%; bottom: -14px; width: 0; height: 0; border: 8px solid transparent; border-top-color: #13120F; transform: translateX(-50%); }
+.garden-give-pop img { width: 38px; height: 38px; flex: none; object-fit: contain; }
+.garden-give-pop b { color: #ffe27a; }
+.garden-give-pop button { display: flex; flex: none; align-items: center; gap: 4px; border: 3px solid #13120F; border-radius: 10px; background: #F0894A; padding: 4px 10px; font-weight: 900; color: #fff; box-shadow: 0 3px 0 #13120F; }
+.garden-give-pop button:disabled { opacity: .5; }

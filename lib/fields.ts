@@ -24,8 +24,21 @@ export const MAX_HELPERS = 20;
 // (a lucky Breadlet still drops).
 export const DAILY_EARN_LIMIT = 1000;
 export const gardenDay = (time = Date.now()) => new Date(time).toISOString().slice(0, 10);
-// plantedBy: who planted it (they're the one who harvests it and gets paid).
-export type Plot = { seed: SeedName; plantedAt: number; plantedBy?: string; plantedByName?: string } | null;
+// plantedBy: who planted it (they're the one who harvests it). size: how big it grows (rolled when
+// planted, shown once it's grown); bigger crops sell for more.
+export type Plot = { seed: SeedName; plantedAt: number; plantedBy?: string; plantedByName?: string; size?: number } | null;
+
+// Harvests go into your basket instead of selling straight away. Sell them one by one or all at once
+// at the garden, hold one in your hand, or give it to another player. from: who gave it to you.
+export type Crop = { id: string; seed: SeedName; size: number; from?: string };
+export const MAX_BASKET = 60;
+
+// Sizes run 0.6x to 2x, mostly near the small end, so a giant one is a nice surprise.
+export const MIN_SIZE = 0.6;
+export const MAX_SIZE = 2;
+export const rollSize = (random: number) => Math.round((MIN_SIZE + (MAX_SIZE - MIN_SIZE) * random ** 2) * 100) / 100;
+export const cropValue = (seed: SeedName, size: number) => Math.max(1, Math.round((seedNamed(seed)?.payout || 0) * size));
+export const sizeLabel = (size: number) => size >= 1.8 ? "Giant" : size >= 1.45 ? "Huge" : size >= 1.15 ? "Big" : size >= 0.85 ? "Normal" : size >= 0.7 ? "Small" : "Tiny";
 
 export type GardenPerson = { id: string; username: string };
 export type FieldsView = {
@@ -36,6 +49,8 @@ export type FieldsView = {
   plots: Plot[];
   // The viewer's own seed pouch (seeds are yours, whoever's garden you're in).
   seeds: Record<SeedName, number>;
+  // The viewer's basket of harvested crops.
+  crops: Crop[];
   // Bread Bucks the viewer has earned from gardens today.
   earnedToday: number;
   now: number;

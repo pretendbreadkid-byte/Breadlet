@@ -4,7 +4,7 @@ import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { hasAdminAccess } from '../../../lib/admin-access';
 import { isKidAccount } from '../../../lib/kid-mode';
-import { DAILY_EARN_LIMIT, MAX_HELPERS, MAX_SEEDS_PER_BUY, PLOT_COUNT, SEEDS, gardenDay, seedNamed, type FieldsView, type GardenPerson, type Plot, type SeedName } from '../../../lib/fields';
+import { DAILY_EARN_LIMIT, MAX_BASKET, MAX_HELPERS, MAX_SEEDS_PER_BUY, MAX_SIZE, MIN_SIZE, PLOT_COUNT, SEEDS, cropValue, gardenDay, rollSize, seedNamed, sizeLabel, type Crop, type FieldsView, type GardenPerson, type Plot, type SeedName } from '../../../lib/fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,22 +12,29 @@ export const dynamic = 'force-dynamic';
 // the server can read or write). Owning a garden is admin only while it's tested; anyone signed in
 // (not a kid account) can visit one from an invite link, and plant there if the owner allows it.
 // earned: Bread Bucks this player earned from gardens on that day (it lives in their own row).
-type State = { plots: Plot[]; seeds: Record<SeedName, number>; helpers: string[]; earned: { day: string; amount: number } };
+// crops: the basket of harvested crops waiting to be sold or given away.
+type State = { plots: Plot[]; seeds: Record<SeedName, number>; helpers: string[]; earned: { day: string; amount: number }; crops: Crop[] };
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
 const random = () => randomInt(0, 1_000_000_000) / 1_000_000_000;
 const isId = (value: unknown) => typeof value === 'string' && /^[0-9a-f-]{36}$/i.test(value);
+const isSize = (value: unknown) => typeof value === 'number' && value >= MIN_SIZE && value <= MAX_SIZE;
+const newCropId = () => `${Date.now().toString(36)}${randomInt(0, 2 ** 32).toString(36)}`;
 
 function normalize(raw: any): State {
   const plots: Plot[] = Array.from({ length: PLOT_COUNT }, (_, index) => {
     const plot = raw?.plots?.[index];
     if (!plot || !seedNamed(plot.seed) || !Number.isFinite(plot.plantedAt)) return null;
-    return { seed: plot.seed, plantedAt: plot.plantedAt, plantedBy: isId(plot.plantedBy) ? plot.plantedBy : undefined, plantedByName: typeof plot.plantedByName === 'string' ? plot.plantedByName.slice(0, 40) : undefined };
+    return { seed: plot.seed, plantedAt: plot.plantedAt, plantedBy: isId(plot.plantedBy) ? plot.plantedBy : undefined, plantedByName: typeof plot.plantedByName === 'string' ? plot.plantedByName.slice(0, 40) : undefined, size: isSize(plot.size) ? plot.size : undefined };
   });
   const seeds = Object.fromEntries(SEEDS.map((seed) => [seed.name, Math.max(0, Math.floor(Number(raw?.seeds?.[seed.name]) || 0))])) as Record<SeedName, number>;
   const helpers = Array.isArray(raw?.helpers) ? raw.helpers.filter(isId).slice(0, MAX_HELPERS) : [];
   const earned = { day: typeof raw?.earned?.day === 'string' ? raw.earned.day : '', amount: Math.max(0, Math.floor(Number(raw?.earned?.amount) || 0)) };
-  return { plots, seeds, helpers, earned };
+  const crops: Crop[] = (Array.isArray(raw?.crops) ? raw.crops : [])
+    .filter((crop: any) => crop && typeof crop.id === 'string' && seedNamed(crop.seed) && isSize(crop.size))
+    .slice(0, MAX_BASKET)
+    .map((crop: any) => ({ id: crop.id.slice(0, 40), seed: crop.seed, size: crop.size, from: typeof crop.from === 'string' ? crop.from.slice(0, 40) : undefined }));
+  return { plots, seeds, helpers, earned, crops };
 }
 
 async function session(gardenParam: unknown) {
@@ -95,7 +102,7 @@ async function buildView(database: any, current: { userId: string; owner: Garden
     const { data } = await database.from('profiles').select('id, username').in('id', garden.helpers);
     helpers = (data || []).map((row: any) => ({ id: row.id, username: String(row.username || 'Player') }));
   }
-  return { owner: current.owner, isOwner, canPlant: isOwner || garden.helpers.includes(current.userId), helpers, plots: garden.plots, seeds: mine.seeds, earnedToday: earnedToday(mine), now: Date.now() };
+  return { owner: current.owner, isOwner, canPlant: isOwner || garden.helpers.includes(current.userId), helpers, plots: garden.plots, seeds: mine.seeds, crops: mine.crops, earnedToday: earnedToday(mine), now: Date.now() };
 }
 
 // GET ?garden=<owner id> (no garden = your own).
@@ -111,6 +118,7 @@ export async function GET(request: Request) {
 
 // POST { garden?, action: 'buy', seed, amount } | { garden?, action: 'plant', plot, seed }
 //    | { garden?, action: 'harvest', plot } | { action: 'permit', profileId, allow }  (owner only)
+//    | { action: 'sell', crop } | { action: 'sell', all: true } | { action: 'give', crop, profileId }
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const current = await session(body.garden);
@@ -163,7 +171,7 @@ export async function POST(request: Request) {
     // The seed comes out of your pouch first; if the plot can't be saved, it goes back.
     mine.state.seeds[seed.name] -= 1;
     if (!isOwner && !(await save(database, userId, mine.state, mine.rev))) return busy();
-    garden.state.plots[index] = { seed: seed.name, plantedAt: Date.now(), plantedBy: userId, plantedByName: current.username };
+    garden.state.plots[index] = { seed: seed.name, plantedAt: Date.now(), plantedBy: userId, plantedByName: current.username, size: rollSize(random()) };
     if (!(await save(database, owner.id, garden.state, garden.rev))) {
       if (!isOwner) {
         const refund = await load(database, userId);
@@ -174,6 +182,23 @@ export async function POST(request: Request) {
     return respond({ message: `Planted a ${seed.name}.` });
   }
 
+  // Saves a change to your own row. In your own garden that's the garden row too. If something else
+  // saved in between, it reloads and tries again. Returns an error message, or '' when it worked.
+  const saveMine = async (change: (state: State) => string | void) => {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const fresh = attempt === 0 ? mine : await load(database, userId);
+      if ('error' in fresh) return fresh.error!;
+      const problem = change(fresh.state);
+      if (problem) return problem;
+      if (await save(database, userId, fresh.state, fresh.rev)) {
+        mine.state = fresh.state;
+        if (isOwner) garden.state = fresh.state;
+        return '';
+      }
+    }
+    return 'Something changed. Try again.';
+  };
+
   if (body.action === 'harvest') {
     const index = Number(body.plot);
     const plot = Number.isInteger(index) ? garden.state.plots[index] : null;
@@ -183,34 +208,103 @@ export async function POST(request: Request) {
     const planter = plot.plantedBy || owner.id;
     if (planter !== userId) return fail(`That's ${plot.plantedByName || owner.username}'s ${seed.name}. Only they can harvest it.`, 403);
     if (Date.now() < plot.plantedAt + seed.growMs) return fail(`Your ${seed.name} isn't ready yet.`);
-    // Pay up to what's left of today's limit, and count it in the harvester's own row.
-    const already = earnedToday(mine.state);
-    const pay = Math.max(0, Math.min(seed.payout, DAILY_EARN_LIMIT - already));
-    mine.state.earned = { day: gardenDay(), amount: already + pay };
+    if (mine.state.crops.length >= MAX_BASKET) return fail(`Your basket is full (${MAX_BASKET} crops). Sell or give some away first.`);
+    const crop: Crop = { id: newCropId(), seed: seed.name, size: plot.size ?? rollSize(random()) };
+    // Your own garden: one save clears the plot and fills your basket. A friend's: their plot first, then your basket.
     garden.state.plots[index] = null;
-    // Your own garden: one save covers the plot and your earnings. A friend's: their plot first, then your row.
-    if (!(await save(database, owner.id, garden.state, garden.rev))) return busy();
-    if (!isOwner) {
-      let saved = await save(database, userId, mine.state, mine.rev);
-      for (let attempt = 0; !saved && attempt < 3; attempt += 1) {
-        const fresh = await load(database, userId);
-        if ('error' in fresh) break;
-        fresh.state.earned = { day: gardenDay(), amount: earnedToday(fresh.state) + pay };
-        mine.state = fresh.state;
-        saved = await save(database, userId, fresh.state, fresh.rev);
-      }
+    if (isOwner) {
+      garden.state.crops.push(crop);
+      if (!(await save(database, owner.id, garden.state, garden.rev))) return busy();
+    } else {
+      if (!(await save(database, owner.id, garden.state, garden.rev))) return busy();
+      const problem = await saveMine((state) => { state.crops.push(crop); });
+      if (problem) return fail(problem, 409);
     }
-    const paid = pay > 0 ? await changeTokens(database, userId, pay) : {};
     const lucky = random() < seed.breadletChance && (await giveBreadlet(database, userId, seed.name));
-    const capped = pay < seed.payout;
-    const cash = pay > 0 ? `${pay} Bread Bucks` : 'no Bread Bucks';
+    const what = `${sizeLabel(crop.size)} ${seed.name} (${crop.size}x)`;
+    return respond({
+      breadlet: lucky ? seed.name : undefined,
+      crop,
+      message: lucky ? `WOW! You grew a ${seed.name} Breadlet, and a ${what} went in your basket!` : `A ${what} went in your basket. It sells for ${cropValue(seed.name, crop.size)}.`,
+    });
+  }
+
+  // Sell one crop, or the whole basket. The daily garden limit counts here now, not at harvest.
+  if (body.action === 'sell') {
+    let pay = 0;
+    let sold = 0;
+    let left = 0;
+    const problem = await saveMine((state) => {
+      const already = earnedToday(state);
+      let room = DAILY_EARN_LIMIT - already;
+      if (room <= 0) return `You've hit today's ${DAILY_EARN_LIMIT.toLocaleString()} Bread Bucks garden limit. Your crops will keep until tomorrow.`;
+      const picked = body.all ? state.crops.map((crop) => crop.id) : [String(body.crop || '')];
+      if (!body.all && !state.crops.some((crop) => crop.id === picked[0])) return 'That crop is not in your basket.';
+      pay = 0;
+      sold = 0;
+      const keep: Crop[] = [];
+      for (const crop of state.crops) {
+        if (picked.includes(crop.id) && room > 0) {
+          const value = Math.min(room, cropValue(crop.seed, crop.size));
+          pay += value;
+          room -= value;
+          sold += 1;
+        } else keep.push(crop);
+      }
+      if (!sold) return 'Your basket is empty.';
+      left = keep.length;
+      state.crops = keep;
+      state.earned = { day: gardenDay(), amount: already + pay };
+    });
+    if (problem) return fail(problem);
+    const paid = await changeTokens(database, userId, pay);
+    const capped = earnedToday(mine.state) >= DAILY_EARN_LIMIT;
     return respond({
       tokens: 'tokens' in paid ? paid.tokens : undefined,
-      breadlet: lucky ? seed.name : undefined,
       payout: pay,
-      message: (lucky ? `WOW! You grew a ${seed.name} Breadlet, plus ${cash}!` : `Harvested a ${seed.name} for ${cash}.`)
-        + (capped ? ` You've hit today's ${DAILY_EARN_LIMIT.toLocaleString()} Bread Bucks garden limit.` : ''),
+      message: `Sold ${sold} crop${sold === 1 ? '' : 's'} for ${pay} Bread Bucks.`
+        + (capped ? ` That's today's ${DAILY_EARN_LIMIT.toLocaleString()} limit${body.all && left ? `, so ${left} crop${left === 1 ? '' : 's'} stayed in your basket` : ''}.` : ''),
     });
+  }
+
+  // Give a crop from your basket to another player.
+  if (body.action === 'give') {
+    const to = body.profileId;
+    if (!isId(to) || to === userId) return fail('Pick a player to give it to.');
+    const crop = mine.state.crops.find((item) => item.id === String(body.crop || ''));
+    if (!crop) return fail('That crop is not in your basket.');
+    const { data: friend } = await database.from('profiles').select('id, username').eq('id', to).maybeSingle();
+    if (!friend) return fail('That player does not exist.');
+    if (await isKidAccount(to, database)) return fail("Kid accounts can't get gifts.", 403);
+    const theirs = await load(database, to);
+    if ('error' in theirs) return fail(theirs.error!, 503);
+    if (theirs.state.crops.length >= MAX_BASKET) return fail(`${friend.username}'s basket is full.`);
+    // Out of your basket first; if theirs can't be saved, it comes back.
+    const taken = await saveMine((state) => {
+      if (!state.crops.some((item) => item.id === crop.id)) return 'That crop is not in your basket.';
+      state.crops = state.crops.filter((item) => item.id !== crop.id);
+    });
+    if (taken) return fail(taken, 409);
+    let given = false;
+    let target = theirs;
+    for (let attempt = 0; attempt < 4 && !given; attempt += 1) {
+      if (attempt) {
+        const fresh = await load(database, to);
+        if ('error' in fresh) break;
+        target = fresh;
+      }
+      if (target.state.crops.length >= MAX_BASKET) break;
+      target.state.crops.push({ ...crop, id: newCropId(), from: current.username });
+      given = await save(database, to, target.state, target.rev);
+      if (!given) target.state.crops.pop();
+    }
+    if (!given) {
+      await saveMine((state) => { state.crops.push(crop); });
+      return fail(`Couldn't give it to ${friend.username}. Try again.`, 409);
+    }
+    // In their garden, the garden you see is their row, so show the change.
+    if (owner.id === to) garden.state = target.state;
+    return respond({ message: `You gave your ${sizeLabel(crop.size)} ${crop.seed} to ${friend.username}!` });
   }
 
   return fail('Unknown action.');
