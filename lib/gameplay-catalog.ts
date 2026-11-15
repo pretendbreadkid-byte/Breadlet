@@ -472,7 +472,7 @@ export const liveCapsules: Capsule[] = [
       ["Christmas Candy", "Common"],
       ["Santa Hat", "Uncommon"],
       ["Ornament", "Uncommon"],
-      ["Chocolate Coin", "Uncommon"],
+      ["Chimney", "Uncommon"],
       ["Stocking", "Rare"],
       ["Chocolate Candy Cookie", "Rare"],
       ["Sugar Cookie", "Rare"],

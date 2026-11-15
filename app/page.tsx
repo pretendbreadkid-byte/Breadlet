@@ -294,6 +294,7 @@ const artFor = (name: string) =>
     Fireplace: "/assets/winter/fireplace.svg",
     "Winter Hat": "/assets/winter/winter-hat.svg",
     Igloo: "/assets/winter/igloo.svg",
+    Chimney: "/assets/winter/chimney.svg",
     "American Flag": "/assets/american-flag.svg",
     ...Object.fromEntries(BREAKING_BAD_BREADLETS.map((breadlet) => [breadlet.name, breadlet.art])),
     Shuriken: "/assets/shuricken 2.svg",
