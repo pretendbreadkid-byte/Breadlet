@@ -388,7 +388,7 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Bread Bag",
     price: 30,
-    art: "/assets/bread-bag-4.svg",
+    art: "/assets/bread-bag-5.svg",
     pool: rewards([
       ["Sour Dough", "Common"],
       ["Toaster", "Rare"],
@@ -405,7 +405,7 @@ export const liveCapsules: Capsule[] = [
       Croissant: "/assets/croissant-2.svg",
       "Cinnamon Roll": "/assets/cinnamon-roll-refreshed.svg",
       "Robo Bread": "/assets/robo-bread-2.svg",
-      "Slime Bread": "/assets/slime-bread.svg",
+      "Slime Bread": "/assets/slime-bread-2.svg",
       "Gold Bread": "/assets/gold-bread-3.svg",
       "Holy Bread": "/assets/holy-bread-refreshed.svg",
       "Golden Toaster": "/assets/golden-toaster-animated.svg",
