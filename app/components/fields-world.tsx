@@ -195,24 +195,19 @@ function Sprouts({ stage }: { stage: 0 | 1 | 2 }) {
   );
 }
 
+// Seed packet art (pouch and shop) and the carrot's growth stages (the other crops use drawn sprouts).
+const SEED_ART: Record<SeedName, string> = {
+  Carrot: "/assets/garden/seed-carrot.svg",
+  Potato: "/assets/garden/seed-potato.svg",
+  Pumpkin: "/assets/garden/seed-pumpkin.svg",
+  Avocado: "/assets/garden/seed-avocado.svg",
+};
+const CARROT_STAGES = [1, 2, 3, 4, 5].map((stage) => `/assets/garden/carrot-${stage}.svg`);
+
 function SeedStand({ near }: { near: boolean }) {
   return (
     <div className={`garden-stand${near ? " is-near" : ""}`} style={{ left: STAND.x, top: STAND.y, zIndex: STAND.y }}>
-      <img src="/assets/ted-shopkeeper.svg" alt="" className="garden-stand-ted" />
-      <svg className="garden-stand-art" width="300" height="250" viewBox="0 0 300 250" aria-hidden="true">
-        <ellipse cx="150" cy="242" rx="140" ry="10" fill="rgba(0,0,0,.18)" />
-        <rect x="28" y="40" width="14" height="200" rx="4" fill="#8a5a2b" stroke="#3B1F0E" strokeWidth="4" />
-        <rect x="258" y="40" width="14" height="200" rx="4" fill="#8a5a2b" stroke="#3B1F0E" strokeWidth="4" />
-        <path d="M10 22 L290 22 L282 66 L18 66Z" fill="#fff3df" stroke="#3B1F0E" strokeWidth="5" strokeLinejoin="round" />
-        {[0, 2, 4, 6].map((index) => <path key={index} d={`M${10 + index * 40} 22 L${50 + index * 40} 22 L${49 + index * 39} 66 L${18 + index * 38.6} 66Z`} fill="#ED7117" />)}
-        {Array.from({ length: 7 }, (_, index) => <path key={index} d={`M${18 + index * 37.7} 64 a18.8 16 0 0 0 37.7 0`} fill={index % 2 ? "#fff3df" : "#ED7117"} stroke="#3B1F0E" strokeWidth="4" />)}
-        <path d="M10 22 L290 22" stroke="#3B1F0E" strokeWidth="5" />
-        <rect x="16" y="150" width="268" height="90" rx="10" fill="#c27b3e" stroke="#3B1F0E" strokeWidth="5" />
-        <path d="M18 180 H282 M18 210 H282" stroke="#9a5a26" strokeWidth="4" />
-        <rect x="10" y="138" width="280" height="22" rx="8" fill="#e09a55" stroke="#3B1F0E" strokeWidth="5" />
-      </svg>
-      <div className="garden-stand-packets">{SEEDS.map((seed) => <span key={seed.name} className={`garden-packet garden-packet-${seed.name.toLowerCase()}`} />)}</div>
-      <span className="garden-stand-sign">Ted&apos;s Seeds</span>
+      <img src="/assets/garden/seed-shop.svg" alt="Ted's Seed Shop" className="garden-stand-img" draggable={false} />
     </div>
   );
 }
@@ -409,8 +404,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                 aria-label={!plot ? "Empty bed: plant a seed" : ready ? `Harvest ${plot.seed}` : `${plot.seed} growing`}
                 className={`garden-plot${ready ? " is-ready" : ""}${isNearest ? " is-near" : ""}`} style={{ left: spot.x, top: spot.y, zIndex: 5 }}>
                 <BedArt />
-                {plot && !ready && <Sprouts stage={progress < 0.3 ? 0 : progress < 0.7 ? 1 : 2} />}
-                {plot && ready && <img src={artFor(plot.seed)} alt="" className="garden-crop" />}
+                {plot && plot.seed === "Carrot" && <img src={CARROT_STAGES[ready ? 4 : Math.min(3, Math.floor(progress * 4))]} alt="" className={`garden-growth${ready ? " is-ready" : ""}`} draggable={false} />}
+                {plot && plot.seed !== "Carrot" && !ready && <Sprouts stage={progress < 0.3 ? 0 : progress < 0.7 ? 1 : 2} />}
+                {plot && plot.seed !== "Carrot" && ready && <img src={artFor(plot.seed)} alt="" className="garden-crop" />}
                 {plot && !ready && <span className="garden-timer">{theirs ? `${plot.plantedByName || "Friend"} · ` : ""}{clock(plot.plantedAt + (seed?.growMs || 0) - now)}</span>}
                 {plot && ready && <span className="garden-ready">{theirs ? `${plot.plantedByName || "Friend"}'s` : "Ready!"}</span>}
                 {plot && !ready && <span className="garden-bar"><i style={{ width: `${progress * 100}%` }} /></span>}
@@ -454,7 +450,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         <div className="garden-pouch" role="radiogroup" aria-label="Seed pouch">
           {SEEDS.map((seed, index) => (
             <button key={seed.name} type="button" role="radio" aria-checked={selected === seed.name} onClick={() => setSelected(seed.name)} className={`garden-pouch-slot${selected === seed.name ? " is-selected" : ""}${(fields?.seeds[seed.name] || 0) === 0 ? " is-empty" : ""}`} title={`${seed.name} seeds (${index + 1})`}>
-              <img src={artFor(seed.name)} alt="" />
+              <img src={SEED_ART[seed.name]} alt="" />
               <b>{fields?.seeds[seed.name] || 0}</b>
               <small>{index + 1}</small>
             </button>
@@ -474,7 +470,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
             <div className="garden-shop-list">
               {SEEDS.map((seed) => (
                 <div key={seed.name} className="garden-shop-row">
-                  <span className="garden-shop-art"><img src={artFor(seed.name)} alt="" /></span>
+                  <span className="garden-shop-art"><img src={SEED_ART[seed.name]} alt="" /></span>
                   <span className="garden-shop-info">
                     <b>{seed.name} seed</b>
                     <small>Grows in {clock(seed.growMs)} · sells for <em>{seed.payout}</em></small>
