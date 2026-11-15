@@ -423,6 +423,39 @@ export const liveCapsules: Capsule[] = [
     }),
   },
   {
+    // The one pack that pays out more than it costs on average (~28.6 resale on 25), so opening
+    // and selling is a small profit. No Breadled yet.
+    name: "Candy Bag",
+    price: 25,
+    rarityChances: { Epic: 20, Mythic: 1.5, Secret: 0.3 },
+    art: "/assets/candy/candy-bag.svg",
+    pool: rewards([
+      ["Lollipop", "Common"],
+      ["Gumdrop", "Common"],
+      ["Gummy Bear", "Common"],
+      ["Red Sour Gummy", "Uncommon"],
+      ["Green Sour Gummy", "Uncommon"],
+      ["Chocolate Coin", "Uncommon"],
+      ["Blue Sour Gummy", "Rare"],
+      ["Chocolate Kiss", "Rare"],
+      ["Marshmallow Bunny", "Epic"],
+      ["King Candy", "Mythic"],
+      ["Golden Ticket", "Secret"],
+    ], {
+      Lollipop: "/assets/candy/lollipop.svg",
+      Gumdrop: "/assets/candy/gumdrop.svg",
+      "Gummy Bear": "/assets/candy/gummy-bear.svg",
+      "Red Sour Gummy": "/assets/candy/red-sour-gummy.svg",
+      "Green Sour Gummy": "/assets/candy/green-sour-gummy.svg",
+      "Chocolate Coin": "/assets/candy/chocolate-coin.svg",
+      "Blue Sour Gummy": "/assets/candy/blue-sour-gummy.svg",
+      "Chocolate Kiss": "/assets/candy/chocolate-kiss.svg",
+      "Marshmallow Bunny": "/assets/candy/marshmallow-chick.webp",
+      "King Candy": "/assets/candy/king-candy.svg",
+      "Golden Ticket": "/assets/candy/golden-ticket.svg",
+    }),
+  },
+  {
     // Shows in the shop now, opens December 1 (seasonalPackOpensAt in market-stock.ts).
     // One cookie is in the pool each day: Chocolate Candy -> Sugar -> Macadamia Nut -> Gingerbread.
     name: "Winter Bag",
