@@ -1,4 +1,5 @@
-// Breadlet Garden (test, admin only): buy seeds at Ted's Seed Stand, plant them, come back and harvest.
+// Breadlet Garden (test): every player has their own garden. Buy seeds at Ted's Seed Stand, plant
+// them, come back and harvest. Owners can invite players with a link and let them plant too.
 // Shared by the API route (app/api/fields) and the Games tab (app/components/fields-world.tsx).
 
 export type SeedName = "Carrot" | "Potato" | "Pumpkin" | "Avocado";
@@ -16,10 +17,20 @@ export const seedNamed = (name: unknown) => SEEDS.find((seed) => seed.name === n
 
 export const PLOT_COUNT = 9;
 export const MAX_SEEDS_PER_BUY = 10;
-export type Plot = { seed: SeedName; plantedAt: number } | null;
+export const MAX_HELPERS = 20;
+// plantedBy: who planted it (they're the one who harvests it and gets paid).
+export type Plot = { seed: SeedName; plantedAt: number; plantedBy?: string; plantedByName?: string } | null;
 
+export type GardenPerson = { id: string; username: string };
 export type FieldsView = {
+  owner: GardenPerson;
+  isOwner: boolean;
+  canPlant: boolean;
+  helpers: GardenPerson[];
   plots: Plot[];
+  // The viewer's own seed pouch (seeds are yours, whoever's garden you're in).
   seeds: Record<SeedName, number>;
   now: number;
 };
+
+export const gardenInviteLink = (origin: string, ownerId: string) => `${origin}/?garden=${encodeURIComponent(ownerId)}`;

@@ -683,6 +683,25 @@ function MainPage() {
   useEffect(() => {
     if (kidMode && KID_HIDDEN_TABS.includes(tab)) setTab("capsules");
   }, [kidMode, tab]);
+  // Garden invite links (/?garden=<owner id>) open that player's garden once you're signed in.
+  const [gardenVisit, setGardenVisit] = useState("");
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("garden") || "";
+    if (/^[0-9a-f-]{36}$/i.test(id)) setGardenVisit(id);
+  }, []);
+  const gardenPlayerId = !isGuest && player?.id ? player.id : "";
+  useEffect(() => {
+    if (gardenVisit && gardenPlayerId) setTab("games");
+  }, [gardenVisit, gardenPlayerId]);
+  const leaveGarden = () => {
+    if (gardenVisit) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("garden");
+      window.history.replaceState(null, "", url.toString());
+      setGardenVisit("");
+    }
+    setTab("capsules");
+  };
   // A news post this player hasn't seen yet opens Breadlet News once, when they sign in or come back.
   // The newest post they've seen is remembered per player in this browser.
   const newsPlayerId = !isGuest && player?.id ? player.id : "";
@@ -2223,7 +2242,7 @@ function MainPage() {
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
-          {tab === "games" && !kidMode && player.username.toLowerCase() === ADMIN_USERNAME && player.id && <FieldsTab player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onBreadlet={() => void refreshPlayerFromServer()} onExit={() => setTab("capsules")} artFor={artFor} />}
+          {tab === "games" && !kidMode && !isGuest && (player.username.toLowerCase() === ADMIN_USERNAME || (gardenVisit && gardenVisit !== player.id)) && player.id && <FieldsTab player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} gardenId={gardenVisit && gardenVisit !== player.id ? gardenVisit : undefined} tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onBreadlet={() => void refreshPlayerFromServer()} onExit={leaveGarden} artFor={artFor} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}
