@@ -4,27 +4,14 @@
 // Breadlet. Every player has their own garden: buy seeds from Ted's Seed Stand (down the path), plant
 // them in the fenced beds, come back and harvest. Owners invite players with a link and choose who may
 // plant. Everything that costs or pays is decided by /api/fields.
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Link2, Sprout, Users } from "lucide-react";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
-import { MAX_SEEDS_PER_BUY, PLOT_COUNT, SEEDS, gardenInviteLink, seedNamed, type FieldsView, type SeedName } from "../../lib/fields";
+import { MAX_SEEDS_PER_BUY, SEEDS, gardenInviteLink, seedNamed, type FieldsView, type SeedName } from "../../lib/fields";
+import { Ambient, BedArt, CropArt, Meadow, PLOTS, STAND, SeedStand, WORLD } from "./garden-art";
 
-const WORLD = { width: 2600, height: 1700 };
 const REACH = 130;
-
-// The fenced garden, with a gate on its left side. A winding dirt path runs from the gate down to
-// Ted's Seed Stand in the bottom-left corner of the meadow.
-const GARDEN = { x: 1000, y: 520, width: 860, height: 700 };
-const GATE = { y: 820, height: 110 };
-const PLOTS = Array.from({ length: PLOT_COUNT }, (_, index) => ({ x: 1150 + (index % 3) * 280, y: 680 + Math.floor(index / 3) * 190 }));
-const STAND = { x: 380, y: 1390 };
-const PATH: [number, number][] = [[1010, 875], [880, 880], [760, 930], [670, 1030], [610, 1160], [585, 1300], [530, 1410], [STAND.x, STAND.y + 55]];
-const WHEAT = { x: 2060, y: 360, width: 400, height: 380 };
-const TREES = [
-  { x: 260, y: 330, size: 1.1 }, { x: 520, y: 210, size: 0.85 }, { x: 1430, y: 330, size: 0.9 }, { x: 2380, y: 980, size: 1.15 },
-  { x: 2200, y: 1460, size: 0.95 }, { x: 110, y: 1180, size: 1 }, { x: 1250, y: 1560, size: 0.8 }, { x: 160, y: 760, size: 0.9 }, { x: 780, y: 1560, size: 0.9 },
-];
 
 const clamp = (x: number, y: number) => ({ x: Math.max(40, Math.min(WORLD.width - 40, x)), y: Math.max(90, Math.min(WORLD.height - 30, y)) });
 type Target = { kind: "plot"; index: number } | { kind: "stand" };
@@ -35,182 +22,13 @@ const clock = (ms: number) => {
   return minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
 };
 
-// Seeded random so the meadow's flowers and bushes are in the same spots for everyone.
-const seeded = (start: number) => {
-  let value = start;
-  return () => {
-    value = (value + 0x6d2b79f5) | 0;
-    let t = Math.imul(value ^ (value >>> 15), 1 | value);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-};
-const nearPath = (x: number, y: number, distance: number) => PATH.slice(1).some(([bx, by], index) => {
-  const [ax, ay] = PATH[index];
-  const length = Math.hypot(bx - ax, by - ay) || 1;
-  const t = Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / (length * length)));
-  return Math.hypot(x - (ax + t * (bx - ax)), y - (ay + t * (by - ay))) < distance;
-});
-type Decor = { kind: "flower" | "tuft" | "bush" | "rock" | "mushroom" | "clover"; x: number; y: number; tint: number; flip: boolean };
-const blocked = (x: number, y: number) =>
-  (x > GARDEN.x - 70 && x < GARDEN.x + GARDEN.width + 70 && y > GARDEN.y - 90 && y < GARDEN.y + GARDEN.height + 60)
-  || (x > STAND.x - 200 && x < STAND.x + 200 && y > STAND.y - 260 && y < STAND.y + 70)
-  || nearPath(x, y, 70)
-  || (x > WHEAT.x - 30 && x < WHEAT.x + WHEAT.width + 30 && y > WHEAT.y - 30 && y < WHEAT.y + WHEAT.height + 30)
-  || TREES.some((tree) => Math.hypot(x - tree.x, y - tree.y + 60) < 120 * tree.size);
-const DECOR: Decor[] = (() => {
-  const random = seeded(20261114);
-  const kinds: Decor["kind"][] = ["flower", "flower", "flower", "tuft", "tuft", "tuft", "tuft", "clover", "bush", "rock", "mushroom"];
-  const list: Decor[] = [];
-  for (let tries = 0; list.length < 230 && tries < 3000; tries += 1) {
-    const x = 30 + random() * (WORLD.width - 60);
-    const y = 60 + random() * (WORLD.height - 90);
-    if (blocked(x, y)) continue;
-    list.push({ kind: kinds[Math.floor(random() * kinds.length)], x, y, tint: Math.floor(random() * 4), flip: random() < 0.5 });
-  }
-  return list;
-})();
-
-const FLOWER_COLORS = [["#fff", "#ffd23f"], ["#ffd23f", "#e07a12"], ["#ff8fb8", "#fff3a8"], ["#c79bff", "#ffe066"]];
-
-function DecorSprite({ item }: { item: Decor }) {
-  const style = { left: item.x, top: item.y, zIndex: Math.round(item.y) - (item.kind === "bush" || item.kind === "rock" ? 0 : 400), transform: `translate(-50%, -100%) scaleX(${item.flip ? -1 : 1})` };
-  if (item.kind === "flower") {
-    const [petal, middle] = FLOWER_COLORS[item.tint];
-    return <svg className="garden-decor" style={style} width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 36 C15 28 14 22 15 16" stroke="#2f8a2c" strokeWidth="3" fill="none" strokeLinecap="round" /><path d="M15 28 C9 26 7 22 8 20 C12 21 14 24 15 28Z" fill="#3fa53a" />{[0, 72, 144, 216, 288].map((angle) => <ellipse key={angle} cx="15" cy="8" rx="4.6" ry="6.4" fill={petal} stroke="rgba(0,0,0,.12)" strokeWidth="1" transform={`rotate(${angle} 15 13)`} />)}<circle cx="15" cy="13" r="4" fill={middle} /></svg>;
-  }
-  if (item.kind === "tuft") {
-    const shade = ["#2f9a35", "#38a83b", "#2a8a31", "#43b545"][item.tint];
-    return <svg className="garden-decor" style={style} width="34" height="22" viewBox="0 0 34 22" aria-hidden="true"><g stroke={shade} strokeWidth="3.4" strokeLinecap="round" fill="none"><path d="M17 21 C16 14 14 8 10 3" /><path d="M17 21 C17 13 19 7 23 1" /><path d="M17 21 C14 16 9 13 4 12" /><path d="M17 21 C20 16 25 14 30 13" /></g></svg>;
-  }
-  if (item.kind === "clover") {
-    return <svg className="garden-decor" style={style} width="34" height="20" viewBox="0 0 34 20" aria-hidden="true">{[[8, 12], [17, 8], [26, 12], [13, 16], [22, 16]].map(([cx, cy], index) => <circle key={index} cx={cx} cy={cy} r="4.4" fill={index % 2 ? "#3c9e3e" : "#48b448"} />)}</svg>;
-  }
-  if (item.kind === "bush") {
-    return <svg className="garden-decor" style={style} width="96" height="66" viewBox="0 0 96 66" aria-hidden="true"><ellipse cx="48" cy="60" rx="42" ry="6" fill="rgba(0,0,0,.14)" /><circle cx="28" cy="38" r="22" fill="#2f8a2c" /><circle cx="66" cy="38" r="22" fill="#2f8a2c" /><circle cx="48" cy="26" r="25" fill="#3aa23a" /><circle cx="40" cy="20" r="9" fill="#5cc35a" opacity=".8" />{item.tint < 2 && <><circle cx="30" cy="34" r="3.4" fill="#ff5d5d" /><circle cx="60" cy="24" r="3.4" fill="#ff5d5d" /><circle cx="66" cy="42" r="3.4" fill="#ff5d5d" /></>}</svg>;
-  }
-  if (item.kind === "rock") {
-    return <svg className="garden-decor" style={style} width="48" height="32" viewBox="0 0 48 32" aria-hidden="true"><ellipse cx="24" cy="29" rx="21" ry="3.5" fill="rgba(0,0,0,.16)" /><path d="M4 27 C3 16 12 6 24 6 C37 6 45 15 44 27Z" fill="#a7a49c" /><path d="M10 14 C14 9 20 8 25 9" stroke="#d6d3cb" strokeWidth="4" strokeLinecap="round" fill="none" /></svg>;
-  }
-  return <svg className="garden-decor" style={style} width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="11" y="14" width="8" height="14" rx="3" fill="#fff3df" /><path d="M2 16 C2 6 28 6 28 16Z" fill="#e5483b" /><circle cx="9" cy="12" r="2.2" fill="#fff" /><circle cx="18" cy="9" r="2.6" fill="#fff" /><circle cx="23" cy="14" r="1.8" fill="#fff" /></svg>;
-}
-
-function Tree({ x, y, size }: { x: number; y: number; size: number }) {
-  return (
-    <svg className="garden-decor" style={{ left: x, top: y, zIndex: Math.round(y), transform: `translate(-50%, -100%) scale(${size})`, transformOrigin: "50% 100%" }} width="220" height="260" viewBox="0 0 220 260" aria-hidden="true">
-      <ellipse cx="110" cy="248" rx="80" ry="12" fill="rgba(0,0,0,.18)" />
-      <path d="M96 250 C98 210 96 180 92 160 L128 160 C124 180 122 210 124 250Z" fill="#8a5a2b" stroke="#5e3a17" strokeWidth="4" />
-      <path d="M108 200 C110 186 109 176 106 168" stroke="#5e3a17" strokeWidth="3" fill="none" />
-      <circle cx="62" cy="122" r="50" fill="#2b8a2f" /><circle cx="158" cy="122" r="50" fill="#2b8a2f" />
-      <circle cx="110" cy="80" r="66" fill="#36a23a" /><circle cx="70" cy="96" r="40" fill="#36a23a" /><circle cx="152" cy="98" r="42" fill="#36a23a" />
-      <circle cx="86" cy="54" r="22" fill="#57c457" opacity=".8" /><circle cx="140" cy="70" r="14" fill="#57c457" opacity=".6" />
-    </svg>
-  );
-}
-
-function Fence() {
-  const posts: { x: number; y: number }[] = [];
-  for (let x = GARDEN.x; x <= GARDEN.x + GARDEN.width; x += 72) { posts.push({ x, y: GARDEN.y }); posts.push({ x, y: GARDEN.y + GARDEN.height }); }
-  for (let y = GARDEN.y + 72; y < GARDEN.y + GARDEN.height; y += 72) {
-    if (y < GATE.y - 10 || y > GATE.y + GATE.height + 10) posts.push({ x: GARDEN.x, y });
-    posts.push({ x: GARDEN.x + GARDEN.width, y });
-  }
-  return (
-    <>
-      <div className="garden-fence-h" style={{ left: GARDEN.x, top: GARDEN.y - 30, width: GARDEN.width, zIndex: GARDEN.y }} />
-      <div className="garden-fence-h" style={{ left: GARDEN.x, top: GARDEN.y + GARDEN.height - 30, width: GARDEN.width, zIndex: GARDEN.y + GARDEN.height }} />
-      <div className="garden-fence-v" style={{ left: GARDEN.x - 6, top: GARDEN.y, height: GATE.y - GARDEN.y, zIndex: GATE.y }} />
-      <div className="garden-fence-v" style={{ left: GARDEN.x - 6, top: GATE.y + GATE.height, height: GARDEN.y + GARDEN.height - GATE.y - GATE.height, zIndex: GARDEN.y + GARDEN.height }} />
-      <div className="garden-fence-v" style={{ left: GARDEN.x + GARDEN.width - 6, top: GARDEN.y, height: GARDEN.height, zIndex: GARDEN.y + GARDEN.height }} />
-      {posts.map((post, index) => <span key={index} className="garden-post" style={{ left: post.x, top: post.y, zIndex: post.y + 1 }} />)}
-    </>
-  );
-}
-
-// The dirt path from the garden gate to Ted's stand: a wide rim, the path, then lighter wheel ruts.
-function Path() {
-  const points = PATH.map(([x, y]) => `${x},${y}`).join(" ");
-  const stones = PATH.slice(1).flatMap(([bx, by], index) => {
-    const [ax, ay] = PATH[index];
-    return [0.3, 0.75].map((t, step) => ({ x: ax + (bx - ax) * t + (step ? 22 : -18), y: ay + (by - ay) * t + (step ? -10 : 12) }));
-  });
-  return (
-    <svg className="garden-decor" style={{ left: 0, top: 0, zIndex: -500 }} width={WORLD.width} height={WORLD.height} aria-hidden="true">
-      <polyline points={points} fill="none" stroke="#b98a52" strokeWidth="112" strokeLinecap="round" strokeLinejoin="round" opacity=".55" />
-      <polyline points={points} fill="none" stroke="#d9b47c" strokeWidth="92" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points={points} fill="none" stroke="#e7c896" strokeWidth="46" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 34" opacity=".9" />
-      {stones.map((stone, index) => <ellipse key={index} cx={stone.x} cy={stone.y} rx={index % 2 ? 7 : 5} ry={index % 2 ? 5 : 4} fill="#a99c86" />)}
-    </svg>
-  );
-}
-
-// The big static meadow: drawn once, it never re-renders while walking.
-const Meadow = memo(function Meadow({ ownerName }: { ownerName: string }) {
-  return (
-    <>
-      <Path />
-      <div className="garden-lawn" style={{ left: GARDEN.x, top: GARDEN.y, width: GARDEN.width, height: GARDEN.height }} />
-      <div className="garden-wheat" style={{ left: WHEAT.x, top: WHEAT.y, width: WHEAT.width, height: WHEAT.height, zIndex: WHEAT.y + WHEAT.height - 400 }} />
-      {DECOR.map((item, index) => <DecorSprite key={index} item={item} />)}
-      {TREES.map((tree, index) => <Tree key={index} {...tree} />)}
-      <Fence />
-      <span className="garden-gate-sign" style={{ left: GARDEN.x - 70, top: GATE.y - 40, zIndex: GATE.y }}>{ownerName}&apos;s Garden</span>
-      <span className="garden-path-sign" style={{ left: 760, top: 1060, zIndex: 1060 }}>Seeds ↙</span>
-    </>
-  );
-});
-
-// A raised wooden bed: plank frame with corner posts, dark soil and three mounded rows.
-function BedArt() {
-  return (
-    <svg className="garden-bed-art" viewBox="0 0 200 140" preserveAspectRatio="none" aria-hidden="true">
-      <rect x="3" y="7" width="194" height="130" rx="16" fill="#5e3a17" />
-      <rect x="3" y="3" width="194" height="128" rx="16" fill="#b0763c" stroke="#3B1F0E" strokeWidth="5" />
-      <path d="M20 12 H180 M20 122 H180 M12 22 V110 M188 22 V110" stroke="#8f5a2a" strokeWidth="2.5" strokeDasharray="22 10" />
-      <rect x="18" y="18" width="164" height="100" rx="8" fill="#4a2a12" />
-      {[38, 66, 94].map((y) => (
-        <g key={y}>
-          <rect x="24" y={y - 9} width="152" height="20" rx="10" fill="#6e4220" />
-          <rect x="28" y={y - 8} width="144" height="6" rx="3" fill="#86532a" />
-          <rect x="24" y={y + 9} width="152" height="4" rx="2" fill="#3a200c" opacity=".55" />
-        </g>
-      ))}
-      {[[34, 52], [150, 80], [96, 108], [60, 80], [128, 52]].map(([cx, cy], index) => <circle key={index} cx={cx} cy={cy} r={index % 2 ? 2.5 : 3.4} fill={index % 2 ? "#a99c86" : "#3a200c"} />)}
-      {[[3, 3], [173, 3], [3, 107], [173, 107]].map(([x, y], index) => (
-        <g key={index}><rect x={x} y={y} width="24" height="24" rx="6" fill="#d08a4c" stroke="#3B1F0E" strokeWidth="4" /><circle cx={x + 12} cy={y + 12} r="2.6" fill="#3B1F0E" /></g>
-      ))}
-    </svg>
-  );
-}
-
-function Sprouts({ stage }: { stage: 0 | 1 | 2 }) {
-  return (
-    <svg className="garden-sprouts" viewBox="0 0 160 70" aria-hidden="true">
-      {[30, 80, 130].map((x) => stage === 0
-        ? <g key={x}><ellipse cx={x} cy="56" rx="16" ry="7" fill="#5a3317" /><circle cx={x - 4} cy="53" r="2.4" fill="#e9c98a" /><circle cx={x + 5} cy="55" r="2" fill="#e9c98a" /></g>
-        : stage === 1
-          ? <g key={x}><path d={`M${x} 60 C${x} 50 ${x} 44 ${x} 38`} stroke="#2f8a2c" strokeWidth="4" strokeLinecap="round" /><path d={`M${x} 44 C${x - 14} 44 ${x - 18} 34 ${x - 16} 30 C${x - 6} 30 ${x} 36 ${x} 44Z`} fill="#4cbb47" /><path d={`M${x} 42 C${x + 14} 42 ${x + 18} 32 ${x + 16} 28 C${x + 6} 28 ${x} 34 ${x} 42Z`} fill="#5fcf58" /></g>
-          : <g key={x}><path d={`M${x} 62 C${x} 44 ${x} 30 ${x} 16`} stroke="#2a7f2a" strokeWidth="5" strokeLinecap="round" />{[[-1, 46], [1, 36], [-1, 26], [1, 18]].map(([side, y]) => <path key={y} d={`M${x} ${y} C${x + side * 22} ${y} ${x + side * 28} ${y - 14} ${x + side * 24} ${y - 18} C${x + side * 10} ${y - 16} ${x} ${y - 8} ${x} ${y}Z`} fill={y % 20 ? "#3fae3c" : "#58c652"} />)}</g>)}
-    </svg>
-  );
-}
-
-// Seed packet art (pouch and shop) and the carrot's growth stages (the other crops use drawn sprouts).
+// Seed packet art, in the pouch and in Ted's shop.
 const SEED_ART: Record<SeedName, string> = {
   Carrot: "/assets/garden/seed-carrot.svg",
   Potato: "/assets/garden/seed-potato.svg",
   Pumpkin: "/assets/garden/seed-pumpkin.svg",
   Avocado: "/assets/garden/seed-avocado.svg",
 };
-const CARROT_STAGES = [1, 2, 3, 4, 5].map((stage) => `/assets/garden/carrot-${stage}.svg`);
-
-function SeedStand({ near }: { near: boolean }) {
-  return (
-    <div className={`garden-stand${near ? " is-near" : ""}`} style={{ left: STAND.x, top: STAND.y, zIndex: STAND.y }}>
-      <img src="/assets/garden/seed-shop.svg" alt="Ted's Seed Shop" className="garden-stand-img" draggable={false} />
-    </div>
-  );
-}
 
 type GardenResponse = FieldsView & { tokens?: number; message?: string; breadlet?: string; payout?: number };
 
@@ -233,7 +51,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [selected, setSelected] = useState<SeedName>("Carrot");
   const [now, setNow] = useState(Date.now());
-  const [floaters, setFloaters] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
+  const [floaters, setFloaters] = useState<{ id: number; x: number; y: number; text: string; kind: "coins" | "puff" }[]>([]);
   const skewRef = useRef(0);
   const pendingRef = useRef<Target | null>(null);
 
@@ -290,9 +108,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     return null;
   };
 
-  const float = (x: number, y: number, text: string) => {
+  const float = (x: number, y: number, text: string, kind: "coins" | "puff" = "coins") => {
     const id = Date.now() + Math.random();
-    setFloaters((list) => [...list, { id, x, y, text }]);
+    setFloaters((list) => [...list, { id, x, y, text, kind }]);
     window.setTimeout(() => setFloaters((list) => list.filter((item) => item.id !== id)), 1400);
   };
 
@@ -329,7 +147,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     const pick = fields.seeds[selected] > 0 ? selected : SEEDS.find((item) => fields.seeds[item.name] > 0)?.name;
     if (!pick) return setToast("You have no seeds. Follow the path to Ted's Seed Stand!");
     setSelected(pick);
-    void post({ action: "plant", plot: target.index, seed: pick });
+    void post({ action: "plant", plot: target.index, seed: pick }).then((data) => data && float(spot.x, spot.y + 10, "", "puff"));
   };
 
   // Clicking something far away walks over first, then uses it on arrival.
@@ -404,9 +222,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                 aria-label={!plot ? "Empty bed: plant a seed" : ready ? `Harvest ${plot.seed}` : `${plot.seed} growing`}
                 className={`garden-plot${ready ? " is-ready" : ""}${isNearest ? " is-near" : ""}`} style={{ left: spot.x, top: spot.y, zIndex: 5 }}>
                 <BedArt />
-                {plot && plot.seed === "Carrot" && <img src={CARROT_STAGES[ready ? 4 : Math.min(3, Math.floor(progress * 4))]} alt="" className={`garden-growth${ready ? " is-ready" : ""}`} draggable={false} />}
-                {plot && plot.seed !== "Carrot" && !ready && <Sprouts stage={progress < 0.3 ? 0 : progress < 0.7 ? 1 : 2} />}
-                {plot && plot.seed !== "Carrot" && ready && <img src={artFor(plot.seed)} alt="" className="garden-crop" />}
+                {plot && seed && <CropArt seed={seed.name} stage={ready ? 4 : Math.min(3, Math.floor(progress * 4))} />}
+                {ready && <span className="garden-sparkles" aria-hidden="true"><i /><i /><i /><i /></span>}
                 {plot && !ready && <span className="garden-timer">{theirs ? `${plot.plantedByName || "Friend"} · ` : ""}{clock(plot.plantedAt + (seed?.growMs || 0) - now)}</span>}
                 {plot && ready && <span className="garden-ready">{theirs ? `${plot.plantedByName || "Friend"}'s` : "Ready!"}</span>}
                 {plot && !ready && <span className="garden-bar"><i style={{ width: `${progress * 100}%` }} /></span>}
@@ -414,8 +231,11 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
             );
           })}
 
+          <Ambient />
           {walkers.map((walker) => <WalkerSprite key={walker.id} walker={walker} isMe={walker.id === player.id} artFor={artFor} />)}
-          {floaters.map((item) => <span key={item.id} className="garden-floater" style={{ left: item.x, top: item.y }}><img src="/assets/Bread%20bucks.svg" alt="" />{item.text}</span>)}
+          {floaters.map((item) => item.kind === "puff"
+            ? <span key={item.id} className="garden-puff" style={{ left: item.x, top: item.y }} aria-hidden="true"><i /><i /><i /><i /><i /></span>
+            : <span key={item.id} className="garden-floater" style={{ left: item.x, top: item.y }}><span className="garden-burst" aria-hidden="true"><i /><i /><i /><i /><i /><i /></span><img src="/assets/Bread%20bucks.svg" alt="" />{item.text}</span>)}
         </div>
       </div>
 
