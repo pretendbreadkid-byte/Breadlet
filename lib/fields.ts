@@ -20,6 +20,10 @@ export const seedNamed = (name: unknown) => SEEDS.find((seed) => seed.name === n
 export const PLOT_COUNT = 9;
 export const MAX_SEEDS_PER_BUY = 10;
 export const MAX_HELPERS = 20;
+// The most Bread Bucks one player can earn from gardens each day (UTC). Harvests past it pay nothing
+// (a lucky Breadlet still drops).
+export const DAILY_EARN_LIMIT = 1000;
+export const gardenDay = (time = Date.now()) => new Date(time).toISOString().slice(0, 10);
 // plantedBy: who planted it (they're the one who harvests it and gets paid).
 export type Plot = { seed: SeedName; plantedAt: number; plantedBy?: string; plantedByName?: string } | null;
 
@@ -32,6 +36,8 @@ export type FieldsView = {
   plots: Plot[];
   // The viewer's own seed pouch (seeds are yours, whoever's garden you're in).
   seeds: Record<SeedName, number>;
+  // Bread Bucks the viewer has earned from gardens today.
+  earnedToday: number;
   now: number;
 };
 

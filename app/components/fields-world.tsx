@@ -8,8 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Link2, Sprout, Users } from "lucide-react";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
-import { MAX_SEEDS_PER_BUY, SEEDS, gardenInviteLink, seedNamed, type FieldsView, type SeedName } from "../../lib/fields";
-import { Ambient, BedArt, CropArt, Meadow, PLOTS, STAND, SeedStand, WORLD } from "./garden-art";
+import { DAILY_EARN_LIMIT, MAX_SEEDS_PER_BUY, SEEDS, gardenInviteLink, seedNamed, type FieldsView, type SeedName } from "../../lib/fields";
+import { Ambient, BedArt, CropArt, GARDEN, GATE, Meadow, PLOTS, STAND, SeedStand, WORLD } from "./garden-art";
 
 const REACH = 130;
 
@@ -61,7 +61,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     player,
     world: WORLD,
     clamp,
-    spawn: () => clamp(880 + Math.random() * 60, 900 + Math.random() * 40),
+    spawn: () => clamp(GATE.x - 30 + Math.random() * 60, GARDEN.y + GARDEN.height + 70 + Math.random() * 40),
   });
 
   const apply = useCallback((data: GardenResponse, quiet = false) => {
@@ -141,7 +141,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
       const planter = plot.plantedBy || fields.owner.id;
       if (planter !== player.id) return setToast(`That's ${plot.plantedByName || fields.owner.username}'s ${seed.name}.`);
       if (now < plot.plantedAt + seed.growMs) return setToast(`${seed.name} is still growing: ${clock(plot.plantedAt + seed.growMs - now)} left.`);
-      void post({ action: "harvest", plot: target.index }).then((data) => data && float(spot.x, spot.y - 60, `+${data.payout || seed.payout}`));
+      void post({ action: "harvest", plot: target.index }).then((data) => data && float(spot.x, spot.y - 60, `+${data.payout ?? seed.payout}`));
       return;
     }
     if (!fields.canPlant) return setToast(`Ask ${fields.owner.username} to let you plant here.`);
@@ -207,7 +207,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     <div className="garden-screen">
       <div ref={viewportRef} onPointerDown={(event) => { pendingRef.current = null; walkTo(event); }} className="explore-viewport garden-viewport">
         <div className="garden-world" style={{ width: WORLD.width, height: WORLD.height, transform: `translate3d(${-camera.x}px, ${-camera.y}px, 0)` }}>
-          <Meadow ownerName={ownerName} />
+          <Meadow isOwner={fields ? fields.isOwner : !gardenId} />
           <SeedStand near={nearest?.kind === "stand"} />
           <button type="button" aria-label="Ted's Seed Stand" className="garden-stand-hit" style={{ left: STAND.x, top: STAND.y }} onPointerDown={(event) => choose(event, { kind: "stand" })} />
 
@@ -245,7 +245,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         <span className="garden-title">{fields?.isOwner === false ? `${ownerName}'s Garden` : "My Garden"} <small>Test</small></span>
         {fields?.isOwner && <button type="button" onClick={() => void invite()} className="garden-chip garden-chip-button"><Link2 size={16} />Invite</button>}
         {fields && !fields.isOwner && <span className={`garden-chip${fields.canPlant ? " is-good" : ""}`}><Sprout size={16} />{fields.canPlant ? "You can plant" : `Ask ${ownerName} to plant`}</span>}
-        <span className="garden-chip ml-auto"><img src="/assets/Bread%20bucks.svg" alt="" />{tokens.toLocaleString()}</span>
+        {fields && <span className={`garden-chip ml-auto${fields.earnedToday >= DAILY_EARN_LIMIT ? " is-capped" : ""}`} title="Bread Bucks earned from gardens today (resets at midnight UTC)"><Sprout size={16} />{fields.earnedToday.toLocaleString()} / {DAILY_EARN_LIMIT.toLocaleString()} today</span>}
+        <span className={`garden-chip${fields ? "" : " ml-auto"}`}><img src="/assets/Bread%20bucks.svg" alt="" />{tokens.toLocaleString()}</span>
         <button type="button" onClick={() => setPeopleOpen((open) => !open)} disabled={!fields?.isOwner} className="garden-chip garden-chip-button" title={fields?.isOwner ? "Who can plant" : "Players here"}><Users size={16} />{connected ? Object.keys(others).length + 1 : "…"}</button>
       </div>
 

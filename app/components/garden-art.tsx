@@ -8,18 +8,16 @@ import { PLOT_COUNT, type SeedName } from "../../lib/fields";
 
 export const WORLD = { width: 2600, height: 1700 };
 export const GARDEN = { x: 1000, y: 520, width: 860, height: 700 };
-export const GATE = { y: 820, height: 110 };
+// The gate is in the middle of the front (bottom) fence, facing you.
+export const GATE = { x: 1430, width: 130 };
+const FRONT = GARDEN.y + GARDEN.height;
 export const PLOTS = Array.from({ length: PLOT_COUNT }, (_, index) => ({ x: 1150 + (index % 3) * 280, y: 680 + Math.floor(index / 3) * 190 }));
 export const STAND = { x: 380, y: 1390 };
-const WHEAT = { x: 2060, y: 360, width: 400, height: 380 };
-const SHED = { x: 2080, y: 1215 };
-const WELL = { x: 1640, y: 1470 };
-const SIGNPOST = { x: 812, y: 1080 };
-const SCARECROW = { x: 2265, y: 610 };
+const SIGN = { x: GATE.x - 190, y: FRONT + 96 };
 const TREES = [
   { x: 260, y: 330, size: 1.1, kind: "oak" }, { x: 520, y: 210, size: 0.85, kind: "pine" }, { x: 1430, y: 330, size: 0.9, kind: "apple" },
   { x: 2380, y: 1000, size: 1.15, kind: "oak" }, { x: 2250, y: 1530, size: 0.95, kind: "apple" }, { x: 110, y: 1180, size: 1, kind: "pine" },
-  { x: 1250, y: 1580, size: 0.8, kind: "oak" }, { x: 160, y: 760, size: 0.9, kind: "apple" }, { x: 780, y: 1580, size: 0.9, kind: "pine" },
+  { x: 1700, y: 1600, size: 0.8, kind: "oak" }, { x: 160, y: 760, size: 0.9, kind: "apple" }, { x: 760, y: 1120, size: 0.9, kind: "pine" },
   { x: 1830, y: 250, size: 0.95, kind: "pine" }, { x: 2520, y: 230, size: 0.9, kind: "oak" }, { x: 900, y: 260, size: 0.75, kind: "oak" },
 ] as const;
 
@@ -35,7 +33,7 @@ const seeded = (start: number) => {
 };
 
 // The dirt path from the garden gate to Ted's stand, as a smooth curve through these points.
-const PATH_KEYS: [number, number][] = [[1012, 875], [880, 884], [760, 940], [672, 1040], [612, 1165], [578, 1290], [520, 1395], [STAND.x + 20, STAND.y + 60]];
+const PATH_KEYS: [number, number][] = [[GATE.x, FRONT + 6], [GATE.x - 8, FRONT + 100], [1300, 1395], [1100, 1440], [880, 1425], [680, 1445], [520, 1460], [STAND.x + 20, STAND.y + 60]];
 const PATH_POINTS = (() => {
   const points: { x: number; y: number }[] = [];
   for (let index = 0; index < PATH_KEYS.length - 1; index += 1) {
@@ -56,10 +54,7 @@ const blocked = (x: number, y: number) =>
   (x > GARDEN.x - 70 && x < GARDEN.x + GARDEN.width + 70 && y > GARDEN.y - 90 && y < GARDEN.y + GARDEN.height + 60)
   || (x > STAND.x - 200 && x < STAND.x + 200 && y > STAND.y - 280 && y < STAND.y + 120)
   || nearPath(x, y, 80)
-  || (x > WHEAT.x - 40 && x < WHEAT.x + WHEAT.width + 40 && y > WHEAT.y - 60 && y < WHEAT.y + WHEAT.height + 40)
-  || (Math.abs(x - SHED.x) < 170 && y > SHED.y - 240 && y < SHED.y + 50)
-  || (Math.abs(x - WELL.x) < 110 && y > WELL.y - 170 && y < WELL.y + 40)
-  || (Math.abs(x - SIGNPOST.x) < 90 && y > SIGNPOST.y - 140 && y < SIGNPOST.y + 30)
+  || (Math.abs(x - SIGN.x) < 100 && y > SIGN.y - 150 && y < SIGN.y + 30)
   || TREES.some((tree) => Math.hypot(x - tree.x, y - tree.y + 60) < 125 * tree.size);
 
 type DecorKind = "flower" | "tuft" | "bush" | "rock" | "pebble" | "mushroom" | "clover" | "tall";
@@ -89,7 +84,7 @@ const DECOR: Decor[] = (() => {
   // Flower borders along the inside of the garden fence.
   for (let x = GARDEN.x + 34; x < GARDEN.x + GARDEN.width - 20; x += 30 + random() * 12) {
     list.push({ kind: random() < 0.75 ? "flower" : "tuft", x, y: GARDEN.y + 44, tint: Math.floor(random() * 4), flip: random() < 0.5 });
-    list.push({ kind: random() < 0.75 ? "flower" : "tuft", x: x + 8, y: GARDEN.y + GARDEN.height - 8, tint: Math.floor(random() * 4), flip: random() < 0.5 });
+    if (Math.abs(x + 8 - GATE.x) > GATE.width / 2 + 20) list.push({ kind: random() < 0.75 ? "flower" : "tuft", x: x + 8, y: FRONT - 8, tint: Math.floor(random() * 4), flip: random() < 0.5 });
   }
   return list;
 })();
@@ -207,23 +202,25 @@ function GatePost({ x, y }: { x: number; y: number }) {
   );
 }
 
-function Fence({ ownerName }: { ownerName: string }) {
+function Fence({ isOwner }: { isOwner: boolean }) {
   const sides: { x: number; y: number }[] = [];
-  for (let y = GARDEN.y + 40; y < GARDEN.y + GARDEN.height - 20; y += 34) {
-    if (y < GATE.y - 14 || y > GATE.y + GATE.height + 14) sides.push({ x: GARDEN.x, y });
+  for (let y = GARDEN.y + 40; y < FRONT - 20; y += 34) {
+    sides.push({ x: GARDEN.x, y });
     sides.push({ x: GARDEN.x + GARDEN.width, y });
   }
+  const leftWidth = GATE.x - GATE.width / 2 - GARDEN.x;
+  const rightStart = GATE.x + GATE.width / 2;
   return (
     <>
       <div className="garden-fence-run" style={{ left: GARDEN.x - 12, top: GARDEN.y - 52, zIndex: GARDEN.y }}><FenceRun width={GARDEN.width} /></div>
-      <div className="garden-fence-run" style={{ left: GARDEN.x - 12, top: GARDEN.y + GARDEN.height - 52, zIndex: GARDEN.y + GARDEN.height }}><FenceRun width={GARDEN.width} /></div>
-      <div className="garden-fence-rail" style={{ left: GARDEN.x - 5, top: GARDEN.y, height: GATE.y - GARDEN.y - 20 }} />
-      <div className="garden-fence-rail" style={{ left: GARDEN.x - 5, top: GATE.y + GATE.height + 10, height: GARDEN.y + GARDEN.height - GATE.y - GATE.height - 10 }} />
+      <div className="garden-fence-run" style={{ left: GARDEN.x - 12, top: FRONT - 52, zIndex: FRONT }}><FenceRun width={leftWidth} /></div>
+      <div className="garden-fence-run" style={{ left: rightStart - 12, top: FRONT - 52, zIndex: FRONT }}><FenceRun width={GARDEN.x + GARDEN.width - rightStart} /></div>
+      <div className="garden-fence-rail" style={{ left: GARDEN.x - 5, top: GARDEN.y, height: GARDEN.height }} />
       <div className="garden-fence-rail" style={{ left: GARDEN.x + GARDEN.width - 5, top: GARDEN.y, height: GARDEN.height }} />
       {sides.map((post, index) => <span key={index} className="garden-decor" style={{ left: post.x, top: post.y, zIndex: post.y, transform: "translate(-50%, -100%)" }}><Picket /></span>)}
-      <GatePost x={GARDEN.x} y={GATE.y - 4} />
-      <GatePost x={GARDEN.x} y={GATE.y + GATE.height + 14} />
-      <span className="garden-gate-sign" style={{ left: GARDEN.x - 8, top: GATE.y - 70, zIndex: GATE.y + 4 }}>{ownerName}&apos;s Garden</span>
+      <GatePost x={GATE.x - GATE.width / 2} y={FRONT + 8} />
+      <GatePost x={GATE.x + GATE.width / 2} y={FRONT + 8} />
+      <img src={`/assets/garden/sign-${isOwner ? "yours" : "theirs"}.svg`} alt={isOwner ? "Your Garden" : "Their Garden"} className="garden-sign" style={{ left: SIGN.x, top: SIGN.y, zIndex: SIGN.y }} draggable={false} />
     </>
   );
 }
@@ -265,139 +262,16 @@ function Tree({ x, y, size, kind, index }: { x: number; y: number; size: number;
   );
 }
 
-function Wheat() {
-  const rows = 6;
-  const perRow = 13;
-  const random = seeded(4242);
-  return (
-    <svg className="garden-decor" style={{ left: WHEAT.x - 20, top: WHEAT.y - 40, zIndex: WHEAT.y + WHEAT.height - 400 }} width={WHEAT.width + 40} height={WHEAT.height + 70} aria-hidden="true">
-      <rect x="10" y="40" width={WHEAT.width + 20} height={WHEAT.height + 18} rx="34" fill="#7a4a22" />
-      <rect x="18" y="44" width={WHEAT.width + 4} height={WHEAT.height + 4} rx="28" fill="#9b6634" />
-      {Array.from({ length: rows }, (_, row) => {
-        const baseY = 92 + row * ((WHEAT.height - 40) / (rows - 1));
-        return (
-          <g key={row}>
-            <rect x="34" y={baseY - 6} width={WHEAT.width - 28} height="14" rx="7" fill="#6e4220" />
-            <g className="garden-sway" style={{ animationDelay: `${-row * 0.6}s`, animationDuration: "3.2s" }}>
-              {Array.from({ length: perRow }, (_, index) => {
-                const x = 44 + index * ((WHEAT.width - 48) / (perRow - 1)) + (random() - 0.5) * 8;
-                const height = 52 + random() * 16;
-                const lean = (random() - 0.5) * 10;
-                return (
-                  <g key={index}>
-                    <path d={`M${x} ${baseY} q${lean / 2} ${-height / 2} ${lean} ${-height}`} stroke="#b88a2a" strokeWidth="3" fill="none" strokeLinecap="round" />
-                    <path d={`M${x} ${baseY - 18} q-9 -4 -12 -14 M${x + lean / 3} ${baseY - 28} q9 -4 12 -14`} stroke="#c99a32" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                    {[0, 1, 2, 3].map((grain) => <ellipse key={grain} cx={x + lean + (grain % 2 ? 3.2 : -3.2)} cy={baseY - height + grain * 6} rx="3.6" ry="5.4" fill={grain % 2 ? "#f2c14e" : "#e3ad35"} stroke="#a77a1c" strokeWidth="1.2" />)}
-                  </g>
-                );
-              })}
-            </g>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-function Scarecrow() {
-  return (
-    <svg className="garden-decor garden-sway-slow" style={{ left: SCARECROW.x, top: SCARECROW.y, zIndex: SCARECROW.y, transform: "translate(-50%, -100%)" }} width="130" height="176" viewBox="0 0 130 176" aria-hidden="true">
-      <ellipse cx="65" cy="172" rx="30" ry="5" fill="rgba(0,0,0,.2)" />
-      <rect x="60" y="60" width="10" height="112" rx="3" fill="#8a5a2b" stroke="#4a2a12" strokeWidth="3" />
-      <rect x="10" y="74" width="110" height="10" rx="4" fill="#8a5a2b" stroke="#4a2a12" strokeWidth="3" />
-      <path d="M14 79 l-10 -6 M14 79 l-11 3 M14 79 l-8 9 M116 79 l10 -6 M116 79 l11 3 M116 79 l8 9" stroke="#e9c06a" strokeWidth="3.5" strokeLinecap="round" />
-      <path d="M34 70 H96 L102 126 H28Z" fill="#ED7117" stroke="#3B1F0E" strokeWidth="3.5" strokeLinejoin="round" />
-      <path d="M46 70 V126 M65 70 V126 M84 70 V126 M31 92 H99 M30 110 H100" stroke="#b8520c" strokeWidth="3" />
-      <rect x="54" y="88" width="20" height="16" rx="3" fill="#ffcb73" stroke="#3B1F0E" strokeWidth="2.5" />
-      <path d="M34 126 l-6 10 M46 126 l-2 12 M84 126 l2 12 M96 126 l6 10" stroke="#e9c06a" strokeWidth="3.5" strokeLinecap="round" />
-      <circle cx="65" cy="48" r="23" fill="#e9c98a" stroke="#3B1F0E" strokeWidth="3.5" />
-      <circle cx="56" cy="45" r="3.4" fill="#3B1F0E" /><circle cx="74" cy="45" r="3.4" fill="#3B1F0E" />
-      <path d="M53 56 Q65 64 77 56" stroke="#3B1F0E" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <path d="M57 58 l-1 4 M65 60 v4 M73 58 l1 4" stroke="#3B1F0E" strokeWidth="2" />
-      <path d="M30 32 Q65 22 100 32 L92 36 Q65 30 38 36Z" fill="#c9922f" stroke="#3B1F0E" strokeWidth="3" strokeLinejoin="round" />
-      <path d="M46 31 Q48 6 65 6 Q82 6 84 31Z" fill="#e0a83a" stroke="#3B1F0E" strokeWidth="3" strokeLinejoin="round" />
-      <rect x="47" y="23" width="36" height="7" fill="#ED7117" />
-    </svg>
-  );
-}
-
-function Shed() {
-  return (
-    <svg className="garden-decor" style={{ left: SHED.x, top: SHED.y, zIndex: SHED.y, transform: "translate(-50%, -100%)" }} width="260" height="240" viewBox="0 0 260 240" aria-hidden="true">
-      <ellipse cx="134" cy="230" rx="122" ry="12" fill="rgba(0,0,0,.22)" />
-      <rect x="34" y="100" width="192" height="128" rx="6" fill="#c98a4b" stroke="#3B1F0E" strokeWidth="5" />
-      {[66, 98, 162, 194].map((x) => <path key={x} d={`M${x} 104 V224`} stroke="#a86d34" strokeWidth="3" />)}
-      <rect x="104" y="140" width="56" height="88" rx="5" fill="#8a5a2b" stroke="#3B1F0E" strokeWidth="5" />
-      <path d="M108 144 L156 224 M156 144 L108 224" stroke="#6e4220" strokeWidth="5" />
-      <circle cx="148" cy="188" r="4" fill="#ffcb73" stroke="#3B1F0E" strokeWidth="2" />
-      <rect x="176" y="126" width="38" height="34" rx="4" fill="#fff3df" stroke="#3B1F0E" strokeWidth="4" />
-      <path d="M195 128 V158 M178 143 H212" stroke="#3B1F0E" strokeWidth="3" />
-      <rect x="172" y="160" width="46" height="12" rx="3" fill="#8a5a2b" stroke="#3B1F0E" strokeWidth="3" />
-      {[180, 192, 204, 214].map((x, index) => <circle key={x} cx={x} cy="157" r="5" fill={["#e5483b", "#ffd23f", "#ff8fb8", "#ffd23f"][index]} stroke="#3B1F0E" strokeWidth="1.5" />)}
-      <path d="M50 120 L46 222 M42 118 L58 124" stroke="#6e4220" strokeWidth="5" strokeLinecap="round" />
-      <path d="M72 124 L76 222" stroke="#6e4220" strokeWidth="5" strokeLinecap="round" />
-      <path d="M68 120 Q76 108 84 120 L80 132 L72 132Z" fill="#a9a59c" stroke="#3B1F0E" strokeWidth="3" strokeLinejoin="round" />
-      <path d="M14 108 L130 22 L246 108 L232 116 L130 40 L28 116Z" fill="#ED7117" stroke="#3B1F0E" strokeWidth="5" strokeLinejoin="round" />
-      <path d="M40 98 L130 32 L220 98" stroke="#c95a0d" strokeWidth="18" fill="none" strokeLinejoin="round" />
-      <path d="M58 86 L130 34 L202 86 M78 72 L130 36 L182 72" stroke="#ff9a4a" strokeWidth="3" fill="none" strokeDasharray="10 8" />
-      <circle cx="130" cy="74" r="13" fill="#fff3df" stroke="#3B1F0E" strokeWidth="4" />
-      <path d="M130 64 V84 M120 74 H140" stroke="#3B1F0E" strokeWidth="3" />
-      <rect x="18" y="214" width="34" height="20" rx="5" fill="#b8773c" stroke="#3B1F0E" strokeWidth="3" />
-      <path d="M22 214 C22 200 30 196 34 206 C38 194 48 198 48 214" fill="#3fa53a" />
-    </svg>
-  );
-}
-
-function Well() {
-  return (
-    <svg className="garden-decor" style={{ left: WELL.x, top: WELL.y, zIndex: WELL.y, transform: "translate(-50%, -100%)" }} width="170" height="184" viewBox="0 0 170 184" aria-hidden="true">
-      <ellipse cx="88" cy="176" rx="74" ry="9" fill="rgba(0,0,0,.22)" />
-      <rect x="22" y="40" width="12" height="104" rx="4" fill="#8a5a2b" stroke="#3B1F0E" strokeWidth="3.5" />
-      <rect x="136" y="40" width="12" height="104" rx="4" fill="#8a5a2b" stroke="#3B1F0E" strokeWidth="3.5" />
-      <rect x="26" y="66" width="118" height="8" rx="4" fill="#6e4220" stroke="#3B1F0E" strokeWidth="3" />
-      <path d="M85 74 V104" stroke="#e9c98a" strokeWidth="3" />
-      <path d="M74 104 H96 L93 124 H77Z" fill="#a9a59c" stroke="#3B1F0E" strokeWidth="3" strokeLinejoin="round" />
-      <path d="M10 46 L85 8 L160 46 L150 52 L85 20 L20 52Z" fill="#ED7117" stroke="#3B1F0E" strokeWidth="4.5" strokeLinejoin="round" />
-      <path d="M26 42 L85 12 L144 42" stroke="#c95a0d" strokeWidth="9" fill="none" strokeLinejoin="round" />
-      <path d="M18 128 H152 V164 Q85 180 18 164Z" fill="#9e9a91" stroke="#3B1F0E" strokeWidth="4" strokeLinejoin="round" />
-      {[[34, 140], [62, 136], [92, 140], [122, 136], [146, 142], [44, 156], [76, 158], [108, 158], [136, 156]].map(([cx, cy]) => <rect key={`${cx}-${cy}`} x={cx - 12} y={cy - 6} width="24" height="12" rx="5" fill="#b9b5ac" stroke="#7c786f" strokeWidth="2" />)}
-      <ellipse cx="85" cy="128" rx="67" ry="14" fill="#b9b5ac" stroke="#3B1F0E" strokeWidth="4" />
-      <ellipse cx="85" cy="129" rx="52" ry="8" fill="#2f3a2a" />
-      <path d="M58 129 Q70 125 82 129" stroke="#6b8a4a" strokeWidth="2" fill="none" opacity=".7" />
-    </svg>
-  );
-}
-
-function Signpost() {
-  return (
-    <svg className="garden-decor" style={{ left: SIGNPOST.x, top: SIGNPOST.y, zIndex: SIGNPOST.y, transform: "translate(-50%, -100%)" }} width="180" height="150" viewBox="0 0 180 150" aria-hidden="true">
-      <ellipse cx="92" cy="145" rx="30" ry="5" fill="rgba(0,0,0,.2)" />
-      <rect x="84" y="24" width="14" height="122" rx="4" fill="#8a5a2b" stroke="#3B1F0E" strokeWidth="3.5" />
-      <path d="M100 22 H160 L174 38 L160 54 H100Z" fill="#d08a4c" stroke="#3B1F0E" strokeWidth="4" strokeLinejoin="round" transform="rotate(-8 100 38)" />
-      <text x="134" y="44" textAnchor="middle" fontFamily="DynaPuff, ui-rounded, system-ui, sans-serif" fontWeight="900" fontSize="15" fill="#fff3df" transform="rotate(-8 100 38)">Garden</text>
-      <path d="M82 66 H20 L6 82 L20 98 H82Z" fill="#d08a4c" stroke="#3B1F0E" strokeWidth="4" strokeLinejoin="round" transform="rotate(10 82 82)" />
-      <text x="46" y="88" textAnchor="middle" fontFamily="DynaPuff, ui-rounded, system-ui, sans-serif" fontWeight="900" fontSize="15" fill="#fff3df" transform="rotate(10 82 82)">Seeds</text>
-      <path d="M78 146 C80 136 88 134 92 140 C96 132 106 136 106 146" fill="#3fa53a" />
-    </svg>
-  );
-}
-
-// The big static meadow: drawn once, it never re-renders while walking.
-export const Meadow = memo(function Meadow({ ownerName }: { ownerName: string }) {
+export const Meadow = memo(function Meadow({ isOwner }: { isOwner: boolean }) {
   return (
     <>
       <Ground />
       <Path />
       <div className="garden-lawn" style={{ left: GARDEN.x, top: GARDEN.y, width: GARDEN.width, height: GARDEN.height }} />
       {PLOTS.map((plot, index) => <div key={index} className="garden-pad" style={{ left: plot.x, top: plot.y }} />)}
-      <Wheat />
-      <Scarecrow />
-      <Shed />
-      <Well />
-      <Signpost />
       {DECOR.map((item, index) => <DecorSprite key={index} item={item} />)}
       {TREES.map((tree, index) => <Tree key={index} index={index} {...tree} />)}
-      <Fence ownerName={ownerName} />
+      <Fence isOwner={isOwner} />
     </>
   );
 });

@@ -4,14 +4,15 @@ import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { hasAdminAccess } from '../../../lib/admin-access';
 import { isKidAccount } from '../../../lib/kid-mode';
-import { MAX_HELPERS, MAX_SEEDS_PER_BUY, PLOT_COUNT, SEEDS, seedNamed, type FieldsView, type GardenPerson, type Plot, type SeedName } from '../../../lib/fields';
+import { DAILY_EARN_LIMIT, MAX_HELPERS, MAX_SEEDS_PER_BUY, PLOT_COUNT, SEEDS, gardenDay, seedNamed, type FieldsView, type GardenPerson, type Plot, type SeedName } from '../../../lib/fields';
 
 export const dynamic = 'force-dynamic';
 
 // Breadlet Garden. Every player has a garden (a row in breadlet_fields, migration 0101, which only
 // the server can read or write). Owning a garden is admin only while it's tested; anyone signed in
 // (not a kid account) can visit one from an invite link, and plant there if the owner allows it.
-type State = { plots: Plot[]; seeds: Record<SeedName, number>; helpers: string[] };
+// earned: Bread Bucks this player earned from gardens on that day (it lives in their own row).
+type State = { plots: Plot[]; seeds: Record<SeedName, number>; helpers: string[]; earned: { day: string; amount: number } };
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
 const random = () => randomInt(0, 1_000_000_000) / 1_000_000_000;
@@ -25,7 +26,8 @@ function normalize(raw: any): State {
   });
   const seeds = Object.fromEntries(SEEDS.map((seed) => [seed.name, Math.max(0, Math.floor(Number(raw?.seeds?.[seed.name]) || 0))])) as Record<SeedName, number>;
   const helpers = Array.isArray(raw?.helpers) ? raw.helpers.filter(isId).slice(0, MAX_HELPERS) : [];
-  return { plots, seeds, helpers };
+  const earned = { day: typeof raw?.earned?.day === 'string' ? raw.earned.day : '', amount: Math.max(0, Math.floor(Number(raw?.earned?.amount) || 0)) };
+  return { plots, seeds, helpers, earned };
 }
 
 async function session(gardenParam: unknown) {
@@ -84,6 +86,8 @@ async function giveBreadlet(database: any, userId: string, name: string) {
   return !error;
 }
 
+const earnedToday = (state: State) => (state.earned.day === gardenDay() ? state.earned.amount : 0);
+
 async function buildView(database: any, current: { userId: string; owner: GardenPerson }, garden: State, mine: State): Promise<FieldsView> {
   const isOwner = current.owner.id === current.userId;
   let helpers: GardenPerson[] = [];
@@ -91,7 +95,7 @@ async function buildView(database: any, current: { userId: string; owner: Garden
     const { data } = await database.from('profiles').select('id, username').in('id', garden.helpers);
     helpers = (data || []).map((row: any) => ({ id: row.id, username: String(row.username || 'Player') }));
   }
-  return { owner: current.owner, isOwner, canPlant: isOwner || garden.helpers.includes(current.userId), helpers, plots: garden.plots, seeds: mine.seeds, now: Date.now() };
+  return { owner: current.owner, isOwner, canPlant: isOwner || garden.helpers.includes(current.userId), helpers, plots: garden.plots, seeds: mine.seeds, earnedToday: earnedToday(mine), now: Date.now() };
 }
 
 // GET ?garden=<owner id> (no garden = your own).
@@ -179,15 +183,33 @@ export async function POST(request: Request) {
     const planter = plot.plantedBy || owner.id;
     if (planter !== userId) return fail(`That's ${plot.plantedByName || owner.username}'s ${seed.name}. Only they can harvest it.`, 403);
     if (Date.now() < plot.plantedAt + seed.growMs) return fail(`Your ${seed.name} isn't ready yet.`);
+    // Pay up to what's left of today's limit, and count it in the harvester's own row.
+    const already = earnedToday(mine.state);
+    const pay = Math.max(0, Math.min(seed.payout, DAILY_EARN_LIMIT - already));
+    mine.state.earned = { day: gardenDay(), amount: already + pay };
     garden.state.plots[index] = null;
+    // Your own garden: one save covers the plot and your earnings. A friend's: their plot first, then your row.
     if (!(await save(database, owner.id, garden.state, garden.rev))) return busy();
-    const paid = await changeTokens(database, userId, seed.payout);
+    if (!isOwner) {
+      let saved = await save(database, userId, mine.state, mine.rev);
+      for (let attempt = 0; !saved && attempt < 3; attempt += 1) {
+        const fresh = await load(database, userId);
+        if ('error' in fresh) break;
+        fresh.state.earned = { day: gardenDay(), amount: earnedToday(fresh.state) + pay };
+        mine.state = fresh.state;
+        saved = await save(database, userId, fresh.state, fresh.rev);
+      }
+    }
+    const paid = pay > 0 ? await changeTokens(database, userId, pay) : {};
     const lucky = random() < seed.breadletChance && (await giveBreadlet(database, userId, seed.name));
+    const capped = pay < seed.payout;
+    const cash = pay > 0 ? `${pay} Bread Bucks` : 'no Bread Bucks';
     return respond({
       tokens: 'tokens' in paid ? paid.tokens : undefined,
       breadlet: lucky ? seed.name : undefined,
-      payout: seed.payout,
-      message: lucky ? `WOW! You grew a ${seed.name} Breadlet, plus ${seed.payout} Bread Bucks!` : `Harvested a ${seed.name} for ${seed.payout} Bread Bucks.`,
+      payout: pay,
+      message: (lucky ? `WOW! You grew a ${seed.name} Breadlet, plus ${cash}!` : `Harvested a ${seed.name} for ${cash}.`)
+        + (capped ? ` You've hit today's ${DAILY_EARN_LIMIT.toLocaleString()} Bread Bucks garden limit.` : ''),
     });
   }
 
