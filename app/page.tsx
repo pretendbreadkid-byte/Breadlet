@@ -4192,47 +4192,40 @@ function OddsModal({
   close: () => void;
 }) {
   return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-start justify-between gap-4 pb-3 border-b border-[#3d91cd]/30">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">
-              Specific Bread chances
-            </p>
-            <h2 className="mt-1 text-2xl font-black text-white">{capsule.name}</h2>
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm" onClick={close}>
+      <section role="dialog" aria-modal="true" aria-labelledby="odds-title" className="odds-card" onClick={(event) => event.stopPropagation()}>
+        <header className="odds-header">
+          <img src={capsule.art} alt="" className="odds-bag" />
+          <div className="min-w-0 flex-1">
+            <small>Reward chances</small>
+            <h2 id="odds-title">{capsule.name}</h2>
           </div>
-          <button
-            onClick={close}
-            className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]"
-          >
-            Close
-          </button>
-        </div>
-        <div className="mt-4 space-y-2 overflow-y-auto pr-1 flex-1">
-          {sortByRarity(capsule.pool).map((reward) => (
-            <div
-              key={reward.name}
-              className="flex items-center justify-between rounded-xl bg-[#0c3b70] p-3 text-sm border border-[#3d91cd]/20"
-            >
-              <span className="flex min-w-0 items-center gap-3">
-                <div className="h-10 w-10 shrink-0 bg-[#072a54] rounded-lg p-1 flex items-center justify-center">
+          <button type="button" onClick={close} aria-label="Close reward chances" className="odds-close">×</button>
+        </header>
+        <div className="odds-list">
+          {sortByRarity(capsule.pool).map((reward) => {
+            const resting = reward.rotation && !isRewardActive(reward);
+            const chance = chanceFor(capsule, reward);
+            return (
+              <div key={reward.name} className={`odds-row${resting ? " is-resting" : ""}`} style={{ ["--rarity" as string]: REVEAL_GLOW[reward.rarity] || "#cbd5e1" }}>
+                <span className="odds-art">
                   <RewardArt name={reward.name} art={reward.art || artFor(reward.name)} className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
-                </div>
-                <span className="truncate font-bold text-white">{reward.name} <b className="ml-1 text-xs text-[#e9bd67]">{reward.rarity}</b></span>
-              </span>
-              {reward.rotation && !isRewardActive(reward) ? (
-                // Daily rotation: only one of these is in the pack each day.
-                <b className="text-xs text-[#bde8ff] opacity-80">{(() => { const days = (reward.rotation.slot - rotationSlotFor(reward.rotation.size) + reward.rotation.size) % reward.rotation.size; return days === 1 ? "Back tomorrow" : `Back in ${days} days`; })()}</b>
-              ) : (
-                <b className="text-[#bde8ff] text-base">
-                  {reward.rotation && <span className="mr-2 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-200">Today</span>}
-                  {chanceFor(capsule, reward).toFixed(chanceFor(capsule, reward) < 0.01 ? 3 : 2)}%
-                </b>
-              )}
-            </div>
-          ))}
+                </span>
+                <span className="odds-name">
+                  <b>{reward.name}</b>
+                  <em>{reward.rarity}{reward.rotation && !resting ? " · Today" : ""}</em>
+                </span>
+                {resting ? (
+                  // Daily rotation: only one of these is in the pack each day.
+                  <span className="odds-back">{(() => { const days = (reward.rotation!.slot - rotationSlotFor(reward.rotation!.size) + reward.rotation!.size) % reward.rotation!.size; return days === 1 ? "Back tomorrow" : `Back in ${days} days`; })()}</span>
+                ) : (
+                  <span className="odds-chance">{Number(chance.toFixed(chance < 0.01 ? 3 : 2))}%</span>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
