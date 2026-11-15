@@ -683,6 +683,25 @@ function MainPage() {
   useEffect(() => {
     if (kidMode && KID_HIDDEN_TABS.includes(tab)) setTab("capsules");
   }, [kidMode, tab]);
+  // A news post this player hasn't seen yet opens Breadlet News once, when they sign in or come back.
+  // The newest post they've seen is remembered per player in this browser.
+  const newsPlayerId = !isGuest && player?.id ? player.id : "";
+  useEffect(() => {
+    if (!newsPlayerId) return;
+    const key = `breadlet-news-seen:${newsPlayerId}`;
+    let cancelled = false;
+    void (async () => {
+      const response = await fetch("/api/news", { cache: "no-store" }).catch(() => null);
+      const data = await response?.json().catch(() => null);
+      const newest = Array.isArray(data?.posts) && data.posts[0]?.created_at ? String(data.posts[0].created_at) : "";
+      if (cancelled || !newest) return;
+      let seen = "";
+      try { seen = window.localStorage.getItem(key) || ""; } catch { /* storage blocked */ }
+      if (!seen || Date.parse(newest) > Date.parse(seen)) setNewsOpen(true);
+      try { window.localStorage.setItem(key, newest); } catch { /* storage blocked */ }
+    })();
+    return () => { cancelled = true; };
+  }, [newsPlayerId]);
   const [capsuleToConfirm, setCapsuleToConfirm] = useState<Capsule | null>(null);
   const [reveal, setReveal] = useState<{
     capsule: Capsule;

@@ -112,7 +112,7 @@ export function LiveTrade(props: LiveTradeProps) {
     return result;
   };
 
-  const incomingPending = settings.incomingTrades ? undefined : trades.find((trade) => trade.status === "pending" && !trade.room_open && trade.receiver_profile_id === player.id);
+  const incomingPending = settings.incomingTrades && readSettings().incomingTrades ? undefined : trades.find((trade) => trade.status === "pending" && !trade.room_open && trade.receiver_profile_id === player.id);
   const incomingPendingId = incomingPending?.id;
   useEffect(() => {
     if (incomingPendingId) void act(incomingPendingId, "decline");
@@ -122,7 +122,10 @@ export function LiveTrade(props: LiveTradeProps) {
   if (isGuest || !player.id) return null;
   const pending = trades.filter((trade) => trade.status === "pending");
   const room = pending.find((trade) => trade.room_open);
-  const incoming = room ? null : pending.find((trade) => !trade.room_open && trade.receiver_profile_id === player.id);
+  // With incoming trades off, requests are declined in the background and never shown, not even for
+  // the moment before the decline goes through (settings are read straight from storage for that first render).
+  const incomingAllowed = settings.incomingTrades && readSettings().incomingTrades;
+  const incoming = room || !incomingAllowed ? null : pending.find((trade) => !trade.room_open && trade.receiver_profile_id === player.id);
   const outgoing = room ? null : pending.find((trade) => !trade.room_open && trade.sender_profile_id === player.id);
 
   if (room) {
