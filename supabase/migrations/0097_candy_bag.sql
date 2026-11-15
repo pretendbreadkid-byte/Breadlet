@@ -8,8 +8,8 @@ insert into public.blooks (name, rarity, artwork_key) values
   ('Green Sour Gummy', 'Uncommon', 'candy/green-sour-gummy.svg'),
   ('Chocolate Coin', 'Uncommon', 'candy/chocolate-coin.svg'),
   ('Blue Sour Gummy', 'Rare', 'candy/blue-sour-gummy.svg'),
-  ('Chocolate Kiss', 'Rare', 'candy/chocolate-kiss.svg'),
-  ('Marshmallow Bunny', 'Epic', 'candy/marshmallow-chick.webp'),
+  ('Chocolate Kiss', 'Epic', 'candy/chocolate-kiss.svg'),
+  ('Marshmallow Bunny', 'Legendary', 'candy/marshmallow-chick.webp'),
   ('King Candy', 'Mythic', 'candy/king-candy.svg'),
   ('Golden Ticket', 'Secret', 'candy/golden-ticket.svg')
 on conflict (name) do update set rarity = excluded.rarity, artwork_key = excluded.artwork_key;

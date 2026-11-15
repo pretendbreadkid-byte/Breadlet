@@ -423,11 +423,11 @@ export const liveCapsules: Capsule[] = [
     }),
   },
   {
-    // The one pack that pays out more than it costs on average (~27.7 resale on 25), so opening
+    // The one pack that pays out more than it costs on average (~26.7 resale on 25), so opening
     // and selling is a small profit. No Breadled yet.
     name: "Candy Bag",
     price: 25,
-    rarityChances: { Epic: 20, Mythic: 1.5, Secret: 0.05 },
+    rarityChances: { Epic: 12, Legendary: 3, Mythic: 1.5, Secret: 0.05 },
     art: "/assets/candy/candy-bag.svg",
     pool: rewards([
       ["Lollipop", "Common"],
@@ -437,8 +437,8 @@ export const liveCapsules: Capsule[] = [
       ["Green Sour Gummy", "Uncommon"],
       ["Chocolate Coin", "Uncommon"],
       ["Blue Sour Gummy", "Rare"],
-      ["Chocolate Kiss", "Rare"],
-      ["Marshmallow Bunny", "Epic"],
+      ["Chocolate Kiss", "Epic"],
+      ["Marshmallow Bunny", "Legendary"],
       ["King Candy", "Mythic"],
       ["Golden Ticket", "Secret"],
     ], {
