@@ -3677,7 +3677,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
 .garden-world .garden-plot:hover:not(:disabled), .garden-world .garden-plot:active:not(:disabled) { transform: translate(-50%, -50%); scale: 1; box-shadow: none; }
 .garden-world .garden-stand-hit:hover:not(:disabled), .garden-world .garden-stand-hit:active:not(:disabled) { transform: translate(-50%, -100%); scale: 1; box-shadow: none; filter: none; }
 .garden-world .garden-plot:hover:not(.is-near):not(:disabled) { filter: none; }
-/* Slimmer desktop sidebar (185px, was 240px). */
+/* Slimmer desktop sidebar (204px, was 240px). */
 @media (min-width: 768px) {
   main.breadlet-blue-theme > aside.breadlet-sidebar { padding-right: 8px; }
   main.breadlet-blue-theme > aside.breadlet-sidebar nav button { min-height: 36px; padding-left: 12px; gap: 7px; font-size: 13px; }
