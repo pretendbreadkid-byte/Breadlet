@@ -57,6 +57,33 @@ const blocked = (x: number, y: number) =>
   || (Math.abs(x - SIGN.x) < 100 && y > SIGN.y - 150 && y < SIGN.y + 30)
   || TREES.some((tree) => Math.hypot(x - tree.x, y - tree.y + 60) < 125 * tree.size);
 
+// Things you can't walk through: the fence (except the gate), the beds, Ted's stand, the sign,
+// the gate posts and tree trunks. Points are where a Breadlet's feet are.
+const SOLID_BOXES: [number, number, number, number][] = [
+  [GARDEN.x - 24, GARDEN.y - 30, GARDEN.x + GARDEN.width + 24, GARDEN.y + 22],
+  [GARDEN.x - 24, FRONT - 30, GATE.x - 50, FRONT + 22],
+  [GATE.x + 50, FRONT - 30, GARDEN.x + GARDEN.width + 24, FRONT + 22],
+  [GARDEN.x - 24, GARDEN.y - 30, GARDEN.x + 22, FRONT + 22],
+  [GARDEN.x + GARDEN.width - 22, GARDEN.y - 30, GARDEN.x + GARDEN.width + 24, FRONT + 22],
+  [STAND.x - 125, STAND.y - 80, STAND.x + 125, STAND.y + 8],
+  [SIGN.x - 45, SIGN.y - 28, SIGN.x + 45, SIGN.y + 6],
+  ...PLOTS.map((plot): [number, number, number, number] => [plot.x - 88, plot.y - 50, plot.x + 88, plot.y + 42]),
+];
+const SOLID_CIRCLES = [
+  ...TREES.map((tree) => ({ x: tree.x, y: tree.y - 14 * tree.size, r: 34 * tree.size })),
+  { x: GATE.x - 65, y: FRONT, r: 16 }, { x: GATE.x + 65, y: FRONT, r: 16 },
+];
+const isSolid = (x: number, y: number) =>
+  SOLID_BOXES.some(([left, top, right, bottom]) => x > left && x < right && y > top && y < bottom)
+  || SOLID_CIRCLES.some((circle) => Math.hypot(x - circle.x, y - circle.y) < circle.r);
+// Walking into something solid slides you along it instead.
+export const gardenCollide = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+  if (!isSolid(to.x, to.y) || isSolid(from.x, from.y)) return to;
+  if (!isSolid(to.x, from.y)) return { x: to.x, y: from.y };
+  if (!isSolid(from.x, to.y)) return { x: from.x, y: to.y };
+  return from;
+};
+
 type DecorKind = "flower" | "tuft" | "bush" | "rock" | "pebble" | "mushroom" | "clover" | "tall";
 type Decor = { kind: DecorKind; x: number; y: number; tint: number; flip: boolean };
 const DECOR: Decor[] = (() => {
@@ -234,13 +261,14 @@ function Tree({ x, y, size, kind, index }: { x: number; y: number; size: number;
         <ellipse cx="104" cy="268" rx="70" ry="12" fill="rgba(0,0,0,.22)" />
         <rect x="90" y="210" width="20" height="60" rx="5" fill="#7a4a22" stroke="#4a2a12" strokeWidth="4" />
         <g className="garden-sway" style={sway}>
-          {[[0, 230, 86], [36, 196, 70], [72, 160, 54], [106, 126, 38]].map(([top, bottom, half], layer) => (
+          {/* Four stacked tiers, bottom first, so each one tucks under the tier above it. */}
+          {[[118, 226, 88], [78, 178, 72], [42, 132, 56], [10, 88, 40]].map(([top, bottom, half], layer) => (
             <g key={layer}>
-              <path d={`M100 ${top + 10} L${100 + half} ${bottom} Q100 ${bottom + 16} ${100 - half} ${bottom}Z`} fill="#1f6b2b" stroke="#164d1f" strokeWidth="4" strokeLinejoin="round" />
-              <path d={`M100 ${top + 16} L${100 - half + 14} ${bottom - 6} Q${100 - half / 2} ${bottom + 2} 100 ${bottom - 4}Z`} fill="#2e8a39" />
+              <path d={`M100 ${top} L${100 + half} ${bottom} Q100 ${bottom + 14} ${100 - half} ${bottom}Z`} fill="#226f2e" stroke="#164d1f" strokeWidth="4" strokeLinejoin="round" />
+              <path d={`M100 ${top + 8} L${100 - half + 12} ${bottom - 2} Q${100 - half / 2} ${bottom + 6} 100 ${bottom + 7}Z`} fill="#2f8f3b" />
+              <path d={`M${100 - half + 16} ${bottom - 1} Q100 ${bottom + 10} ${100 + half - 16} ${bottom - 1}`} stroke="#164d1f" strokeWidth="3" fill="none" opacity=".35" />
             </g>
           ))}
-          <path d="M100 14 L112 40 L88 40Z" fill="#3fa54a" />
         </g>
       </svg>
     );

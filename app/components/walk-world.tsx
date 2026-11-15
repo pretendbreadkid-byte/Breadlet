@@ -17,11 +17,15 @@ const BUBBLE_MS = 6000;
 
 const cleanBubble = (text: string) => (hasSevereSlur(text) ? "" : filterProfanity(text.slice(0, 120)));
 
-export function useWalkWorld({ room, player, world, clamp, spawn }: { room: string; player: WalkPlayer; world: { width: number; height: number }; clamp: (x: number, y: number) => Point; spawn: () => Point }) {
+// collide (optional) turns a step from one point toward another into where you can actually go,
+// so worlds can have solid things you can't walk through.
+export function useWalkWorld({ room, player, world, clamp, spawn, collide }: { room: string; player: WalkPlayer; world: { width: number; height: number }; clamp: (x: number, y: number) => Point; spawn: () => Point; collide?: (from: Point, to: Point) => Point }) {
   const supabase = useMemo(() => createSupabaseClient(), []);
   const viewportRef = useRef<HTMLDivElement>(null);
   const clampRef = useRef(clamp);
   clampRef.current = clamp;
+  const collideRef = useRef(collide);
+  collideRef.current = collide;
   const meRef = useRef<Walker | null>(null);
   if (!meRef.current) meRef.current = { id: player.id, username: player.username, blook: player.equipped, ...spawn(), facing: 1 };
   const targetRef = useRef<Point | null>(null);
@@ -134,7 +138,8 @@ export function useWalkWorld({ room, player, world, clamp, spawn }: { room: stri
       }
       if (dx || dy) {
         const length = Math.hypot(dx, dy);
-        const next = clampRef.current(current.x + (dx / length) * SPEED * seconds, current.y + (dy / length) * SPEED * seconds);
+        const stepTo = clampRef.current(current.x + (dx / length) * SPEED * seconds, current.y + (dy / length) * SPEED * seconds);
+        const next = collideRef.current ? collideRef.current(current, stepTo) : stepTo;
         // Stuck against something (a table): stop walking toward the clicked spot.
         if (Math.hypot(next.x - current.x, next.y - current.y) < 0.5) targetRef.current = null;
         meRef.current = { ...current, ...next, facing: dx < 0 ? -1 : dx > 0 ? 1 : current.facing };

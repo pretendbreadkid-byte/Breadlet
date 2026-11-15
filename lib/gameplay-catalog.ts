@@ -319,7 +319,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Secret: 0.01 },
-    art: "/assets/artifact-bag-3.svg",
+    art: "/assets/artifact-bag-4.svg",
     pool: rewards([
       ["Aztec Coin", "Common"],
       ["Clay Vase", "Common"],
@@ -327,9 +327,11 @@ export const liveCapsules: Capsule[] = [
       ["Crystal Ball", "Rare"],
       ["Necklace", "Epic"],
       ["Stone Tablet", "Legendary"],
+      ["Treasure Chest", "Mythic"],
       ["Timeglass", "Secret"],
     ], {
       "Clay Vase": "/assets/clay-vase-2.svg",
+      "Treasure Chest": "/assets/treasure-chest.svg",
     }),
   },
   {

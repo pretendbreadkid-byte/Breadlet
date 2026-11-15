@@ -9,7 +9,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, Link2, Sprout, Users } from "lucide-react";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
 import { DAILY_EARN_LIMIT, MAX_SEEDS_PER_BUY, SEEDS, gardenInviteLink, seedNamed, type FieldsView, type SeedName } from "../../lib/fields";
-import { Ambient, BedArt, CropArt, GARDEN, GATE, Meadow, PLOTS, STAND, SeedStand, WORLD } from "./garden-art";
+import { Ambient, BedArt, gardenCollide, CropArt, GARDEN, GATE, Meadow, PLOTS, STAND, SeedStand, WORLD } from "./garden-art";
 
 const REACH = 130;
 
@@ -56,11 +56,12 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const skewRef = useRef(0);
   const pendingRef = useRef<Target | null>(null);
 
-  const { viewportRef, me, others, walkers, connected, camera, walkTo, walkToPoint, say } = useWalkWorld({
+  const { viewportRef, me, others, walkers, connected, camera, walkToPoint, say } = useWalkWorld({
     room: `garden-${ownerId}`,
     player,
     world: WORLD,
     clamp,
+    collide: gardenCollide,
     spawn: () => clamp(GATE.x - 30 + Math.random() * 60, GARDEN.y + GARDEN.height + 70 + Math.random() * 40),
   });
 
@@ -151,13 +152,36 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     void post({ action: "plant", plot: target.index, seed: pick }).then((data) => data && float(spot.x, spot.y + 10, "", "puff"));
   };
 
+  // The fence is solid, so walking in or out of the garden goes through the gate.
+  const routeRef = useRef<{ x: number; y: number }[]>([]);
+  const inGarden = (x: number, y: number) => x > GARDEN.x && x < GARDEN.x + GARDEN.width && y > GARDEN.y && y < GARDEN.y + GARDEN.height;
+  const goTo = (x: number, y: number) => {
+    const inside = inGarden(me.x, me.y);
+    if (inside === inGarden(x, y)) { routeRef.current = []; return walkToPoint(x, y); }
+    const front = GARDEN.y + GARDEN.height;
+    const gateInside = { x: GATE.x, y: front - 50 }, gateOutside = { x: GATE.x, y: front + 60 };
+    routeRef.current = inside ? [gateInside, gateOutside, { x, y }] : [gateOutside, gateInside, { x, y }];
+    walkToPoint(routeRef.current[0].x, routeRef.current[0].y);
+  };
+  useEffect(() => {
+    const [next, ...rest] = routeRef.current;
+    if (next && rest.length && Math.hypot(me.x - next.x, me.y - next.y) < 12) {
+      routeRef.current = rest;
+      walkToPoint(rest[0].x, rest[0].y);
+    }
+  }, [me.x, me.y, walkToPoint]);
+  const walkToClick = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    goTo(event.clientX - rect.left + camera.x, event.clientY - rect.top + camera.y);
+  };
+
   // Clicking something far away walks over first, then uses it on arrival.
   const choose = (event: React.PointerEvent, target: Target) => {
     event.stopPropagation();
     if (isNear(target)) return interact(target);
     pendingRef.current = target;
     const spot = spotOf(target);
-    walkToPoint(spot.x, spot.y + (target.kind === "stand" ? 60 : 90));
+    goTo(spot.x, spot.y + (target.kind === "stand" ? 60 : 90));
   };
   useEffect(() => {
     const pending = pendingRef.current;
@@ -205,7 +229,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
 
   return createPortal(
     <div className="garden-screen">
-      <div ref={viewportRef} onPointerDown={(event) => { pendingRef.current = null; walkTo(event); }} className="explore-viewport garden-viewport">
+      <div ref={viewportRef} onPointerDown={(event) => { pendingRef.current = null; walkToClick(event); }} className="explore-viewport garden-viewport">
         <div className="garden-world" style={{ width: WORLD.width, height: WORLD.height, transform: `translate3d(${-camera.x}px, ${-camera.y}px, 0)` }}>
           <Meadow isOwner={fields ? fields.isOwner : !gardenId} />
           <SeedStand near={nearest?.kind === "stand"} />

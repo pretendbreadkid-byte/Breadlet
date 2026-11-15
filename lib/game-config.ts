@@ -53,7 +53,7 @@ export const CHEST_DEFINITIONS = [
     name: 'Artifact Bag',
     price: 25,
     description: 'Ancient relics and hidden mysteries.',
-    pool: ['Aztec Coin', 'Clay Vase', 'Map', 'Crystal Ball', 'Necklace', 'Stone Tablet', 'Time Glass'],
+    pool: ['Aztec Coin', 'Clay Vase', 'Map', 'Crystal Ball', 'Necklace', 'Stone Tablet', 'Treasure Chest', 'Time Glass'],
     rarity: 'Mythic',
     isRetired: false,
     active: true,
