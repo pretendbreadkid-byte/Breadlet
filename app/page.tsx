@@ -61,6 +61,7 @@ import {
   Package,
   Gift,
   Info,
+  Settings as SettingsIcon,
   Wallet,
   Sparkles,
   Reply,
@@ -1991,7 +1992,7 @@ function MainPage() {
   const layoutExtras = (
     <div className="layout-extras">
       <button type="button" onClick={() => { setViewedProfile(null); goTab("profile"); }}><CircleUserRound size={18} />Profile</button>
-      <button type="button" onClick={() => goTab("settings")}><Info size={18} />Settings</button>
+      <button type="button" onClick={() => goTab("settings")}><SettingsIcon size={18} />Settings</button>
       <button type="button" onClick={() => { setNewsOpen(true); setMoreOpen(false); }}><Newspaper size={18} />News</button>
       {!kidMode && <button type="button" onClick={() => { setSocialsOpen(true); setMoreOpen(false); }}><Users size={18} />Socials</button>}
       {!kidMode && <button type="button" onClick={() => { setProjectsOpen(true); setMoreOpen(false); }}><GitBranch size={18} />Other projects</button>}
@@ -2009,6 +2010,9 @@ function MainPage() {
           <button type="button" className="sidebar-brand" data-tour-target="profile" aria-label="Open my profile" onClick={() => { setViewedProfile(null); setTab("profile"); }}>
             <span className="sidebar-wordmark"><img src="/assets/breadlet-logo-2.svg" alt="Breadlet" /></span>
           </button>
+
+          {/* Icon rail layout: the Breadlet icon at the top opens your profile. */}
+          <button type="button" className="rail-logo" aria-label="Open my profile" onClick={() => { setViewedProfile(null); setTab("profile"); }}><img src="/assets/breadlet-icon.svg" alt="" /></button>
 
           {/* Sidebar Nav Buttons */}
           <nav className="sidebar-nav mt-1 space-y-1.5">
@@ -2188,7 +2192,7 @@ function MainPage() {
                     }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
                   >
-                    <Info size={18} />
+                    <SettingsIcon size={18} />
                     Settings
                   </button>
                   {adminUnlocked && (
@@ -4006,8 +4010,8 @@ function Bazaar({
 
   return (
     <div className="bazaar-market bazaar-scene min-h-full">
-      <div className="bazaar-lights" aria-hidden="true">{bazaarBulbs.map((bulb, index) => <span key={index} style={{ left: `${bulb.x}%`, top: bulb.y, animationDelay: `${(index % 7) * 0.4}s` }} />)}</div>
-      <h1 className="bazaar-title bazaar-sign"><span>Bazaar</span></h1>
+      <div className="shop-awning bazaar-awning" aria-hidden="true" />
+      <div className="bazaar-header"><h1 className="bazaar-shop-title">Bazaar</h1></div>
       <div className="bazaar-toolbar">
         <label className="bazaar-search-field">
           <Search size={18} aria-hidden="true" />
