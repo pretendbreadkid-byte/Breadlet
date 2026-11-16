@@ -6,7 +6,7 @@ import { isKidAccount } from '../../../lib/kid-mode';
 import { BLOCKED_MESSAGE, isBlockedBetween } from '../../../lib/blocks';
 import {
   DAILY_EARN_LIMIT, MAX_BASKET, MAX_PROP_SCALE, MIN_PROP_SCALE, MAX_HELPERS, MAX_PLANTS, MAX_PROPS, MAX_SEEDS_PER_BUY, MAX_SIZE, MIN_SIZE, PLANT_GAP, PROPS, ROWS, SEEDS,
-  canPlaceProp, cropValue, gardenDay, inRow, propNamed, rollSize, seedNamed, sizeLabel,
+  canPlaceProp, cropValue, gardenDay, inRow, propNamed, rollSize, seedNamed, seedStockFor, sizeLabel,
   type Crop, type FieldsView, type GardenPerson, type PlacedProp, type Plant, type PropKind, type SeedName,
 } from '../../../lib/fields';
 
@@ -233,6 +233,7 @@ export async function POST(request: Request) {
     const seed = seedNamed(body.seed);
     const amount = Math.floor(Number(body.amount));
     if (!seed) return fail('Pick a seed.');
+    if (!seedStockFor()[seed.name]) return fail(`${seed.name} seeds are out of stock. Ted restocks every hour.`);
     if (!Number.isInteger(amount) || amount < 1 || amount > MAX_SEEDS_PER_BUY) return fail(`Buy 1 to ${MAX_SEEDS_PER_BUY} seeds at a time.`);
     const paid = await changeTokens(database, userId, -seed.cost * amount);
     if ('error' in paid) return fail(paid.error!);

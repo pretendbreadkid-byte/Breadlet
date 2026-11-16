@@ -4,19 +4,36 @@
 // Shared by the API route (app/api/fields) and the Games tab (app/components/fields-world.tsx).
 
 export type SeedName = "Carrot" | "Potato" | "Pumpkin" | "Avocado" | "Pumpkin Dragon";
-export type Seed = { name: SeedName; cost: number; growMs: number; payout: number; breadletChance: number };
+// stock: the chance the seed is in stock at Ted's Seed Stand each hour (the same for every player).
+export type Seed = { name: SeedName; cost: number; growMs: number; payout: number; breadletChance: number; stock: number };
 
 // Every seed sells for more than it costs once grown; slower crops pay more per plant.
 // Very rarely the harvest is the Breadlet itself (it goes to the inventory).
 export const SEEDS: Seed[] = [
-  { name: "Carrot", cost: 10, growMs: 2 * 60_000, payout: 22, breadletChance: 1 / 60 },
-  { name: "Potato", cost: 40, growMs: 10 * 60_000, payout: 95, breadletChance: 1 / 40 },
-  { name: "Pumpkin", cost: 90, growMs: 25 * 60_000, payout: 210, breadletChance: 1 / 35 },
-  { name: "Avocado", cost: 150, growMs: 60 * 60_000, payout: 360, breadletChance: 1 / 25 },
+  { name: "Carrot", cost: 10, growMs: 2 * 60_000, payout: 22, breadletChance: 1 / 60, stock: 1 },
+  { name: "Potato", cost: 40, growMs: 10 * 60_000, payout: 95, breadletChance: 1 / 40, stock: 0.75 },
+  { name: "Pumpkin", cost: 90, growMs: 25 * 60_000, payout: 210, breadletChance: 1 / 35, stock: 0.5 },
+  { name: "Avocado", cost: 150, growMs: 60 * 60_000, payout: 360, breadletChance: 1 / 25, stock: 0.3 },
   // The rare one: it can hatch the Pumpkin Dragon Breadlet (Unique, normally from the leaf shop).
-  { name: "Pumpkin Dragon", cost: 300, growMs: 2 * 60 * 60_000, payout: 720, breadletChance: 1 / 60 },
+  { name: "Pumpkin Dragon", cost: 300, growMs: 2 * 60 * 60_000, payout: 720, breadletChance: 1 / 60, stock: 0.03 },
 ];
 export const seedNamed = (name: unknown) => SEEDS.find((seed) => seed.name === name);
+
+// Ted's Seed Stand restocks every hour (UTC). Each seed rolls its stock chance; the roll is worked
+// out from the hour, so every player and the server agree on what's in stock.
+const seedRoll = (hour: string, name: string) => {
+  let hash = 2166136261;
+  for (const character of `seed:${hour}:${name}`) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 0x100000000;
+};
+export const seedStockFor = (time = Date.now()) => {
+  const hour = new Date(time).toISOString().slice(0, 13);
+  return Object.fromEntries(SEEDS.map((seed) => [seed.name, seed.stock >= 1 || seedRoll(hour, seed.name) < seed.stock])) as Record<SeedName, boolean>;
+};
+export const nextSeedRestock = (time = Date.now()) => Math.floor(time / 3600000) * 3600000 + 3600000;
 
 // The garden's place in the world (world pixels). The gate is in the middle of the front fence.
 export const GARDEN = { x: 940, y: 480, width: 980, height: 800 };

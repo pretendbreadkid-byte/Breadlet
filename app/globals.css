@@ -1764,7 +1764,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 .coin-flip-spinning { animation: coin-flip-spin 2.4s cubic-bezier(.2,.6,.3,1) both; }
 /* Breadlet Explore */
 .explore-viewport { cursor: pointer; touch-action: none; user-select: none; }
-.explore-walker-remote { transition: transform 110ms linear; }
+.explore-walker-remote { transition: transform 160ms linear; }
 .explore-bubble { animation: explore-bubble-pop 180ms cubic-bezier(.2,.9,.3,1.3) both; }
 .explore-bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); border: 6px solid transparent; border-bottom: 0; border-top-color: rgba(255,255,255,.8); }
 .explore-island-card { transition: transform 160ms ease, box-shadow 160ms ease; }
@@ -4006,3 +4006,12 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
   -webkit-text-stroke: 0 !important;
   text-shadow: 0 4px 0 #13120F, 0 0 2px #13120F, 0 8px 16px rgba(0, 0, 0, .45) !important;
 }
+
+/* Ted's Seed Stand stock. */
+.garden-restock { margin: 0; text-align: center; font-size: .78rem; font-weight: 800; color: #d8c3a8; }
+.garden-shop-row.is-out { opacity: .55; }
+
+/* Smooth walking: the world slides on the GPU and walkers get their own layer, so the scenery
+   (lots of drop shadows) doesn't repaint every frame. */
+.garden-world { will-change: transform; }
+.garden-world .explore-walker, .garden-held { will-change: transform; }

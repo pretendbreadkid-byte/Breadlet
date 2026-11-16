@@ -44,6 +44,7 @@ export function GardenBook({ seedArt, artFor, onClose }: { seedArt: Record<SeedN
       pictures: [{ src: seedArt[seed.name], label: "Seed" }, { src: artFor(seed.name), label: "Grown" }],
       lines: [
         `Seed: ${seed.cost} Bread Bucks`,
+        seed.stock >= 1 ? `Always in stock at Ted's Seed Stand` : `In stock ${Math.round(seed.stock * 100)}% of hours (Ted restocks every hour)`,
         `Grows in ${minutes(seed.growMs)}`,
         `Sells for about ${seed.payout} (more if it grows big)`,
         `A 1 in ${Math.round(1 / seed.breadletChance)} chance to find the ${seed.name} Breadlet when you pick it!`,

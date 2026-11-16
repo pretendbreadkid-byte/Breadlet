@@ -11,7 +11,7 @@ import { ArrowLeft, Boxes, FlipHorizontal, Minus, Move, Plus, ChevronDown, Chevr
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
 import {
   DAILY_EARN_LIMIT, MAX_BASKET, MAX_SEEDS_PER_BUY, PLANT_GAP, PROPS, SEEDS,
-  MAX_PROP_SCALE, MIN_PROP_SCALE, canPlaceProp, cropValue, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
+  MAX_PROP_SCALE, MIN_PROP_SCALE, canPlaceProp, cropValue, nextSeedRestock, seedStockFor, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
   type Crop, type FieldsView, type PlacedProp, type PropKind, type SeedName,
 } from "../../lib/fields";
 import { GardenBook, gardenBookSeen } from "./garden-book";
@@ -79,6 +79,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const [bookOpen, setBookOpen] = useState(false);
   useEffect(() => { if (!gardenBookSeen()) setBookOpen(true); }, []);
   const [now, setNow] = useState(Date.now());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const act = useRef<{ choose: (target: any) => void; viewportPoint: (x: number, y: number) => { x: number; y: number }; post: (body: Record<string, unknown>) => Promise<unknown> }>(null!);
   const [floaters, setFloaters] = useState<{ id: number; x: number; y: number; text: string; kind: "coins" | "puff" | "crop"; seed?: SeedName }[]>([]);
   const seenCropsRef = useRef<Set<string> | null>(null);
   const skewRef = useRef(0);
@@ -356,6 +358,65 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     }
     void post({ action: "editProp", prop: next.id, x: next.x, y: next.y, scale: next.scale || 1, flip: Boolean(next.flip) }).then(() => setDraft(null));
   };
+  // The plant and prop layers only rebuild when something in them changes, not on every step
+  // you walk (walking re-renders this screen every frame).
+  act.current = { choose, viewportPoint, post };
+  const nearestPlantId = nearest?.kind === "plant" ? nearest.id : null;
+  const ownerKey = fields?.owner.id;
+  const plantLayer = useMemo(() => plants.map((plant) => {
+            const seed = seedNamed(plant.seed);
+            if (!seed) return null;
+            const progress = Math.min(1, (now - plant.plantedAt) / seed.growMs);
+            const ready = progress >= 1;
+            const theirs = (plant.plantedBy || ownerKey) !== player.id;
+            const isNearest = nearestPlantId === plant.id;
+            return (
+              <button key={plant.id} type="button" onPointerDown={(event) => { event.stopPropagation(); setPropMenu(null); act.current.choose({ kind: "plant", id: plant.id }); }}
+                aria-label={ready ? `Pick ${plant.seed}` : `${plant.seed} growing`}
+                className={`garden-plant${ready ? " is-ready" : ""}${isNearest ? " is-near" : ""}${theirs ? " is-theirs" : ""}`} style={{ left: plant.x, top: plant.y, zIndex: Math.round(plant.y) }}>
+                <span className="garden-mound" aria-hidden="true" />
+                <CropArt seed={seed.name} progress={progress} size={plant.size} />
+                {ready && <span className="garden-sparkles" aria-hidden="true"><i /><i /><i /><i /></span>}
+                {!ready && <span className="garden-timer">{theirs ? `${plant.plantedByName || "Friend"} · ` : ""}{clock(plant.plantedAt + seed.growMs - now)}</span>}
+                {ready && theirs && <span className="garden-ready">{plant.plantedByName || "Friend"}&apos;s</span>}
+              </button>
+            );
+          }), [plants, now, nearestPlantId, ownerKey, player.id]);
+  const propLayer = useMemo(() => props.map((saved) => {
+            const prop = draft && draft.id === saved.id ? draft : saved;
+            const def = propNamed(prop.kind);
+            if (!def) return null;
+            const mine = fields?.isOwner || prop.by === player.id;
+            const editable = editing && canEditProp(saved);
+            const selected = editing && editId === prop.id;
+            const bad = selected && !canPlaceProp(prop.kind, prop.x, prop.y, props, prop.id, prop.scale || 1);
+            return (
+              <div key={prop.id} className={`garden-prop${mine || editable ? " is-mine" : ""}${selected ? " is-selected" : ""}${bad ? " is-bad" : ""}`} style={{ left: prop.x, top: prop.y, width: def.width * (prop.scale || 1), zIndex: Math.round(prop.y) }}
+                onPointerEnter={() => mine && !placing && !editing && setPropMenu(prop.id)} onPointerLeave={() => setPropMenu((id) => (id === prop.id ? null : id))}
+                onPointerDown={(event) => {
+                  if (editing) {
+                    if (!editable) return;
+                    event.stopPropagation();
+                    const point = act.current.viewportPoint(event.clientX, event.clientY);
+                    setEditId(prop.id);
+                    setDraft({ ...prop });
+                    dragRef.current = { id: prop.id, offX: point.x - prop.x, offY: point.y - prop.y, moved: false };
+                    return;
+                  }
+                  if (!mine || placing) return;
+                  event.stopPropagation();
+                  setPropMenu(prop.id);
+                }}>
+                <img src={def.art} alt={prop.kind} draggable={false} style={prop.flip ? { transform: "scaleX(-1)" } : undefined} />
+                {!editing && propMenu === prop.id && (
+                  <button type="button" className="garden-prop-pick" disabled={busy} onPointerDown={(event) => event.stopPropagation()} onClick={() => { setPropMenu(null); void act.current.post({ action: "pickUp", prop: prop.id }); }}>
+                    <Hand size={14} />Pick up
+                  </button>
+                )}
+              </div>
+            );
+          }), [props, draft, editing, editId, propMenu, placing, busy, fields]);
+  const stockNow = seedStockFor(now);
   const money = <span className="garden-money"><img src="/assets/Bread%20bucks.svg" alt="" />{tokens.toLocaleString()}</span>;
 
   return createPortal(
@@ -381,60 +442,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
           <SeedStand near={nearest?.kind === "stand"} />
           <button type="button" aria-label="Ted's Seed Stand" className="garden-stand-hit" style={{ left: STAND.x, top: STAND.y }} onPointerDown={(event) => { event.stopPropagation(); choose({ kind: "stand" }); }} />
 
-          {plants.map((plant) => {
-            const seed = seedNamed(plant.seed);
-            if (!seed) return null;
-            const progress = Math.min(1, (now - plant.plantedAt) / seed.growMs);
-            const ready = progress >= 1;
-            const theirs = (plant.plantedBy || fields?.owner.id) !== player.id;
-            const isNearest = nearest?.kind === "plant" && nearest.id === plant.id;
-            return (
-              <button key={plant.id} type="button" onPointerDown={(event) => { event.stopPropagation(); setPropMenu(null); choose({ kind: "plant", id: plant.id }); }}
-                aria-label={ready ? `Pick ${plant.seed}` : `${plant.seed} growing`}
-                className={`garden-plant${ready ? " is-ready" : ""}${isNearest ? " is-near" : ""}${theirs ? " is-theirs" : ""}`} style={{ left: plant.x, top: plant.y, zIndex: Math.round(plant.y) }}>
-                <span className="garden-mound" aria-hidden="true" />
-                <CropArt seed={seed.name} progress={progress} size={plant.size} />
-                {ready && <span className="garden-sparkles" aria-hidden="true"><i /><i /><i /><i /></span>}
-                {!ready && <span className="garden-timer">{theirs ? `${plant.plantedByName || "Friend"} · ` : ""}{clock(plant.plantedAt + seed.growMs - now)}</span>}
-                {ready && theirs && <span className="garden-ready">{plant.plantedByName || "Friend"}&apos;s</span>}
-              </button>
-            );
-          })}
+          {plantLayer}
 
-          {props.map((saved) => {
-            const prop = draft && draft.id === saved.id ? draft : saved;
-            const def = propNamed(prop.kind);
-            if (!def) return null;
-            const mine = fields?.isOwner || prop.by === player.id;
-            const editable = editing && canEditProp(saved);
-            const selected = editing && editId === prop.id;
-            const bad = selected && !canPlaceProp(prop.kind, prop.x, prop.y, props, prop.id, prop.scale || 1);
-            return (
-              <div key={prop.id} className={`garden-prop${mine || editable ? " is-mine" : ""}${selected ? " is-selected" : ""}${bad ? " is-bad" : ""}`} style={{ left: prop.x, top: prop.y, width: def.width * (prop.scale || 1), zIndex: Math.round(prop.y) }}
-                onPointerEnter={() => mine && !placing && !editing && setPropMenu(prop.id)} onPointerLeave={() => setPropMenu((id) => (id === prop.id ? null : id))}
-                onPointerDown={(event) => {
-                  if (editing) {
-                    if (!editable) return;
-                    event.stopPropagation();
-                    const point = viewportPoint(event.clientX, event.clientY);
-                    setEditId(prop.id);
-                    setDraft({ ...prop });
-                    dragRef.current = { id: prop.id, offX: point.x - prop.x, offY: point.y - prop.y, moved: false };
-                    return;
-                  }
-                  if (!mine || placing) return;
-                  event.stopPropagation();
-                  setPropMenu(prop.id);
-                }}>
-                <img src={def.art} alt={prop.kind} draggable={false} style={prop.flip ? { transform: "scaleX(-1)" } : undefined} />
-                {!editing && propMenu === prop.id && (
-                  <button type="button" className="garden-prop-pick" disabled={busy} onPointerDown={(event) => event.stopPropagation()} onClick={() => { setPropMenu(null); void post({ action: "pickUp", prop: prop.id }); }}>
-                    <Hand size={14} />Pick up
-                  </button>
-                )}
-              </div>
-            );
-          })}
+          {propLayer}
           {placing && ghost && (() => {
             const def = propNamed(placing)!;
             const ok = canPlaceProp(placing, ghost.x, ghost.y, props);
@@ -633,17 +643,18 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
               <button type="button" onClick={() => setPanel(null)} aria-label="Close">×</button>
             </header>
             <div className="garden-shop-list">
+              <p className="garden-restock">New stock in {clock(nextSeedRestock(now) - now)}</p>
               {SEEDS.map((seed) => (
-                <div key={seed.name} className="garden-shop-row">
+                <div key={seed.name} className={`garden-shop-row${stockNow[seed.name] ? "" : " is-out"}`}>
                   <span className="garden-shop-art"><img src={SEED_ART[seed.name]} alt="" /></span>
                   <span className="garden-shop-info">
                     <b>{seed.name}</b>
                     <small>{clock(seed.growMs)} · sells for ~<em>{seed.payout}</em></small>
-                    <small>You have {fields.seeds[seed.name]}</small>
+                    <small>{stockNow[seed.name] ? `You have ${fields.seeds[seed.name]}` : `Out of stock · ${Math.round(seed.stock * 100)}% chance each hour`}</small>
                   </span>
                   <span className="garden-shop-buy">
                     {[1, 5].map((amount) => (
-                      <button key={amount} type="button" disabled={busy || tokens < seed.cost * amount} onClick={() => void post({ action: "buy", seed: seed.name, amount: Math.min(amount, MAX_SEEDS_PER_BUY) })}>
+                      <button key={amount} type="button" disabled={busy || !stockNow[seed.name] || tokens < seed.cost * amount} onClick={() => void post({ action: "buy", seed: seed.name, amount: Math.min(amount, MAX_SEEDS_PER_BUY) })}>
                         <span>x{amount}</span><img src="/assets/Bread%20bucks.svg" alt="" />{seed.cost * amount}
                       </button>
                     ))}
