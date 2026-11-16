@@ -56,11 +56,13 @@ export const sizeLabel = (size: number) => size >= 1.8 ? "Giant" : size >= 1.45 
 // Props: bought at the Props shop, then placed anywhere in the garden off the dirt rows by the owner
 // or players they let build. width: how wide it's drawn. solid: circles (offset from its feet) you
 // can't walk through.
-export type PropKind = "Rock" | "Chest" | "Green Screen";
+export type PropKind = "Rock" | "Chest" | "Green Screen" | "Tree" | "Berry Bush";
 export type PropDef = { kind: PropKind; cost: number; art: string; width: number; solid: { dx: number; r: number }[] };
 export const PROPS: PropDef[] = [
   { kind: "Rock", cost: 100, art: "/assets/rock-3.svg", width: 130, solid: [{ dx: -28, r: 26 }, { dx: 28, r: 26 }] },
   { kind: "Chest", cost: 400, art: "/assets/treasure-chest.svg", width: 110, solid: [{ dx: 0, r: 40 }] },
+  { kind: "Berry Bush", cost: 150, art: "/assets/garden/berry-bush.svg", width: 130, solid: [{ dx: -30, r: 26 }, { dx: 30, r: 26 }] },
+  { kind: "Tree", cost: 300, art: "/assets/garden/tree-prop.svg", width: 150, solid: [{ dx: -5, r: 22 }] },
   { kind: "Green Screen", cost: 750, art: "/assets/garden/green-screen.svg", width: 230, solid: [{ dx: -80, r: 22 }, { dx: -27, r: 22 }, { dx: 27, r: 22 }, { dx: 80, r: 22 }] },
 ];
 export const propNamed = (kind: unknown) => PROPS.find((prop) => prop.kind === kind);

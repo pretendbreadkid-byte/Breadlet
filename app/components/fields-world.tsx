@@ -14,6 +14,7 @@ import {
   canPlaceProp, cropValue, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
   type Crop, type FieldsView, type PropKind, type SeedName,
 } from "../../lib/fields";
+import { GardenBook, gardenBookSeen } from "./garden-book";
 import { Ambient, CropArt, GARDEN, GATE, Meadow, STAND, SeedStand, WORLD, gardenCollide, propCircles } from "./garden-art";
 
 const REACH = 120;
@@ -69,6 +70,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const [ghost, setGhost] = useState<Point | null>(null);
   const [propMenu, setPropMenu] = useState<string | null>(null);
   const [ownerGone, setOwnerGone] = useState(false);
+  // The gardening book (tutorial): opens the first time, and when you tap the garden's name.
+  const [bookOpen, setBookOpen] = useState(false);
+  useEffect(() => { if (!gardenBookSeen()) setBookOpen(true); }, []);
   const [now, setNow] = useState(Date.now());
   const [floaters, setFloaters] = useState<{ id: number; x: number; y: number; text: string; kind: "coins" | "puff" | "crop"; seed?: SeedName }[]>([]);
   const seenCropsRef = useRef<Set<string> | null>(null);
@@ -287,7 +291,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
       if (number === SEEDS.length + 1 || event.key.toLowerCase() === "b") return handSlot();
       if (event.key.toLowerCase() !== "e" && event.key !== " ") return;
       event.preventDefault();
-      if (panel) return;
+      if (panel || bookOpen) return;
       if (nearestPlant && nearestMine && nearestReady) return interact(nearest!);
       if (canPlantHere) return plantSeed(me.x, me.y);
       if (nearest) interact(nearest);
@@ -357,7 +361,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                 <CropArt seed={seed.name} progress={progress} size={plant.size} />
                 {ready && <span className="garden-sparkles" aria-hidden="true"><i /><i /><i /><i /></span>}
                 {!ready && <span className="garden-timer">{theirs ? `${plant.plantedByName || "Friend"} · ` : ""}{clock(plant.plantedAt + seed.growMs - now)}</span>}
-                {ready && <span className="garden-ready">{theirs ? `${plant.plantedByName || "Friend"}'s` : "Ready!"}</span>}
+                {ready && theirs && <span className="garden-ready">{plant.plantedByName || "Friend"}&apos;s</span>}
               </button>
             );
           })}
@@ -411,10 +415,10 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
 
       <div className="garden-hud-top">
         <button type="button" onClick={onExit} className="garden-leave"><ArrowLeft size={18} />Leave</button>
-        <span className="garden-title">{fields?.isOwner === false ? `${ownerName}'s Garden` : "My Garden"} <small>Test</small></span>
+        <button type="button" onClick={() => setBookOpen(true)} className="garden-title garden-title-button" title="Open the gardening book">{fields?.isOwner === false ? `${ownerName}'s Garden` : "My Garden"}</button>
+        {fields && <button type="button" onClick={() => setPanel((open) => (open === "props" ? null : "props"))} className="garden-chip garden-chip-button"><Boxes size={16} />Props</button>}
         {fields && !fields.isOwner && <span className={`garden-chip${fields.canPlant ? " is-good" : ""}`}><Sprout size={16} />{fields.canPlant ? "You can plant" : `Ask ${ownerName} to plant`}</span>}
         {fields && !fields.isOwner && fields.canBuild && <span className="garden-chip is-good"><Hammer size={16} />You can build</span>}
-        {fields && <button type="button" onClick={() => setPanel((open) => (open === "props" ? null : "props"))} className="garden-chip garden-chip-button ml-auto"><Boxes size={16} />Props</button>}
       </div>
 
       {panel === "people" && fields && (
@@ -480,6 +484,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
           </button>
         </div>
       </div>
+
+      {bookOpen && <GardenBook seedArt={SEED_ART} artFor={artFor} onClose={() => setBookOpen(false)} />}
 
       {panel === "basket" && fields && (
         <div className="garden-shop-layer" onPointerDown={() => setPanel(null)}>

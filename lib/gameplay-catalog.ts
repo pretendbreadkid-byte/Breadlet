@@ -339,7 +339,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.25 },
-    art: "/assets/combat-bag-2.svg",
+    art: "/assets/combat-bag-3.svg",
     pool: rewards([
       ["Olive Grenade", "Common"],
       ["The Bomb", "Uncommon"],

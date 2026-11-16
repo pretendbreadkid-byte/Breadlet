@@ -3770,3 +3770,37 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
 .garden-seed-shop .garden-shop-buy button { padding: 1px 8px; font-size: .78rem; }
 .garden-props header button, .garden-seed-shop header button { width: 32px; height: 32px; font-size: 1.2rem; }
 .garden-shop header .garden-money img { width: 18px; height: 18px; }
+
+/* Grown crops sit still on the ground (no bobbing). */
+.garden-plant .garden-growth.is-ready { animation: none; }
+.garden-title-button { cursor: pointer; }
+.garden-title-button:hover:not(:disabled) { background: #332f27; }
+
+/* The Breadlet Gardening Book (garden tutorial). */
+.garden-book-layer { z-index: 8; }
+.garden-book { position: relative; display: grid; width: min(100%, 760px); min-height: 380px; grid-template-columns: 1fr 14px 1fr; grid-template-rows: 1fr auto; border: 6px solid #5a3317; border-radius: 18px; background: #7a4a22; padding: 12px; box-shadow: 0 10px 0 #3B1F0E, 0 24px 50px rgba(0, 0, 0, .45); animation: link-popup-in .25s cubic-bezier(.2, 1.4, .4, 1) both; }
+.garden-book-page { position: relative; padding: 22px 22px 34px; background: linear-gradient(90deg, #f3e3c3, #fbf1dc 40%, #f6e8cb); color: #3B1F0E; }
+.garden-book-left { border-radius: 10px 2px 2px 10px; box-shadow: inset -14px 0 18px -12px rgba(90, 51, 23, .45); display: grid; place-items: center; }
+.garden-book-right { border-radius: 2px 10px 10px 2px; box-shadow: inset 14px 0 18px -12px rgba(90, 51, 23, .45); }
+.garden-book-spine { background: linear-gradient(90deg, #5a3317, #a86d34, #5a3317); }
+.garden-book-right h2 { margin: 0 0 12px; font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: 1.6rem; font-weight: 900; color: #8a4a12; border-bottom: 3px dotted #d4a86e; padding-bottom: 6px; }
+.garden-book-right p { margin: 0 0 10px; font-size: .95rem; font-weight: 700; line-height: 1.4; }
+.garden-book-number { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; font-size: .75rem; font-weight: 800; color: #a87545; }
+.garden-book-pictures { display: grid; width: 100%; gap: 12px; place-items: center; }
+.garden-book-pictures.is-2, .garden-book-pictures.is-4 { grid-template-columns: 1fr 1fr; }
+.garden-book-pictures.is-3 { grid-template-columns: 1fr 1fr 1fr; }
+.garden-book-pictures figure { display: flex; margin: 0; flex-direction: column; align-items: center; gap: 6px; }
+.garden-book-pictures img { width: 100%; max-width: 150px; max-height: 150px; object-fit: contain; filter: drop-shadow(0 4px 3px rgba(59, 31, 14, .25)); }
+.garden-book-pictures.is-1 img { max-width: 230px; max-height: 230px; }
+.garden-book-pictures figcaption { border: 2px solid #c98a4b; border-radius: 999px; background: #fff7e6; padding: 0 10px; font-size: .8rem; font-weight: 900; color: #8a4a12; }
+.garden-book-nav { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; color: #ffe9c7; font-weight: 900; }
+.garden-book-nav button { display: inline-flex; align-items: center; gap: 4px; border: 3px solid #3B1F0E; border-radius: 12px; background: #F0894A; padding: 6px 14px; font-weight: 900; color: #fff; box-shadow: 0 3px 0 #3B1F0E; }
+.garden-book-nav button:disabled { opacity: .45; cursor: default; }
+.garden-book-close { position: absolute; right: -14px; top: -14px; z-index: 2; display: grid; width: 34px; height: 34px; place-items: center; border: 3px solid #3B1F0E; border-radius: 50%; background: #F0894A; color: #fff; }
+@media (max-width: 640px) {
+  .garden-book { grid-template-columns: 1fr; }
+  .garden-book-spine { display: none; }
+  .garden-book-left, .garden-book-right { border-radius: 10px; box-shadow: none; }
+  .garden-book-left { padding-bottom: 16px; }
+  .garden-book-left .garden-book-number { display: none; }
+}

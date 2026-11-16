@@ -275,7 +275,7 @@ const artFor = (name: string) =>
     Ted: "/assets/ted-shopkeeper.svg",
     "Walter White": "/assets/walter-white.svg?v=2",
     "Olive Grenade": "/assets/grenade2.svg",
-    "Golden Grenade": "/assets/gold grenade2.svg",
+    "Golden Grenade": "/assets/golden-grenade-3.webp",
     "Sour Dough": "/assets/sour-dough-2.svg",
     "Burnt Toast": "/assets/Burnt toast.svg",
     Brioche: "/assets/brioche.svg",
