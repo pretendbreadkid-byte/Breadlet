@@ -7,12 +7,12 @@
 // Everything that costs or pays is decided by /api/fields.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Boxes, ChevronDown, ChevronUp, Gift, Hammer, Hand, Link2, ShoppingBasket, Sprout, UserPlus } from "lucide-react";
+import { ArrowLeft, Boxes, FlipHorizontal, Minus, Move, Plus, ChevronDown, ChevronUp, Gift, Hammer, Hand, Link2, ShoppingBasket, Sprout, UserPlus } from "lucide-react";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
 import {
   DAILY_EARN_LIMIT, MAX_BASKET, MAX_SEEDS_PER_BUY, PLANT_GAP, PROPS, SEEDS,
-  canPlaceProp, cropValue, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
-  type Crop, type FieldsView, type PropKind, type SeedName,
+  MAX_PROP_SCALE, MIN_PROP_SCALE, canPlaceProp, cropValue, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
+  type Crop, type FieldsView, type PlacedProp, type PropKind, type SeedName,
 } from "../../lib/fields";
 import { GardenBook, gardenBookSeen } from "./garden-book";
 import { Ambient, CropArt, GARDEN, GATE, Meadow, STAND, SeedStand, WORLD, gardenCollide, propCircles } from "./garden-art";
@@ -69,6 +69,11 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const [placing, setPlacing] = useState<PropKind | null>(null);
   const [ghost, setGhost] = useState<Point | null>(null);
   const [propMenu, setPropMenu] = useState<string | null>(null);
+  // Edit mode: pick a prop, drag it around, resize or flip it. draft is the change not saved yet.
+  const [editing, setEditing] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<PlacedProp | null>(null);
+  const dragRef = useRef<{ id: string; offX: number; offY: number; moved: boolean } | null>(null);
   const [ownerGone, setOwnerGone] = useState(false);
   // The gardening book (tutorial): opens the first time, and when you tap the garden's name.
   const [bookOpen, setBookOpen] = useState(false);
@@ -260,6 +265,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const clickGround = (event: React.PointerEvent<HTMLDivElement>) => {
     pendingRef.current = null;
     setPropMenu(null);
+    if (editing && editId) { setEditId(null); setDraft(null); }
     const point = worldPoint(event);
     if (placing) {
       if (!canPlaceProp(placing, point.x, point.y, props)) return setToast("It can't go there. Try the grass inside the fence, off the rows.");
@@ -285,7 +291,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (["INPUT", "TEXTAREA"].includes((event.target as HTMLElement)?.tagName)) return;
-      if (event.key === "Escape") { setPanel(null); setGiveTo(null); setPlacing(null); setGhost(null); setPropMenu(null); return; }
+      if (event.key === "Escape") { setPanel(null); setGiveTo(null); setPlacing(null); setGhost(null); setPropMenu(null); setEditId(null); setDraft(null); return; }
       const number = Number(event.key);
       if (number >= 1 && number <= SEEDS.length) return pickSeed(SEEDS[number - 1].name);
       if (number === SEEDS.length + 1 || event.key.toLowerCase() === "b") return handSlot();
@@ -334,12 +340,41 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
 
   const ownerName = fields?.owner.username || (gardenId ? "A friend" : player.username);
   const alone = Object.keys(others).length === 0;
+  const canEditProp = (prop: PlacedProp) => Boolean(fields && (fields.isOwner || (fields.canBuild && prop.by === player.id)));
+  const selectedProp = editId ? (draft && draft.id === editId ? draft : props.find((prop) => prop.id === editId)) || null : null;
+  const viewportPoint = (clientX: number, clientY: number) => {
+    const rect = viewportRef.current?.getBoundingClientRect();
+    return { x: clientX - (rect?.left || 0) + camera.x, y: clientY - (rect?.top || 0) + camera.y };
+  };
+  // Saves a moved, resized or flipped prop. If it can't go there, it snaps back.
+  const saveDraft = (next: PlacedProp) => {
+    setDraft(next);
+    if (!canPlaceProp(next.kind, next.x, next.y, props, next.id, next.scale || 1)) {
+      setToast("It can't go there. Try the grass inside the fence, off the rows.");
+      setDraft(null);
+      return;
+    }
+    void post({ action: "editProp", prop: next.id, x: next.x, y: next.y, scale: next.scale || 1, flip: Boolean(next.flip) }).then(() => setDraft(null));
+  };
   const money = <span className="garden-money"><img src="/assets/Bread%20bucks.svg" alt="" />{tokens.toLocaleString()}</span>;
 
   return createPortal(
     <div className="garden-screen">
       <div ref={viewportRef} onPointerDown={clickGround}
-        onPointerMove={(event) => { if (placing) setGhost(worldPoint(event)); }}
+        onPointerMove={(event) => {
+          if (placing) setGhost(worldPoint(event));
+          const drag = dragRef.current;
+          if (drag) {
+            const point = worldPoint(event);
+            drag.moved = true;
+            setDraft((current) => (current && current.id === drag.id ? { ...current, x: Math.round(point.x - drag.offX), y: Math.round(point.y - drag.offY) } : current));
+          }
+        }}
+        onPointerUp={() => {
+          const drag = dragRef.current;
+          dragRef.current = null;
+          if (drag?.moved && draft) saveDraft(draft);
+        }}
         className={`explore-viewport garden-viewport${placing ? " is-placing" : ""}`}>
         <div className="garden-world" style={{ width: WORLD.width, height: WORLD.height, transform: `translate3d(${-camera.x}px, ${-camera.y}px, 0)` }}>
           <Meadow isOwner={fields ? fields.isOwner : !gardenId} />
@@ -366,16 +401,33 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
             );
           })}
 
-          {props.map((prop) => {
+          {props.map((saved) => {
+            const prop = draft && draft.id === saved.id ? draft : saved;
             const def = propNamed(prop.kind);
             if (!def) return null;
             const mine = fields?.isOwner || prop.by === player.id;
+            const editable = editing && canEditProp(saved);
+            const selected = editing && editId === prop.id;
+            const bad = selected && !canPlaceProp(prop.kind, prop.x, prop.y, props, prop.id, prop.scale || 1);
             return (
-              <div key={prop.id} className={`garden-prop${mine ? " is-mine" : ""}`} style={{ left: prop.x, top: prop.y, width: def.width, zIndex: Math.round(prop.y) }}
-                onPointerEnter={() => mine && !placing && setPropMenu(prop.id)} onPointerLeave={() => setPropMenu((id) => (id === prop.id ? null : id))}
-                onPointerDown={(event) => { if (!mine || placing) return; event.stopPropagation(); setPropMenu(prop.id); }}>
-                <img src={def.art} alt={prop.kind} draggable={false} />
-                {propMenu === prop.id && (
+              <div key={prop.id} className={`garden-prop${mine || editable ? " is-mine" : ""}${selected ? " is-selected" : ""}${bad ? " is-bad" : ""}`} style={{ left: prop.x, top: prop.y, width: def.width * (prop.scale || 1), zIndex: Math.round(prop.y) }}
+                onPointerEnter={() => mine && !placing && !editing && setPropMenu(prop.id)} onPointerLeave={() => setPropMenu((id) => (id === prop.id ? null : id))}
+                onPointerDown={(event) => {
+                  if (editing) {
+                    if (!editable) return;
+                    event.stopPropagation();
+                    const point = viewportPoint(event.clientX, event.clientY);
+                    setEditId(prop.id);
+                    setDraft({ ...prop });
+                    dragRef.current = { id: prop.id, offX: point.x - prop.x, offY: point.y - prop.y, moved: false };
+                    return;
+                  }
+                  if (!mine || placing) return;
+                  event.stopPropagation();
+                  setPropMenu(prop.id);
+                }}>
+                <img src={def.art} alt={prop.kind} draggable={false} style={prop.flip ? { transform: "scaleX(-1)" } : undefined} />
+                {!editing && propMenu === prop.id && (
                   <button type="button" className="garden-prop-pick" disabled={busy} onPointerDown={(event) => event.stopPropagation()} onClick={() => { setPropMenu(null); void post({ action: "pickUp", prop: prop.id }); }}>
                     <Hand size={14} />Pick up
                   </button>
@@ -417,6 +469,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         <button type="button" onClick={onExit} className="garden-leave"><ArrowLeft size={18} />Leave</button>
         <button type="button" onClick={() => setBookOpen(true)} className="garden-title garden-title-button" title="Open the gardening book">{fields?.isOwner === false ? `${ownerName}'s Garden` : "My Garden"}</button>
         {fields && <button type="button" onClick={() => setPanel((open) => (open === "props" ? null : "props"))} className="garden-chip garden-chip-button"><Boxes size={16} />Props</button>}
+        {fields?.canBuild && props.length > 0 && <button type="button" onClick={() => { setEditing((on) => !on); setEditId(null); setDraft(null); setPlacing(null); }} className={`garden-chip garden-chip-button${editing ? " is-on" : ""}`} aria-pressed={editing}><Move size={16} />{editing ? "Done editing" : "Edit"}</button>}
         {fields && !fields.isOwner && <span className={`garden-chip${fields.canPlant ? " is-good" : ""}`}><Sprout size={16} />{fields.canPlant ? "You can plant" : `Ask ${ownerName} to plant`}</span>}
         {fields && !fields.isOwner && fields.canBuild && <span className="garden-chip is-good"><Hammer size={16} />You can build</span>}
       </div>
@@ -446,6 +499,21 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
             ))
           )}
         </section>
+      )}
+
+      {editing && (
+        <div className="garden-edit-bar" role="toolbar" aria-label="Edit prop">
+          {!editId || !selectedProp ? <span>Edit mode: drag a prop to move it, or tap one to resize or flip it.</span> : (
+            <>
+              <b>{selectedProp.kind}</b>
+              <button type="button" disabled={busy || (selectedProp.scale || 1) <= MIN_PROP_SCALE} onClick={() => saveDraft({ ...selectedProp, scale: Math.max(MIN_PROP_SCALE, Math.round(((selectedProp.scale || 1) - 0.1) * 10) / 10) })} aria-label="Smaller"><Minus size={16} /></button>
+              <span className="garden-edit-size">{Math.round((selectedProp.scale || 1) * 100)}%</span>
+              <button type="button" disabled={busy || (selectedProp.scale || 1) >= MAX_PROP_SCALE} onClick={() => saveDraft({ ...selectedProp, scale: Math.min(MAX_PROP_SCALE, Math.round(((selectedProp.scale || 1) + 0.1) * 10) / 10) })} aria-label="Bigger"><Plus size={16} /></button>
+              <button type="button" disabled={busy} onClick={() => saveDraft({ ...selectedProp, flip: !selectedProp.flip })}><FlipHorizontal size={16} />Flip</button>
+              <button type="button" disabled={busy} onClick={() => { const id = selectedProp.id; setEditId(null); setDraft(null); void post({ action: "pickUp", prop: id }); }}><Hand size={16} />Pick up</button>
+            </>
+          )}
+        </div>
       )}
 
       {toast && <p className="garden-toast" role="status">{toast}</p>}

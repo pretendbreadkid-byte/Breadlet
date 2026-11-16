@@ -75,7 +75,7 @@ export function GardenBook({ seedArt, artFor, onClose }: { seedArt: Record<SeedN
       lines: [
         "Press Props next to the garden name to buy decorations.",
         "Press Place, then click the grass inside the fence (not on the rows). It shows red where it can't go.",
-        "Hover a prop you placed to pick it back up.",
+        "Press Edit to drag props around, make them bigger or smaller, flip them, or pick them back up.",
         "Have fun growing!",
       ],
     },

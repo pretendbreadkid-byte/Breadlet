@@ -12,10 +12,8 @@ const FRONT = GARDEN.y + GARDEN.height;
 export const STAND = { x: 380, y: 1390 };
 const SIGN = { x: GATE.x + 200, y: FRONT + 92 };
 const TREES = [
-  { x: 260, y: 330, size: 1.1, kind: "oak" }, { x: 520, y: 210, size: 0.85, kind: "pine" }, { x: 1430, y: 330, size: 0.9, kind: "apple" },
-  { x: 2380, y: 1000, size: 1.15, kind: "oak" }, { x: 2250, y: 1530, size: 0.95, kind: "apple" }, { x: 110, y: 1180, size: 1, kind: "pine" },
-  { x: 1700, y: 1600, size: 0.8, kind: "oak" }, { x: 160, y: 760, size: 0.9, kind: "apple" }, { x: 760, y: 1120, size: 0.9, kind: "pine" },
-  { x: 1830, y: 250, size: 0.95, kind: "pine" }, { x: 2520, y: 230, size: 0.9, kind: "oak" }, { x: 900, y: 260, size: 0.75, kind: "oak" },
+  { x: 260, y: 330, size: 1.1 }, { x: 640, y: 230, size: 0.9 }, { x: 2380, y: 1000, size: 1.1 }, { x: 2250, y: 1560, size: 0.95 },
+  { x: 120, y: 1180, size: 1 }, { x: 1720, y: 1600, size: 0.85 }, { x: 2200, y: 300, size: 0.95 }, { x: 760, y: 1120, size: 0.85 },
 ] as const;
 
 // Seeded random so the meadow looks the same for everyone in the garden.
@@ -66,11 +64,11 @@ const SOLID_BOXES: [number, number, number, number][] = [
   [SIGN.x - 45, SIGN.y - 28, SIGN.x + 45, SIGN.y + 6],
 ];
 const SOLID_CIRCLES = [
-  ...TREES.map((tree) => ({ x: tree.x, y: tree.y - 14 * tree.size, r: 34 * tree.size })),
+  ...TREES.map((tree) => ({ x: tree.x - 4 * tree.size, y: tree.y - 10 * tree.size, r: 26 * tree.size })),
   { x: GATE.x - 65, y: FRONT, r: 16 }, { x: GATE.x + 65, y: FRONT, r: 16 },
 ];
 type Circle = { x: number; y: number; r: number };
-export const propCircles = (props: PlacedProp[]): Circle[] => props.flatMap((prop) => (propNamed(prop.kind)?.solid || []).map((part) => ({ x: prop.x + part.dx, y: prop.y - 8, r: part.r })));
+export const propCircles = (props: PlacedProp[]): Circle[] => props.flatMap((prop) => (propNamed(prop.kind)?.solid || []).map((part) => ({ x: prop.x + part.dx * (prop.scale || 1) * (prop.flip ? -1 : 1), y: prop.y - 8, r: part.r * (prop.scale || 1) })));
 // Walking into something solid slides you along it instead. extra: the props placed in the garden.
 export const gardenCollide = (from: { x: number; y: number }, to: { x: number; y: number }, extra: Circle[] = []) => {
   const isSolid = (x: number, y: number) =>
@@ -88,8 +86,9 @@ type Decor = { kind: DecorKind; x: number; y: number; tint: number; flip: boolea
 const DECOR: Decor[] = (() => {
   const random = seeded(20261114);
   const list: Decor[] = [];
-  const kinds: DecorKind[] = ["flower", "flower", "flower", "tuft", "tuft", "tuft", "tuft", "tall", "clover", "bush", "rock", "mushroom", "pebble"];
-  for (let tries = 0; list.length < 260 && tries < 4000; tries += 1) {
+  // Kept sparse on purpose so the meadow feels calm, not cluttered.
+  const kinds: DecorKind[] = ["flower", "flower", "tuft", "tuft", "tuft", "clover", "bush", "rock"];
+  for (let tries = 0; list.length < 70 && tries < 4000; tries += 1) {
     const x = 30 + random() * (WORLD.width - 60);
     const y = 60 + random() * (WORLD.height - 90);
     if (blocked(x, y)) continue;
@@ -97,18 +96,18 @@ const DECOR: Decor[] = (() => {
   }
   // Grass and pebbles spilling over both edges of the path, so it doesn't have a hard edge.
   PATH_POINTS.forEach((point, index) => {
-    if (index % 3 || index >= PATH_POINTS.length - 6) return;
+    if (index % 8 || index >= PATH_POINTS.length - 6) return;
     const next = PATH_POINTS[index + 1];
     const length = Math.hypot(next.x - point.x, next.y - point.y) || 1;
     const normal = { x: -(next.y - point.y) / length, y: (next.x - point.x) / length };
     [-1, 1].forEach((side) => {
       const reach = 46 + random() * 14;
       const roll = random();
-      list.push({ kind: roll < 0.6 ? "tuft" : roll < 0.8 ? "flower" : "pebble", x: point.x + normal.x * reach * side, y: point.y + normal.y * reach * side + 8, tint: Math.floor(random() * 4), flip: random() < 0.5 });
+      list.push({ kind: roll < 0.7 ? "tuft" : "flower", x: point.x + normal.x * reach * side, y: point.y + normal.y * reach * side + 8, tint: Math.floor(random() * 4), flip: random() < 0.5 });
     });
   });
   // Flower borders along the inside of the garden fence.
-  for (let x = GARDEN.x + 34; x < GARDEN.x + GARDEN.width - 20; x += 30 + random() * 12) {
+  for (let x = GARDEN.x + 40; x < GARDEN.x + GARDEN.width - 20; x += 70 + random() * 30) {
     list.push({ kind: random() < 0.75 ? "flower" : "tuft", x, y: GARDEN.y + 44, tint: Math.floor(random() * 4), flip: random() < 0.5 });
     if (Math.abs(x + 8 - GATE.x) > GATE.width / 2 + 20) list.push({ kind: random() < 0.75 ? "flower" : "tuft", x: x + 8, y: FRONT - 8, tint: Math.floor(random() * 4), flip: random() < 0.5 });
   }
@@ -135,10 +134,10 @@ function DecorSprite({ item }: { item: Decor }) {
     return <svg className="garden-decor" style={style} width="34" height="20" viewBox="0 0 34 20" aria-hidden="true">{[[8, 12], [17, 8], [26, 12], [13, 16], [22, 16]].map(([cx, cy], index) => <circle key={index} cx={cx} cy={cy} r="4.4" fill={index % 2 ? "#3c9e3e" : "#4cb84a"} />)}{item.tint === 0 && <circle cx="17" cy="6" r="3" fill="#fff" />}</svg>;
   }
   if (item.kind === "bush") {
-    return <svg className="garden-decor" style={style} width="96" height="68" viewBox="0 0 96 68" aria-hidden="true"><ellipse cx="50" cy="62" rx="44" ry="7" fill="rgba(0,0,0,.18)" /><circle cx="28" cy="40" r="22" fill="#25782a" /><circle cx="68" cy="40" r="22" fill="#25782a" /><circle cx="48" cy="28" r="25" fill="#329a36" /><circle cx="30" cy="36" r="17" fill="#36a23a" /><circle cx="64" cy="34" r="17" fill="#36a23a" /><circle cx="40" cy="20" r="10" fill="#5cc35a" opacity=".85" /><circle cx="62" cy="26" r="5" fill="#5cc35a" opacity=".6" />{item.tint < 2 && <>{[[30, 36], [58, 22], [68, 44], [44, 44]].map(([cx, cy]) => <g key={cx}><circle cx={cx} cy={cy} r="3.8" fill="#e8413a" /><circle cx={cx - 1} cy={cy - 1.2} r="1.2" fill="#fff" opacity=".8" /></g>)}</>}</svg>;
+    return <img src="/assets/garden/berry-bush.svg" alt="" className="garden-decor garden-decor-img" style={{ ...style, width: 92 }} draggable={false} />;
   }
   if (item.kind === "rock") {
-    return <svg className="garden-decor" style={style} width="52" height="36" viewBox="0 0 52 36" aria-hidden="true"><ellipse cx="26" cy="32" rx="23" ry="4" fill="rgba(0,0,0,.18)" /><path d="M4 30 C2 18 12 7 25 7 C39 7 48 17 47 30Z" fill="#8f8b82" /><path d="M7 28 C6 18 14 10 25 10 C36 10 43 18 43 28Z" fill="#a9a59c" /><path d="M12 16 C16 11 22 10 27 11" stroke="#d6d3cb" strokeWidth="4" strokeLinecap="round" fill="none" />{item.tint === 1 && <path d="M30 30 C31 24 36 20 42 21 C43 25 40 30 30 30Z" fill="#4cb84a" />}</svg>;
+    return <img src="/assets/rock-3.svg" alt="" className="garden-decor garden-decor-img" style={{ ...style, width: 64 }} draggable={false} />;
   }
   if (item.kind === "pebble") {
     return <svg className="garden-decor" style={style} width="26" height="14" viewBox="0 0 26 14" aria-hidden="true"><ellipse cx="9" cy="9" rx="7" ry="4.5" fill="#a9a59c" /><ellipse cx="8" cy="7.5" rx="3" ry="1.5" fill="#d6d3cb" /><ellipse cx="20" cy="10" rx="4.5" ry="3" fill="#938f86" /></svg>;
@@ -251,42 +250,9 @@ function Fence({ isOwner }: { isOwner: boolean }) {
   );
 }
 
-function Tree({ x, y, size, kind, index }: { x: number; y: number; size: number; kind: "oak" | "pine" | "apple"; index: number }) {
-  const style: CSSProperties = { left: x, top: y, zIndex: Math.round(y), transform: `translate(-50%, -100%) scale(${size})`, transformOrigin: "50% 100%" };
-  const sway = { animationDelay: `${-index * 0.9}s`, animationDuration: `${5 + (index % 3)}s` };
-  if (kind === "pine") {
-    return (
-      <svg className="garden-decor" style={style} width="200" height="280" viewBox="0 0 200 280" aria-hidden="true">
-        <ellipse cx="104" cy="268" rx="70" ry="12" fill="rgba(0,0,0,.22)" />
-        <rect x="90" y="210" width="20" height="60" rx="5" fill="#7a4a22" stroke="#4a2a12" strokeWidth="4" />
-        <g className="garden-sway" style={sway}>
-          {/* Four stacked tiers, bottom first, so each one tucks under the tier above it. */}
-          {[[118, 226, 88], [78, 178, 72], [42, 132, 56], [10, 88, 40]].map(([top, bottom, half], layer) => (
-            <g key={layer}>
-              <path d={`M100 ${top} L${100 + half} ${bottom} Q100 ${bottom + 14} ${100 - half} ${bottom}Z`} fill="#226f2e" stroke="#164d1f" strokeWidth="4" strokeLinejoin="round" />
-              <path d={`M100 ${top + 8} L${100 - half + 12} ${bottom - 2} Q${100 - half / 2} ${bottom + 6} 100 ${bottom + 7}Z`} fill="#2f8f3b" />
-              <path d={`M${100 - half + 16} ${bottom - 1} Q100 ${bottom + 10} ${100 + half - 16} ${bottom - 1}`} stroke="#164d1f" strokeWidth="3" fill="none" opacity=".35" />
-            </g>
-          ))}
-        </g>
-      </svg>
-    );
-  }
-  return (
-    <svg className="garden-decor" style={style} width="220" height="264" viewBox="0 0 220 264" aria-hidden="true">
-      <ellipse cx="116" cy="250" rx="86" ry="13" fill="rgba(0,0,0,.22)" />
-      <path d="M94 252 C98 214 96 184 90 162 L130 162 C124 184 122 214 126 252Z" fill="#8a5a2b" stroke="#4a2a12" strokeWidth="4" />
-      <path d="M94 252 C90 244 82 244 76 248 M126 252 C130 244 138 244 144 248" stroke="#4a2a12" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <path d="M110 214 C112 196 110 182 104 170" stroke="#5e3a17" strokeWidth="3" fill="none" />
-      <g className="garden-sway" style={sway}>
-        <circle cx="60" cy="126" r="52" fill="#1f6b2b" /><circle cx="160" cy="126" r="52" fill="#1f6b2b" /><circle cx="110" cy="150" r="46" fill="#1f6b2b" />
-        <circle cx="110" cy="82" r="68" fill="#2e8a39" /><circle cx="66" cy="100" r="44" fill="#2e8a39" /><circle cx="154" cy="102" r="44" fill="#2e8a39" />
-        <circle cx="96" cy="66" r="44" fill="#3aa23f" /><circle cx="140" cy="80" r="30" fill="#3aa23f" />
-        <circle cx="84" cy="50" r="20" fill="#5cc35a" opacity=".85" /><circle cx="140" cy="66" r="12" fill="#5cc35a" opacity=".7" /><circle cx="56" cy="96" r="10" fill="#5cc35a" opacity=".55" />
-        {kind === "apple" && [[70, 120], [140, 106], [112, 140], [160, 140], [92, 92], [50, 140]].map(([cx, cy]) => <g key={cx}><circle cx={cx} cy={cy} r="8" fill="#e5483b" stroke="#8f1f17" strokeWidth="2" /><circle cx={cx - 2.5} cy={cy - 2.5} r="2.4" fill="#fff" opacity=".75" /><path d={`M${cx} ${cy - 8} l2 -5`} stroke="#5e3a17" strokeWidth="2" strokeLinecap="round" /></g>)}
-      </g>
-    </svg>
-  );
+// Trees use the Tree prop art, so the meadow matches what players can place.
+function Tree({ x, y, size }: { x: number; y: number; size: number }) {
+  return <img src="/assets/garden/tree-prop.svg" alt="" className="garden-decor garden-decor-img" style={{ left: x, top: y, width: 170 * size, zIndex: Math.round(y), transform: "translate(-50%, -100%)" }} draggable={false} />;
 }
 
 export const Meadow = memo(function Meadow({ isOwner }: { isOwner: boolean }) {
@@ -297,7 +263,7 @@ export const Meadow = memo(function Meadow({ isOwner }: { isOwner: boolean }) {
       <div className="garden-lawn" style={{ left: GARDEN.x, top: GARDEN.y, width: GARDEN.width, height: GARDEN.height }} />
       {ROWS.map((row, index) => <div key={index} className="garden-row" style={{ left: row.x, top: row.y, width: row.width, height: row.height }} />)}
       {DECOR.map((item, index) => <DecorSprite key={index} item={item} />)}
-      {TREES.map((tree, index) => <Tree key={index} index={index} {...tree} />)}
+      {TREES.map((tree, index) => <Tree key={index} {...tree} />)}
       <Fence isOwner={isOwner} />
     </>
   );

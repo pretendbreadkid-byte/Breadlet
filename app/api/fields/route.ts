@@ -6,7 +6,7 @@ import { hasAdminAccess } from '../../../lib/admin-access';
 import { isKidAccount } from '../../../lib/kid-mode';
 import { BLOCKED_MESSAGE, isBlockedBetween } from '../../../lib/blocks';
 import {
-  DAILY_EARN_LIMIT, MAX_BASKET, MAX_HELPERS, MAX_PLANTS, MAX_PROPS, MAX_SEEDS_PER_BUY, MAX_SIZE, MIN_SIZE, PLANT_GAP, PROPS, ROWS, SEEDS,
+  DAILY_EARN_LIMIT, MAX_BASKET, MAX_PROP_SCALE, MIN_PROP_SCALE, MAX_HELPERS, MAX_PLANTS, MAX_PROPS, MAX_SEEDS_PER_BUY, MAX_SIZE, MIN_SIZE, PLANT_GAP, PROPS, ROWS, SEEDS,
   canPlaceProp, cropValue, gardenDay, inRow, propNamed, rollSize, seedNamed, sizeLabel,
   type Crop, type FieldsView, type GardenPerson, type PlacedProp, type Plant, type PropKind, type SeedName,
 } from '../../../lib/fields';
@@ -55,7 +55,11 @@ function normalize(raw: any): State {
   const props: PlacedProp[] = (Array.isArray(raw?.props) ? raw.props : [])
     .filter((prop: any) => prop && typeof prop.id === 'string' && propNamed(prop.kind) && Number.isFinite(prop.x) && Number.isFinite(prop.y))
     .slice(0, MAX_PROPS)
-    .map((prop: any) => ({ id: prop.id.slice(0, 40), kind: prop.kind, x: prop.x, y: prop.y, by: isId(prop.by) ? prop.by : undefined, byName: name(prop.byName) }));
+    .map((prop: any) => ({
+      id: prop.id.slice(0, 40), kind: prop.kind, x: prop.x, y: prop.y, by: isId(prop.by) ? prop.by : undefined, byName: name(prop.byName),
+      scale: Number.isFinite(prop.scale) ? Math.min(MAX_PROP_SCALE, Math.max(MIN_PROP_SCALE, prop.scale)) : undefined,
+      flip: prop.flip === true ? true : undefined,
+    }));
   const seeds = Object.fromEntries(SEEDS.map((seed) => [seed.name, count(raw?.seeds?.[seed.name])])) as Record<SeedName, number>;
   const propBag = Object.fromEntries(PROPS.map((prop) => [prop.kind, count(raw?.propBag?.[prop.kind])])) as Record<PropKind, number>;
   const people = (list: unknown) => (Array.isArray(list) ? list.filter(isId).slice(0, MAX_HELPERS) : []);
@@ -175,6 +179,7 @@ export async function GET(request: Request) {
 //   { action: 'buy', seed, amount } | { action: 'plant', seed, x, y } | { action: 'harvest', plant }
 //   { action: 'sell', crop } | { action: 'sell', all: true } | { action: 'give', crop, profileId }
 //   { action: 'buyProp', kind } | { action: 'place', kind, x, y } | { action: 'pickUp', prop }
+//   { action: 'editProp', prop, x, y, scale, flip }  (move, resize or flip a prop in Edit mode)
 //   { action: 'permit', profileId, role: 'plant' | 'build', allow }  (owner only)
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -437,6 +442,26 @@ export async function POST(request: Request) {
       }
     }
     return respond({ message: `Placed a ${def.kind}.` });
+  }
+
+  // Edit mode: the owner, or a builder who placed it, can move, resize and flip a prop.
+  if (body.action === 'editProp') {
+    const prop = garden.props.find((item) => item.id === String(body.prop || ''));
+    if (!prop) return fail('That prop is gone.');
+    if (!isOwner && !(garden.builders.includes(userId) && prop.by === userId)) return fail(`Only ${owner.username} or whoever placed it can change that.`, 403);
+    const x = Math.round(Number(body.x));
+    const y = Math.round(Number(body.y));
+    const scale = Math.round(Math.min(MAX_PROP_SCALE, Math.max(MIN_PROP_SCALE, Number(body.scale) || 1)) * 100) / 100;
+    const flip = body.flip === true;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !canPlaceProp(prop.kind, x, y, garden.props, prop.id, scale)) return fail("It can't go there. Try the grass inside the fence, off the rows.");
+    const problem = await updateGarden((state) => {
+      const target = state.props.find((item) => item.id === prop.id);
+      if (!target) return 'That prop is gone.';
+      if (!canPlaceProp(target.kind, x, y, state.props, target.id, scale)) return "Something's already there.";
+      Object.assign(target, { x, y, scale: scale === 1 ? undefined : scale, flip: flip || undefined });
+    });
+    if (problem) return fail(problem, 409);
+    return respond({});
   }
 
   // The owner, or whoever placed it, can pick a prop back up. It goes back to whoever placed it.

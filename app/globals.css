@@ -3804,3 +3804,21 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
   .garden-book-left { padding-bottom: 16px; }
   .garden-book-left .garden-book-number { display: none; }
 }
+
+/* Garden: rows now run front to back, so the furrows do too. */
+.garden-row { background:
+  repeating-linear-gradient(90deg, rgba(60, 30, 10, .22) 0 6px, transparent 6px 34px),
+  radial-gradient(circle at 20% 30%, rgba(255, 220, 170, .14) 0 2px, transparent 2.6px) 0 0 / 22px 19px,
+  linear-gradient(90deg, #8a5a32, #7a4c28); }
+.garden-decor-img { height: auto; pointer-events: none; filter: drop-shadow(0 5px 3px rgba(0, 0, 0, .18)); }
+/* Edit mode. */
+.garden-chip.is-on { background: #F0894A; }
+.garden-prop.is-selected img { filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 6px #ffd36b) drop-shadow(0 0 10px #ffd36b); }
+.garden-prop.is-selected { cursor: grab; }
+.garden-prop.is-selected:active { cursor: grabbing; }
+.garden-prop.is-bad img { filter: sepia(1) saturate(6) hue-rotate(-30deg) brightness(.8); }
+.garden-edit-bar { position: absolute; top: 74px; left: 50%; z-index: 3; display: flex; align-items: center; gap: 8px; transform: translateX(-50%); max-width: calc(100% - 28px); border: 3px solid #13120F; border-radius: 16px; background: rgba(27, 26, 22, .94); padding: 8px 12px; font-size: .85rem; font-weight: 800; color: #fff3df; box-shadow: 0 5px 0 #13120F; }
+.garden-edit-bar b { margin-right: 4px; color: #ffcb73; }
+.garden-edit-bar button { display: inline-flex; align-items: center; gap: 4px; border: 3px solid #13120F; border-radius: 10px; background: #F0894A; padding: 3px 9px; font-weight: 900; color: #fff; box-shadow: 0 3px 0 #13120F; }
+.garden-edit-bar button:disabled { opacity: .45; }
+.garden-edit-size { min-width: 44px; text-align: center; }

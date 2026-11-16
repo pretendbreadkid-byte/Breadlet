@@ -21,10 +21,11 @@ export const seedNamed = (name: unknown) => SEEDS.find((seed) => seed.name === n
 // The garden's place in the world (world pixels). The gate is in the middle of the front fence.
 export const GARDEN = { x: 940, y: 480, width: 980, height: 800 };
 export const GATE = { x: 1430, width: 130 };
-// The two long dirt rows. Plant anywhere on them, as long as it isn't right on top of another plant.
+// The two long dirt rows, running from the back fence toward the gate, with grass between them.
+// Plant anywhere on them, as long as it isn't right on top of another plant.
 export const ROWS = [
-  { x: 1060, y: 560, width: 740, height: 180 },
-  { x: 1060, y: 830, width: 740, height: 180 },
+  { x: 1010, y: 560, width: 200, height: 560 },
+  { x: 1650, y: 560, width: 200, height: 560 },
 ];
 export const PLANT_GAP = 58;
 export const MAX_PLANTS = 48;
@@ -67,17 +68,21 @@ export const PROPS: PropDef[] = [
 ];
 export const propNamed = (kind: unknown) => PROPS.find((prop) => prop.kind === kind);
 export const MAX_PROPS = 30;
-export type PlacedProp = { id: string; kind: PropKind; x: number; y: number; by?: string; byName?: string };
+// scale: how big it is (Edit mode resizes props). flip: mirrored left to right.
+export type PlacedProp = { id: string; kind: PropKind; x: number; y: number; by?: string; byName?: string; scale?: number; flip?: boolean };
+export const MIN_PROP_SCALE = 0.5;
+export const MAX_PROP_SCALE = 2;
+export const propWidth = (prop: { kind: PropKind; scale?: number }) => (propNamed(prop.kind)?.width || 100) * (prop.scale || 1);
 // Props go on the grass inside the fence: not on the rows, not in the gateway, not on another prop.
-export const canPlaceProp = (kind: PropKind, x: number, y: number, props: PlacedProp[], ignoreId?: string) => {
+export const canPlaceProp = (kind: PropKind, x: number, y: number, props: PlacedProp[], ignoreId?: string, scale = 1) => {
   const def = propNamed(kind);
   if (!def) return false;
-  const half = def.width / 2;
+  const half = (def.width * scale) / 2;
   const front = GARDEN.y + GARDEN.height;
   if (x - half < GARDEN.x + 30 || x + half > GARDEN.x + GARDEN.width - 30 || y < GARDEN.y + 90 || y > front - 30) return false;
   if (ROWS.some((row) => x + half > row.x && x - half < row.x + row.width && y > row.y - 10 && y < row.y + row.height + 40)) return false;
   if (Math.abs(x - GATE.x) < half + 70 && y > front - 130) return false;
-  return !props.some((prop) => prop.id !== ignoreId && Math.abs(prop.x - x) < (half + (propNamed(prop.kind)?.width || 100) / 2) * 0.8 && Math.abs(prop.y - y) < 60);
+  return !props.some((prop) => prop.id !== ignoreId && Math.abs(prop.x - x) < (half + propWidth(prop) / 2) * 0.8 && Math.abs(prop.y - y) < 60);
 };
 
 export type GardenPerson = { id: string; username: string };
