@@ -3845,3 +3845,18 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
 .blook-card-actions button:disabled { cursor: not-allowed; opacity: .4; }
 .blook-card-actions .blook-card-equip { grid-column: 1 / -1; background: #F0894A; color: #fff; }
 .blook-card-actions .blook-card-equip:hover:not(:disabled) { background: #f59a60; }
+
+/* Softer, calmer look everywhere: a fainter background, gentler titles and edges, more breathing room. */
+.bread-drift { opacity: .32; }
+main.breadlet-blue-theme > aside.breadlet-sidebar { border-right-width: 2px !important; border-right-color: rgba(19, 18, 15, .6) !important; overflow-x: hidden; }
+/* Breadlets you don't have yet: a quiet ghost instead of a heavy dark shape. */
+.locked-blook-art { opacity: .2 !important; }
+/* Bag sections and grids get more room. */
+.breadlet-blue-theme .game-workspace section + section { margin-top: 18px; }
+.breadlet-blue-theme .game-workspace .grid.gap-3 { gap: 1rem; }
+/* Panels: softer corners and a gentle shadow instead of hard outlines. */
+.breadlet-blue-theme .game-workspace :is(.profile-player-panel, .profile-badges-panel, .profile-stats-panel, .profile-list-panel, .bank-card, .resource-card, .ui-panel, .leaderboard-row, .clan-discover-card, .clan-member-card, .clan-upgrade-card) {
+  border-radius: 20px !important;
+  box-shadow: 0 8px 24px rgba(30, 12, 2, .18) !important;
+}
+.breadlet-blue-theme .game-workspace :is(.inventory-search, .inventory-show) { border-width: 2px !important; border-radius: 14px !important; }
