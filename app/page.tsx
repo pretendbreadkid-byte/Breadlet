@@ -2205,6 +2205,15 @@ function MainPage() {
                   )}
                   <hr className="my-1 border-[#3d91cd]/40" />
                   {!isGuest && <button onClick={() => { setViewedProfile(null); setUserMenuOpen(false); setTourOpen(true); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><HelpCircle size={18} />Take a tour</button>}
+                  {navLayout === "rail" && (
+                    <>
+                      {/* Icon rail has no sidebar footer, so its small buttons live here. */}
+                      <button onClick={() => { setNewsOpen(true); setUserMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><Newspaper size={18} />News</button>
+                      {!kidMode && <button onClick={() => { setSocialsOpen(true); setUserMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><Users size={18} />Socials</button>}
+                      {!kidMode && <button onClick={() => { setProjectsOpen(true); setUserMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><Sparkles size={18} />Other projects</button>}
+                      {!kidMode && <a href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" onClick={() => setUserMenuOpen(false)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><GitBranch size={18} />GitHub</a>}
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       leaveSession();

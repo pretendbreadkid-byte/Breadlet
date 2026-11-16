@@ -3909,6 +3909,16 @@ main.breadlet-blue-theme > aside.breadlet-sidebar { border-right-width: 2px !imp
   main.nav-rail > aside.breadlet-sidebar:not(:hover):not(:focus-within) .other-projects-link,
   main.nav-rail > aside.breadlet-sidebar:not(:hover):not(:focus-within) .sidebar-footer > :not(:last-child) { display: none; }
   main.nav-rail > aside.breadlet-sidebar nav button { white-space: nowrap; }
+  /* Rail: no logo or small footer buttons (they're in the account menu), and bigger icons. */
+  main.nav-rail > aside.breadlet-sidebar .sidebar-brand,
+  main.nav-rail > aside.breadlet-sidebar .other-projects-link,
+  main.nav-rail > aside.breadlet-sidebar .sidebar-footer { display: none !important; }
+  main.nav-rail > aside.breadlet-sidebar { padding-right: 0 !important; padding-top: 18px !important; }
+  main.nav-rail > aside.breadlet-sidebar nav { margin-top: 0; }
+  main.nav-rail > aside.breadlet-sidebar nav button { min-height: 58px !important; gap: 18px !important; border-radius: 16px !important; margin: 0 8px; width: calc(100% - 16px) !important; padding-left: 15px !important; font-size: 17px !important; }
+  main.nav-rail > aside.breadlet-sidebar nav button svg { width: 26px !important; height: 26px !important; flex: none; }
+  main.nav-rail > aside.breadlet-sidebar nav button[aria-current="page"] { border: 0 !important; background: #ED7117 !important; color: #fff !important; }
+  main.nav-rail > aside.breadlet-sidebar nav button[aria-current="page"] * { color: #fff !important; }
   main.nav-rail .bread-drift.page-drift { left: 72px; }
 }
 
