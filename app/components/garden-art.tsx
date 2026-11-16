@@ -4,16 +4,13 @@
 // the shed, the well, the wheat field, trees, butterflies and every crop's growth stages.
 // fields-world.tsx places these and handles walking, planting and harvesting.
 import { memo, type CSSProperties } from "react";
-import { PLOT_COUNT, type SeedName } from "../../lib/fields";
+import { GARDEN, GATE, ROWS, propNamed, type PlacedProp, type SeedName } from "../../lib/fields";
+export { GARDEN, GATE, ROWS };
 
 export const WORLD = { width: 2600, height: 1700 };
-export const GARDEN = { x: 1000, y: 520, width: 860, height: 700 };
-// The gate is in the middle of the front (bottom) fence, facing you.
-export const GATE = { x: 1430, width: 130 };
 const FRONT = GARDEN.y + GARDEN.height;
-export const PLOTS = Array.from({ length: PLOT_COUNT }, (_, index) => ({ x: 1150 + (index % 3) * 280, y: 680 + Math.floor(index / 3) * 190 }));
 export const STAND = { x: 380, y: 1390 };
-const SIGN = { x: GATE.x - 190, y: FRONT + 96 };
+const SIGN = { x: GATE.x + 200, y: FRONT + 92 };
 const TREES = [
   { x: 260, y: 330, size: 1.1, kind: "oak" }, { x: 520, y: 210, size: 0.85, kind: "pine" }, { x: 1430, y: 330, size: 0.9, kind: "apple" },
   { x: 2380, y: 1000, size: 1.15, kind: "oak" }, { x: 2250, y: 1530, size: 0.95, kind: "apple" }, { x: 110, y: 1180, size: 1, kind: "pine" },
@@ -33,7 +30,7 @@ const seeded = (start: number) => {
 };
 
 // The dirt path from the garden gate to Ted's stand, as a smooth curve through these points.
-const PATH_KEYS: [number, number][] = [[GATE.x, FRONT + 6], [GATE.x - 8, FRONT + 100], [1300, 1395], [1100, 1440], [880, 1425], [680, 1445], [520, 1460], [STAND.x + 20, STAND.y + 60]];
+const PATH_KEYS: [number, number][] = [[GATE.x, FRONT + 6], [GATE.x - 10, FRONT + 90], [1320, 1460], [1100, 1500], [880, 1490], [680, 1490], [520, 1475], [STAND.x + 20, STAND.y + 60]];
 const PATH_POINTS = (() => {
   const points: { x: number; y: number }[] = [];
   for (let index = 0; index < PATH_KEYS.length - 1; index += 1) {
@@ -57,8 +54,8 @@ const blocked = (x: number, y: number) =>
   || (Math.abs(x - SIGN.x) < 100 && y > SIGN.y - 150 && y < SIGN.y + 30)
   || TREES.some((tree) => Math.hypot(x - tree.x, y - tree.y + 60) < 125 * tree.size);
 
-// Things you can't walk through: the fence (except the gate), the beds, Ted's stand, the sign,
-// the gate posts and tree trunks. Points are where a Breadlet's feet are.
+// Things you can't walk through: the fence (except the gate), Ted's stand, the sign, the gate posts,
+// tree trunks and props. Points are where a Breadlet's feet are.
 const SOLID_BOXES: [number, number, number, number][] = [
   [GARDEN.x - 24, GARDEN.y - 30, GARDEN.x + GARDEN.width + 24, GARDEN.y + 22],
   [GARDEN.x - 24, FRONT - 30, GATE.x - 50, FRONT + 22],
@@ -67,17 +64,19 @@ const SOLID_BOXES: [number, number, number, number][] = [
   [GARDEN.x + GARDEN.width - 22, GARDEN.y - 30, GARDEN.x + GARDEN.width + 24, FRONT + 22],
   [STAND.x - 125, STAND.y - 80, STAND.x + 125, STAND.y + 8],
   [SIGN.x - 45, SIGN.y - 28, SIGN.x + 45, SIGN.y + 6],
-  ...PLOTS.map((plot): [number, number, number, number] => [plot.x - 88, plot.y - 50, plot.x + 88, plot.y + 42]),
 ];
 const SOLID_CIRCLES = [
   ...TREES.map((tree) => ({ x: tree.x, y: tree.y - 14 * tree.size, r: 34 * tree.size })),
   { x: GATE.x - 65, y: FRONT, r: 16 }, { x: GATE.x + 65, y: FRONT, r: 16 },
 ];
-const isSolid = (x: number, y: number) =>
-  SOLID_BOXES.some(([left, top, right, bottom]) => x > left && x < right && y > top && y < bottom)
-  || SOLID_CIRCLES.some((circle) => Math.hypot(x - circle.x, y - circle.y) < circle.r);
-// Walking into something solid slides you along it instead.
-export const gardenCollide = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+type Circle = { x: number; y: number; r: number };
+export const propCircles = (props: PlacedProp[]): Circle[] => props.flatMap((prop) => (propNamed(prop.kind)?.solid || []).map((part) => ({ x: prop.x + part.dx, y: prop.y - 8, r: part.r })));
+// Walking into something solid slides you along it instead. extra: the props placed in the garden.
+export const gardenCollide = (from: { x: number; y: number }, to: { x: number; y: number }, extra: Circle[] = []) => {
+  const isSolid = (x: number, y: number) =>
+    SOLID_BOXES.some(([left, top, right, bottom]) => x > left && x < right && y > top && y < bottom)
+    || SOLID_CIRCLES.some((circle) => Math.hypot(x - circle.x, y - circle.y) < circle.r)
+    || extra.some((circle) => Math.hypot(x - circle.x, y - circle.y) < circle.r);
   if (!isSolid(to.x, to.y) || isSolid(from.x, from.y)) return to;
   if (!isSolid(to.x, from.y)) return { x: to.x, y: from.y };
   if (!isSolid(from.x, to.y)) return { x: from.x, y: to.y };
@@ -296,7 +295,7 @@ export const Meadow = memo(function Meadow({ isOwner }: { isOwner: boolean }) {
       <Ground />
       <Path />
       <div className="garden-lawn" style={{ left: GARDEN.x, top: GARDEN.y, width: GARDEN.width, height: GARDEN.height }} />
-      {PLOTS.map((plot, index) => <div key={index} className="garden-pad" style={{ left: plot.x, top: plot.y }} />)}
+      {ROWS.map((row, index) => <div key={index} className="garden-row" style={{ left: row.x, top: row.y, width: row.width, height: row.height }} />)}
       {DECOR.map((item, index) => <DecorSprite key={index} item={item} />)}
       {TREES.map((tree, index) => <Tree key={index} index={index} {...tree} />)}
       <Fence isOwner={isOwner} />

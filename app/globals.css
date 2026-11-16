@@ -3715,3 +3715,58 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
 .profile-hide-badges { margin-top: 8px; border: 2px solid #4a3a28; border-radius: 10px; background: #27251F; padding: 4px 10px; font-size: .75rem; font-weight: 900; color: #e9bd67; }
 .profile-hide-badges[aria-pressed="true"] { border-color: #e9bd67; }
 .profile-quick-actions .profile-block-button { color: #ffb4a8; }
+
+/* Garden v2: two dirt rows you plant anywhere on, free-standing plants, props and the new HUD. */
+.garden-row { position: absolute; z-index: -790; border-radius: 26px; background:
+  repeating-linear-gradient(0deg, rgba(60, 30, 10, .22) 0 6px, transparent 6px 34px),
+  radial-gradient(circle at 20% 30%, rgba(255, 220, 170, .14) 0 2px, transparent 2.6px) 0 0 / 22px 19px,
+  linear-gradient(180deg, #8a5a32, #7a4c28);
+  box-shadow: 0 0 0 8px #a86d34, 0 0 0 12px #5a3317, 0 10px 0 12px rgba(0, 0, 0, .14), inset 0 8px 14px rgba(0, 0, 0, .25); }
+.garden-plant { position: absolute; display: block; width: 96px; height: 96px; margin: -90px 0 0 -48px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.garden-world .garden-plant:hover:not(:disabled), .garden-world .garden-plant:active:not(:disabled) { transform: none; scale: 1; box-shadow: none; }
+.garden-mound { position: absolute; left: 14px; right: 14px; bottom: 0; height: 18px; border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #6e4422, #4f2f15); box-shadow: 0 3px 0 rgba(0, 0, 0, .2); }
+.garden-plant .garden-growth { position: absolute; left: 4px; bottom: 6px; width: 88px; height: 88px; margin: 0; transform-origin: 50% 100%; }
+.garden-plant.is-near { filter: drop-shadow(0 0 0 #ffd36b) drop-shadow(0 0 9px rgba(255, 211, 107, .95)); }
+.garden-plant.is-theirs { opacity: .92; }
+.garden-plant .garden-timer, .garden-plant .garden-ready { top: -20px; left: 0; right: 0; width: max-content; margin: 0 auto; white-space: nowrap; font-size: .7rem; z-index: 2; }
+.garden-plant .garden-sparkles { inset: -6px; }
+.garden-prop { position: absolute; transform: translate(-50%, -100%); pointer-events: none; }
+.garden-prop img { display: block; width: 100%; height: auto; filter: drop-shadow(0 6px 3px rgba(0, 0, 0, .22)); }
+.garden-prop.is-mine { pointer-events: auto; cursor: pointer; }
+.garden-prop.is-mine:hover img { filter: drop-shadow(0 0 0 #ffd36b) drop-shadow(0 0 8px rgba(255, 211, 107, .9)); }
+.garden-prop-pick { position: absolute; top: -34px; left: 0; right: 0; display: flex; width: max-content; align-items: center; gap: 4px; margin: 0 auto; border: 3px solid #13120F; border-radius: 10px; background: #F0894A; padding: 2px 10px; font-size: .8rem; font-weight: 900; color: #fff; box-shadow: 0 3px 0 #13120F; }
+.garden-prop-ghost { opacity: .7; pointer-events: none; }
+.garden-prop-ghost.is-bad img { filter: sepia(1) saturate(6) hue-rotate(-30deg) brightness(.75); }
+.garden-viewport.is-placing { cursor: crosshair; }
+.garden-hotbar { display: flex; flex-direction: column; align-items: center; }
+.garden-hotbar-toggle { position: relative; z-index: 1; display: grid; place-items: center; margin-bottom: -4px; border: 3px solid #3B1F0E; border-bottom: 0; border-radius: 12px 12px 0 0; background: #c27b3e; padding: 0 18px; color: #fff; }
+.garden-hotbar.is-closed .garden-hotbar-toggle { margin: 0; border-bottom: 3px solid #3B1F0E; border-radius: 12px; box-shadow: 0 4px 0 #3B1F0E; padding: 2px 22px; }
+.garden-hand-slot.is-open { background: #ffe9c7; }
+.garden-bottom-right { display: flex; justify-self: end; align-items: flex-end; gap: 8px; width: min(100%, 410px); justify-content: flex-end; }
+.garden-bottom-right .garden-chat { flex: 1; width: auto; }
+.garden-people-button { position: relative; display: grid; width: 52px; height: 48px; flex: none; place-items: center; border: 3px solid #13120F; border-radius: 14px; background: #27251F; color: #fff; box-shadow: 0 4px 0 #13120F; }
+.garden-people-button b { position: absolute; right: -6px; top: -8px; min-width: 22px; border: 3px solid #13120F; border-radius: 999px; background: #F0894A; padding: 0 4px; font-size: .72rem; line-height: 1.3; }
+.garden-people { top: auto; bottom: 96px; }
+.garden-invite { display: flex; align-items: center; justify-content: center; gap: 6px; border: 3px solid #13120F; border-radius: 12px; background: #F0894A; padding: 6px 10px; font-weight: 900; color: #fff; box-shadow: 0 3px 0 #13120F; }
+.garden-person .garden-toggle { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; }
+.garden-money { display: inline-flex; flex: none; align-items: center; gap: 4px; border: 3px solid #fff; border-radius: 999px; background: rgba(59, 31, 14, .35); padding: 2px 10px; font-weight: 900; color: #fff; }
+.garden-money img { width: 18px; height: 18px; }
+.garden-earned { display: flex; align-items: center; gap: 6px; margin: 0; padding: 10px 12px 0; font-size: .8rem; font-weight: 800; color: #d8c3a8; }
+.garden-earned b { color: #ffcb73; }
+.garden-earned.is-capped b { color: #ff9b7a; }
+.garden-props-note { margin: 0; padding: 10px 14px 0; font-size: .8rem; font-weight: 800; color: #ffcb73; }
+.garden-props .garden-shop-art img { max-width: 52px; max-height: 44px; }
+.garden-shop-buy button svg { flex: none; }
+/* The seed shop, smaller. */
+.garden-seed-shop { width: min(100%, 380px); }
+.garden-seed-shop header { gap: 8px; padding: 8px 10px; }
+.garden-seed-shop header img { width: 44px; height: 44px; }
+.garden-seed-shop header h2 { font-size: 1.2rem; }
+.garden-seed-shop .garden-shop-list { gap: 7px; padding: 10px; max-height: min(58vh, 420px); }
+.garden-seed-shop .garden-shop-row { gap: 8px; padding: 6px 8px; }
+.garden-seed-shop .garden-shop-art { width: 40px; height: 40px; }
+.garden-seed-shop .garden-shop-art img { max-width: 38px; max-height: 38px; }
+.garden-seed-shop .garden-shop-info small { font-size: .7rem; }
+.garden-seed-shop .garden-shop-buy button { padding: 1px 8px; font-size: .78rem; }
+.garden-props header button, .garden-seed-shop header button { width: 32px; height: 32px; font-size: 1.2rem; }
+.garden-shop header .garden-money img { width: 18px; height: 18px; }
