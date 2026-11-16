@@ -73,6 +73,7 @@ import {
   CalendarDays,
   PartyPopper,
   Newspaper,
+  X,
 } from "lucide-react";
 
 type Tab =
@@ -500,7 +501,6 @@ const rewardEffectClassFor = (name: string, rarity: string) => {
   return `${cleanName === "Holy Bread" ? "golden-glow" : ""} ${cleanName === "Red Rex" ? "red-rex-bounce" : ""}`;
 };
 
-const shinyEligibleNames = new Set<string>();
 const shinyNameFor = (name: string) => name;
 
 
@@ -3333,11 +3333,8 @@ function InventoryTab({
   const tedQuantity = owned(tedReward.name);
 
   const catalog = liveCapsules.map((capsule) => {
-    const shinyRewards = capsule.pool
-      .filter((reward) => shinyEligibleNames.has(reward.name))
-      .map((reward) => ({ ...reward, name: `Shiny ${reward.name}` }));
     const extras = (PACK_EXTRAS[capsule.name] || []).map((name) => ({ name, rarity: rarityFor(name), weight: 0 }));
-    return { ...capsule, pool: [...capsule.pool, ...shinyRewards, ...extras] };
+    return { ...capsule, pool: [...capsule.pool, ...extras] };
   });
   const assignedNames = new Set([
     ...catalog.flatMap((capsule) => capsule.pool.map((reward) => reward.name)),
@@ -3484,6 +3481,21 @@ function InventoryTab({
   );
 }
 
+// The card that opens when you tap a Breadlet in your collection: its name, rarity and drop chance,
+// a big picture, how many you own and what each is worth, then Sell / Lock / Equip.
+const dropChanceFor = (name: string) => {
+  const base = name.replace(/^Shiny /, "");
+  for (const capsule of liveCapsules) {
+    const reward = capsule.pool.find((item) => item.name === base);
+    if (reward) {
+      const chance = chanceFor(capsule, reward);
+      if (!chance) return "";
+      return `${chance >= 1 ? chance.toFixed(1).replace(/\.0$/, "") : chance >= 0.01 ? chance.toFixed(2) : chance.toFixed(3)}% in the ${capsule.name}`;
+    }
+  }
+  return "";
+};
+
 function BlookDetail({
   reward,
   quantity,
@@ -3508,68 +3520,57 @@ function BlookDetail({
   toggleWish: () => void;
 }) {
   const existCounts = useExistCounts();
+  const worth = sellValueForBlook(reward.name, reward.rarity);
+  const chance = dropChanceFor(reward.name);
+  const exist = existCounts[reward.name] || 0;
+  const canSell = quantity > 0 && (quantity > 1 || LIMITED_SHOP_NAMES.includes(reward.name)) && !locked;
   return (
-    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 shadow-2xl">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-[#bde8ff]">
-              Bread details
-            </p>
-            <h2 className="mt-1 text-2xl font-black text-white">{reward.name}</h2>
+    <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm" onClick={onClose}>
+      <div className="blook-card" style={{ "--rarity": stallColors[reward.rarity] || stallColors.Common } as React.CSSProperties} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="blook-card-name">
+        <button type="button" onClick={onClose} className="blook-card-close" aria-label="Close"><X size={18} /></button>
+        <h2 id="blook-card-name">{reward.name}</h2>
+        <p className="blook-card-rarity"><span>{reward.rarity}</span>{chance && <small>{chance}</small>}</p>
+        <div className="blook-card-art">
+          <RewardArt name={reward.name} art={artFor(reward.name)} className={`h-full w-full ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
+        </div>
+        {quantity > 0 ? (
+          <div className="blook-card-owned">
+            <b>{quantity} owned{equipped ? " · equipped" : ""}</b>
+            <small><img src="/assets/Bread%20bucks.svg" alt="" />Worth {worth.toLocaleString()} each{exist ? ` · ${exist.toLocaleString()} in the game` : ""}</small>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-xl bg-[#18558f] px-3 py-1.5 text-sm font-bold text-[#bde8ff] hover:bg-[#24649c]"
-          >
-            Close
-          </button>
-        </div>
-        <div className="mt-5 flex h-64 items-center justify-center bg-transparent p-0">
-          <RewardArt name={reward.name} art={artFor(reward.name)} className={`h-full w-full scale-125 ${rewardEffectClassFor(reward.name, reward.rarity)}`} />
-        </div>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <Stat label="Rarity" value={reward.rarity} />
-          <Stat label="Quantity" value={String(quantity)} />
-          <Stat label="Exist" value={existCounts[reward.name] ? existCounts[reward.name].toLocaleString() : "0"} />
-          <Stat label="Shiny" value={shinyEligibleNames.has(reward.name.replace(/^Shiny /, "")) ? "Eligible · 1/100" : "Not eligible"} />
-          <Stat
-            label="Sell value"
-            value={`${sellValueForBlook(reward.name, reward.rarity)} Bread Bucks`}
-          />
-        </div>
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            disabled={!quantity || equipped}
-            onClick={() => {
-              equip(reward.name);
-              onClose();
-            }}
-            className="rounded-xl bg-[#39a8f5] px-4 py-3 text-sm font-black text-[#031426] hover:bg-[#73c8ff] disabled:opacity-40"
-          >
-            {equipped ? "Equipped" : "Equip"}
-          </button>
-          <button
-            disabled={quantity < 1 || (quantity === 1 && !LIMITED_SHOP_NAMES.includes(reward.name)) || locked}
-            title={locked ? "Unlock this Breadlet to sell it" : undefined}
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Sell ${reward.name} for ${sellValueForBlook(reward.name, reward.rarity)} Bread Bucks?`,
-                )
-              ) {
-                sell(reward.name);
-                onClose();
-              }
-            }}
-            className="rounded-xl border border-red-400 bg-red-900/30 px-4 py-3 text-sm font-bold text-red-200 hover:bg-red-900/50 disabled:opacity-40"
-          >
-            Sell
-          </button>
-          {quantity > 0
-            ? <button type="button" onClick={toggleLock} className="col-span-2 flex items-center justify-center gap-2 rounded-xl border border-[#e9bd67]/60 px-4 py-3 text-sm font-black text-[#e9bd67]"><Lock size={16} aria-hidden="true" />{locked ? "Unlock (allow selling, recycling and trading)" : "Lock (protect from selling, recycling and trading)"}</button>
-            : <button type="button" onClick={toggleWish} className="col-span-2 rounded-xl border border-[#e9bd67]/60 px-4 py-3 text-sm font-black text-[#e9bd67]">{wished ? "★ On your wishlist (tap to remove)" : "☆ Add to wishlist: get told when one is listed on the Bazaar"}</button>}
-        </div>
+        ) : (
+          <div className="blook-card-owned is-missing">
+            <b><Lock size={16} aria-hidden="true" />Not collected yet</b>
+            {exist > 0 && <small>{exist.toLocaleString()} in the game</small>}
+          </div>
+        )}
+        {quantity > 0 ? (
+          <div className="blook-card-actions">
+            <button
+              type="button"
+              disabled={!canSell}
+              title={locked ? "Unlock this Breadlet to sell it" : quantity === 1 ? "You keep your last copy" : undefined}
+              onClick={() => {
+                if (window.confirm(`Sell ${reward.name} for ${worth} Bread Bucks?`)) {
+                  sell(reward.name);
+                  onClose();
+                }
+              }}
+            >
+              <img src="/assets/Bread%20bucks.svg" alt="" />Sell
+            </button>
+            <button type="button" onClick={toggleLock} aria-pressed={locked} title={locked ? "Allow selling, recycling and trading again" : "Protect it from selling, recycling and trading"}>
+              <Lock size={16} aria-hidden="true" />{locked ? "Unlock" : "Lock"}
+            </button>
+            <button type="button" className="blook-card-equip" disabled={equipped} onClick={() => { equip(reward.name); onClose(); }}>
+              {equipped ? "Equipped" : "Equip"}
+            </button>
+          </div>
+        ) : (
+          <div className="blook-card-actions">
+            <button type="button" className="blook-card-equip" onClick={toggleWish}>{wished ? "★ On your wishlist" : "☆ Add to wishlist"}</button>
+          </div>
+        )}
       </div>
     </div>
   );
