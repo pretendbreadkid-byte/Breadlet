@@ -22,7 +22,7 @@ export const defaultSettings: Settings = {
   chatNotifications: true,
   popups: true,
   sounds: true,
-  navLayout: "classic",
+  navLayout: "rail",
 };
 
 const storageKey = "breadlet-settings";
@@ -56,9 +56,9 @@ const sections = ["Account", "Layout", "Chat", "Trading & Social", "Kid mode", "
 
 export type NavLayout = "classic" | "grouped" | "rail" | "bottom" | "home";
 export const NAV_LAYOUTS: { id: NavLayout; title: string; description: string; preview: string }[] = [
-  { id: "classic", title: "Classic", description: "The normal sidebar with every tab listed.", preview: "▮ ☰☰☰" },
+  { id: "classic", title: "Classic", description: "The full sidebar with every tab name listed.", preview: "▮ ☰☰☰" },
   { id: "grouped", title: "Grouped sidebar", description: "The sidebar, with tabs sorted under Play, Collection, Social and Market.", preview: "▮ Play · Social" },
-  { id: "rail", title: "Icon rail", description: "A slim strip of icons that opens up when you hover over it, so pages get more room.", preview: "▏○○○" },
+  { id: "rail", title: "Icon rail (default)", description: "A slim strip of big icons, so pages get more room. Hover an icon to see its name.", preview: "▏○○○" },
   { id: "bottom", title: "Bottom bar", description: "The main tabs along the bottom of the screen, with everything else under More.", preview: "▁○○○○⋯" },
   { id: "home", title: "Home tiles", description: "A home screen with a big tile for each tab, and a Home button to get back.", preview: "▦▦▦" },
 ];

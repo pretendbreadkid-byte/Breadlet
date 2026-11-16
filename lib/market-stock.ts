@@ -6,10 +6,10 @@ export type MarketPackStock = {
 export const marketPackStock: MarketPackStock[] = [
   { name: "Inventions Bag", chance: 0.45 },
   { name: "Space Bag", chance: 1 },
-  { name: "Food Bag", chance: 0.8 },
-  { name: "Lost and Found Bag", chance: 0.5 },
+  { name: "Food Bag", chance: 0.2 },
+  { name: "Lost and Found Bag", chance: 0.2 },
   { name: "Artifact Bag", chance: 0.1 },
-  { name: "Combat Bag", chance: 0.2 },
+  { name: "Combat Bag", chance: 0.4 },
   { name: "YouTube Bag", chance: 0.2 },
   { name: "Bread Bag", chance: 0.1 },
   { name: "Candy Bag", chance: 0.8 },

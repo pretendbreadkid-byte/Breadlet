@@ -102,7 +102,7 @@ h3,
 .breadlet-blue-theme [class*="text-[#bde8ff"],
 .breadlet-blue-theme [class*="text-[#9cc8e8"],
 .breadlet-blue-theme [class*="text-[#d9f3ff"] { color: #f3eff8 !important; }
-.breadlet-blue-theme header { background-color: rgba(12, 59, 112, 0.95) !important; border-color: rgba(61, 145, 205, 0.55) !important; }
+.breadlet-blue-theme header { background-color: #ED7117 !important; border-color: #a8480a !important; }
 .workspace-island > div { white-space: nowrap; }
 .profile-dashboard { --profile-green: #45b912; --profile-lime: #54c918; --profile-deep: #103f0d; --profile-panel: #164b10; display: flex; min-height: calc(100vh - 2rem); flex-direction: column; gap: 1.15rem; overflow: hidden; border-radius: 1rem; background-color: var(--profile-green); background-image: linear-gradient(135deg, transparent 0 43%, #ffffff09 43% 57%, transparent 57%), linear-gradient(35deg, transparent 0 45%, #ffffff08 45% 60%, transparent 60%); padding: clamp(1rem, 2.5vw, 2rem); color: #f5fff0; }
 .profile-top-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(270px, .88fr); gap: 1rem; }
@@ -3907,7 +3907,7 @@ main.breadlet-blue-theme > aside.breadlet-sidebar { border-right-width: 2px !imp
   main.nav-rail > aside.breadlet-sidebar {
     width: 76px !important; overflow: visible !important; z-index: 30;
     padding: 12px 0 0 !important;
-    border-right: 4px solid #13120F !important;
+    border-right: 7px solid #13120F !important;
     border-radius: 0 24px 24px 0;
   }
   main.nav-rail > aside.breadlet-sidebar .sidebar-brand,
@@ -3923,6 +3923,8 @@ main.breadlet-blue-theme > aside.breadlet-sidebar { border-right-width: 2px !imp
   }
   main.nav-rail > aside.breadlet-sidebar nav button:hover { background: rgba(255, 255, 255, .07) !important; }
   main.nav-rail > aside.breadlet-sidebar nav button svg { width: 28px !important; height: 28px !important; flex: none; color: #fff !important; }
+  /* The sprout sits low in its box, so lift the Garden icon a little to line it up. */
+  main.nav-rail > aside.breadlet-sidebar nav button[data-tour-target="games"] svg { transform: translateY(-4px); }
   /* The name tag under the icon, only while hovering. */
   main.nav-rail > aside.breadlet-sidebar nav button > span {
     position: absolute; top: calc(100% - 4px); left: 50%; z-index: 50;
