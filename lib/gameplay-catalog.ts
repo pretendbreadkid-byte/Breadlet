@@ -429,7 +429,8 @@ export const liveCapsules: Capsule[] = [
     // and selling is a small profit. No Breadled yet.
     name: "Candy Bag",
     price: 25,
-    rarityChances: { Epic: 12, Legendary: 3, Mythic: 1.5, Secret: 0.05 },
+    // Average resale was ~27 (above the price, so open-and-sell made Bread Bucks); now ~17 like the others.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.3, Secret: 0.09 },
     art: "/assets/candy/candy-bag.svg",
     pool: rewards([
       ["Lollipop", "Common"],
