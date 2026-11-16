@@ -6,7 +6,7 @@ import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
-import { SettingsTab, readSettings } from "./components/settings-tab";
+import { SettingsTab, readSettings, useSettings } from "./components/settings-tab";
 import { isInboxType } from "../lib/inbox";
 import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
@@ -688,6 +688,11 @@ function MainPage() {
   const [tradeDoneNotice, setTradeDoneNotice] = useState("");
   const [newsOpen, setNewsOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  // Settings > Layout: which way the tabs are shown. Home tiles start on the home screen.
+  const { settings: uiSettings } = useSettings();
+  const navLayout = uiSettings.navLayout || "classic";
+  const [homeOpen, setHomeOpen] = useState(true);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
   // Kid accounts never land on a social tab (from a saved tab, a link or a shortcut).
   const kidMode = Boolean(player?.kidMode) && !isGuest;
@@ -1976,10 +1981,27 @@ function MainPage() {
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
     : kidMode ? nav.filter((item) => !KID_HIDDEN_TABS.includes(item.id)) : nav;
   shortcutTabsRef.current = visibleNav.map((item) => item.id);
+  // Settings > Layout groups (Grouped sidebar) and the tabs that fit on the Bottom bar.
+  const groupOf: Record<string, string> = { event: "Play", capsules: "Play", games: "Play", inventory: "Collection", crafting: "Collection", chat: "Social", clan: "Social", leaderboard: "Social", market: "Market" };
+  const navGroups = ["Play", "Collection", "Social", "Market", "More"].map((title) => ({ title, items: visibleNav.filter((item) => (groupOf[item.id] || "More") === title) }));
+  const bottomMain = visibleNav.filter((item) => ["capsules", "inventory", "market", "chat"].includes(item.id)).slice(0, 4);
+  const bottomMainFallback = bottomMain.length >= 3 ? bottomMain : visibleNav.slice(0, 4);
+  const bottomMore = visibleNav.filter((item) => !bottomMainFallback.includes(item));
+  const goTab = (id: Tab) => { setTab(id); setHomeOpen(false); setMoreOpen(false); };
+  const layoutExtras = (
+    <div className="layout-extras">
+      <button type="button" onClick={() => { setViewedProfile(null); goTab("profile"); }}><CircleUserRound size={18} />Profile</button>
+      <button type="button" onClick={() => goTab("settings")}><Info size={18} />Settings</button>
+      <button type="button" onClick={() => { setNewsOpen(true); setMoreOpen(false); }}><Newspaper size={18} />News</button>
+      {!kidMode && <button type="button" onClick={() => { setSocialsOpen(true); setMoreOpen(false); }}><Users size={18} />Socials</button>}
+      {!kidMode && <button type="button" onClick={() => { setProjectsOpen(true); setMoreOpen(false); }}><GitBranch size={18} />Other projects</button>}
+      <button type="button" onClick={leaveSession}><LogOut size={18} />{isGuest ? "End session" : "Log out"}</button>
+    </div>
+  );
   openShopCapsuleRef.current = (capsule) => { if (autoOpen) void startAutoOpen(capsule); else setCapsuleToConfirm(capsule); };
   shortcutStateRef.current = { tab, busy: Boolean(reveal) || autoCount !== null, auto: autoOpen };
   return (
-    <main className="breadlet-blue-theme min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row">
+    <main className={`breadlet-blue-theme nav-${navLayout} min-h-screen bg-[#0c3b70] text-white flex flex-col md:h-screen md:overflow-hidden md:flex-row`}>
       {/* Left Blooket-style Persistent Sidebar */}
       <aside className="breadlet-sidebar w-full md:w-[204px] md:h-screen md:overflow-y-auto shrink-0 border-r border-[#3d91cd]/30 bg-[#072a54] p-3 flex flex-col justify-between z-20 shadow-xl">
         <div>
@@ -1990,7 +2012,10 @@ function MainPage() {
 
           {/* Sidebar Nav Buttons */}
           <nav className="sidebar-nav mt-1 space-y-1.5">
-            {visibleNav.map((item) => (
+            {(navLayout === "grouped" ? navGroups : [{ title: "", items: visibleNav }]).map((group) => group.items.length > 0 && (
+              <div key={group.title || "all"} className="sidebar-nav-group">
+                {group.title && <p className="sidebar-nav-heading">{group.title}</p>}
+            {group.items.map((item) => (
               <button
                 key={item.id}
                 data-tour-target={item.id}
@@ -2006,6 +2031,8 @@ function MainPage() {
                 <span className="flex min-w-0 flex-col items-start leading-none"><span>{item.label}</span></span>
                 {item.id === "profile" && inboxUnreadCount > 0 && <span className="nav-unread-badge" aria-label={`${inboxUnreadCount} unread in your Inbox`}>{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
               </button>
+            ))}
+              </div>
             ))}
           </nav>
         </div>
@@ -2029,6 +2056,26 @@ function MainPage() {
         </div>
       </aside>
       <NewsPanel open={newsOpen} onClose={() => setNewsOpen(false)} canReact={!kidMode} />
+      {navLayout === "bottom" && (
+        <nav className="layout-bottom-bar" aria-label="Main tabs">
+          {bottomMainFallback.map((item) => (
+            <button key={item.id} type="button" onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>
+              {item.icon}<span>{item.label}</span>
+            </button>
+          ))}
+          <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className={moreOpen ? "is-open" : ""}>
+            <ChevronDown size={20} style={{ transform: moreOpen ? "none" : "rotate(180deg)" }} /><span>More</span>
+          </button>
+          {moreOpen && (
+            <div className="layout-more" role="menu">
+              {bottomMore.map((item) => (
+                <button key={item.id} type="button" onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>{item.icon}{item.label}</button>
+              ))}
+              {layoutExtras}
+            </div>
+          )}
+        </nav>
+      )}
       {projectsOpen && !kidMode && createPortal(
         <div className="link-popup-layer" onClick={() => setProjectsOpen(false)}>
           <div role="dialog" aria-modal="true" aria-labelledby="other-projects-title" onClick={(event) => event.stopPropagation()} className="link-popup">
@@ -2176,6 +2223,21 @@ function MainPage() {
         {/* Dynamic Page Section */}
         <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
           {tab !== "capsules" && <BreadDrift className="page-drift" />}
+          {navLayout === "home" && homeOpen && (
+            <div className="layout-home">
+              <img src="/assets/breadlet-logo-2.svg" alt="Breadlet" className="layout-home-logo" />
+              <div className="layout-home-tiles">
+                {visibleNav.map((item) => (
+                  <button key={item.id} type="button" onClick={() => goTab(item.id)} className="layout-home-tile">
+                    <span className="layout-home-icon">{item.icon}</span>
+                    <b>{item.label}</b>
+                  </button>
+                ))}
+              </div>
+              {layoutExtras}
+            </div>
+          )}
+          {navLayout === "home" && !homeOpen && <button type="button" onClick={() => setHomeOpen(true)} className="layout-home-back"><Store size={18} />Home</button>}
           {player && !isGuest && !kidMode && <CoinFlipPopup onFinished={refreshPlayerFromServer} />}
           {player && !isGuest && <AdminEventsLayer onReward={refreshPlayerFromServer} />}
           {player && !isGuest && <FallFiestaLayer onlineIds={onlineProfileIds} onTanuki={() => { void refreshPlayerFromServer({ full: true }); setNotice("You caught the Tanuki! 🦝 It's in your Breadlets now."); }} />}

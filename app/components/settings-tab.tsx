@@ -10,6 +10,8 @@ export type Settings = {
   chatNotifications: boolean;
   popups: boolean;
   sounds: boolean;
+  // How the tabs are laid out (Settings > Layout). Classic is the normal sidebar.
+  navLayout: NavLayout;
 };
 
 export const defaultSettings: Settings = {
@@ -20,6 +22,7 @@ export const defaultSettings: Settings = {
   chatNotifications: true,
   popups: true,
   sounds: true,
+  navLayout: "classic",
 };
 
 const storageKey = "breadlet-settings";
@@ -49,7 +52,16 @@ export function useSettings() {
   return { settings, update };
 }
 
-const sections = ["Account", "Chat", "Trading & Social", "Kid mode", "Account Management"] as const;
+const sections = ["Account", "Layout", "Chat", "Trading & Social", "Kid mode", "Account Management"] as const;
+
+export type NavLayout = "classic" | "grouped" | "rail" | "bottom" | "home";
+export const NAV_LAYOUTS: { id: NavLayout; title: string; description: string; preview: string }[] = [
+  { id: "classic", title: "Classic", description: "The normal sidebar with every tab listed.", preview: "▮ ☰☰☰" },
+  { id: "grouped", title: "Grouped sidebar", description: "The sidebar, with tabs sorted under Play, Collection, Social and Market.", preview: "▮ Play · Social" },
+  { id: "rail", title: "Icon rail", description: "A slim strip of icons that opens up when you hover over it, so pages get more room.", preview: "▏○○○" },
+  { id: "bottom", title: "Bottom bar", description: "The main tabs along the bottom of the screen, with everything else under More.", preview: "▁○○○○⋯" },
+  { id: "home", title: "Home tiles", description: "A home screen with a big tile for each tab, and a Home button to get back.", preview: "▦▦▦" },
+];
 
 type Row = { key: keyof Settings; title: string; description: string };
 
@@ -212,6 +224,19 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = 
           </>
         )}
         {section === "Kid mode" && !isGuest && <KidModeSection kidMode={kidMode} onChanged={(value) => onKidModeChanged?.(value)} />}
+        {section === "Layout" && (
+          <>
+            <p className="mb-4 text-[#c9c7c0]">Try a different way to get around Breadlet. It only changes this device, and you can switch back any time.</p>
+            <div className="layout-options">
+              {NAV_LAYOUTS.map((layout) => (
+                <button key={layout.id} type="button" onClick={() => update({ navLayout: layout.id })} aria-pressed={settings.navLayout === layout.id} className="layout-option">
+                  <span className={`layout-preview layout-preview-${layout.id}`} aria-hidden="true"><i /><i /><i /><i /></span>
+                  <span className="layout-option-text"><b>{layout.title}{settings.navLayout === layout.id ? " ✓" : ""}</b><small>{layout.description}</small></span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         {section === "Chat" && renderRows(chatRows)}
         {section === "Trading & Social" && (
           <>
