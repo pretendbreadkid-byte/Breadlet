@@ -1975,8 +1975,8 @@ function MainPage() {
       icon: <MessageCircle size={20} strokeWidth={2.2} />,
     },
     { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
-    // Games is only open to the admin while it is being tested.
-    ...(player.username.toLowerCase() === ADMIN_USERNAME ? [{ id: "games" as Tab, label: "Garden", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
+    // The Garden is open to everyone signed in (guests and kid accounts can't use it).
+    ...(!isGuest && !kidMode ? [{ id: "games" as Tab, label: "Garden", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
@@ -2340,7 +2340,7 @@ function MainPage() {
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
-          {tab === "games" && !kidMode && !isGuest && (player.username.toLowerCase() === ADMIN_USERNAME || (gardenVisit && gardenVisit !== player.id)) && player.id && <FieldsTab player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} gardenId={gardenVisit && gardenVisit !== player.id ? gardenVisit : undefined} tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onBreadlet={() => void refreshPlayerFromServer()} onExit={leaveGarden} artFor={artFor} />}
+          {tab === "games" && !kidMode && !isGuest && player.id && <FieldsTab player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} gardenId={gardenVisit && gardenVisit !== player.id ? gardenVisit : undefined} tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onBreadlet={() => void refreshPlayerFromServer()} onExit={leaveGarden} artFor={artFor} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}

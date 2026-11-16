@@ -2,7 +2,6 @@ import { randomInt } from 'crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
-import { hasAdminAccess } from '../../../lib/admin-access';
 import { isKidAccount } from '../../../lib/kid-mode';
 import { BLOCKED_MESSAGE, isBlockedBetween } from '../../../lib/blocks';
 import {
@@ -14,8 +13,8 @@ import {
 export const dynamic = 'force-dynamic';
 
 // Breadlet Garden. Every player has a garden (a row in breadlet_fields, migration 0101, which only
-// the server can read or write). Owning a garden is admin only while it's tested; anyone signed in
-// (not a kid account, not blocked) can visit one from an invite link, plant there if the owner lets
+// the server can read or write). Anyone signed in (not a kid account) has their own garden and,
+// unless blocked, can visit others from an invite link, plant there if the owner lets
 // them (helpers) and place props if the owner lets them build (builders).
 // Your own row also holds your seed pouch, basket of crops, bag of props and what you earned today.
 type State = {
@@ -78,11 +77,9 @@ async function session(gardenParam: unknown) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { response: fail('Sign in to visit gardens.', 401) };
   const ownerId = isId(gardenParam) ? String(gardenParam) : user.id;
-  if (ownerId === user.id) {
-    if (!(await hasAdminAccess(database, user.id))) return { response: fail('Gardens are not open yet.', 403) };
-  } else if (await isKidAccount(user.id, database)) {
-    return { response: fail("Kid accounts can't visit other gardens.", 403) };
-  } else if (await isBlockedBetween(database, user.id, ownerId)) {
+  if (await isKidAccount(user.id, database)) {
+    return { response: fail("Kid accounts can't use gardens.", 403) };
+  } else if (ownerId !== user.id && await isBlockedBetween(database, user.id, ownerId)) {
     return { response: fail("You can't visit this garden.", 403) };
   }
   const { data: people } = await database.from('profiles').select('id, username').in('id', ownerId === user.id ? [user.id] : [user.id, ownerId]);
