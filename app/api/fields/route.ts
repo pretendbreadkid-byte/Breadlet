@@ -26,6 +26,7 @@ type State = {
   builders: string[];
   earned: { day: string; amount: number };
   crops: Crop[];
+  gardenTokens: number;
 };
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
@@ -67,7 +68,7 @@ function normalize(raw: any): State {
     .filter((crop: any) => crop && typeof crop.id === 'string' && seedNamed(crop.seed) && isSize(crop.size))
     .slice(0, MAX_BASKET)
     .map((crop: any) => ({ id: crop.id.slice(0, 40), seed: crop.seed, size: crop.size, from: name(crop.from) }));
-  return { plants, props, seeds, propBag, helpers: people(raw?.helpers), builders: people(raw?.builders), earned, crops };
+  return { plants, props, seeds, propBag, helpers: people(raw?.helpers), builders: people(raw?.builders), earned, crops, gardenTokens: count(raw?.gardenTokens) };
 }
 
 async function session(gardenParam: unknown) {
@@ -157,7 +158,7 @@ async function buildView(database: any, current: { userId: string; owner: Garden
     canPlant: isOwner || garden.helpers.includes(current.userId),
     canBuild: isOwner || garden.builders.includes(current.userId),
     helpers, builders, plants: garden.plants, props: garden.props,
-    seeds: mine.seeds, crops: mine.crops, propBag: mine.propBag, earnedToday: earnedToday(mine), now: Date.now(),
+    seeds: mine.seeds, crops: mine.crops, propBag: mine.propBag, earnedToday: earnedToday(mine), gardenTokens: mine.gardenTokens, now: Date.now(),
   };
 }
 
@@ -299,6 +300,7 @@ export async function POST(request: Request) {
         if (state.crops.length >= MAX_BASKET) return 'Your basket is full.';
         state.plants = state.plants.filter((item) => item.id !== plant.id);
         state.crops.push(crop);
+        state.gardenTokens += seed.gardenTokens;
       });
       if (problem) return fail(problem, 409);
     } else {
@@ -307,7 +309,7 @@ export async function POST(request: Request) {
         state.plants = state.plants.filter((item) => item.id !== plant.id);
       });
       if (problem) return fail(problem, 409);
-      const stored = await updateMine((state) => { state.crops.push(crop); });
+      const stored = await updateMine((state) => { state.crops.push(crop); state.gardenTokens += seed.gardenTokens; });
       if (stored) return fail(stored, 409);
     }
     const lucky = random() < seed.breadletChance && (await giveBreadlet(database, userId, seed.name));
@@ -315,7 +317,9 @@ export async function POST(request: Request) {
     return respond({
       breadlet: lucky ? seed.name : undefined,
       crop,
-      message: lucky ? `WOW! You grew a ${seed.name} Breadlet, and a ${what} went in your basket!` : `A ${what} went in your basket. It sells for ${cropValue(seed.name, crop.size)}.`,
+      gardenTokensEarned: seed.gardenTokens,
+      message: (lucky ? `WOW! You grew a ${seed.name} Breadlet, and a ${what} went in your basket!` : `A ${what} went in your basket. It sells for ${cropValue(seed.name, crop.size)}.`)
+        + ` +${seed.gardenTokens} Garden Token${seed.gardenTokens === 1 ? '' : 's'}.`,
     });
   }
 
@@ -390,14 +394,14 @@ export async function POST(request: Request) {
   if (body.action === 'buyProp') {
     const def = propNamed(body.kind);
     if (!def) return fail('Pick a prop.');
-    const paid = await changeTokens(database, userId, -def.cost);
-    if ('error' in paid) return fail(paid.error!);
-    const problem = await updateMine((state) => { state.propBag[def.kind] += 1; });
-    if (problem) {
-      await changeTokens(database, userId, def.cost);
-      return fail(problem, 409);
-    }
-    return respond({ tokens: paid.tokens, message: `Bought a ${def.kind}. Place it in the garden!` });
+    // Props cost Garden Tokens (from picking crops), not Bread Bucks.
+    const problem = await updateMine((state) => {
+      if (state.gardenTokens < def.cost) return `A ${def.kind} costs ${def.cost} Garden Tokens and you have ${state.gardenTokens}. Pick crops to get more.`;
+      state.gardenTokens -= def.cost;
+      state.propBag[def.kind] += 1;
+    });
+    if (problem) return fail(problem, 409);
+    return respond({ message: `Bought a ${def.kind}. Place it in the garden!` });
   }
 
   if (body.action === 'place') {

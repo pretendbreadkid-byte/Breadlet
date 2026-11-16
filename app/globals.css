@@ -3499,7 +3499,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .odds-footer, .odds-footer { displa
 
 /* Clan tag by a name in chat (page.tsx ChatClanTag) and its info card. */
 .chat-clan { position: relative; display: inline-flex; }
-main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-tag, .chat-clan-tag { max-width: 11rem; overflow: hidden; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; color: #ff9a4a !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-tag, .chat-clan-tag { max-width: 11rem; overflow: hidden; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; color: var(--clan-color, #ff9a4a) !important; }
 .chat-clan-tag:hover { text-decoration: underline; }
 .chat-clan-backdrop { position: fixed; inset: 0; z-index: 60; cursor: default; background: transparent; }
 .chat-clan-card { position: absolute; top: calc(100% + 6px); left: 0; z-index: 61; display: flex; width: max-content; max-width: min(18rem, 80vw); align-items: center; gap: 12px; border: 3px solid #13120F; border-radius: 16px; background: #27251F; padding: 10px 14px 10px 10px; box-shadow: 0 5px 0 #13120F, 0 14px 28px rgba(0, 0, 0, .4); animation: link-popup-in .18s cubic-bezier(.2, 1.4, .4, 1) both; }
@@ -4013,5 +4013,15 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
 
 /* Smooth walking: the world slides on the GPU and walkers get their own layer, so the scenery
    (lots of drop shadows) doesn't repaint every frame. */
-.garden-world { will-change: transform; }
 .garden-world .explore-walker, .garden-held { will-change: transform; }
+
+/* Garden Tokens and the seed limit warning. */
+.garden-token-line img { width: 18px; height: 18px; object-fit: contain; }
+.garden-token-money { background: #0c5f55 !important; }
+.garden-warn-layer { z-index: 60; }
+.garden-warn { width: min(420px, calc(100vw - 32px)); margin: auto; padding: 22px; border: 4px solid #3b1f0e; border-radius: 22px; background: #fff4df; color: #3b1f0e; box-shadow: 0 14px 0 rgba(0, 0, 0, .25); }
+.garden-warn h2 { margin: 0 0 8px; font-size: 1.35rem; font-weight: 900; color: #c4520f; }
+.garden-warn p { margin: 0 0 10px; line-height: 1.45; }
+.garden-warn-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+.garden-warn-buttons button { padding: 9px 16px; border: 3px solid #3b1f0e; border-radius: 14px; background: #fff; font-weight: 900; color: #3b1f0e; }
+.garden-warn-buttons .is-go { background: #ED7117; color: #fff; }

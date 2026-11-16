@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, Boxes, FlipHorizontal, Minus, Move, Plus, ChevronDown, ChevronUp, Gift, Hammer, Hand, Link2, ShoppingBasket, Sprout, UserPlus } from "lucide-react";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
 import {
-  DAILY_EARN_LIMIT, MAX_BASKET, MAX_SEEDS_PER_BUY, PLANT_GAP, PROPS, SEEDS,
+  DAILY_EARN_LIMIT, GARDEN_TOKEN_ART, MAX_BASKET, MAX_SEEDS_PER_BUY, PLANT_GAP, PROPS, SEEDS,
   MAX_PROP_SCALE, MIN_PROP_SCALE, canPlaceProp, cropValue, nextSeedRestock, seedStockFor, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
   type Crop, type FieldsView, type PlacedProp, type PropKind, type SeedName,
 } from "../../lib/fields";
@@ -79,6 +79,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const [bookOpen, setBookOpen] = useState(false);
   useEffect(() => { if (!gardenBookSeen()) setBookOpen(true); }, []);
   const [now, setNow] = useState(Date.now());
+  const [buyWarn, setBuyWarn] = useState<{ seed: SeedName; amount: number; room: number } | null>(null);
+  const limitWarned = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const act = useRef<{ choose: (target: any) => void; viewportPoint: (x: number, y: number) => { x: number; y: number }; post: (body: Record<string, unknown>) => Promise<unknown> }>(null!);
   const [floaters, setFloaters] = useState<{ id: number; x: number; y: number; text: string; kind: "coins" | "puff" | "crop"; seed?: SeedName }[]>([]);
@@ -417,6 +419,19 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
             );
           }), [props, draft, editing, editId, propMenu, placing, busy, fields]);
   const stockNow = seedStockFor(now);
+  // Buying more seeds than you could sell today gets a heads-up about the daily garden limit first.
+  const buySeeds = (name: SeedName, amount: number) => {
+    if (!fields) return;
+    const seed = seedNamed(name)!;
+    const room = Math.max(0, DAILY_EARN_LIMIT - fields.earnedToday);
+    const owned = SEEDS.reduce((sum, item) => sum + fields.seeds[item.name] * item.payout, 0) + basketValue;
+    if (!limitWarned.current && owned + seed.payout * amount > room) {
+      setBuyWarn({ seed: name, amount, room });
+      return;
+    }
+    void post({ action: "buy", seed: name, amount });
+  };
+  const gardenMoney = <span className="garden-money garden-token-money" title="Garden Tokens"><img src={GARDEN_TOKEN_ART} alt="Garden Tokens" />{(fields?.gardenTokens || 0).toLocaleString()}</span>;
   const money = <span className="garden-money"><img src="/assets/Bread%20bucks.svg" alt="" />{tokens.toLocaleString()}</span>;
 
   return createPortal(
@@ -563,6 +578,20 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         </div>
       </div>
 
+      {buyWarn && (
+        <div className="garden-shop-layer garden-warn-layer" onPointerDown={() => setBuyWarn(null)}>
+          <section role="alertdialog" aria-modal="true" aria-labelledby="garden-warn-title" className="garden-warn" onPointerDown={(event) => event.stopPropagation()}>
+            <h2 id="garden-warn-title">That&apos;s a lot of seeds!</h2>
+            <p>You can only earn <b>{DAILY_EARN_LIMIT.toLocaleString()} Bread Bucks a day</b> from gardens{buyWarn.room < DAILY_EARN_LIMIT ? <>, and you have <b>{buyWarn.room.toLocaleString()}</b> left today</> : null}. Your seeds and crops could sell for more than that, so some of them will have to wait until tomorrow (midnight UTC) to sell.</p>
+            <p>You still get Garden Tokens for everything you pick.</p>
+            <div className="garden-warn-buttons">
+              <button type="button" onClick={() => setBuyWarn(null)}>Cancel</button>
+              <button type="button" className="is-go" onClick={() => { limitWarned.current = true; const { seed, amount } = buyWarn; setBuyWarn(null); void post({ action: "buy", seed, amount }); }}>Buy anyway</button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {bookOpen && <GardenBook seedArt={SEED_ART} artFor={artFor} onClose={() => setBookOpen(false)} />}
 
       {panel === "basket" && fields && (
@@ -574,6 +603,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
               <button type="button" onClick={() => setPanel(null)} aria-label="Close">×</button>
             </header>
             <p className={`garden-earned${fields.earnedToday >= DAILY_EARN_LIMIT ? " is-capped" : ""}`} title="Resets at midnight UTC"><Sprout size={15} />Sold today: <b>{fields.earnedToday.toLocaleString()} / {DAILY_EARN_LIMIT.toLocaleString()}</b> Bread Bucks</p>
+            <p className="garden-earned garden-token-line"><img src={GARDEN_TOKEN_ART} alt="" />Garden Tokens: <b>{fields.gardenTokens.toLocaleString()}</b> (spend them on props)</p>
             {crops.length === 0
               ? <p className="garden-basket-empty">Nothing here yet. Grow something and pick it to fill your basket!</p>
               : (
@@ -609,10 +639,11 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
           <section role="dialog" aria-modal="true" aria-labelledby="garden-props-title" className="garden-shop garden-props" onPointerDown={(event) => event.stopPropagation()}>
             <header>
               <span className="garden-basket-icon"><Boxes size={30} /></span>
-              <div><small>Decorate the garden</small><h2 id="garden-props-title">Props</h2></div>
-              {money}
+              <div><small>Bought with Garden Tokens</small><h2 id="garden-props-title">Props</h2></div>
+              {gardenMoney}
               <button type="button" onClick={() => setPanel(null)} aria-label="Close">×</button>
             </header>
+            <p className="garden-props-note">Pick crops to get Garden Tokens: {SEEDS.map((seed) => `${seed.name} ${seed.gardenTokens}`).join(", ")}.</p>
             {!fields.canBuild && <p className="garden-props-note">You can buy props here, but only players {ownerName} lets build can place them in this garden.</p>}
             <div className="garden-shop-list">
               {PROPS.map((prop) => (
@@ -623,7 +654,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                     <small>You have {fields.propBag[prop.kind] || 0}</small>
                   </span>
                   <span className="garden-shop-buy">
-                    <button type="button" disabled={busy || tokens < prop.cost} onClick={() => void post({ action: "buyProp", kind: prop.kind })}><span>Buy</span><img src="/assets/Bread%20bucks.svg" alt="" />{prop.cost}</button>
+                    <button type="button" disabled={busy || fields.gardenTokens < prop.cost} onClick={() => void post({ action: "buyProp", kind: prop.kind })}><span>Buy</span><img src={GARDEN_TOKEN_ART} alt="Garden Tokens" />{prop.cost}</button>
                     <button type="button" disabled={!fields.canBuild || (fields.propBag[prop.kind] || 0) < 1} onClick={() => { setPlacing(prop.kind); setGhost(null); setSelected(null); setHeldId(null); setPanel(null); }}><Hammer size={14} />Place</button>
                   </span>
                 </div>
@@ -654,7 +685,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                   </span>
                   <span className="garden-shop-buy">
                     {[1, 5].map((amount) => (
-                      <button key={amount} type="button" disabled={busy || !stockNow[seed.name] || tokens < seed.cost * amount} onClick={() => void post({ action: "buy", seed: seed.name, amount: Math.min(amount, MAX_SEEDS_PER_BUY) })}>
+                      <button key={amount} type="button" disabled={busy || !stockNow[seed.name] || tokens < seed.cost * amount} onClick={() => buySeeds(seed.name, Math.min(amount, MAX_SEEDS_PER_BUY))}>
                         <span>x{amount}</span><img src="/assets/Bread%20bucks.svg" alt="" />{seed.cost * amount}
                       </button>
                     ))}

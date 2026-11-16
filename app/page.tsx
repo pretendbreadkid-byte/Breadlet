@@ -470,7 +470,7 @@ function OozingPickle({ className }: { className: string }) {
       <span className="pickle-body">
         <img src="/assets/pickle-2.svg" alt="Pickle" decoding="async" className="h-full w-full object-contain" />
         {PICKLE_DRIPS.map((drip, index) => (
-          <span key={index} className="pickle-drip" aria-hidden="true" style={{ left: `${drip.x}%`, top: `${drip.y}%`, width: `${drip.size}%`, "--drip-delay": `${drip.delay}s`, "--drip-length": `${drip.length}s` } as React.CSSProperties}>
+          <span key={index} className="pickle-drip" aria-hidden="true" style={{ left: `${drip.x}%`, top: `${drip.y}%`, width: `${drip.size}%`, "--drip-delay": `${drip.delay}s`, "--drip-length": `${drip.length}s` } as Record<string, string>}>
             <img src="/assets/pickle-ooze.svg" alt="" />
           </span>
         ))}
@@ -4078,7 +4078,7 @@ function Bazaar({
             const quantity = blookListings.reduce((total, listing) => total + Math.max(1, Number(listing.quantity) || 1), 0);
             const lowest = Math.min(...blookListings.map((listing) => listing.price));
             return (
-              <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-stall" data-closed={!quantity} style={{ "--stall": stallColors[rarityFor(name)] || stallColors.Common } as React.CSSProperties}>
+              <button key={name} type="button" onClick={() => { setSelectedBlook(name); setDetailsOpen(true); }} className="bazaar-stall" data-closed={!quantity} style={{ "--stall": stallColors[rarityFor(name)] || stallColors.Common } as Record<string, string>}>
                 <span className="bazaar-stall-roof" aria-hidden="true" />
                 <span className="bazaar-stall-body">
                   <span className="bazaar-stall-art">
@@ -4487,12 +4487,20 @@ function SimplePanel({
 
 type ChatClan = { name: string; members: number; capacity: number; treasury: number; owner: string; blook: string };
 
+// Each clan gets its own tag colour in chat, picked from its name (so it never changes).
+const CLAN_TAG_COLORS = ["#ff9a4a", "#ffd23f", "#ff6b8a", "#7ee081", "#c792ff", "#ff7a45", "#f5a3ff", "#b5e655", "#ffb3c1", "#e9c46a", "#ff5c5c", "#d4a373"];
+const clanTagColor = (name: string) => {
+  let hash = 0;
+  for (const character of name.toUpperCase()) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  return CLAN_TAG_COLORS[hash % CLAN_TAG_COLORS.length];
+};
+
 // The [Clan] tag by a name in chat. Click it to see the clan's card.
 function ChatClanTag({ clan }: { clan: ChatClan }) {
   const [open, setOpen] = useState(false);
   return (
     <span className="chat-clan">
-      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} title={`${clan.name} clan`} className="chat-clan-tag">[{clan.name}]</button>
+      <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} title={`${clan.name} clan`} className="chat-clan-tag" style={{ "--clan-color": clanTagColor(clan.name) } as Record<string, string>}>[{clan.name}]</button>
       {open && <>
         <button type="button" aria-label="Close clan info" className="chat-clan-backdrop" onClick={() => setOpen(false)} />
         <span role="dialog" aria-label={`${clan.name} clan`} className="chat-clan-card">
