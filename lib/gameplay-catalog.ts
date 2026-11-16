@@ -346,7 +346,7 @@ export const liveCapsules: Capsule[] = [
       ["Golden Grenade", "Rare"],
       ["Sword", "Rare"],
       ["Shuriken", "Uncommon"],
-      ["Nunchucks", "Epic"],
+      ["Tank", "Epic"],
       ["Spartan", "Legendary"],
       ["Golden Shuriken", "Mythic"],
       ["Diamond Sword", "Breadled"],
@@ -601,12 +601,43 @@ export const powerHourAt = (now: number) => {
   const endsAt = startsAt + POWER_HOUR_LENGTH;
   return { live: now < endsAt, startsAt, endsAt, nextAt: startsAt + POWER_HOUR_EVERY };
 };
-// Legendary and rarer Breadlets are 3x as likely; everything else shrinks so the odds still add up.
+// Opening a bag and selling what's inside must always lose Bread Bucks on average, or players farm
+// it (the Candy Bag paid back ~27 for 25, Lost and Found paid ~34 in Power Hour). A bag's average
+// resale has to stay under this share of its price; tests/pack-economy.test.cjs checks every bag on
+// every day (with and without Power Hour) and fails the build if one doesn't, and the server refuses
+// to open a bag that breaks it (packIsSafe in gameplay-actions).
+export const MAX_PACK_RESALE_RATE = 0.9;
+const resaleOf = (reward: Reward) => sellValueForBlook(reward.name, reward.rarity);
+
+// Legendary and rarer Breadlets are up to 3x as likely; everything else shrinks so the odds still add
+// up. The boost is smaller for bags where 3x would push the average resale past the safe limit.
 const luckyRarity = (rarity: string) => rarityOrder.indexOf(rarity) >= rarityOrder.indexOf("Legendary");
+export const powerHourLuckFor = (capsule: Capsule, date = new Date()) => {
+  let plain = 0, plainValue = 0, lucky = 0, luckyValue = 0;
+  for (const item of capsule.pool) {
+    const chance = chanceFor(capsule, item, date);
+    if (luckyRarity(item.rarity)) { lucky += chance; luckyValue += chance * resaleOf(item); }
+    else { plain += chance; plainValue += chance * resaleOf(item); }
+  }
+  const cap = capsule.price * MAX_PACK_RESALE_RATE * 0.97;
+  // Average resale with boost k is (plainValue + k * luckyValue) / (plain + k * lucky); solve for the cap.
+  const room = luckyValue - cap * lucky;
+  if (!lucky || room <= 0) return POWER_HOUR_LUCK;
+  const k = (cap * plain - plainValue) / room;
+  return Math.max(1, Math.min(POWER_HOUR_LUCK, k));
+};
 export const luckyChanceFor = (capsule: Capsule, reward: Reward, date = new Date()) => {
   const chance = chanceFor(capsule, reward, date);
   if (!chance || !powerHourAt(date.getTime()).live) return chance;
+  const luck = powerHourLuckFor(capsule, date);
   const total = capsule.pool.reduce((sum, item) => sum + chanceFor(capsule, item, date), 0);
-  const boosted = capsule.pool.reduce((sum, item) => sum + chanceFor(capsule, item, date) * (luckyRarity(item.rarity) ? POWER_HOUR_LUCK : 1), 0);
-  return boosted ? (chance * (luckyRarity(reward.rarity) ? POWER_HOUR_LUCK : 1) * total) / boosted : chance;
+  const boosted = capsule.pool.reduce((sum, item) => sum + chanceFor(capsule, item, date) * (luckyRarity(item.rarity) ? luck : 1), 0);
+  return boosted ? (chance * (luckyRarity(reward.rarity) ? luck : 1) * total) / boosted : chance;
 };
+
+// What a bag pays back on average if you sell everything in it, with the odds the server really uses.
+export const packResaleFor = (capsule: Capsule, date = new Date()) => {
+  const total = capsule.pool.reduce((sum, item) => sum + luckyChanceFor(capsule, item, date), 0);
+  return total ? capsule.pool.reduce((sum, item) => sum + luckyChanceFor(capsule, item, date) * resaleOf(item), 0) / total : 0;
+};
+export const packIsSafe = (capsule: Capsule, date = new Date()) => capsule.price <= 0 || packResaleFor(capsule, date) < capsule.price * MAX_PACK_RESALE_RATE;

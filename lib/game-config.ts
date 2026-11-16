@@ -63,7 +63,7 @@ export const CHEST_DEFINITIONS = [
     name: 'Combat Bag',
     price: 25,
     description: 'Combat gear and tactical power.',
-    pool: ['Olive Grenade', 'The Bomb', 'Golden Grenade', 'Sword', 'Shuriken', 'Nunchucks', 'Spartan', 'Golden Shuriken'],
+    pool: ['Olive Grenade', 'The Bomb', 'Golden Grenade', 'Sword', 'Shuriken', 'Tank', 'Spartan', 'Golden Shuriken'],
     rarity: 'Mythic',
     isRetired: false,
     active: true,

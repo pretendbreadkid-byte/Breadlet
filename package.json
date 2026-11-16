@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --no-lint",
+    "build": "node --test tests/pack-economy.test.cjs && next build --no-lint",
+    "test:packs": "node --test tests/pack-economy.test.cjs",
     "start": "next start",
     "lint": "next lint",
     "test": "node --test tests/*.test.cjs"

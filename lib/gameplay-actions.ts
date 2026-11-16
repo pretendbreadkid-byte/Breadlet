@@ -1,4 +1,4 @@
-import { luckyChanceFor as chanceFor, craftRecipeFor, dismantleBundleFor, isUntradableBreadlet, liveCapsules, sellValueForBlook, untradableReason, wheelRewards } from './gameplay-catalog';
+import { luckyChanceFor as chanceFor, craftRecipeFor, dismantleBundleFor, isUntradableBreadlet, liveCapsules, packIsSafe, sellValueForBlook, untradableReason, wheelRewards } from './gameplay-catalog';
 import { isMarketPackInStock, isSeasonalPackLocked, seasonalPackOpensAt, type ForcedStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 import { LIMITED_SHOP_NAMES } from './limited-shop';
@@ -43,6 +43,8 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
       if (!capsule) throw new Error('Unknown Goodybag.');
       if (isSeasonalPackLocked(name, now, forcedStock)) throw new Error(`The ${name} opens on ${new Date(seasonalPackOpensAt[name]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })}.`);
       if (!isMarketPackInStock(name, now, forcedStock)) throw new Error(`${name} is out of stock. Check back after the next hourly refresh.`);
+      // Safety net: a bag that would pay back more than it should is closed until its odds are fixed.
+      if (!packIsSafe(capsule, now)) throw new Error(`The ${name} is being rebalanced. Try another Goodybag.`);
       return { capsule, quantity: integer(value, MAX_MASS_OPEN_COUNT) };
     });
     const count = selected.reduce((total, entry) => total + entry.quantity, 0);

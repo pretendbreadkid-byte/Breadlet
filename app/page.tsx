@@ -393,8 +393,8 @@ const artFor = (name: string) =>
     "Sprinkle Bread": "/assets/Sprinkle bread improved.svg",
     "Ice Cream": "/assets/Lost and found + food pack/ice cream .svg",
     Pickle: "/assets/pickle-2.svg",
-    "The Bomb": "/assets/Lost and found + food pack/bomb.svg",
-    Nunchucks: "/assets/Lost and found + food pack/nunchucks (rplacemnt for sheild..svg",
+    "The Bomb": "/assets/the-bomb-2.webp",
+    Tank: "/assets/tank.webp",
     // Winter Bag
     Snowball: "/assets/winter/snowball.svg",
     Mitten: "/assets/winter/mitten.svg",
@@ -2935,7 +2935,7 @@ function PowerHourBanner() {
         <div className="power-hour-text">
           <span className="power-hour-kicker">{hour.live ? "On now" : "Every 3 hours"}</span>
           <b>Power Hour</b>
-          <span className="power-hour-perk"><em>{POWER_HOUR_LUCK}x</em> luck on Legendary &amp; rarer</span>
+          <span className="power-hour-perk">Up to <em>{POWER_HOUR_LUCK}x</em> luck on Legendary &amp; rarer</span>
         </div>
         <div className="power-hour-clock"><small>{hour.live ? "Ends in" : "Starts in"}</small><span>{clock}</span></div>
       </div>
