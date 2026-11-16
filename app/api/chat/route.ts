@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { kidModeBlock } from '../../../lib/kid-mode';
+import { publicBadges } from '../../../lib/badges';
 import { chatModerationRole, isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
@@ -150,7 +151,7 @@ export async function GET() {
       profile?.tokens || 0
     );
 
-    const badges = Array.from(
+    const badges = publicBadges(Array.from(
       new Set([
       ...(profile?.stats?.badges || []).filter((badge: string) => badge !== 'OG'),
         ...ogBadges(profile?.created_at),
@@ -168,7 +169,7 @@ export async function GET() {
           ? ['1M Tokens']
           : [])
       ])
-    );
+    ), profile?.stats);
 
     let equippedBlook = '';
 

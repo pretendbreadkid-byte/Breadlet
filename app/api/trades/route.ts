@@ -1,3 +1,4 @@
+import { BLOCKED_MESSAGE, isBlockedBetween } from '../../../lib/blocks';
 import { NextResponse } from 'next/server';
 import { kidModeBlock, isKidAccount, KID_TARGET_MESSAGE } from '../../../lib/kid-mode';
 import { createClient } from '../../../lib/supabase/server';
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
     if (receiverError || !receiver) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
     if (receiver.id === session.userId) return NextResponse.json({ error: 'You cannot trade with yourself.' }, { status: 400 });
     if (await isKidAccount(receiver.id, session.admin)) return NextResponse.json({ error: KID_TARGET_MESSAGE }, { status: 403 });
+    if (await isBlockedBetween(session.admin, session.userId, receiver.id)) return NextResponse.json({ error: BLOCKED_MESSAGE }, { status: 403 });
     const { data: busyTrades } = await session.admin.from('trades').select('id').eq('status', 'pending').or(`sender_profile_id.in.(${session.userId},${receiver.id}),receiver_profile_id.in.(${session.userId},${receiver.id})`).limit(1);
     if (busyTrades?.length) return NextResponse.json({ error: 'One of you is already in a trade. Finish or cancel it first.' }, { status: 409 });
     const offer = parseOffer(body.offer);

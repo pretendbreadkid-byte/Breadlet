@@ -169,7 +169,7 @@ function KidModeSection({ kidMode, onChanged }: { kidMode: boolean; onChanged: (
   );
 }
 
-export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = false, onKidModeChanged }: { username: string; onLogout: () => void; isGuest: boolean; onRenamed: () => void; kidMode?: boolean; onKidModeChanged?: (kidMode: boolean) => void }) {
+export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = false, onKidModeChanged, blockedPlayers = [], onUnblock }: { username: string; onLogout: () => void; isGuest: boolean; onRenamed: () => void; kidMode?: boolean; onKidModeChanged?: (kidMode: boolean) => void; blockedPlayers?: { id: string; username: string }[]; onUnblock?: (player: { id: string; username: string }) => void }) {
   const { settings, update } = useSettings();
   const [section, setSection] = useState<(typeof sections)[number]>("Account");
 
@@ -213,7 +213,25 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = 
         )}
         {section === "Kid mode" && !isGuest && <KidModeSection kidMode={kidMode} onChanged={(value) => onKidModeChanged?.(value)} />}
         {section === "Chat" && renderRows(chatRows)}
-        {section === "Trading & Social" && renderRows(socialRows)}
+        {section === "Trading & Social" && (
+          <>
+            {renderRows(socialRows)}
+            {!isGuest && (
+              <div className="mb-6">
+                <h3 className="text-2xl font-black text-white">Blocked players</h3>
+                <p className="mb-2 text-sm text-[#c9c7c0]">You won&apos;t see their chat messages, and you can&apos;t friend, trade, visit gardens or give crops to each other. Block someone from their profile.</p>
+                {blockedPlayers.length === 0
+                  ? <p className="text-sm font-bold text-white/60">You haven&apos;t blocked anyone.</p>
+                  : blockedPlayers.map((blocked) => (
+                    <div key={blocked.id} className="mb-2 flex max-w-sm items-center gap-3 rounded-xl border border-[#3c3a34] bg-[#27251F] px-4 py-2">
+                      <span className="min-w-0 flex-1 truncate font-black">{blocked.username}</span>
+                      <button type="button" onClick={() => onUnblock?.(blocked)} className={saveClass}>Unblock</button>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </>
+        )}
         {section === "Account Management" && (
           <>
             <p className="mb-5 text-[#c9c7c0]">Manage your session on this device.</p>

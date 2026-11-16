@@ -33,6 +33,8 @@ import { useForcedStock } from "./components/forced-stock";
 import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
+import { onlyTopTokenBadge } from "../lib/badges";
+import type { BlockedPlayer } from "../lib/blocks";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
@@ -128,6 +130,9 @@ type Player = {
   wishlist?: string[];
   // Limited shelf Breadlets already bought (one each, lib/limited-shop.ts).
   shopBought?: string[];
+  // Badges hidden from other players, and players this one blocked (Settings / profile).
+  hideBadges?: boolean;
+  blockedPlayers?: BlockedPlayer[];
 };
 type PublicProfile = {
   id: string;
@@ -230,6 +235,8 @@ const tokenBadgesFor = (tokens: number) => [
   ...(tokens >= 100000 ? ["100K Tokens"] : []),
   ...(tokens >= 1000000 ? ["1M Tokens"] : []),
 ];
+// Your badges as other players see them: only the highest Bread Bucks badge, none if you hid them.
+const chatBadgesFor = (who: { badges: string[]; tokens: number; hideBadges?: boolean }) => who.hideBadges ? [] : onlyTopTokenBadge(Array.from(new Set([...who.badges, ...tokenBadgesFor(who.tokens)])));
 const badgeIconFor = (badge: string) => ({
   "First 50": "/assets/first-50-badge.svg",
   Verified: "/assets/verified-badge-2.svg",
@@ -556,6 +563,8 @@ function playerFromServer(data: any): Player {
     lockedBlooks: Array.isArray(data.profile.stats?.lockedBlooks) ? data.profile.stats.lockedBlooks : [],
     wishlist: Array.isArray(data.profile.stats?.wishlist) ? data.profile.stats.wishlist : [],
     shopBought: Array.isArray(data.profile.stats?.shopBought) ? data.profile.stats.shopBought : [],
+    hideBadges: data.profile.stats?.hideBadges === true,
+    blockedPlayers: Array.isArray(data.profile.stats?.blockedPlayers) ? data.profile.stats.blockedPlayers.filter((entry: any) => entry?.id) : [],
   };
 }
 
@@ -1458,6 +1467,18 @@ function MainPage() {
     savePref(key, list.includes(name) ? list.filter((item) => item !== name) : [...list, name]);
   };
   const toggleLock = (name: string) => toggleInList("lockedBlooks", name);
+  // Hide badges / block players: saved to the account right away.
+  const savePrefs = (patch: { hideBadges?: boolean; blockedPlayers?: BlockedPlayer[] }) => {
+    setPlayer((current) => (current ? { ...current, ...patch } : current));
+    if (isGuest) return;
+    void fetch("/api/player/prefs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) })
+      .then(async (response) => { if (!response.ok) setNotice((await response.json().catch(() => ({}))).error || "That didn't save. Try again."); })
+      .catch(() => setNotice("That didn't save. Try again."));
+  };
+  const toggleBlock = (target: BlockedPlayer) => {
+    const list = player?.blockedPlayers || [];
+    savePrefs({ blockedPlayers: list.some((entry) => entry.id === target.id) ? list.filter((entry) => entry.id !== target.id) : [...list, target] });
+  };
   const toggleWish = (name: string) => toggleInList("wishlist", name);
   const withoutLocked = (quantities: Record<string, number>, verb: string) => {
     const locked = new Set(player?.lockedBlooks || []);
@@ -2190,7 +2211,7 @@ function MainPage() {
             </button>
           )}
           {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} openMention={(messageId) => { setInboxOpen(false); setChatJump(messageId); setTab("chat"); }} />}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} kidMode={kidMode} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} />}
+          {tab === "profile" && <ProfileTab player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} kidMode={kidMode} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} savePrefs={savePrefs} toggleBlock={toggleBlock} />}
           {tab === "wheel" && <WheelTab player={player} isGuest={isGuest} onClaim={() => setClaimOpen(true)} />}
           {claimOpen && <ClaimPopup player={player} isGuest={isGuest} spin={spinWheel} onClose={closeClaim} />}
           {tab === "capsules" && (
@@ -2239,7 +2260,7 @@ function MainPage() {
               redeem={redeemPromo}
             />
           )}
-          {tab === "settings" && <SettingsTab username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} kidMode={kidMode} onKidModeChanged={(value) => setPlayer((current) => current ? { ...current, kidMode: value } : current)} />}
+          {tab === "settings" && <SettingsTab blockedPlayers={player.blockedPlayers || []} onUnblock={toggleBlock} username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} kidMode={kidMode} onKidModeChanged={(value) => setPlayer((current) => current ? { ...current, kidMode: value } : current)} />}
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} kidMode={kidMode} />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
@@ -2641,7 +2662,11 @@ function ProfileTab({
   inboxUnreadCount,
   openInbox,
   refreshStats,
+  savePrefs,
+  toggleBlock,
 }: {
+  savePrefs: (patch: { hideBadges?: boolean }) => void;
+  toggleBlock: (target: BlockedPlayer) => void;
   player: Player;
   setTab: (tab: Tab) => void;
   openClaim: () => void;
@@ -2794,7 +2819,8 @@ function ProfileTab({
     return [tokens ? `${tokens.toLocaleString()} Bread Bucks` : "", ...blooks.map((item: any) => `${item.name} ×${item.quantity}`)].filter(Boolean).join(" · ") || "No items or Bread Bucks offered";
   };
   const tokenBadges = tokenBadgesFor(profileTokens);
-  const displayedBadges = Array.from(new Set([...profileBadges, ...tokenBadges]));
+  const displayedBadges = onlyTopTokenBadge(Array.from(new Set([...profileBadges, ...tokenBadges])));
+  const blockedThem = viewingOther && (player.blockedPlayers || []).some((entry) => entry.id === viewedProfile!.id);
   const openLookup = () => { setMatches([]); setLookup(""); setProfileLookupOpen(true); };
   return (
     <div className="profile-dashboard">
@@ -2804,10 +2830,10 @@ function ProfileTab({
           <div className="profile-avatar-frame profile-avatar-float"><span className="profile-float-inner">{profileEquipped ? <BlookImg name={profileEquipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</span></div>
           <div className="profile-player-copy"><span className="profile-subtitle">Player profile</span><h1>{profileName}{(viewingOther ? viewedProfile?.clanTag : player.clanTag) && <span> [{viewingOther ? viewedProfile?.clanTag : player.clanTag}]</span>}</h1>{viewingOther && friendsData.relation === "friends" && <span className="profile-friended">(You&apos;ve friended)</span>}<p>{profileEquipped ? `${profileEquipped} · ${rarityFor(profileEquipped)}` : "No Bread equipped"}</p>
             {viewingOther && <button onClick={closeViewedProfile} className="mt-2 text-xs font-bold text-sky-200 hover:text-white">Back to my profile</button>}
-            <div className="profile-quick-actions">{viewingOther ? !kidMode && <button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button> : <button onClick={openClaim}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
+            <div className="profile-quick-actions">{viewingOther ? !kidMode && <><button onClick={() => void requestTrade(viewedProfile!.id, viewedProfile!.username)}><ShoppingBag size={17} />Trade</button>{!isGuest && <button onClick={() => toggleBlock({ id: viewedProfile!.id, username: viewedProfile!.username })} className="profile-block-button">{blockedThem ? "Unblock" : "Block"}</button>}</> : <button onClick={openClaim}><Package size={17} />Claim Bread Bucks</button>}<button onClick={openLookup}><Search size={17} />Find Player</button>{!viewingOther && !isGuest && <button onClick={openInbox} className="profile-inbox-button">📬 Inbox{inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}</button>}</div>
           </div>
         </section>
-        <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{["1M Tokens", "100K Tokens", "10K Tokens"].find((badge) => displayedBadges.includes(badge)) || "Token milestones: 10K · 100K · 1M"}</div></section>
+        <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{["1M Tokens", "100K Tokens", "10K Tokens"].find((badge) => displayedBadges.includes(badge)) || "Token milestones: 10K · 100K · 1M"}</div>{!viewingOther && !isGuest && <button onClick={() => savePrefs({ hideBadges: !player.hideBadges })} className="profile-hide-badges" aria-pressed={Boolean(player.hideBadges)}>{player.hideBadges ? "Badges hidden from others · Show them" : "Hide my badges"}</button>}</section>
       </div>
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/Bread%20bucks.svg" />
@@ -4411,7 +4437,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; clan?: ChatClan | null; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; evilAi?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
-    { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
+    { user: player.username, equippedBlook: player.equipped, badges: chatBadgesFor(player), text: "Welcome to Breadlet chat." },
   ]);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -4576,7 +4602,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
       if (Array.isArray(rows)) {
         if (rows.length === 0) {
           setMessages([
-            { user: player.username, equippedBlook: player.equipped, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: "Welcome to Breadlet chat." },
+            { user: player.username, equippedBlook: player.equipped, badges: chatBadgesFor(player), text: "Welcome to Breadlet chat." },
           ]);
         } else {
           setMessages((previous) => [
@@ -4595,7 +4621,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 profileId: row.profile_id,
                 createdAt: row.created_at,
                 replyTo: row.replyTo || null,
-                badges: row.badges || (username === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : []),
+                badges: row.badges || (username === player.username ? chatBadgesFor(player) : []),
               };
             }),
             ...previous.filter((item) => item.pending),
@@ -4640,7 +4666,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
               profileId: row.profile_id,
               createdAt: row.created_at,
               canDelete: mine,
-              badges: isBot ? [] : mine ? Array.from(new Set([...me.badges, ...tokenBadgesFor(me.tokens)])) : known!.badges,
+              badges: isBot ? [] : mine ? chatBadgesFor(me) : known!.badges,
               replyTo: target ? { id: target.id, user: target.user, message: target.text } : null,
             };
             // Our own message: swap the "sending" copy for the real one.
@@ -4668,7 +4694,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     if (supabase) {
       const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const dropPending = () => setMessages((current) => current.filter((item) => item.id !== tempId));
-      setMessages((current) => [...current, { id: tempId, user: player.username, text: textToSend, equippedBlook: player.equipped, isBreadletBot: false, profileId: player.id, createdAt: new Date().toISOString(), replyTo: reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), pending: true }]);
+      setMessages((current) => [...current, { id: tempId, user: player.username, text: textToSend, equippedBlook: player.equipped, isBreadletBot: false, profileId: player.id, createdAt: new Date().toISOString(), replyTo: reply || null, badges: chatBadgesFor(player), pending: true }]);
       setReplyTarget(null);
       try {
         const response = await fetch("/api/chat", {
@@ -4695,7 +4721,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
         setChatError("Could not reach chat. Check your connection and try again.");
       }
     } else {
-      setMessages((current) => [...current, { id: `local-${Date.now()}`, user: player.username, equippedBlook: player.equipped, replyTo: reply || null, badges: Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])), text: textToSend }]);
+      setMessages((current) => [...current, { id: `local-${Date.now()}`, user: player.username, equippedBlook: player.equipped, replyTo: reply || null, badges: chatBadgesFor(player), text: textToSend }]);
       setReplyTarget(null);
     }
   };
@@ -4843,7 +4869,10 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
   };
   const lastMentionId = [...messages].reverse().find((item) => !item.isBreadletBot && item.user !== player.username && mentionPattern.test(item.text || ""))?.id;
 
+  const blockedIds = new Set((player.blockedPlayers || []).map((entry) => entry.id));
   const messageGroups = messages.reduce<Array<{ user: string; isBreadletBot: boolean; items: Array<{ item: (typeof messages)[number]; index: number }> }>>((groups, item, index) => {
+    // Messages from players you blocked don't show.
+    if (item.profileId && blockedIds.has(item.profileId)) return groups;
     const current = groups[groups.length - 1];
     if (current && current.user === item.user && current.isBreadletBot === Boolean(item.isBreadletBot)) {
       current.items.push({ item, index });
@@ -4937,7 +4966,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                 <div className="chat-group-header">
                   {latestItem.clan && <ChatClanTag clan={latestItem.clan} />}
                   <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} className="chat-username hover:underline disabled:cursor-default disabled:no-underline">{group.user}{group.isBreadletBot ? " 🤖" : ""}</button>
-                  {(group.user === player.username ? Array.from(new Set([...player.badges, ...tokenBadgesFor(player.tokens)])) : latestItem.badges || []).map((badge) => (
+                  {(group.user === player.username ? chatBadgesFor(player) : latestItem.badges || []).map((badge) => (
                     <button key={badge} onClick={() => showBadge(badge)} title={badge} className="chat-badge">
                       <img src={badgeIconFor(badge)} alt={badge} className="h-full w-full object-contain" />
                     </button>

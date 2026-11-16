@@ -3,6 +3,7 @@ import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { moderatorBadges } from '../../../../lib/admin-access';
 import { ogBadges } from '../../../../lib/og-badge';
+import { publicBadges } from '../../../../lib/badges';
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -55,14 +56,14 @@ export async function GET(request: Request) {
       capsulesOpened: (capsulesByProfile.get(profile.id) || 0) + (Number(profile.stats?.capsulesOpened) || 0),
       messagesSent: messagesByProfile.get(profile.id) || 0,
       createdAt: profile.created_at || null,
-      badges: Array.from(new Set([
+      badges: publicBadges(Array.from(new Set([
         ...(profile.stats?.badges || []).filter((badge: string) => badge !== 'OG'),
         ...ogBadges(profile.created_at),
         ...moderatorBadges(profile.username),
         ...(tokens >= 10000 ? ['10K Tokens'] : []),
         ...(tokens >= 100000 ? ['100K Tokens'] : []),
         ...(tokens >= 1000000 ? ['1M Tokens'] : []),
-      ])),
+      ])), profile.stats),
     };
   }));
 }

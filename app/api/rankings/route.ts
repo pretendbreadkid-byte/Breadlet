@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
+import { publicBadges } from '../../../lib/badges';
 import { ADMIN_USERNAME, isStaffLookalike } from '../../../lib/admin-access';
 
 export const dynamic = 'force-dynamic';
@@ -39,12 +40,12 @@ export async function GET() {
       username: row.username,
       tokens,
       equippedBlook: blookNames.get(row.equipped_blook_id) || '',
-      badges: Array.from(new Set([
+      badges: publicBadges(Array.from(new Set([
         ...(row.stats?.badges || []),
         ...(tokens >= 10000 ? ['10K Tokens'] : []),
         ...(tokens >= 100000 ? ['100K Tokens'] : []),
         ...(tokens >= 1000000 ? ['1M Tokens'] : []),
-      ])),
+      ])), row.stats),
     };
   }));
 }

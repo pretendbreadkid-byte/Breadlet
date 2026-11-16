@@ -9,7 +9,9 @@ const names = (value: unknown) => Array.isArray(value)
   ? Array.from(new Set(value.map((name) => String(name || '').trim().slice(0, 60)).filter(Boolean))).slice(0, LIMIT)
   : null;
 
-// Saves the player's locked Breadlets ({ lockedBlooks }) or Bazaar wishlist ({ wishlist }).
+// Saves the player's locked Breadlets ({ lockedBlooks }), Bazaar wishlist ({ wishlist }), whether
+// their badges are hidden ({ hideBadges }) or who they blocked ({ blockedPlayers: [{ id, username }] }).
+const isId = (value: unknown) => typeof value === 'string' && /^[0-9a-f-]{36}$/i.test(value);
 export async function POST(request: Request) {
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -23,6 +25,20 @@ export async function POST(request: Request) {
     if (!value) return NextResponse.json({ error: 'Invalid list.' }, { status: 400 });
     const { error } = await admin.rpc('set_player_pref', { p_profile_id: user.id, p_key: key, p_value: value });
     if (error) return NextResponse.json({ error: error.code === 'PGRST202' ? 'Run migration 0064 to save this.' : error.message }, { status: 500 });
+  }
+  if ('hideBadges' in body) {
+    const { error } = await admin.rpc('set_player_pref', { p_profile_id: user.id, p_key: 'hideBadges', p_value: body.hideBadges === true });
+    if (error) return NextResponse.json({ error: error.message.includes('Invalid preference') ? 'Run migration 0105 to save this.' : error.message }, { status: 500 });
+  }
+  if ('blockedPlayers' in body) {
+    if (!Array.isArray(body.blockedPlayers)) return NextResponse.json({ error: 'Invalid list.' }, { status: 400 });
+    const seen = new Set<string>();
+    const list = body.blockedPlayers
+      .filter((entry: any) => isId(entry?.id) && entry.id !== user.id && !seen.has(entry.id) && seen.add(entry.id))
+      .slice(0, LIMIT)
+      .map((entry: any) => ({ id: entry.id, username: String(entry.username || 'Player').slice(0, 40) }));
+    const { error } = await admin.rpc('set_player_pref', { p_profile_id: user.id, p_key: 'blockedPlayers', p_value: list });
+    if (error) return NextResponse.json({ error: error.message.includes('Invalid preference') ? 'Run migration 0105 to save this.' : error.message }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }

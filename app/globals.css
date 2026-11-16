@@ -3710,3 +3710,8 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
 .garden-give-pop b { color: #ffe27a; }
 .garden-give-pop button { display: flex; flex: none; align-items: center; gap: 4px; border: 3px solid #13120F; border-radius: 10px; background: #F0894A; padding: 4px 10px; font-weight: 900; color: #fff; box-shadow: 0 3px 0 #13120F; }
 .garden-give-pop button:disabled { opacity: .5; }
+
+/* Profile: hide-my-badges toggle and the Block button. */
+.profile-hide-badges { margin-top: 8px; border: 2px solid #4a3a28; border-radius: 10px; background: #27251F; padding: 4px 10px; font-size: .75rem; font-weight: 900; color: #e9bd67; }
+.profile-hide-badges[aria-pressed="true"] { border-color: #e9bd67; }
+.profile-quick-actions .profile-block-button { color: #ffb4a8; }

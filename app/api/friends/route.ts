@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { kidModeBlock, isKidAccount, KID_TARGET_MESSAGE } from '../../../lib/kid-mode';
+import { BLOCKED_MESSAGE, isBlockedBetween } from '../../../lib/blocks';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { createClient } from '../../../lib/supabase/server';
 
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
   if (!target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
   { const kid = await kidModeBlock(user.id, admin); if (kid) return kid; }
   if (await isKidAccount(friendProfileId, admin)) return NextResponse.json({ error: KID_TARGET_MESSAGE }, { status: 403 });
+  if (await isBlockedBetween(admin, user.id, friendProfileId)) return NextResponse.json({ error: BLOCKED_MESSAGE }, { status: 403 });
 
   const { data: reverse } = await admin.from('friends').select('profile_id, status').eq('profile_id', friendProfileId).eq('friend_profile_id', user.id).maybeSingle();
   if (reverse) {
