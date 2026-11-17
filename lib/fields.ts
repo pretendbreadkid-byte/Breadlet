@@ -45,8 +45,8 @@ export const ROWS = [
   { x: 1010, y: 560, width: 200, height: 560 },
   { x: 1650, y: 560, width: 200, height: 560 },
 ];
-export const PLANT_GAP = 58;
-export const MAX_PLANTS = 48;
+export const PLANT_GAP = 30;
+export const MAX_PLANTS = 90;
 export const inRow = (x: number, y: number) => ROWS.some((row) => x >= row.x + 26 && x <= row.x + row.width - 26 && y >= row.y + 36 && y <= row.y + row.height - 10);
 
 export const MAX_SEEDS_PER_BUY = 10;

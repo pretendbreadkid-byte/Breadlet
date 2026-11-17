@@ -77,6 +77,10 @@ import {
   PartyPopper,
   Newspaper,
   X,
+  Croissant,
+  MessagesSquare,
+  Shield,
+  Trophy,
 } from "lucide-react";
 
 type Tab =
@@ -1953,25 +1957,25 @@ function MainPage() {
     {
       id: "capsules",
       label: "Goodybags",
-      icon: <Store size={20} strokeWidth={2.2} />,
+      icon: <Gift size={20} strokeWidth={2.2} />,
     },
     {
       id: "inventory",
       label: "Breadlets",
-      icon: <Backpack size={20} strokeWidth={2.2} />,
+      icon: <Croissant size={20} strokeWidth={2.2} />,
     },
-    { id: "clan", label: "Clans", icon: <Users size={20} strokeWidth={2.2} /> },
+    { id: "clan", label: "Clans", icon: <Shield size={20} strokeWidth={2.2} /> },
     {
       id: "market",
       label: "Bazaar",
-      icon: <ShoppingBag size={20} strokeWidth={2.2} />,
+      icon: <Store size={20} strokeWidth={2.2} />,
     },
     {
       id: "chat",
       label: "Chat",
-      icon: <MessageCircle size={20} strokeWidth={2.2} />,
+      icon: <MessagesSquare size={20} strokeWidth={2.2} />,
     },
-    { id: "leaderboard", label: "Leaderboard", icon: <Crown size={20} strokeWidth={2.2} /> },
+    { id: "leaderboard", label: "Leaderboard", icon: <Trophy size={20} strokeWidth={2.2} /> },
     // The Garden is open to everyone signed in (guests and kid accounts can't use it).
     ...(!isGuest && !kidMode ? [{ id: "games" as Tab, label: "Garden", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
   ];
