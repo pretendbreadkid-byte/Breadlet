@@ -3,7 +3,7 @@
 // Everything you see in the Breadlet Garden that isn't game logic: the meadow, the path, the fence,
 // the shed, the well, the wheat field, trees, butterflies and every crop's growth stages.
 // fields-world.tsx places these and handles walking, planting and harvesting.
-import { memo, type CSSProperties } from "react";
+import { memo } from "react";
 import { GARDEN, GATE, ROWS, propNamed, type PlacedProp, type SeedName } from "../../lib/fields";
 export { GARDEN, GATE, ROWS };
 
@@ -83,33 +83,16 @@ export const gardenCollide = (from: { x: number; y: number }, to: { x: number; y
 
 type DecorKind = "flower" | "tuft" | "bush" | "rock" | "pebble" | "mushroom" | "clover" | "tall";
 type Decor = { kind: DecorKind; x: number; y: number; tint: number; flip: boolean };
+// Kept simple on purpose: a couple of dozen things on the grass, so the map is calm and runs smoothly.
 const DECOR: Decor[] = (() => {
   const random = seeded(20261114);
   const list: Decor[] = [];
-  // Kept sparse on purpose so the meadow feels calm, not cluttered.
-  const kinds: DecorKind[] = ["flower", "flower", "tuft", "tuft", "tuft", "clover", "bush", "rock"];
-  for (let tries = 0; list.length < 70 && tries < 4000; tries += 1) {
+  const kinds: DecorKind[] = ["flower", "flower", "tuft", "tuft", "bush", "rock"];
+  for (let tries = 0; list.length < 24 && tries < 4000; tries += 1) {
     const x = 30 + random() * (WORLD.width - 60);
     const y = 60 + random() * (WORLD.height - 90);
     if (blocked(x, y)) continue;
     list.push({ kind: kinds[Math.floor(random() * kinds.length)], x, y, tint: Math.floor(random() * 4), flip: random() < 0.5 });
-  }
-  // Grass and pebbles spilling over both edges of the path, so it doesn't have a hard edge.
-  PATH_POINTS.forEach((point, index) => {
-    if (index % 8 || index >= PATH_POINTS.length - 6) return;
-    const next = PATH_POINTS[index + 1];
-    const length = Math.hypot(next.x - point.x, next.y - point.y) || 1;
-    const normal = { x: -(next.y - point.y) / length, y: (next.x - point.x) / length };
-    [-1, 1].forEach((side) => {
-      const reach = 46 + random() * 14;
-      const roll = random();
-      list.push({ kind: roll < 0.7 ? "tuft" : "flower", x: point.x + normal.x * reach * side, y: point.y + normal.y * reach * side + 8, tint: Math.floor(random() * 4), flip: random() < 0.5 });
-    });
-  });
-  // Flower borders along the inside of the garden fence.
-  for (let x = GARDEN.x + 40; x < GARDEN.x + GARDEN.width - 20; x += 70 + random() * 30) {
-    list.push({ kind: random() < 0.75 ? "flower" : "tuft", x, y: GARDEN.y + 44, tint: Math.floor(random() * 4), flip: random() < 0.5 });
-    if (Math.abs(x + 8 - GATE.x) > GATE.width / 2 + 20) list.push({ kind: random() < 0.75 ? "flower" : "tuft", x: x + 8, y: FRONT - 8, tint: Math.floor(random() * 4), flip: random() < 0.5 });
   }
   return list;
 })();
@@ -145,52 +128,27 @@ function DecorSprite({ item }: { item: Decor }) {
   return <svg className="garden-decor" style={style} width="30" height="32" viewBox="0 0 30 32" aria-hidden="true"><ellipse cx="15" cy="30" rx="10" ry="2.4" fill="rgba(0,0,0,.15)" /><rect x="11" y="14" width="8" height="15" rx="3" fill="#fff3df" /><path d="M2 16 C2 6 28 6 28 16Z" fill="#e5483b" /><path d="M2 16 C10 18 20 18 28 16" stroke="#b8322a" strokeWidth="2" fill="none" /><circle cx="9" cy="12" r="2.2" fill="#fff" /><circle cx="18" cy="9" r="2.6" fill="#fff" /><circle cx="23" cy="14" r="1.8" fill="#fff" /></svg>;
 }
 
-// The ground: a big grass field with soft light and dark patches and blades everywhere.
+// The ground: flat grass with a few soft patches (kept plain so phones don't struggle).
 function Ground() {
   const random = seeded(77);
-  const patches = Array.from({ length: 46 }, () => ({ x: random() * WORLD.width, y: random() * WORLD.height, rx: 140 + random() * 260, ry: 90 + random() * 160, light: random() < 0.55 }));
-  const blades = (size: number, count: number, salt: number) => {
-    const local = seeded(salt);
-    return Array.from({ length: count }, (_, index) => {
-      const x = local() * size;
-      const y = local() * size;
-      const lean = (local() - 0.5) * 8;
-      return <path key={index} d={`M${x} ${y} q${lean / 2} -5 ${lean} -9`} stroke={["#4aa634", "#6fcf4f", "#3f9a2e", "#7ad85a"][index % 4]} strokeWidth="2.2" strokeLinecap="round" fill="none" opacity=".8" />;
-    });
-  };
+  const patches = Array.from({ length: 10 }, () => ({ x: random() * WORLD.width, y: random() * WORLD.height, rx: 180 + random() * 220, ry: 110 + random() * 130, light: random() < 0.55 }));
   return (
     <svg className="garden-decor" style={{ left: 0, top: 0, zIndex: -1000 }} width={WORLD.width} height={WORLD.height} aria-hidden="true">
-      <defs>
-        <radialGradient id="garden-patch-light"><stop offset="0" stopColor="#8ddc62" stopOpacity=".55" /><stop offset="1" stopColor="#8ddc62" stopOpacity="0" /></radialGradient>
-        <radialGradient id="garden-patch-dark"><stop offset="0" stopColor="#3a952f" stopOpacity=".42" /><stop offset="1" stopColor="#3a952f" stopOpacity="0" /></radialGradient>
-        <pattern id="garden-blades-a" width="96" height="96" patternUnits="userSpaceOnUse">{blades(96, 16, 5)}</pattern>
-        <pattern id="garden-blades-b" width="151" height="151" patternUnits="userSpaceOnUse">{blades(151, 18, 9)}</pattern>
-      </defs>
       <rect width={WORLD.width} height={WORLD.height} fill="#5cbd40" />
-      {patches.map((patch, index) => <ellipse key={index} cx={patch.x} cy={patch.y} rx={patch.rx} ry={patch.ry} fill={`url(#garden-patch-${patch.light ? "light" : "dark"})`} />)}
-      <rect width={WORLD.width} height={WORLD.height} fill="url(#garden-blades-a)" />
-      <rect width={WORLD.width} height={WORLD.height} fill="url(#garden-blades-b)" />
+      {patches.map((patch, index) => <ellipse key={index} cx={patch.x} cy={patch.y} rx={patch.rx} ry={patch.ry} fill={patch.light ? "#6cc94d" : "#52b038"} />)}
     </svg>
   );
 }
 
 function Path() {
   const points = PATH_POINTS.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
-  const random = seeded(31);
-  const stones = PATH_POINTS.filter((_, index) => index % 2 === 0).map((point) => ({ x: point.x + (random() - 0.5) * 60, y: point.y + (random() - 0.5) * 50, r: 3 + random() * 4, light: random() < 0.5 }));
   const plaza = { x: STAND.x + 10, y: STAND.y + 62 };
   return (
     <svg className="garden-decor" style={{ left: 0, top: 0, zIndex: -900 }} width={WORLD.width} height={WORLD.height} aria-hidden="true">
-      <ellipse cx={plaza.x} cy={plaza.y} rx="190" ry="78" fill="#3f8f2f" opacity=".3" />
-      <polyline points={points} fill="none" stroke="#3f8f2f" strokeWidth="128" strokeLinecap="round" strokeLinejoin="round" opacity=".3" />
       <ellipse cx={plaza.x} cy={plaza.y} rx="178" ry="68" fill="#a87545" />
       <polyline points={points} fill="none" stroke="#a87545" strokeWidth="112" strokeLinecap="round" strokeLinejoin="round" />
       <ellipse cx={plaza.x} cy={plaza.y - 2} rx="170" ry="62" fill="#d4a86e" />
       <polyline points={points} fill="none" stroke="#d4a86e" strokeWidth="100" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points={points} fill="none" stroke="#e3bf8a" strokeWidth="58" strokeLinecap="round" strokeLinejoin="round" opacity=".75" />
-      <ellipse cx={plaza.x} cy={plaza.y - 4} rx="120" ry="38" fill="#e3bf8a" opacity=".75" />
-      <polyline points={points} fill="none" stroke="#c49460" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 26" opacity=".7" />
-      {stones.map((stone, index) => <g key={index}><ellipse cx={stone.x} cy={stone.y + 1.5} rx={stone.r + 1} ry={stone.r * 0.7 + 1} fill="#8f6a40" opacity=".5" /><ellipse cx={stone.x} cy={stone.y} rx={stone.r} ry={stone.r * 0.7} fill={stone.light ? "#cfc3a8" : "#ab9f88"} /></g>)}
     </svg>
   );
 }
@@ -269,30 +227,9 @@ export const Meadow = memo(function Meadow({ isOwner }: { isOwner: boolean }) {
   );
 });
 
-// Things drifting over the world: cloud shadows and butterflies.
-const BUTTERFLIES = [
-  { x: 640, y: 520, color: "#ffb347", reach: 150, time: 9 }, { x: 1300, y: 420, color: "#fff3df", reach: 220, time: 12 },
-  { x: 1980, y: 900, color: "#ff8fb8", reach: 120, time: 8 }, { x: 420, y: 1000, color: "#ffd23f", reach: 180, time: 11 },
-  { x: 1500, y: 1380, color: "#ff7a45", reach: 160, time: 10 }, { x: 2200, y: 260, color: "#fff3df", reach: 140, time: 9.5 },
-  { x: 900, y: 1380, color: "#ffd23f", reach: 130, time: 7.5 },
-];
+// Nothing drifts over the world any more (butterflies and cloud shadows made it laggy).
 export const Ambient = memo(function Ambient() {
-  return (
-    <>
-      {BUTTERFLIES.map((fly, index) => (
-        <div key={index} className="garden-fly" style={{ left: fly.x, top: fly.y, "--reach": `${fly.reach}px`, animationDuration: `${fly.time}s`, animationDelay: `${-index * 1.7}s` } as CSSProperties}>
-          <div className="garden-fly-bob" style={{ animationDelay: `${-index * 0.5}s` }}>
-            <svg width="30" height="24" viewBox="0 0 30 24" aria-hidden="true">
-              <g className="garden-wing garden-wing-left"><path d="M14 12 C8 0 0 2 2 10 C0 16 8 20 14 13Z" fill={fly.color} stroke="#3B1F0E" strokeWidth="1.6" /></g>
-              <g className="garden-wing garden-wing-right"><path d="M16 12 C22 0 30 2 28 10 C30 16 22 20 16 13Z" fill={fly.color} stroke="#3B1F0E" strokeWidth="1.6" /></g>
-              <rect x="13.6" y="6" width="2.8" height="13" rx="1.4" fill="#3B1F0E" />
-            </svg>
-          </div>
-        </div>
-      ))}
-      {[220, 900, 1380].map((top, index) => <div key={top} className="garden-cloud" style={{ top, animationDelay: `${-index * 47}s`, animationDuration: `${120 + index * 25}s` }} />)}
-    </>
-  );
+  return null;
 });
 
 // The raised bed every crop grows in.

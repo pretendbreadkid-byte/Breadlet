@@ -5192,7 +5192,8 @@ const BOOTH_EXTRAS = ["Skeleton Pirate", "Festive Skeleton Pirate", ...LIMITED_S
 
 type LeaderboardEntry = { key: string; rank: number; name: string; value: number; art: string; blook?: string; badges: string[]; own: boolean; sub?: string; profileName?: string };
 function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Player; showBadge: (badge: string) => void; openPlayerProfile: (username: string) => void | Promise<void> }) {
-  const [board, setBoard] = useState<"players" | "clans">("players");
+  const [board, setBoard] = useState<"players" | "garden" | "clans">("players");
+  const [gardenRows, setGardenRows] = useState<{ rank: number; id: string; username: string; tokens: number; equippedBlook: string; badges: string[] }[]>([]);
   const [playerRows, setPlayerRows] = useState<{ rank: number; id: string; username: string; tokens: number; equippedBlook: string; badges: string[] }[]>([]);
   const [clanRows, setClanRows] = useState<{ id: string; name: string; treasury: number; members: number; profileBlook: string; thumbnailUrl: string }[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -5200,7 +5201,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
 
   const load = useCallback(async () => {
     try {
-      const [response, clanResponse] = await Promise.all([fetch("/api/rankings", { cache: "no-store" }), fetch("/api/clans?summary=1", { cache: "no-store" }).catch(() => null)]);
+      const [response, clanResponse, gardenResponse] = await Promise.all([fetch("/api/rankings", { cache: "no-store" }), fetch("/api/clans?summary=1", { cache: "no-store" }).catch(() => null), fetch("/api/rankings?board=garden", { cache: "no-store" }).catch(() => null)]);
       const data = await response.json().catch(() => null);
       if (!response.ok || !Array.isArray(data)) {
         setError((data && data.error) || "The leaderboard could not load.");
@@ -5208,6 +5209,8 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
         return;
       }
       setPlayerRows(data);
+      const gardenData = gardenResponse?.ok ? await gardenResponse.json().catch(() => null) : null;
+      if (Array.isArray(gardenData)) setGardenRows(gardenData);
       const clanData = clanResponse?.ok ? await clanResponse.json().catch(() => null) : null;
       if (clanData && Array.isArray(clanData.clans)) {
         setClanRows(clanData.clans.map((clan: Record<string, unknown>) => ({
@@ -5232,15 +5235,16 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
     return () => window.clearInterval(timer);
   }, [load]);
 
-  const entries: LeaderboardEntry[] = board === "players"
-    ? playerRows.map((row) => ({ key: row.id, rank: row.rank, name: row.username, value: row.tokens, art: "", blook: row.equippedBlook, badges: row.badges, own: row.id === player.id, profileName: row.username }))
+  const entries: LeaderboardEntry[] = board !== "clans"
+    ? (board === "garden" ? gardenRows : playerRows).map((row) => ({ key: row.id, rank: row.rank, name: row.username, value: row.tokens, art: "", blook: row.equippedBlook, badges: row.badges, own: row.id === player.id, profileName: row.username }))
     : clanRows.map((row, index) => ({ key: row.id, rank: index + 1, name: row.name, value: row.treasury, art: row.profileBlook ? "" : row.thumbnailUrl, blook: row.profileBlook, badges: [], own: false, sub: `${row.members} members` }));
   const podium = [entries[1], entries[0], entries[2]].filter(Boolean) as LeaderboardEntry[];
   // The podium's top 3, then the next 15.
   const rest = entries.slice(3, 18);
   const ordinal = (rank: number) => (rank === 1 ? "1st" : rank === 2 ? "2nd" : "3rd");
   const openEntry = (entry: LeaderboardEntry) => { if (entry.profileName) void openPlayerProfile(entry.profileName); };
-  const valueLabel = board === "players" ? "tokens" : "treasury";
+  const valueLabel = board === "players" ? "Bread Bucks" : board === "garden" ? "Garden Tokens" : "treasury";
+  const valueArt = board === "garden" ? "/assets/garden/garden-token.svg" : "/assets/Bread%20bucks.svg";
 
   return (
     <div className="leaderboard-page mx-auto w-full max-w-5xl">
@@ -5249,8 +5253,8 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
         <button onClick={() => void load()} className="rounded-xl border-2 border-[#CC5500] bg-[#27251F] px-4 py-2 text-sm font-black text-white hover:bg-[#13120F]">Refresh</button>
       </div>
       <div className="leaderboard-tabs mt-4 flex gap-3">
-        {(["players", "clans"] as const).map((item) => (
-          <button key={item} type="button" aria-pressed={board === item} onClick={() => setBoard(item)} className="leaderboard-tab rounded-full border-2 px-5 py-2 text-sm font-black">{item === "players" ? "Most Bread Bucks" : "Top Clans"}</button>
+        {(["players", "garden", "clans"] as const).map((item) => (
+          <button key={item} type="button" aria-pressed={board === item} onClick={() => setBoard(item)} className="leaderboard-tab rounded-full border-2 px-5 py-2 text-sm font-black">{item === "players" ? "Most Bread Bucks" : item === "garden" ? "Most Garden Tokens" : "Top Clans"}</button>
         ))}
       </div>
       {status === "error" && <p role="alert" className="mt-4 rounded-lg border border-[#CC5500] bg-[#27251F] px-3 py-2 text-sm text-white">{error}</p>}
@@ -5263,7 +5267,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
               <p className="text-lg font-black">{ordinal(entry.rank)}</p>
               <button type="button" disabled={!entry.profileName} onClick={() => openEntry(entry)} className="mt-2 max-w-full truncate text-2xl font-black disabled:cursor-default">{entry.name}</button>
               <div className="my-4 flex h-28 w-28 items-center justify-center">{entry.blook ? <BlookImg name={entry.blook} className="h-full w-full" /> : entry.art ? <img src={entry.art} alt="" className="h-full w-full object-contain" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}</div>
-              <p className="flex items-center gap-2 text-xl font-black"><img src="/assets/Bread%20bucks.svg" alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
+              <p className="flex items-center gap-2 text-xl font-black" title={valueLabel}><img src={valueArt} alt="" className="h-6 w-6" />{entry.value.toLocaleString()}</p>
               {entry.sub && <p className="text-xs font-bold opacity-80">{entry.sub}</p>}
             </div>
           ))}
@@ -5279,7 +5283,7 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
               {entry.sub && <span className="text-xs font-bold opacity-80">{entry.sub}</span>}
               {entry.badges.map((badge) => <button key={badge} type="button" onClick={() => showBadge(badge)} title={badge} className="h-5 w-5"><img src={badgeIconFor(badge)} alt={badge} className="h-5 w-5 object-contain" /></button>)}
             </div>
-            <span className="flex shrink-0 items-center gap-1.5 text-lg font-black" title={valueLabel}><img src="/assets/Bread%20bucks.svg" alt="" className="h-5 w-5" />{entry.value.toLocaleString()}</span>
+            <span className="flex shrink-0 items-center gap-1.5 text-lg font-black" title={valueLabel}><img src={valueArt} alt="" className="h-5 w-5" />{entry.value.toLocaleString()}</span>
           </li>
         ))}
       </ol>

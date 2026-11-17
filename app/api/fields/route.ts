@@ -27,6 +27,8 @@ type State = {
   earned: { day: string; amount: number };
   crops: Crop[];
   gardenTokens: number;
+  // Every Garden Token you've ever got (spending doesn't lower it). The leaderboard ranks this.
+  gardenTokensTotal: number;
 };
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
@@ -68,7 +70,7 @@ function normalize(raw: any): State {
     .filter((crop: any) => crop && typeof crop.id === 'string' && seedNamed(crop.seed) && isSize(crop.size))
     .slice(0, MAX_BASKET)
     .map((crop: any) => ({ id: crop.id.slice(0, 40), seed: crop.seed, size: crop.size, from: name(crop.from) }));
-  return { plants, props, seeds, propBag, helpers: people(raw?.helpers), builders: people(raw?.builders), earned, crops, gardenTokens: count(raw?.gardenTokens) };
+  return { plants, props, seeds, propBag, helpers: people(raw?.helpers), builders: people(raw?.builders), earned, crops, gardenTokens: count(raw?.gardenTokens), gardenTokensTotal: Math.max(count(raw?.gardenTokensTotal), count(raw?.gardenTokens)) };
 }
 
 async function session(gardenParam: unknown) {
@@ -301,6 +303,7 @@ export async function POST(request: Request) {
         state.plants = state.plants.filter((item) => item.id !== plant.id);
         state.crops.push(crop);
         state.gardenTokens += seed.gardenTokens;
+        state.gardenTokensTotal += seed.gardenTokens;
       });
       if (problem) return fail(problem, 409);
     } else {
@@ -309,7 +312,7 @@ export async function POST(request: Request) {
         state.plants = state.plants.filter((item) => item.id !== plant.id);
       });
       if (problem) return fail(problem, 409);
-      const stored = await updateMine((state) => { state.crops.push(crop); state.gardenTokens += seed.gardenTokens; });
+      const stored = await updateMine((state) => { state.crops.push(crop); state.gardenTokens += seed.gardenTokens; state.gardenTokensTotal += seed.gardenTokens; });
       if (stored) return fail(stored, 409);
     }
     const lucky = random() < seed.breadletChance && (await giveBreadlet(database, userId, seed.name));
