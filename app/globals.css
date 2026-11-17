@@ -4030,3 +4030,6 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
 .garden-decor-img, .garden-growth, .garden-sign, .garden-bed-art { filter: none !important; }
 .garden-sparkles i { filter: none; }
 .garden-lawn { background: rgba(255, 255, 255, .06) !important; }
+
+/* In a trade: no side rail or bottom bar over the trade room. */
+body.in-trade aside.breadlet-sidebar, body.in-trade .layout-bottom-bar { display: none !important; }
