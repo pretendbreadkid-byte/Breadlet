@@ -374,10 +374,16 @@ export async function POST(request: Request) {
     if (!friend) return fail('That player does not exist.');
     if (await isKidAccount(to, database)) return fail("Kid accounts can't get gifts.", 403);
     if (await isBlockedBetween(database, userId, to)) return fail(BLOCKED_MESSAGE, 403);
+    // Giving counts toward YOUR daily garden limit (what the crop sells for), so crops can't be moved
+    // to another account (say, logged in on a different browser) to sell past the limit there.
+    const worth = cropValue(crop.seed, crop.size);
     // Out of your basket first; if theirs can't be saved, it comes back.
     const taken = await updateMine((state) => {
       if (!state.crops.some((item) => item.id === crop.id)) return 'That crop is not in your basket.';
+      const already = earnedToday(state);
+      if (already + worth > DAILY_EARN_LIMIT) return `Giving a crop counts toward your ${DAILY_EARN_LIMIT.toLocaleString()} Bread Bucks a day garden limit, and this one (worth ${worth}) would go over it. Try again tomorrow.`;
       state.crops = state.crops.filter((item) => item.id !== crop.id);
+      state.earned = { day: gardenDay(), amount: already + worth };
     });
     if (taken) return fail(taken, 409);
     const given = await update(database, to, (state) => {
@@ -385,7 +391,10 @@ export async function POST(request: Request) {
       state.crops.push({ ...crop, id: newId(), from: current.username });
     });
     if ('error' in given && given.error) {
-      await updateMine((state) => { state.crops.push(crop); });
+      await updateMine((state) => {
+        state.crops.push(crop);
+        if (state.earned.day === gardenDay()) state.earned = { day: state.earned.day, amount: Math.max(0, state.earned.amount - worth) };
+      });
       return fail(given.error, 409);
     }
     // In their garden, the garden you see is their row, so show the change.

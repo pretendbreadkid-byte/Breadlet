@@ -165,7 +165,7 @@ function KidModeSection({ kidMode, onChanged }: { kidMode: boolean; onChanged: (
     <>
       <p className="mb-4 text-[#c9c7c0]">{kidMode ? "Kid mode is on. 🧸" : "A safer Breadlet for young kids."}</p>
       <ul className="kid-mode-list mb-6">
-        <li><b>Still on:</b> opening bags, collecting Breadlets, crafting, claims, events and the leaderboard.</li>
+        <li><b>Still on:</b> opening bags, collecting Breadlets, claims, events and the leaderboard.</li>
         <li><b>Turned off:</b> chat, trading, the Bazaar, friends, clans, reactions, coin flips, Explore and links to other websites.</li>
         <li>Other players can't send kid accounts trades or friend requests.</li>
       </ul>

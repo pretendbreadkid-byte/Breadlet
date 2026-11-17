@@ -152,7 +152,9 @@ export const materialNames = [
 export const dismantleMaterialNames = materialNames.filter((material) => material !== "Gold" && material !== "Gem");
 
 // Halved to slow inflation: the hourly claim was the biggest source of new Bread Bucks.
-export const wheelRewards = [
+// The hourly claim. It only gives Bread Bucks now; "material" rewards (Gold, Gem) went with crafting.
+export type WheelReward = { label: string; type: "tokens" | "material"; material?: string; amount: number; chance: number };
+export const wheelRewards: WheelReward[] = [
   { label: "50 Bread Bucks", type: "tokens", amount: 50, chance: 8 },
   { label: "100 Bread Bucks", type: "tokens", amount: 100, chance: 14 },
   { label: "150 Bread Bucks", type: "tokens", amount: 150, chance: 19 },
@@ -161,10 +163,9 @@ export const wheelRewards = [
   { label: "300 Bread Bucks", type: "tokens", amount: 300, chance: 11 },
   { label: "400 Bread Bucks", type: "tokens", amount: 400, chance: 4 },
   { label: "500 Bread Bucks", type: "tokens", amount: 500, chance: 2.5 },
+  { label: "600 Bread Bucks", type: "tokens", amount: 600, chance: 2.5 },
   { label: "750 Bread Bucks", type: "tokens", amount: 750, chance: 1 },
-  { label: "5 Gold", type: "material", material: "Gold", amount: 5, chance: 1.25 },
-  { label: "5 Gem", type: "material", material: "Gem", amount: 5, chance: 1.25 },
-] as const;
+];
 
 export const materialFor = (name: string, rarity: string) =>
   rarity === "Mythic" || rarity === "Secret" || rarity === "Breadled"

@@ -1958,11 +1958,6 @@ function MainPage() {
       label: "Breadlets",
       icon: <Backpack size={20} strokeWidth={2.2} />,
     },
-    {
-      id: "crafting",
-      label: "Crafting",
-      icon: <Hammer size={20} strokeWidth={2.2} />,
-    },
     { id: "clan", label: "Clans", icon: <Users size={20} strokeWidth={2.2} /> },
     {
       id: "market",
@@ -2137,18 +2132,6 @@ function MainPage() {
               <img src="/assets/Bread%20bucks.svg" alt="" className="h-8 w-8" />
               <span className="text-xl">{player.tokens.toLocaleString()}</span>
             </div>
-
-            {tab === "crafting" && (
-              <div className="workspace-materials" aria-label="Crafting materials">
-                {materialNames.map((material) => (
-                  <span key={material} className="workspace-material" title={`${material}: ${player.materials[material] || 0}`}>
-                    <img src={materialArtFor(material)} alt="" />
-                    <span>{player.materials[material] || 0}</span>
-                    <span className="sr-only">{material}</span>
-                  </span>
-                ))}
-              </div>
-            )}
 
             {/* Corner Username Dropdown */}
             <div ref={userMenuRef} className="workspace-account relative pointer-events-auto">
@@ -2325,9 +2308,6 @@ function MainPage() {
           {tab === "explore" && player.exploreBeta && !isGuest && !kidMode && player.id && <BreadletExplore player={{ ...player, id: player.id }} artFor={artFor} />}
           {tab === "chat" && !kidMode && <ChatTab jumpTo={chatJump} clearJump={() => setChatJump("")} refreshPlayer={refreshPlayerFromServer} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && !kidMode && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
-          {tab === "crafting" && (
-            <CraftingTab player={player} salvage={(name) => (player.lockedBlooks || []).includes(name) ? setNotice(`${name} is locked. Unlock it in My Breadlets to recycle it.`) : setPendingDismantle(name)} massDismantle={massDismantle} craft={craft} isGuest={isGuest} />
-          )}
           {tab === "promo" && (
             <PromoTab
               code={promoCode}
@@ -2376,7 +2356,7 @@ function MainPage() {
             <h2 className="mt-2 text-2xl font-black">Everything is open to try</h2>
             <ul className="mt-4 space-y-2 text-sm leading-6 text-emerald-50/80">
               <li>Crates and every bag, including retired bags, are free to open.</li>
-              <li>Crafting is free, and guests start with an empty collection.</li>
+              <li>Guests start with an empty collection.</li>
               <li>Chat, clans, and Bazaar are hidden during guest testing.</li>
               <li>Progress is temporary and disappears when you end this session unless you have unlocked browser saving.</li>
             </ul>
@@ -2608,7 +2588,7 @@ function LoginScreen({
         )}
         {!forgotPassword && authMode === "signup" && kidAccount && (
           <div className="kid-signup-info">
-            <p><b>Kid accounts</b> can open bags, collect Breadlets, craft and play events. Chat, trading, the Bazaar, friends and clans are switched off.</p>
+            <p><b>Kid accounts</b> can open bags, collect Breadlets and play events. Chat, trading, the Bazaar, friends and clans are switched off.</p>
             <label htmlFor="parent-pin">Grown-up PIN</label>
             <input id="parent-pin" required type="password" inputMode="numeric" autoComplete="off" pattern="[0-9]{4}" maxLength={4} value={parentPin} onChange={(event) => setParentPin(event.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="4 numbers" />
             <small>A grown-up needs this PIN to turn kid mode off later (Settings, Kid mode). Keep it secret from the kid!</small>

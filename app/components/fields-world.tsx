@@ -609,7 +609,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
               : (
                 <>
                   <div className="garden-basket-all">
-                    <span>Bigger crops sell for more. Hold one, then hover a player to give it to them.</span>
+                    <span>Bigger crops sell for more. Hold one, then hover a player to give it to them (gifts count toward your daily limit).</span>
                     <button type="button" disabled={busy} onClick={() => sell({ all: true })}>Sell all<img src="/assets/Bread%20bucks.svg" alt="" />{basketValue.toLocaleString()}</button>
                   </div>
                   <div className="garden-shop-list">

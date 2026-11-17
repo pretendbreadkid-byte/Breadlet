@@ -69,34 +69,10 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
     const reward = wheelRewards.find((entry) => { roll -= entry.chance; return roll < 0; }) || wheelRewards[wheelRewards.length - 1];
     plan.crateReward = reward;
     if (reward.type === 'tokens') plan.tokenDelta = reward.amount;
-    else plan.materialDelta[reward.material] = reward.amount;
-  } else if (action === 'craft') {
-    const recipe = craftRecipeFor(String(body.name || ''));
-    if (!recipe) throw new Error('Unknown crafting recipe.');
-    for (const [material, amount] of Object.entries(recipe.ingredients)) {
-      if ((snapshot.materials[material] || 0) < amount) throw new Error(`You need more ${material}.`);
-      plan.materialDelta[material] = -amount;
-    }
-    addItem(recipe.name, 1);
-  } else if (action === 'dismantle' && body.quantities && typeof body.quantities === 'object' && !Array.isArray(body.quantities)) {
-    const quantities = Object.entries(body.quantities as Record<string, unknown>);
-    if (!quantities.length || quantities.length > 200) throw new Error('Invalid recycle selection.');
-    for (const [name, value] of quantities) {
-      const quantity = integer(value, 100000);
-      const owned = snapshot.inventory[name];
-      if (!owned || quantity >= owned.quantity) throw new Error(`Keep one copy of ${name}.`);
-      addItem(name, -quantity);
-      for (const [material, amount] of Object.entries(dismantleBundleFor(name, owned.rarity))) {
-        plan.materialDelta[material] = (plan.materialDelta[material] || 0) + amount * quantity;
-      }
-    }
-  } else if (action === 'dismantle') {
-    const name = String(body.name || '');
-    const owned = snapshot.inventory[name];
-    if (!owned?.quantity) throw new Error('You do not own that Breadlet.');
-    if (Object.values(snapshot.inventory).reduce((total, entry) => total + entry.quantity, 0) <= 1) throw new Error('Keep at least one Breadlet in your collection.');
-    plan.materialDelta = dismantleBundleFor(name, owned.rarity);
-    addItem(name, -1);
+    else if (reward.material) plan.materialDelta[reward.material] = reward.amount;
+  } else if (action === 'craft' || action === 'dismantle') {
+    // Crafting was removed. Crafted Breadlets people already have stay in their inventory.
+    throw new Error('Crafting has been removed.');
   } else if (action === 'sell') {
     if (!body.quantities || typeof body.quantities !== 'object' || Array.isArray(body.quantities)) throw new Error('Choose extra Breadlets to sell.');
     const quantities = Object.entries(body.quantities as Record<string, unknown>);
