@@ -4073,3 +4073,6 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
 .admin-player-log span button { display: inline; padding: 0; border: 0; background: none; color: #ffb066; text-decoration: underline; }
 .admin-player-log span button:hover:not(:disabled) { background: none; }
 @media (max-width: 640px) { .admin-player-log > div { grid-template-columns: 1fr; gap: 2px; } }
+
+/* In a trade: nothing on top of the trade room (side bar / phone tab bar, account box, bottom bar). */
+body.in-trade aside.breadlet-sidebar, body.in-trade .workspace-island, body.in-trade .layout-bottom-bar, body.in-trade .layout-extras { display: none !important; }
