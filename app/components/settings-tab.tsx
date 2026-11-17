@@ -28,7 +28,7 @@ export const defaultSettings: Settings = {
   sounds: true,
   navLayout: "rail",
   gardenPerformance: false,
-  bazaarStyle: "booths",
+  bazaarStyle: "board",
 };
 
 const storageKey = "breadlet-settings";
@@ -245,8 +245,8 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = 
             <p className="mb-4 text-[#c9c7c0]">How the Bazaar shows what&apos;s for sale.</p>
             <div className="layout-options">
               {([
-                { id: "booths", title: "Market booths", description: "A booth for every Breadlet, like a street market." },
-                { id: "board", title: "Notice board", description: "Paper notes pinned to a cork board. Quick to scan, great on phones." },
+                { id: "board", title: "Paper notices (default)", description: "A pinned paper notice for every Breadlet. Hover one to see its name and price." },
+                { id: "booths", title: "Market booths", description: "The old look: a booth for every Breadlet, like a street market." },
               ] as const).map((style) => (
                 <button key={style.id} type="button" onClick={() => update({ bazaarStyle: style.id })} aria-pressed={settings.bazaarStyle === style.id} className="layout-option">
                   <span className={`layout-preview bazaar-style-preview bazaar-style-${style.id}`} aria-hidden="true"><i /><i /><i /><i /><i /><i /></span>

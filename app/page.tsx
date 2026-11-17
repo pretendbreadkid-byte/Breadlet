@@ -3900,9 +3900,9 @@ function Bazaar({
   const [marketListings, setMarketListings] = useState<Listing[]>(player.listings);
   const [selectedBlook, setSelectedBlook] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
-  // Settings > Layout > Bazaar style: booths (default) or the notice board.
+  // Settings > Layout > Bazaar style: paper notices (default) or the old booths.
   const { settings: bazaarSettings } = useSettings();
-  const boardStyle = bazaarSettings.bazaarStyle === "board";
+  const boardStyle = bazaarSettings.bazaarStyle !== "booths";
   // Recent average price of every Breadlet that has sold (average of its last 10 sales).
   const [raps, setRaps] = useState<Record<string, number>>({});
   const existCounts = useExistCounts();
@@ -4075,8 +4075,7 @@ function Bazaar({
             rap: raps[name] || 0, exist: existCounts[name] || 0, wished: wishlist.includes(name),
           };
         };
-        const forSale = (sortOrder === "Highest RAP" ? [...listedGroups].sort((left, right) => (raps[right] || 0) - (raps[left] || 0)) : listedGroups).map(noteFor);
-        return <BazaarBoard notes={forSale} closed={closedBooths.map(noteFor)} mine={view === "mine"} onOpen={(name) => { setSelectedBlook(name); setDetailsOpen(true); }} BlookArt={BlookImg} />;
+        return <BazaarBoard notes={blookGroups.map(noteFor)} mine={view === "mine"} onOpen={(name) => { setSelectedBlook(name); setDetailsOpen(true); }} BlookArt={BlookImg} />;
       })() : blookGroups.length ? (
         <section className="bazaar-blook-grid mt-5" aria-label="Breadlets for sale">
           {blookGroups.map((name) => {
@@ -4107,7 +4106,7 @@ function Bazaar({
       ) : (
         <p className="bazaar-empty mt-6 rounded-2xl border p-8 text-center">{view === "mine" ? "You have no active listings." : "No listings match your search yet."}</p>
       )}
-      {!boardStyle && <div className="bazaar-street" aria-hidden="true" />}
+      <div className="bazaar-street" aria-hidden="true" />
       {detailsOpen && <BlookListingsModal
         blook={selectedBlook}
         listings={listings.filter((listing) => listing.blook === selectedBlook)}
