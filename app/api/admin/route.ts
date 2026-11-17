@@ -96,6 +96,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, until });
   }
 
+  // Account recovery: the device that last logged into this account gets 30 minutes to choose a
+  // new password from the login screen (app/api/auth/device-recovery). allow: false takes it back.
+  if (body.action === 'recovery') {
+    const targetId = String(body.targetId || '');
+    const { data: target } = await session.supabase.from('profiles').select('id, stats').eq('id', targetId).maybeSingle();
+    if (!target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+    const { recovery: _old, ...stats } = (target.stats || {}) as Record<string, unknown>;
+    if (body.allow === false) {
+      await session.supabase.from('profiles').update({ stats }).eq('id', targetId);
+      return NextResponse.json({ ok: true });
+    }
+    const { data: last } = await session.supabase.from('account_devices').select('device_hash, last_seen_at')
+      .eq('profile_id', targetId).neq('device_hash', '').order('last_seen_at', { ascending: false }).limit(1).maybeSingle();
+    if (!last?.device_hash) return NextResponse.json({ error: "We don't know which device last logged into this account." }, { status: 404 });
+    const expiresAt = new Date(Date.now() + 30 * 60000).toISOString();
+    const { error } = await session.supabase.from('profiles').update({
+      stats: { ...stats, recovery: { deviceHash: last.device_hash, expiresAt, lastSeenAt: last.last_seen_at, grantedBy: session.userId } },
+    }).eq('id', targetId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, expiresAt, lastSeenAt: last.last_seen_at });
+  }
+
   if (body.action === 'rename') {
     const result = await adminRenamePlayer(session.supabase, String(body.targetId || ''), String(body.username || ''));
     return 'error' in result ? NextResponse.json({ error: result.error }, { status: result.status }) : NextResponse.json(result);

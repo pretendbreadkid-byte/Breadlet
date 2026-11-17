@@ -3,11 +3,11 @@
 // Admin tools on another player's profile: mute, ban / unban, delete, and their history
 // (Bread Bucks, trades, Bazaar, bans, chat and alts). Only rendered for admins; the server checks too.
 import { useCallback, useEffect, useState } from "react";
-import { Ban, History, MicOff, ShieldCheck, Trash2 } from "lucide-react";
+import { Ban, History, KeyRound, MicOff, ShieldCheck, Trash2 } from "lucide-react";
 
 type Offer = { tokens: number; blooks: { name: string; quantity: number }[] };
 type HistoryData = {
-  profile: { id: string; username: string; tokens: number; createdAt: string; isBanned: boolean; banReason: string | null; banExpiresAt: string | null; chatMutedUntil: string | null };
+  profile: { id: string; username: string; tokens: number; createdAt: string; isBanned: boolean; banReason: string | null; banExpiresAt: string | null; chatMutedUntil: string | null; recoveryUntil: string | null };
   money: { id: string; type: string; delta: number; reason: string | null; created_at: string }[];
   trades: { id: string; status: string; at: string; with: string; gave: Offer; got: Offer }[];
   listings: { id: string; name: string; quantity: number; price: number; status: string; created_at: string; sold_at: string | null; shiny: boolean }[];
@@ -80,6 +80,14 @@ export function AdminPlayerPanel({ target, openPlayerProfile }: { target: { id: 
       void load();
     }
   };
+  const recovery = async (allow: boolean) => {
+    const result = await act({ method: "POST", body: JSON.stringify({ action: "recovery", targetId: target.id, allow }) });
+    if (!result) return;
+    setNotice(allow
+      ? `For the next 30 minutes, the device that last logged into ${target.username} (${when(result.lastSeenAt)}) can set a new password. Tell them: on that device, go to the login screen, tap "Forgot password?", then "An admin gave me access".`
+      : "Recovery access taken back.");
+    void load();
+  };
   const remove = async () => {
     if (deleteName !== target.username) { setNotice(`Type ${target.username} exactly to delete the account.`); return; }
     if (await act({ method: "DELETE" }, `/api/admin?targetId=${encodeURIComponent(target.id)}`)) {
@@ -109,6 +117,7 @@ export function AdminPlayerPanel({ target, openPlayerProfile }: { target: { id: 
           <span className="admin-player-status">
             {profile.isBanned ? <b className="is-bad">Banned{profile.banExpiresAt ? ` until ${when(profile.banExpiresAt)}` : " forever"}</b> : <b className="is-good">Not banned</b>}
             {mutedUntil && <b className="is-warn">Muted until {when(mutedUntil)}</b>}
+            {profile.recoveryUntil && <b className="is-warn">Recovery open until {when(profile.recoveryUntil)}</b>}
             <span>{data!.devices} device{data!.devices === 1 ? "" : "s"}</span>
           </span>
         )}
@@ -122,6 +131,9 @@ export function AdminPlayerPanel({ target, openPlayerProfile }: { target: { id: 
             {profile?.isBanned
               ? <button type="button" disabled={busy} onClick={() => void unban()}><Ban size={15} />Unban</button>
               : <button type="button" disabled={busy} className="is-danger" onClick={() => { setBanOpen((open) => !open); setDeleteOpen(false); }}><Ban size={15} />Ban</button>}
+            {profile?.recoveryUntil
+              ? <button type="button" disabled={busy} onClick={() => void recovery(false)}><KeyRound size={15} />Cancel recovery</button>
+              : <button type="button" disabled={busy} onClick={() => void recovery(true)} title="Lets the device that last logged in set a new password (30 minutes, one use)"><KeyRound size={15} />Give recovery access</button>}
             <button type="button" disabled={busy} className="is-danger" onClick={() => { setDeleteOpen((open) => !open); setBanOpen(false); }}><Trash2 size={15} />Delete account</button>
           </span>
         </div>

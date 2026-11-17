@@ -4134,3 +4134,13 @@ main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-meta, main.bread
 main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-meta b { color: #2e7d32 !important; }
 main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-wish { color: #e9a21a !important; }
 main.breadlet-blue-theme.breadlet-blue-theme .board-empty { color: #3b1f0e !important; }
+
+/* "An admin gave me access" on the Reset your password screen. */
+main.auth-screen .device-recovery-open { display: block; width: 100%; margin-top: 12px; padding: 10px; border: 2px dashed #e9bd67; border-radius: 14px; background: transparent; color: #ffe2a0; font-weight: 900; }
+main.auth-screen .device-recovery { display: grid; gap: 8px; margin-top: 14px; padding: 14px; border: 3px solid #13120F; border-radius: 16px; background: #27251F; }
+main.auth-screen .device-recovery b { color: #ffe2a0; font-size: 1.05rem; }
+main.auth-screen .device-recovery p { margin: 0; color: #d8c3a8; font-size: .85rem; line-height: 1.4; }
+main.auth-screen .device-recovery input { padding: 10px 14px; border: 2px solid #4a4337; border-radius: 12px; background: #13120F; color: #fff; }
+main.auth-screen .device-recovery .device-recovery-error { color: #ff9a8a; font-weight: 800; }
+main.auth-screen .device-recovery-go { padding: 11px; border: 3px solid #13120F; border-radius: 14px; background: #ED7117; color: #fff; font-weight: 900; }
+main.auth-screen .device-recovery-go:disabled { opacity: .6; }

@@ -2654,6 +2654,7 @@ function LoginScreen({
         </button>
         {authFeedback && <p role="status" className="mt-3 text-center text-xs leading-5 text-emerald-200">{authFeedback}</p>}
         {authMode === "login" && !forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(true); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Forgot password?</button>}
+        {forgotPassword && <DeviceRecovery username={username} onDone={(name, newPassword) => { setUsername(name); setPassword(newPassword); setAuthMode("login"); setForgotPassword(false); resetClickCountRef.current = 0; setAuthFeedback("Your password is changed! Tap Log in to get back in."); }} />}
         {forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(false); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Back to log in</button>}
         {!forgotPassword && authMode === "login" && <button type="button" onClick={startGuest} className="auth-guest mt-4 w-full rounded-xl px-4 py-3 font-black">Play as guest · free</button>}
         {!forgotPassword && <button type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">
@@ -5315,7 +5316,46 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
       </ol>
     </div>
   );
-}function BadgeModal({ badge, close }: { badge: string; close: () => void }) {
+}// On the "Reset your password" screen: when an admin has given this device recovery access (from
+// the player's profile), the player can choose a new password here without an email.
+function DeviceRecovery({ username, onDone }: { username: string; onDone: (username: string, password: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [again, setAgain] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (username.trim().length < 3) { setMessage("Type your username above first."); return; }
+    if (newPassword.length < 4) { setMessage("Your new password needs at least 4 characters."); return; }
+    if (newPassword !== again) { setMessage("The two passwords don't match."); return; }
+    setBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/auth/device-recovery", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: username.trim(), password: newPassword }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { setMessage(data.error || "That didn't work. Try again."); return; }
+      onDone(String(data.username || username.trim()), newPassword);
+    } catch {
+      setMessage("Could not reach Breadlet. Check your connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const enter = (event: React.KeyboardEvent<HTMLInputElement>) => { if (event.key === "Enter") { event.preventDefault(); void submit(); } };
+  if (!open) return <button type="button" onClick={() => setOpen(true)} className="device-recovery-open">An admin gave me access</button>;
+  return (
+    <div className="device-recovery">
+      <b>Choose a new password</b>
+      <p>This only works on the device you last logged in with, after an admin gives it access (it lasts 30 minutes).</p>
+      <input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} onKeyDown={enter} placeholder="New password" maxLength={72} />
+      <input type="password" autoComplete="new-password" value={again} onChange={(event) => setAgain(event.target.value)} onKeyDown={enter} placeholder="Type it again" maxLength={72} />
+      {message && <p role="alert" className="device-recovery-error">{message}</p>}
+      <button type="button" disabled={busy} onClick={() => void submit()} className="device-recovery-go">{busy ? "Saving..." : "Save new password"}</button>
+    </div>
+  );
+}
+
+function BadgeModal({ badge, close }: { badge: string; close: () => void }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-3xl border border-[#3d91cd] bg-[#103f75] p-6 text-center shadow-2xl">

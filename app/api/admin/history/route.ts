@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       id: profile.data.id, username: profile.data.username, tokens: profile.data.tokens, createdAt: profile.data.created_at,
       isBanned: profile.data.is_banned, banReason: profile.data.ban_reason, banExpiresAt: profile.data.ban_expires_at,
       chatMutedUntil: typeof stats.chatMutedUntil === 'string' ? stats.chatMutedUntil : null,
+      recoveryUntil: typeof stats.recovery?.expiresAt === 'string' && Date.parse(stats.recovery.expiresAt) > Date.now() ? stats.recovery.expiresAt : null,
     },
     money: money.data || [],
     trades: (trades.data || []).map((trade: any) => {
