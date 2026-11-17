@@ -6,6 +6,7 @@ import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
+import { AdminPlayerPanel } from "./components/admin-player-panel";
 import { GARDEN_TAG } from "../lib/garden-link";
 import { SettingsTab, readSettings, useSettings } from "./components/settings-tab";
 import { isInboxType } from "../lib/inbox";
@@ -2270,7 +2271,7 @@ function MainPage() {
             </button>
           )}
           {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} openMention={(messageId) => { setInboxOpen(false); setChatJump(messageId); setTab("chat"); }} />}
-          {tab === "profile" && <ProfileTab player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} kidMode={kidMode} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} savePrefs={savePrefs} toggleBlock={toggleBlock} />}
+          {tab === "profile" && <ProfileTab isAdmin={adminUnlocked} player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} kidMode={kidMode} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} savePrefs={savePrefs} toggleBlock={toggleBlock} />}
           {tab === "wheel" && <WheelTab player={player} isGuest={isGuest} onClaim={() => setClaimOpen(true)} />}
           {claimOpen && <ClaimPopup player={player} isGuest={isGuest} spin={spinWheel} onClose={closeClaim} />}
           {tab === "capsules" && (
@@ -2720,7 +2721,9 @@ function ProfileTab({
   refreshStats,
   savePrefs,
   toggleBlock,
+  isAdmin = false,
 }: {
+  isAdmin?: boolean;
   savePrefs: (patch: { hideBadges?: boolean }) => void;
   toggleBlock: (target: BlockedPlayer) => void;
   player: Player;
@@ -2891,6 +2894,7 @@ function ProfileTab({
         </section>
         <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{["1M Tokens", "100K Tokens", "10K Tokens"].find((badge) => displayedBadges.includes(badge)) || "Token milestones: 10K · 100K · 1M"}</div>{!viewingOther && !isGuest && <button onClick={() => savePrefs({ hideBadges: !player.hideBadges })} className="profile-hide-badges" aria-pressed={Boolean(player.hideBadges)}>{player.hideBadges ? "Badges hidden from others · Show them" : "Hide my badges"}</button>}</section>
       </div>
+      {isAdmin && viewingOther && viewedProfile && <AdminPlayerPanel target={{ id: viewedProfile.id, username: viewedProfile.username }} openPlayerProfile={openPlayerProfile} />}
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/Bread%20bucks.svg" />
         <ProfileMetric label="Breadlets Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />

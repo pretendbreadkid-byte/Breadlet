@@ -4039,3 +4039,37 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
 .chat-garden-link { display: inline-flex; align-items: center; gap: 4px; margin: 0 2px; padding: 1px 9px; border: 2px solid #3b7a2a; border-radius: 999px; background: #4f9d35; color: #fff; font-weight: 900; font-size: .9em; vertical-align: baseline; cursor: pointer; }
 .chat-garden-link:hover:not(:disabled) { background: #5cb53e; }
 .chat-garden-link:disabled { opacity: .7; cursor: default; }
+
+/* Admin tools on a player's profile. */
+.admin-player-panel { margin: 14px 0; padding: 16px; border: 3px solid #13120F; border-radius: 20px; background: #27251F; color: #fff4df; }
+.admin-player-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #ffb066; }
+.admin-player-head h2 { margin: 0; font-size: 1.15rem; font-weight: 900; color: #fff4df; }
+.admin-player-status { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; font-size: .82rem; color: #d8c3a8; }
+.admin-player-panel .is-good { color: #7ee081; }
+.admin-player-panel .is-bad { color: #ff7a6b; }
+.admin-player-panel .is-warn { color: #ffd23f; }
+.admin-player-note { margin: 6px 0 0; font-size: .85rem; color: #d8c3a8; }
+.admin-player-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.admin-player-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .85rem; font-weight: 800; }
+.admin-player-panel button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border: 2px solid #13120F; border-radius: 12px; background: #3a352c; color: #fff4df; font-size: .82rem; font-weight: 900; }
+.admin-player-panel button:hover:not(:disabled) { background: #4a4337; }
+.admin-player-panel button:disabled { opacity: .55; }
+.admin-player-panel button.is-danger { background: #b8321f; }
+.admin-player-panel button.is-danger:hover:not(:disabled) { background: #d23c26; }
+.admin-player-panel button[aria-pressed="true"] { background: #ED7117; }
+.admin-player-form { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 14px; background: #13120F; }
+.admin-player-form p { margin: 0; font-size: .85rem; color: #d8c3a8; }
+.admin-player-form input { padding: 8px 12px; border: 2px solid #4a4337; border-radius: 12px; background: #27251F; color: #fff; }
+.admin-player-form > button { justify-self: start; }
+.admin-player-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.admin-player-notice { margin: 10px 0 0; font-size: .88rem; font-weight: 800; color: #ffd23f; }
+.admin-player-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 14px; color: #ffb066; }
+.admin-player-log { max-height: 360px; margin-top: 10px; overflow-y: auto; border-radius: 14px; background: #13120F; padding: 6px 10px; font-size: .84rem; }
+.admin-player-log > div { display: grid; grid-template-columns: 120px 90px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid #2f2b24; }
+.admin-player-log > div:last-child { border-bottom: 0; }
+.admin-player-log > div > span:first-child { color: #a8957c; }
+.admin-player-log > div > span:last-child { overflow-wrap: anywhere; }
+.admin-player-log p { margin: 8px 0; color: #a8957c; }
+.admin-player-log span button { display: inline; padding: 0; border: 0; background: none; color: #ffb066; text-decoration: underline; }
+.admin-player-log span button:hover:not(:disabled) { background: none; }
+@media (max-width: 640px) { .admin-player-log > div { grid-template-columns: 1fr; gap: 2px; } }

@@ -81,6 +81,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, devices: deviceBan ? devices.length : 0, ips: ipBan !== 'none' ? ips.length : 0 });
   }
 
+  // Mute from a player's profile: minutes > 0 mutes them in chat for that long, 0 unmutes.
+  if (body.action === 'mute') {
+    const targetId = String(body.targetId || '');
+    const minutes = Math.floor(Number(body.minutes));
+    if (!targetId || !Number.isFinite(minutes) || minutes < 0 || minutes > 60 * 24 * 365) return NextResponse.json({ error: 'Choose a player and a mute length.' }, { status: 400 });
+    if (targetId === session.userId) return NextResponse.json({ error: 'You cannot mute yourself.' }, { status: 400 });
+    const { data: target } = await session.supabase.from('profiles').select('id, stats').eq('id', targetId).maybeSingle();
+    if (!target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+    const { chatMutedUntil: _old, ...stats } = (target.stats || {}) as Record<string, unknown>;
+    const until = minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null;
+    const { error } = await session.supabase.from('profiles').update({ stats: until ? { ...stats, chatMutedUntil: until } : stats }).eq('id', targetId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, until });
+  }
+
   if (body.action === 'rename') {
     const result = await adminRenamePlayer(session.supabase, String(body.targetId || ''), String(body.username || ''));
     return 'error' in result ? NextResponse.json({ error: result.error }, { status: result.status }) : NextResponse.json(result);
