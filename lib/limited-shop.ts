@@ -13,7 +13,7 @@ export const LIMITED_SHOP: LimitedShopItem[] = [
   {
     name: "American Flag",
     price: 500,
-    art: "/assets/american-flag.svg",
+    art: "/assets/american-flag-2.svg",
     prompt: "Buy the American Flag to celebrate Veterans Day!",
     // Through November 13, 2026 (US Eastern).
     endsAt: "2026-11-14T05:00:00.000Z",

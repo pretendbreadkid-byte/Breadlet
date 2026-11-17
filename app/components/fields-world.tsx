@@ -673,7 +673,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         <div className="garden-shop-layer" onPointerDown={() => setPanel(null)}>
           <section role="dialog" aria-modal="true" aria-labelledby="garden-shop-title" className="garden-shop garden-seed-shop" onPointerDown={(event) => event.stopPropagation()}>
             <header>
-              <img src="/assets/ted-shopkeeper.svg" alt="" />
+              <img src="/assets/ted-2.svg" alt="" />
               <div><small>Ted&apos;s Seed Stand</small><h2 id="garden-shop-title">Fresh seeds!</h2></div>
               {money}
               <button type="button" onClick={() => setPanel(null)} aria-label="Close">×</button>

@@ -281,7 +281,7 @@ const artFor = (name: string) =>
     "Pixel Caramel": "/assets/Lost and found + food pack/Pixel carmel.png?v=2",
     "Pixel Crystal Ball": "/assets/Lost and found + food pack/Right pixl crystal ball texture .png?v=2",
     "Lava Slime": "/assets/lava-slime.svg",
-    Ted: "/assets/ted-shopkeeper.svg",
+    Ted: "/assets/ted-2.svg",
     "Walter White": "/assets/walter-white.svg?v=2",
     "Olive Grenade": "/assets/grenade2.svg",
     "Golden Grenade": "/assets/golden-grenade-3.webp",
@@ -311,7 +311,7 @@ const artFor = (name: string) =>
     "Winter Hat": "/assets/winter/winter-hat.svg",
     Igloo: "/assets/winter/igloo.svg",
     Chimney: "/assets/winter/chimney.svg",
-    "American Flag": "/assets/american-flag.svg",
+    "American Flag": "/assets/american-flag-2.svg",
     ...Object.fromEntries(BREAKING_BAD_BREADLETS.map((breadlet) => [breadlet.name, breadlet.art])),
     Shuriken: "/assets/shuriken-3.svg",
     "Albino Crow": "/assets/albino crow.svg",
@@ -3172,11 +3172,11 @@ function CapsulesTab({
           </section>
         </div>
       )}
-      {tedVisible && <div className="ted-secret-appearance" aria-hidden="true"><img src="/assets/ted-shopkeeper.svg" alt="" /></div>}
+      {tedVisible && <div className="ted-secret-appearance" aria-hidden="true"><img src="/assets/ted-2.svg" alt="" /></div>}
       {tedCongrats && (
         <div className="modal-layer fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
           <section className="w-full max-w-sm rounded-3xl border border-fuchsia-400/60 bg-[#3a2415] p-6 text-center text-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="ted-secret-heading">
-            <img src="/assets/ted-shopkeeper.svg" alt="Ted" className="mx-auto h-36 w-36 object-contain" />
+            <img src="/assets/ted-2.svg" alt="Ted" className="mx-auto h-36 w-36 object-contain" />
             <p className="mt-2 text-xs font-black uppercase tracking-widest text-fuchsia-300">Secret found</p>
             <h2 id="ted-secret-heading" className="mt-1 text-2xl font-black">Congrats!</h2>
             <p className="mt-2 text-sm text-white/80">You found Ted! Unique Ted has been added to your inventory.</p>
