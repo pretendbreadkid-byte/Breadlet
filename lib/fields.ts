@@ -78,13 +78,14 @@ export const GARDEN_TOKEN_ART = "/assets/garden/garden-token.svg";
 // Props: bought with Garden Tokens at the Props shop, then placed anywhere in the garden off the dirt rows by the owner
 // or players they let build. width: how wide it's drawn. solid: circles (offset from its feet) you
 // can't walk through.
-export type PropKind = "Rock" | "Chest" | "Green Screen" | "Tree" | "Berry Bush";
+export type PropKind = "Rock" | "Chest" | "Green Screen" | "Tree" | "Berry Bush" | "Ice Cream";
 export type PropDef = { kind: PropKind; cost: number; art: string; width: number; solid: { dx: number; r: number }[] };
 export const PROPS: PropDef[] = [
   { kind: "Rock", cost: 10, art: "/assets/rock-3.svg", width: 130, solid: [{ dx: -28, r: 26 }, { dx: 28, r: 26 }] },
   { kind: "Chest", cost: 40, art: "/assets/treasure-chest.svg", width: 110, solid: [{ dx: 0, r: 40 }] },
   { kind: "Berry Bush", cost: 15, art: "/assets/garden/berry-bush.svg", width: 130, solid: [{ dx: -30, r: 26 }, { dx: 30, r: 26 }] },
   { kind: "Tree", cost: 25, art: "/assets/garden/tree-prop.svg", width: 150, solid: [{ dx: -5, r: 22 }] },
+  { kind: "Ice Cream", cost: 30, art: "/assets/garden/mintis-icecream.svg", width: 170, solid: [{ dx: -45, r: 22 }, { dx: 0, r: 22 }, { dx: 45, r: 22 }] },
   { kind: "Green Screen", cost: 75, art: "/assets/garden/green-screen.svg", width: 230, solid: [{ dx: -80, r: 22 }, { dx: -27, r: 22 }, { dx: 27, r: 22 }, { dx: 80, r: 22 }] },
 ];
 export const propNamed = (kind: unknown) => PROPS.find((prop) => prop.kind === kind);

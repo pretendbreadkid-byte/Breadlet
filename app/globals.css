@@ -3981,8 +3981,8 @@ main.nav-bottom .game-workspace { padding-bottom: 96px; }
 /* Bazaar: built like Ted's Shop (awning, striped wall, same lettering), but in black instead of orange. */
 .breadlet-blue-theme .game-workspace[data-tab="market"] .bazaar-market.bazaar-scene,
 .breadlet-blue-theme .bazaar-market.bazaar-scene {
-  /* The same striped wall as Ted's Shop (the awning stays black). */
-  background: repeating-linear-gradient(90deg, #fbeed6 0 46px, #f5e1bf 46px 92px) !important;
+  /* A deep wood-stripe wall, so the cream paper notices stand out without glaring. */
+  background: repeating-linear-gradient(90deg, #4b2d1a 0 46px, #42271a 46px 92px) !important;
 }
 .bazaar-scene .bazaar-awning {
   background: repeating-linear-gradient(90deg, #13120F 0 70px, #fff3df 70px 140px);
@@ -4080,7 +4080,7 @@ body.in-trade aside.breadlet-sidebar, body.in-trade .workspace-island, body.in-t
 
 /* ===== Bazaar notice board (Settings > Layout > Bazaar style) =====
    Notices are the paper art in /assets/bazaar (312x328, pin at the top in the rarity colour). */
-.board-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 22px 18px; margin-top: 18px; padding-bottom: 30px; }
+.board-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 26px 24px; margin-top: 18px; padding-bottom: 30px; }
 
 main.breadlet-blue-theme.breadlet-blue-theme .board-note { position: relative; display: block; width: 100%; aspect-ratio: 312 / 328; padding: 0; border: 0; border-radius: 0; background-color: transparent; background-position: center; background-repeat: no-repeat; background-size: contain; filter: drop-shadow(0 8px 6px rgba(40, 20, 5, .35)); transform: rotate(var(--tilt, 0deg)); transition: transform .15s ease; cursor: pointer; }
 main.breadlet-blue-theme.breadlet-blue-theme .board-note:hover, main.breadlet-blue-theme.breadlet-blue-theme .board-note:focus-visible { z-index: 3; transform: rotate(0deg) translateY(-4px) scale(1.04); }

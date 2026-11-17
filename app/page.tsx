@@ -3903,7 +3903,7 @@ function Bazaar({
   // Settings > Layout > Bazaar style: price tags (default), paper notices, or the old booths.
   const { settings: bazaarSettings } = useSettings();
   const boardStyle = bazaarSettings.bazaarStyle !== "booths";
-  const noticeStyle = bazaarSettings.bazaarStyle === "notices";
+  const noticeStyle = bazaarSettings.bazaarStyle !== "tags";
   // Recent average price of every Breadlet that has sold (average of its last 10 sales).
   const [raps, setRaps] = useState<Record<string, number>>({});
   const existCounts = useExistCounts();
