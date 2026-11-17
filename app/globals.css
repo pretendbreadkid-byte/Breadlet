@@ -4031,5 +4031,6 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
 .garden-sparkles i { filter: none; }
 .garden-lawn { background: rgba(255, 255, 255, .06) !important; }
 
-/* In a trade: no side rail or bottom bar over the trade room. */
-body.in-trade aside.breadlet-sidebar, body.in-trade .layout-bottom-bar { display: none !important; }
+/* In a trade: the trade room starts right of the side rail (the rail stays visible), no bottom bar. */
+body.in-trade .layout-bottom-bar { display: none !important; }
+.trade-room-layer { left: var(--trade-left, 0px) !important; }
