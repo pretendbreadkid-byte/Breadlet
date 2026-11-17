@@ -14,6 +14,8 @@ export type Settings = {
   navLayout: NavLayout;
   // Garden performance mode: a plainer map for slower devices (toggled at the top of the garden).
   gardenPerformance: boolean;
+  // How the Bazaar shows what's for sale: market booths, or paper notes on a notice board.
+  bazaarStyle: "booths" | "board";
 };
 
 export const defaultSettings: Settings = {
@@ -26,6 +28,7 @@ export const defaultSettings: Settings = {
   sounds: true,
   navLayout: "rail",
   gardenPerformance: false,
+  bazaarStyle: "booths",
 };
 
 const storageKey = "breadlet-settings";
@@ -235,6 +238,19 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = 
                 <button key={layout.id} type="button" onClick={() => update({ navLayout: layout.id })} aria-pressed={settings.navLayout === layout.id} className="layout-option">
                   <span className={`layout-preview layout-preview-${layout.id}`} aria-hidden="true"><i /><i /><i /><i /></span>
                   <span className="layout-option-text"><b>{layout.title}{settings.navLayout === layout.id ? " ✓" : ""}</b><small>{layout.description}</small></span>
+                </button>
+              ))}
+            </div>
+            <h3 className="mb-2 mt-7 text-lg font-black">Bazaar style</h3>
+            <p className="mb-4 text-[#c9c7c0]">How the Bazaar shows what&apos;s for sale.</p>
+            <div className="layout-options">
+              {([
+                { id: "booths", title: "Market booths", description: "A booth for every Breadlet, like a street market." },
+                { id: "board", title: "Notice board", description: "Paper notes pinned to a cork board. Quick to scan, great on phones." },
+              ] as const).map((style) => (
+                <button key={style.id} type="button" onClick={() => update({ bazaarStyle: style.id })} aria-pressed={settings.bazaarStyle === style.id} className="layout-option">
+                  <span className={`layout-preview bazaar-style-preview bazaar-style-${style.id}`} aria-hidden="true"><i /><i /><i /><i /><i /><i /></span>
+                  <span className="layout-option-text"><b>{style.title}{settings.bazaarStyle === style.id ? " ✓" : ""}</b><small>{style.description}</small></span>
                 </button>
               ))}
             </div>

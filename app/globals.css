@@ -4076,3 +4076,61 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
 
 /* In a trade: nothing on top of the trade room (side bar / phone tab bar, account box, bottom bar). */
 body.in-trade aside.breadlet-sidebar, body.in-trade .workspace-island, body.in-trade .layout-bottom-bar, body.in-trade .layout-extras { display: none !important; }
+
+/* ===== Bazaar notice board (Settings > Layout > Bazaar style) ===== */
+.board-wrap { position: relative; z-index: 1; margin-top: 34px; }
+.board-frame { position: relative; padding: 16px; border: 4px solid #13120F; border-radius: 20px; background-color: #7a4724; background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 23px), repeating-linear-gradient(90deg, rgba(0, 0, 0, .08) 0 1px, transparent 1px 41px); box-shadow: 0 8px 0 #13120F; }
+.board-header { display: flex; justify-content: center; margin: -42px 0 12px; }
+.board-header span { padding: 7px 26px; border: 4px solid #13120F; border-radius: 14px; background: #ED7117; box-shadow: 0 4px 0 #13120F; color: #fff; font-size: 1.05rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.board-cork { min-height: 260px; padding: 30px 20px 26px; border-radius: 10px; background-color: #c9935a; background-image: radial-gradient(rgba(96, 52, 20, .35) 1px, transparent 1.7px), radial-gradient(rgba(255, 232, 196, .3) 1px, transparent 1.7px); background-position: 0 0, 5px 7px; background-size: 9px 9px, 13px 13px; box-shadow: inset 0 0 0 3px rgba(60, 30, 10, .4), inset 0 8px 16px rgba(60, 30, 10, .35); }
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 30px 20px; }
+
+main.breadlet-blue-theme.breadlet-blue-theme .board-note { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: center; padding: 20px 12px 12px; border: 0; border-radius: 3px; background: linear-gradient(#fffdf6, #f5e8cd); box-shadow: 0 2px 0 rgba(0, 0, 0, .12), 0 12px 14px -8px rgba(40, 20, 5, .55); color: #3b1f0e; text-align: center; transform: rotate(var(--tilt, 0deg)); transition: transform .15s ease, box-shadow .15s ease; cursor: pointer; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note:hover, main.breadlet-blue-theme.breadlet-blue-theme .board-note:focus-visible { z-index: 2; transform: rotate(0deg) translateY(-5px) scale(1.03); box-shadow: 0 2px 0 rgba(0, 0, 0, .12), 0 18px 18px -8px rgba(40, 20, 5, .6); }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note::after { content: ""; position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; background: linear-gradient(to top left, #c9935a 50%, #e3cfa6 50%); box-shadow: -2px -2px 3px rgba(60, 30, 10, .15); }
+.board-pin { position: absolute; top: 6px; left: 50%; width: 17px; height: 17px; border-radius: 50%; background: radial-gradient(circle at 35% 32%, rgba(255, 255, 255, .75) 0 2px, var(--pin) 3px); box-shadow: 0 2px 0 rgba(0, 0, 0, .35), 2px 4px 4px rgba(0, 0, 0, .25); transform: translateX(-50%); }
+.board-wish { position: absolute; top: 4px; right: 8px; color: #e9a21a; font-size: 1.15rem; line-height: 1; }
+.board-art { display: block; width: 96px; height: 96px; margin: 6px 0 6px; }
+.board-name { display: block; max-width: 100%; font-size: 1rem; font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; }
+.board-rarity { margin-top: 5px; padding: 1px 10px; border-radius: 999px; background: var(--rarity); color: #fff; font-size: .68rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+.board-price { display: flex; width: 100%; align-items: center; justify-content: center; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 2px dashed rgba(59, 31, 14, .25); color: #13120F; font-size: 1.35rem; font-weight: 900; line-height: 1; }
+.board-price img { width: 22px; height: 22px; }
+.board-price.is-none { color: #8a6a4a; font-size: .95rem; }
+.board-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 8px; margin-top: 6px; color: #7a5a3a; font-size: .74rem; font-weight: 800; }
+.board-meta b { color: #2e7d32; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note.is-closed { opacity: .82; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note.is-small { padding: 18px 8px 10px; }
+.board-note.is-small .board-art { width: 58px; height: 58px; margin: 4px 0; }
+.board-note.is-small .board-name { font-size: .8rem; }
+.board-empty { max-width: 420px; margin: 40px auto; padding: 22px; border-radius: 3px; background: #fffdf6; box-shadow: 0 12px 14px -8px rgba(40, 20, 5, .55); color: #3b1f0e; font-weight: 900; text-align: center; transform: rotate(-1.2deg); }
+.board-drawer { margin-top: 22px; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-drawer-toggle { display: block; width: 100%; padding: 12px 16px; border: 4px solid #13120F; border-radius: 16px; background: #27251F; box-shadow: 0 5px 0 #13120F; color: #fff4df; font-weight: 900; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-drawer-toggle:hover { background: #3a352c; }
+.board-drawer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 22px 14px; margin-top: 14px; padding: 22px 16px; border: 4px solid #13120F; border-radius: 16px; background: #7a4724; }
+@media (max-width: 640px) {
+  .board-frame { padding: 10px; }
+  .board-cork { padding: 26px 10px 20px; }
+  .board-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 12px; }
+  .board-art { width: 76px; height: 76px; }
+  .board-name { font-size: .88rem; }
+  .board-price { font-size: 1.12rem; }
+  .board-price img { width: 18px; height: 18px; }
+  .board-drawer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 18px 10px; }
+}
+
+/* Settings previews for the two Bazaar styles. */
+.bazaar-style-booths i { top: 14px; width: 18px; height: 22px; border-top: 6px solid #13120F; border-radius: 2px; background: #fff4df; }
+.bazaar-style-booths i:nth-child(1) { left: 5px; } .bazaar-style-booths i:nth-child(2) { left: 28px; } .bazaar-style-booths i:nth-child(3) { left: 51px; }
+.bazaar-style-booths i:nth-child(n+4) { display: none; }
+.bazaar-style-board { background: #c9935a; box-shadow: inset 0 0 0 4px #7a4724; }
+.bazaar-style-board i { width: 16px; height: 14px; border-radius: 1px; background: #fffdf6; }
+.bazaar-style-board i:nth-child(1) { left: 9px; top: 9px; transform: rotate(-4deg); } .bazaar-style-board i:nth-child(2) { left: 29px; top: 8px; transform: rotate(3deg); } .bazaar-style-board i:nth-child(3) { left: 49px; top: 10px; transform: rotate(-2deg); }
+.bazaar-style-board i:nth-child(4) { left: 10px; top: 28px; transform: rotate(2deg); } .bazaar-style-board i:nth-child(5) { left: 30px; top: 29px; transform: rotate(-3deg); } .bazaar-style-board i:nth-child(6) { left: 50px; top: 27px; transform: rotate(4deg); }
+/* The site makes all text white (main.breadlet-blue-theme *), so the notes' dark ink needs !important. */
+main.breadlet-blue-theme.breadlet-blue-theme .board-note, main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-name { color: #3b1f0e !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-price { color: #13120F !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-price.is-none { color: #8a6a4a !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-meta, main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-meta span { color: #7a5a3a !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-meta b { color: #2e7d32 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-wish { color: #e9a21a !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-empty { color: #3b1f0e !important; }
