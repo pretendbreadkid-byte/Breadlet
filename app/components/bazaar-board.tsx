@@ -28,6 +28,37 @@ const tiltFor = (text: string) => {
   return ((value % 7) - 3) * 0.8;
 };
 
+// Price tags (the default look): small dark hang tags with a rarity stripe, the Breadlet, its name
+// and its price always showing.
+export function BazaarTags({ notes, mine, onOpen, BlookArt }: {
+  notes: BoardNote[];
+  mine: boolean;
+  onOpen: (name: string) => void;
+  BlookArt: ComponentType<{ name: string; className: string }>;
+}) {
+  if (!notes.length) {
+    return <p className="bazaar-empty mt-6 rounded-2xl border p-8 text-center">{mine ? "You have no active listings." : "No listings match your search yet."}</p>;
+  }
+  return (
+    <section className="tag-grid" aria-label="Breadlets for sale">
+      {notes.map((item) => (
+        <button key={item.name} type="button" onClick={() => onOpen(item.name)} className={`price-tag${item.quantity ? "" : " is-closed"}`}
+          style={{ "--rarity": item.color } as Record<string, string>}
+          aria-label={`${item.name} (${item.rarity}), ${item.quantity ? `${item.quantity} for sale from ${item.lowest.toLocaleString()} Bread Bucks` : "not for sale"}`}>
+          <span className="price-tag-hole" aria-hidden="true" />
+          {item.wished && <span className="price-tag-wish" title="On your wishlist">★</span>}
+          <span className="price-tag-art"><BlookArt name={item.name} className="h-full w-full" /></span>
+          <span className="price-tag-name">{item.name}</span>
+          {item.quantity
+            ? <span className="price-tag-price"><img src="/assets/Bread%20bucks.svg" alt="" />{item.lowest.toLocaleString()}</span>
+            : <span className="price-tag-price is-none">Not for sale</span>}
+          <span className="price-tag-meta">{item.quantity ? `${item.quantity} for sale` : item.rarity}</span>
+        </button>
+      ))}
+    </section>
+  );
+}
+
 export function BazaarBoard({ notes, mine, onOpen, BlookArt }: {
   notes: BoardNote[];
   mine: boolean;

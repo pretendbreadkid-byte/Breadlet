@@ -7,7 +7,7 @@ import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketR
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { AdminPlayerPanel } from "./components/admin-player-panel";
-import { BazaarBoard } from "./components/bazaar-board";
+import { BazaarBoard, BazaarTags } from "./components/bazaar-board";
 import { GARDEN_TAG } from "../lib/garden-link";
 import { SettingsTab, readSettings, useSettings } from "./components/settings-tab";
 import { isInboxType } from "../lib/inbox";
@@ -3900,9 +3900,10 @@ function Bazaar({
   const [marketListings, setMarketListings] = useState<Listing[]>(player.listings);
   const [selectedBlook, setSelectedBlook] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
-  // Settings > Layout > Bazaar style: paper notices (default) or the old booths.
+  // Settings > Layout > Bazaar style: price tags (default), paper notices, or the old booths.
   const { settings: bazaarSettings } = useSettings();
   const boardStyle = bazaarSettings.bazaarStyle !== "booths";
+  const noticeStyle = bazaarSettings.bazaarStyle === "notices";
   // Recent average price of every Breadlet that has sold (average of its last 10 sales).
   const [raps, setRaps] = useState<Record<string, number>>({});
   const existCounts = useExistCounts();
@@ -4075,7 +4076,8 @@ function Bazaar({
             rap: raps[name] || 0, exist: existCounts[name] || 0, wished: wishlist.includes(name),
           };
         };
-        return <BazaarBoard notes={blookGroups.map(noteFor)} mine={view === "mine"} onOpen={(name) => { setSelectedBlook(name); setDetailsOpen(true); }} BlookArt={BlookImg} />;
+        const Look = noticeStyle ? BazaarBoard : BazaarTags;
+        return <Look notes={blookGroups.map(noteFor)} mine={view === "mine"} onOpen={(name) => { setSelectedBlook(name); setDetailsOpen(true); }} BlookArt={BlookImg} />;
       })() : blookGroups.length ? (
         <section className="bazaar-blook-grid mt-5" aria-label="Breadlets for sale">
           {blookGroups.map((name) => {

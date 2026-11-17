@@ -4104,10 +4104,10 @@ main.breadlet-blue-theme.breadlet-blue-theme .board-note.is-closed .board-art { 
 .bazaar-style-booths i { top: 14px; width: 18px; height: 22px; border-top: 6px solid #13120F; border-radius: 2px; background: #fff4df; }
 .bazaar-style-booths i:nth-child(1) { left: 5px; } .bazaar-style-booths i:nth-child(2) { left: 28px; } .bazaar-style-booths i:nth-child(3) { left: 51px; }
 .bazaar-style-booths i:nth-child(n+4) { display: none; }
-.bazaar-style-board { background: #c9935a; box-shadow: inset 0 0 0 4px #7a4724; }
-.bazaar-style-board i { width: 16px; height: 14px; border-radius: 1px; background: #fffdf6; }
-.bazaar-style-board i:nth-child(1) { left: 9px; top: 9px; transform: rotate(-4deg); } .bazaar-style-board i:nth-child(2) { left: 29px; top: 8px; transform: rotate(3deg); } .bazaar-style-board i:nth-child(3) { left: 49px; top: 10px; transform: rotate(-2deg); }
-.bazaar-style-board i:nth-child(4) { left: 10px; top: 28px; transform: rotate(2deg); } .bazaar-style-board i:nth-child(5) { left: 30px; top: 29px; transform: rotate(-3deg); } .bazaar-style-board i:nth-child(6) { left: 50px; top: 27px; transform: rotate(4deg); }
+.bazaar-style-notices { background: #c9935a; box-shadow: inset 0 0 0 4px #7a4724; }
+.bazaar-style-notices i { width: 16px; height: 14px; border-radius: 1px; background: #fffdf6; }
+.bazaar-style-notices i:nth-child(1) { left: 9px; top: 9px; transform: rotate(-4deg); } .bazaar-style-notices i:nth-child(2) { left: 29px; top: 8px; transform: rotate(3deg); } .bazaar-style-notices i:nth-child(3) { left: 49px; top: 10px; transform: rotate(-2deg); }
+.bazaar-style-notices i:nth-child(4) { left: 10px; top: 28px; transform: rotate(2deg); } .bazaar-style-notices i:nth-child(5) { left: 30px; top: 29px; transform: rotate(-3deg); } .bazaar-style-notices i:nth-child(6) { left: 50px; top: 27px; transform: rotate(4deg); }
 
 /* "An admin gave me access" on the Reset your password screen. */
 main.auth-screen .device-recovery-open { display: block; width: 100%; margin-top: 12px; padding: 10px; border: 2px dashed #e9bd67; border-radius: 14px; background: transparent; color: #ffe2a0; font-weight: 900; }
@@ -4163,3 +4163,23 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-view-tabs but
 /* Buttons get a box shadow on hover site-wide, which drew a rectangle around the paper. */
 main.breadlet-blue-theme.breadlet-blue-theme .board-note, main.breadlet-blue-theme.breadlet-blue-theme .board-note:hover, main.breadlet-blue-theme.breadlet-blue-theme .board-note:active { box-shadow: none !important; background-color: transparent !important; outline: none; }
 main.breadlet-blue-theme.breadlet-blue-theme .board-note:focus-visible { outline: 3px solid #ED7117; outline-offset: 2px; }
+
+/* ===== Bazaar price tags (the default Bazaar style) ===== */
+.tag-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 16px 12px; margin-top: 16px; padding-bottom: 30px; }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: center; padding: 22px 8px 10px; border: 3px solid #13120F; border-radius: 14px; background: linear-gradient(180deg, #3b2618, #2a1b11) !important; box-shadow: inset 0 5px 0 var(--rarity), 0 4px 0 #13120F !important; color: #fff4df !important; text-align: center; transition: transform .12s ease; cursor: pointer; }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag:hover, main.breadlet-blue-theme.breadlet-blue-theme .price-tag:focus-visible { transform: translateY(-3px); box-shadow: inset 0 5px 0 var(--rarity), 0 7px 0 #13120F !important; }
+.price-tag-hole { position: absolute; top: 9px; left: 50%; width: 10px; height: 10px; border: 2px solid #13120F; border-radius: 50%; background: #f5e1bf; transform: translateX(-50%); }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag-wish { position: absolute; top: 7px; right: 9px; color: #ffd23f !important; font-size: .95rem; line-height: 1; }
+.price-tag-art { display: block; width: 78px; height: 78px; margin-bottom: 6px; }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag-name { display: block; overflow: hidden; max-width: 100%; color: #fff4df !important; font-size: .85rem; font-weight: 900; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag-price { display: flex; align-items: center; gap: 4px; margin-top: 4px; color: #ffd23f !important; font-size: 1rem; font-weight: 900; }
+.price-tag-price img { width: 16px; height: 16px; }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag-price.is-none { color: #bfa98c !important; font-size: .78rem; }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag-meta { margin-top: 2px; color: #bfa98c !important; font-size: .7rem; font-weight: 800; }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag.is-closed { opacity: .72; }
+main.breadlet-blue-theme.breadlet-blue-theme .price-tag.is-closed .price-tag-art { opacity: .6; }
+@media (max-width: 640px) { .tag-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; } .price-tag-art { width: 62px; height: 62px; } }
+/* Settings preview. */
+.bazaar-style-tags { background: #f5e1bf; }
+.bazaar-style-tags i { top: 9px; width: 18px; height: 34px; border-top: 3px solid #ED7117; border-radius: 4px; background: #3b2618; }
+.bazaar-style-tags i:nth-child(1) { left: 6px; } .bazaar-style-tags i:nth-child(2) { left: 28px; } .bazaar-style-tags i:nth-child(3) { left: 50px; } .bazaar-style-tags i:nth-child(n+4) { display: none; }
