@@ -4077,45 +4077,40 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
 /* In a trade: nothing on top of the trade room (side bar / phone tab bar, account box, bottom bar). */
 body.in-trade aside.breadlet-sidebar, body.in-trade .workspace-island, body.in-trade .layout-bottom-bar, body.in-trade .layout-extras { display: none !important; }
 
-/* ===== Bazaar notice board (Settings > Layout > Bazaar style) ===== */
-.board-wrap { position: relative; z-index: 1; margin-top: 34px; }
-.board-frame { position: relative; padding: 16px; border: 4px solid #13120F; border-radius: 20px; background-color: #7a4724; background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 23px), repeating-linear-gradient(90deg, rgba(0, 0, 0, .08) 0 1px, transparent 1px 41px); box-shadow: 0 8px 0 #13120F; }
-.board-header { display: flex; justify-content: center; margin: -42px 0 12px; }
-.board-header span { padding: 7px 26px; border: 4px solid #13120F; border-radius: 14px; background: #ED7117; box-shadow: 0 4px 0 #13120F; color: #fff; font-size: 1.05rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
-.board-cork { min-height: 260px; padding: 30px 20px 26px; border-radius: 10px; background-color: #c9935a; background-image: radial-gradient(rgba(96, 52, 20, .35) 1px, transparent 1.7px), radial-gradient(rgba(255, 232, 196, .3) 1px, transparent 1.7px); background-position: 0 0, 5px 7px; background-size: 9px 9px, 13px 13px; box-shadow: inset 0 0 0 3px rgba(60, 30, 10, .4), inset 0 8px 16px rgba(60, 30, 10, .35); }
-.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 30px 20px; }
+/* ===== Bazaar notice board (Settings > Layout > Bazaar style) =====
+   Notices are the paper art in /assets/bazaar (312x328, pin at the top in the rarity colour). */
+.board-wrap { position: relative; z-index: 1; display: flex; min-height: calc(100vh - 230px); flex-direction: column; margin-top: 12px; }
+.board-frame { display: flex; flex: 1; padding: 12px; border: 4px solid #13120F; border-radius: 18px; background-color: #7a4724; background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 23px), repeating-linear-gradient(90deg, rgba(0, 0, 0, .08) 0 1px, transparent 1px 41px); box-shadow: 0 6px 0 #13120F; }
+.board-cork { flex: 1; padding: 18px 16px 22px; border-radius: 10px; background-color: #c9935a; background-image: radial-gradient(rgba(96, 52, 20, .35) 1px, transparent 1.7px), radial-gradient(rgba(255, 232, 196, .3) 1px, transparent 1.7px); background-position: 0 0, 5px 7px; background-size: 9px 9px, 13px 13px; box-shadow: inset 0 0 0 3px rgba(60, 30, 10, .4), inset 0 8px 16px rgba(60, 30, 10, .35); }
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 16px; }
 
-main.breadlet-blue-theme.breadlet-blue-theme .board-note { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: center; padding: 20px 12px 12px; border: 0; border-radius: 3px; background: linear-gradient(#fffdf6, #f5e8cd); box-shadow: 0 2px 0 rgba(0, 0, 0, .12), 0 12px 14px -8px rgba(40, 20, 5, .55); color: #3b1f0e; text-align: center; transform: rotate(var(--tilt, 0deg)); transition: transform .15s ease, box-shadow .15s ease; cursor: pointer; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note:hover, main.breadlet-blue-theme.breadlet-blue-theme .board-note:focus-visible { z-index: 2; transform: rotate(0deg) translateY(-5px) scale(1.03); box-shadow: 0 2px 0 rgba(0, 0, 0, .12), 0 18px 18px -8px rgba(40, 20, 5, .6); }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note::after { content: ""; position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; background: linear-gradient(to top left, #c9935a 50%, #e3cfa6 50%); box-shadow: -2px -2px 3px rgba(60, 30, 10, .15); }
-.board-pin { position: absolute; top: 6px; left: 50%; width: 17px; height: 17px; border-radius: 50%; background: radial-gradient(circle at 35% 32%, rgba(255, 255, 255, .75) 0 2px, var(--pin) 3px); box-shadow: 0 2px 0 rgba(0, 0, 0, .35), 2px 4px 4px rgba(0, 0, 0, .25); transform: translateX(-50%); }
-.board-wish { position: absolute; top: 4px; right: 8px; color: #e9a21a; font-size: 1.15rem; line-height: 1; }
-.board-art { display: block; width: 96px; height: 96px; margin: 6px 0 6px; }
-.board-name { display: block; max-width: 100%; font-size: 1rem; font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; }
-.board-rarity { margin-top: 5px; padding: 1px 10px; border-radius: 999px; background: var(--rarity); color: #fff; font-size: .68rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
-.board-price { display: flex; width: 100%; align-items: center; justify-content: center; gap: 6px; margin-top: 9px; padding-top: 8px; border-top: 2px dashed rgba(59, 31, 14, .25); color: #13120F; font-size: 1.35rem; font-weight: 900; line-height: 1; }
-.board-price img { width: 22px; height: 22px; }
-.board-price.is-none { color: #8a6a4a; font-size: .95rem; }
-.board-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 8px; margin-top: 6px; color: #7a5a3a; font-size: .74rem; font-weight: 800; }
-.board-meta b { color: #2e7d32; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note.is-closed { opacity: .82; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note.is-small { padding: 18px 8px 10px; }
-.board-note.is-small .board-art { width: 58px; height: 58px; margin: 4px 0; }
-.board-note.is-small .board-name { font-size: .8rem; }
-.board-empty { max-width: 420px; margin: 40px auto; padding: 22px; border-radius: 3px; background: #fffdf6; box-shadow: 0 12px 14px -8px rgba(40, 20, 5, .55); color: #3b1f0e; font-weight: 900; text-align: center; transform: rotate(-1.2deg); }
-.board-drawer { margin-top: 22px; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-drawer-toggle { display: block; width: 100%; padding: 12px 16px; border: 4px solid #13120F; border-radius: 16px; background: #27251F; box-shadow: 0 5px 0 #13120F; color: #fff4df; font-weight: 900; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note { position: relative; display: block; width: 100%; aspect-ratio: 312 / 328; padding: 0; border: 0; border-radius: 0; background-color: transparent; background-position: center; background-repeat: no-repeat; background-size: contain; filter: drop-shadow(0 8px 6px rgba(40, 20, 5, .35)); transform: rotate(var(--tilt, 0deg)); transition: transform .15s ease; cursor: pointer; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note:hover, main.breadlet-blue-theme.breadlet-blue-theme .board-note:focus-visible { z-index: 3; transform: rotate(0deg) translateY(-4px) scale(1.04); }
+/* The Breadlet sits in the middle of the paper, under the pin. */
+.board-art { position: absolute; left: 19%; top: 22%; width: 58%; height: 58%; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-wish { position: absolute; top: 9%; left: 13%; color: #e9a21a !important; font-size: 1.1rem; line-height: 1; }
+/* Name and price: a little tag that shows on hover (always shown on phones and tablets). */
+.board-tag { position: absolute; left: 50%; bottom: -9%; z-index: 4; display: flex; max-width: 112%; flex-direction: column; align-items: center; gap: 1px; padding: 5px 11px 6px; border: 3px solid #13120F; border-radius: 12px; background: #27251F; box-shadow: 0 4px 0 #13120F; opacity: 0; pointer-events: none; transform: translate(-50%, 6px); transition: opacity .12s ease, transform .12s ease; white-space: nowrap; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-tag b { overflow: hidden; max-width: 100%; color: #fff4df !important; font-size: .85rem; font-weight: 900; text-overflow: ellipsis; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-tag-price { display: flex; align-items: center; gap: 4px; color: #ffd23f !important; font-size: .9rem; font-weight: 900; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-tag-price small { color: #d8c3a8 !important; font-size: .7rem; font-weight: 800; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-tag-price.is-none { color: #d8c3a8 !important; font-size: .75rem; }
+.board-tag-price img { width: 15px; height: 15px; }
+.board-note:hover .board-tag, .board-note:focus-visible .board-tag { opacity: 1; transform: translate(-50%, 0); }
+@media (hover: none) { .board-tag { opacity: 1; transform: translate(-50%, 0); } }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note.is-closed .board-art { opacity: .55; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-empty { max-width: 420px; margin: 60px auto; padding: 22px; border-radius: 3px; background: #ece7c6; box-shadow: 0 12px 14px -8px rgba(40, 20, 5, .55); color: #3b1f0e !important; font-weight: 900; text-align: center; transform: rotate(-1.2deg); }
+.board-drawer { margin-top: 18px; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-drawer-toggle { display: block; width: 100%; padding: 10px 16px; border: 4px solid #13120F; border-radius: 16px; background: #27251F; box-shadow: 0 5px 0 #13120F; color: #fff4df; font-weight: 900; }
 main.breadlet-blue-theme.breadlet-blue-theme .board-drawer-toggle:hover { background: #3a352c; }
-.board-drawer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 22px 14px; margin-top: 14px; padding: 22px 16px; border: 4px solid #13120F; border-radius: 16px; background: #7a4724; }
+.board-drawer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px 12px; margin-top: 14px; padding: 18px 14px; border: 4px solid #13120F; border-radius: 16px; background: #7a4724; }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note.is-small .board-tag b { font-size: .72rem; }
 @media (max-width: 640px) {
-  .board-frame { padding: 10px; }
-  .board-cork { padding: 26px 10px 20px; }
-  .board-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 12px; }
-  .board-art { width: 76px; height: 76px; }
-  .board-name { font-size: .88rem; }
-  .board-price { font-size: 1.12rem; }
-  .board-price img { width: 18px; height: 18px; }
-  .board-drawer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 18px 10px; }
+  .board-wrap { min-height: calc(100svh - 260px); }
+  .board-frame { padding: 8px; }
+  .board-cork { padding: 14px 8px 16px; }
+  .board-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; }
+  .board-drawer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 14px 8px; }
 }
 
 /* Settings previews for the two Bazaar styles. */
@@ -4126,14 +4121,6 @@ main.breadlet-blue-theme.breadlet-blue-theme .board-drawer-toggle:hover { backgr
 .bazaar-style-board i { width: 16px; height: 14px; border-radius: 1px; background: #fffdf6; }
 .bazaar-style-board i:nth-child(1) { left: 9px; top: 9px; transform: rotate(-4deg); } .bazaar-style-board i:nth-child(2) { left: 29px; top: 8px; transform: rotate(3deg); } .bazaar-style-board i:nth-child(3) { left: 49px; top: 10px; transform: rotate(-2deg); }
 .bazaar-style-board i:nth-child(4) { left: 10px; top: 28px; transform: rotate(2deg); } .bazaar-style-board i:nth-child(5) { left: 30px; top: 29px; transform: rotate(-3deg); } .bazaar-style-board i:nth-child(6) { left: 50px; top: 27px; transform: rotate(4deg); }
-/* The site makes all text white (main.breadlet-blue-theme *), so the notes' dark ink needs !important. */
-main.breadlet-blue-theme.breadlet-blue-theme .board-note, main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-name { color: #3b1f0e !important; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-price { color: #13120F !important; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-price.is-none { color: #8a6a4a !important; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-meta, main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-meta span { color: #7a5a3a !important; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-meta b { color: #2e7d32 !important; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-wish { color: #e9a21a !important; }
-main.breadlet-blue-theme.breadlet-blue-theme .board-empty { color: #3b1f0e !important; }
 
 /* "An admin gave me access" on the Reset your password screen. */
 main.auth-screen .device-recovery-open { display: block; width: 100%; margin-top: 12px; padding: 10px; border: 2px dashed #e9bd67; border-radius: 14px; background: transparent; color: #ffe2a0; font-weight: 900; }
@@ -4144,3 +4131,45 @@ main.auth-screen .device-recovery input { padding: 10px 14px; border: 2px solid 
 main.auth-screen .device-recovery .device-recovery-error { color: #ff9a8a; font-weight: 800; }
 main.auth-screen .device-recovery-go { padding: 11px; border: 3px solid #13120F; border-radius: 14px; background: #ED7117; color: #fff; font-weight: 900; }
 main.auth-screen .device-recovery-go:disabled { opacity: .6; }
+
+/* Page titles: small, tucked in the top-left corner of every page, in the site's title font
+   (Titan One, loaded by the site edits). */
+main.breadlet-blue-theme.breadlet-blue-theme section.game-workspace { position: relative; }
+main.breadlet-blue-theme.breadlet-blue-theme section.game-workspace .page-sign,
+main.breadlet-blue-theme.breadlet-blue-theme section.game-workspace h1.bazaar-shop-title {
+  position: absolute !important;
+  top: 16px;
+  left: 22px;
+  z-index: 6;
+  margin: 0 !important;
+  font-family: "Titan One", Quicksand, ui-rounded, system-ui, sans-serif !important;
+  font-size: 1.2rem !important;
+  font-weight: 400 !important;
+  letter-spacing: .01em !important;
+  line-height: 1.2 !important;
+  padding: 3px 12px 4px !important;
+  border: 2px solid #13120F !important;
+  border-radius: 10px !important;
+  background: #27251F !important;
+  box-shadow: 0 3px 0 #13120F !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  white-space: nowrap;
+}
+/* Ted's Shop's title is a button next to the Quick/Auto open switches, so it stays in the row, just small. */
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-title.teds-shop-heading { font-family: "Titan One", Quicksand, ui-rounded, system-ui, sans-serif !important; font-size: 1.2rem !important; font-weight: 400 !important; line-height: 1.2 !important; letter-spacing: .01em !important; padding: 3px 12px 4px !important; border: 2px solid #13120F !important; border-radius: 10px !important; background: #27251F !important; box-shadow: 0 3px 0 #13120F !important; text-shadow: none !important; -webkit-text-stroke: 0 !important; color: #fff !important; }
+
+/* Bazaar: a slimmer top (awning, search, filters, tabs) so the stalls / notice board get the room. */
+.bazaar-scene .bazaar-awning { transform: scaleY(.62); transform-origin: top; }
+.bazaar-scene .bazaar-header { min-height: 62px !important; margin-bottom: 4px !important; padding-top: 0 !important; }
+@media (max-width: 767px) { .bazaar-scene .bazaar-header { min-height: 0 !important; padding: 4.6rem 0 0 !important; } }
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-toolbar { gap: 8px; }
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-search-field { min-height: 36px; padding: 0 10px; border-radius: 10px; }
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-search-field input { font-size: 13px; }
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-toolbar .bazaar-filter-control,
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-toolbar .bazaar-list-button { min-height: 36px !important; padding-top: 4px; padding-bottom: 4px; border-radius: 10px; font-size: 13px !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-quick-filters { gap: 6px; margin-top: 6px; }
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-quick-filters button { padding: 3px 11px; font-size: .78rem; }
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-view-tabs { min-height: 0 !important; margin-top: 8px !important; padding: 3px !important; border-radius: 11px !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene .bazaar-view-tabs button { padding: 5px 12px !important; font-size: .85rem; }
