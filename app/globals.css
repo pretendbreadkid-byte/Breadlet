@@ -4030,3 +4030,12 @@ main.breadlet-blue-theme.breadlet-blue-theme .bazaar-scene h1.bazaar-shop-title 
 .garden-decor-img, .garden-growth, .garden-sign, .garden-bed-art { filter: none !important; }
 .garden-sparkles i { filter: none; }
 .garden-fly svg { filter: none; }
+
+/* Garden performance mode. */
+.garden-viewport.is-lite .garden-sparkles, .garden-viewport.is-lite .garden-sway { display: none; }
+.garden-viewport.is-lite .explore-walker img { filter: none !important; }
+
+/* "Name's Garden" buttons in chat. */
+.chat-garden-link { display: inline-flex; align-items: center; gap: 4px; margin: 0 2px; padding: 1px 9px; border: 2px solid #3b7a2a; border-radius: 999px; background: #4f9d35; color: #fff; font-weight: 900; font-size: .9em; vertical-align: baseline; cursor: pointer; }
+.chat-garden-link:hover:not(:disabled) { background: #5cb53e; }
+.chat-garden-link:disabled { opacity: .7; cursor: default; }

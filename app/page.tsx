@@ -6,6 +6,7 @@ import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
+import { GARDEN_TAG } from "../lib/garden-link";
 import { SettingsTab, readSettings, useSettings } from "./components/settings-tab";
 import { isInboxType } from "../lib/inbox";
 import { BreadletExplore } from "./components/breadlet-explore";
@@ -2306,7 +2307,7 @@ function MainPage() {
           )}
           {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
           {tab === "explore" && player.exploreBeta && !isGuest && !kidMode && player.id && <BreadletExplore player={{ ...player, id: player.id }} artFor={artFor} />}
-          {tab === "chat" && !kidMode && <ChatTab jumpTo={chatJump} clearJump={() => setChatJump("")} refreshPlayer={refreshPlayerFromServer} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
+          {tab === "chat" && !kidMode && <ChatTab openGarden={(ownerId) => { setGardenVisit(ownerId === player.id ? "" : ownerId); setTab("games"); }} jumpTo={chatJump} clearJump={() => setChatJump("")} refreshPlayer={refreshPlayerFromServer} emojis={customEmojis} canManageEmojis={canManageEmojis} reloadEmojis={reloadEmojis} player={player} showBadge={setBadgeInfo} giftNotice={giftChatNotice} clearGiftNotice={() => setGiftChatNotice("")} isGuest={isGuest} onlinePlayers={onlinePlayers} openPlayerProfile={openPlayerProfile} />}
           {tab === "clan" && !kidMode && <ClanTab player={player} setClan={setClan} savePlayer={save} isGuest={isGuest} />}
           {tab === "promo" && (
             <PromoTab
@@ -4475,6 +4476,9 @@ const clanTagColor = (name: string) => {
   return CLAN_TAG_COLORS[hash % CLAN_TAG_COLORS.length];
 };
 
+// Garden tags as plain words (for reply previews).
+const gardenTagText = (text: string) => text.replace(GARDEN_TAG, (_whole, _id, owner) => `${owner}’s Garden`);
+
 // The [Clan] tag by a name in chat. Click it to see the clan's card.
 function ChatClanTag({ clan }: { clan: ChatClan }) {
   const [open, setOpen] = useState(false);
@@ -4497,7 +4501,7 @@ function ChatClanTag({ clan }: { clan: ChatClan }) {
   );
 }
 
-function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis, refreshPlayer, jumpTo = "", clearJump = () => undefined }: { jumpTo?: string; clearJump?: () => void; refreshPlayer: () => void | Promise<void>; emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
+function ChatTab({ openGarden, player, showBadge, giftNotice, clearGiftNotice, isGuest, onlinePlayers, openPlayerProfile, emojis, canManageEmojis, reloadEmojis, refreshPlayer, jumpTo = "", clearJump = () => undefined }: { openGarden: (ownerId: string) => void; jumpTo?: string; clearJump?: () => void; refreshPlayer: () => void | Promise<void>; emojis: { id: string; name: string; image: string }[]; canManageEmojis: boolean; reloadEmojis: () => void | Promise<void>; player: Player; showBadge: (badge: string) => void; giftNotice: string; clearGiftNotice: () => void; isGuest: boolean; onlinePlayers: { id: string; username: string; equippedBlook: string }[]; openPlayerProfile: (username: string) => void | Promise<void> }) {
   const [message, setMessage] = useState("");
   const [chatError, setChatError] = useState("");
   const [messages, setMessages] = useState<{ id?: string | number; user: string; text: string; badges?: string[]; equippedBlook?: string; clan?: ChatClan | null; isBreadletBot?: boolean; canDelete?: boolean; canMute?: boolean; evilAi?: boolean; profileId?: string; createdAt?: string; pending?: boolean; replyTo?: { id?: string | number; user: string; message: string } | null }[]>([
@@ -4600,11 +4604,29 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
     }
   };
   // @names in messages: yellow, or red when they're you.
-  const renderWithMentions = (text: string) => {
+  const renderMentions = (text: string, key: string) => {
     const emojiList = [...emojis, ...blookEmojis()];
     return text.split(/(@[A-Za-z0-9_]{3,20})/).map((part, index) => index % 2
-      ? <span key={index} className={part.slice(1).toLowerCase() === lowerName ? "chat-at chat-at-me" : "chat-at"}>{part}</span>
-      : <span key={index}>{renderEmojiText(part, emojiList)}</span>);
+      ? <span key={`${key}-${index}`} className={part.slice(1).toLowerCase() === lowerName ? "chat-at chat-at-me" : "chat-at"}>{part}</span>
+      : <span key={`${key}-${index}`}>{renderEmojiText(part, emojiList)}</span>);
+  };
+  // Garden links show as a "Name's Garden" button that opens their garden.
+  const renderWithMentions = (text: string) => {
+    const parts: React.ReactNode[] = [];
+    let last = 0;
+    for (const match of Array.from(text.matchAll(GARDEN_TAG))) {
+      const at = match.index || 0;
+      if (at > last) parts.push(...renderMentions(text.slice(last, at), `t${at}`));
+      const [, ownerId, owner] = match;
+      parts.push(
+        <button key={`g${at}`} type="button" className="chat-garden-link" disabled={isGuest} title={isGuest ? "Sign in to visit gardens" : `Visit ${owner}'s garden`} onClick={() => openGarden(ownerId)}>
+          <Sprout size={14} aria-hidden="true" />{owner === player.username ? "Your" : `${owner}'s`} Garden
+        </button>,
+      );
+      last = at + match[0].length;
+    }
+    if (last < text.length) parts.push(...renderMentions(text.slice(last), `t${last}`));
+    return parts;
   };
   // Who's typing: Realtime broadcast pings (no database writes). Each typer pings at most every
   // 2.5s; a name drops off 4s after their last ping, or right away when they send.
@@ -5058,7 +5080,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
                         )}
                         {item.replyTo && (
                           <button type="button" onClick={() => item.replyTo?.id != null && document.getElementById(`chat-message-${String(item.replyTo.id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} className="chat-reply-preview">
-                            <Reply size={14} aria-hidden="true" /><b>@{item.replyTo.user}</b><span>{item.replyTo.message.startsWith("[img]") ? "📷 Image" : item.replyTo.message}</span>
+                            <Reply size={14} aria-hidden="true" /><b>@{item.replyTo.user}</b><span>{item.replyTo.message.startsWith("[img]") ? "📷 Image" : gardenTagText(item.replyTo.message)}</span>
                           </button>
                         )}
                         {editingMessageId === messageId ? (
@@ -5134,7 +5156,7 @@ function ChatTab({ player, showBadge, giftNotice, clearGiftNotice, isGuest, onli
             : commandMatches.map((command, index) => <button key={command.name} type="button" role="option" aria-selected={index === pickerIndex} onMouseDown={(event) => { event.preventDefault(); chooseCommand(command); }} className="chat-picker-item"><span className="chat-picker-command">{command.usage}</span><span className="chat-picker-desc">{command.description}</span></button>)}
         </div>}
         {commandResult && <div role="status" className="chat-command-result"><span>{commandResult}</span><button type="button" aria-label="Dismiss" onClick={() => setCommandResult("")}>×</button></div>}
-        {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {replyTarget.message}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">×</button></div>}
+        {replyTarget && <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-l-2 border-sky-300 bg-sky-300/10 px-3 py-2 text-xs text-sky-100"><span className="min-w-0 truncate">Replying to <b>{replyTarget.user}</b>: {gardenTagText(replyTarget.message)}</span><button type="button" aria-label="Cancel reply" onClick={() => setReplyTarget(null)} className="shrink-0 px-2 text-base">×</button></div>}
         <input
           ref={chatInputRef}
           value={message}

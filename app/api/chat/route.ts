@@ -9,6 +9,7 @@ import { ogBadges } from '../../../lib/og-badge';
 import { mentionedNames, notify } from '../../../lib/inbox';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
+import { tagGardenLinks } from '../../../lib/garden-link';
 import { blockedContentError, filterProfanity, hasSevereSlur, hasSexualContent, isNameAllowed, isPastedChatLog } from '../../../lib/chat-filter';
 import { moderateChat } from '../../../lib/chat-moderation';
 import { NETWORK_BANNED_MESSAGE, isNetworkBanned } from '../../../lib/network-identity';
@@ -271,7 +272,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Your username is not allowed, so you cannot chat. Ask a moderator for help.' }, { status: 403 });
   }
 
-  const rawMessage = String(body.message || '').trim();
+  const typed = String(body.message || '').trim();
+  // Garden invite links become a "Name's Garden" button (and so don't count as links).
+  const rawMessage = typed.startsWith('[img]') ? typed : await tagGardenLinks(typed, database);
   // Image messages carry a base64 data URL (png, jpeg, gif, webp or svg) and need a larger limit.
   const isImageMessage = /^\[img\]data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+\/=]+\[\/img\]$/.test(rawMessage) && rawMessage.length <= 600000;
   // A rejected image must not fall through and get posted as a chopped-up text message.
@@ -480,9 +483,9 @@ export async function PATCH(request: Request) {
   }
 
   const id = typeof body.id === 'string' ? body.id.trim() : '';
-  const rawMessage = typeof body.message === 'string'
-    ? body.message.trim().slice(0, 500)
-    : '';
+  const rawMessage = typeof body.message === 'string' && !body.message.trim().startsWith('[img]')
+    ? (await tagGardenLinks(body.message.trim(), database)).slice(0, 500)
+    : typeof body.message === 'string' ? body.message.trim().slice(0, 500) : '';
 
   // Only an author may submit an edit to moderation.
   if (await isNetworkBanned(database, request)) return NextResponse.json({ error: NETWORK_BANNED_MESSAGE }, { status: 403 });

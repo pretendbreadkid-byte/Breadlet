@@ -7,7 +7,8 @@
 // Everything that costs or pays is decided by /api/fields.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Boxes, FlipHorizontal, Minus, Move, Plus, ChevronDown, ChevronUp, Gift, Hammer, Hand, Link2, ShoppingBasket, Sprout, UserPlus } from "lucide-react";
+import { ArrowLeft, Boxes, Gauge, FlipHorizontal, Minus, Move, Plus, ChevronDown, ChevronUp, Gift, Hammer, Hand, Link2, ShoppingBasket, Sprout, UserPlus } from "lucide-react";
+import { useSettings } from "./settings-tab";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
 import {
   DAILY_EARN_LIMIT, GARDEN_TOKEN_ART, MAX_BASKET, MAX_SEEDS_PER_BUY, PLANT_GAP, PROPS, SEEDS,
@@ -79,6 +80,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const [bookOpen, setBookOpen] = useState(false);
   useEffect(() => { if (!gardenBookSeen()) setBookOpen(true); }, []);
   const [now, setNow] = useState(Date.now());
+  // Performance mode (saved in settings): a plainer map with no butterflies or sparkles.
+  const { settings: gardenSettings, update: updateSettings } = useSettings();
+  const lite = gardenSettings.gardenPerformance;
   const [buyWarn, setBuyWarn] = useState<{ seed: SeedName; amount: number; room: number } | null>(null);
   const limitWarned = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -451,9 +455,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
           dragRef.current = null;
           if (drag?.moved && draft) saveDraft(draft);
         }}
-        className={`explore-viewport garden-viewport${placing ? " is-placing" : ""}`}>
+        className={`explore-viewport garden-viewport${placing ? " is-placing" : ""}${lite ? " is-lite" : ""}`}>
         <div className="garden-world" style={{ width: WORLD.width, height: WORLD.height, transform: `translate3d(${-camera.x}px, ${-camera.y}px, 0)` }}>
-          <Meadow isOwner={fields ? fields.isOwner : !gardenId} />
+          <Meadow isOwner={fields ? fields.isOwner : !gardenId} lite={lite} />
           <SeedStand near={nearest?.kind === "stand"} />
           <button type="button" aria-label="Ted's Seed Stand" className="garden-stand-hit" style={{ left: STAND.x, top: STAND.y }} onPointerDown={(event) => { event.stopPropagation(); choose({ kind: "stand" }); }} />
 
@@ -466,7 +470,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
             return <div className={`garden-prop garden-prop-ghost${ok ? "" : " is-bad"}`} style={{ left: ghost.x, top: ghost.y, width: def.width, zIndex: 99999 }}><img src={def.art} alt="" draggable={false} /></div>;
           })()}
 
-          <Ambient />
+          {!lite && <Ambient />}
           {walkers.map((walker) => <WalkerSprite key={walker.id} walker={walker} isMe={walker.id === player.id} artFor={artFor} />)}
           {held && <img src={artFor(held.seed)} alt="" className="garden-held" style={{ left: me.x + 30 * me.facing, top: me.y - 34, zIndex: Math.round(me.y) + 1 }} draggable={false} />}
           {held && Object.values(others).map((walker) => (
@@ -494,6 +498,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         <button type="button" onClick={onExit} className="garden-leave"><ArrowLeft size={18} />Leave</button>
         <button type="button" onClick={() => setBookOpen(true)} className="garden-title garden-title-button" title="Open the gardening book">{fields?.isOwner === false ? `${ownerName}'s Garden` : "My Garden"}</button>
         {fields && <button type="button" onClick={() => setPanel((open) => (open === "props" ? null : "props"))} className="garden-chip garden-chip-button"><Boxes size={16} />Props</button>}
+        <button type="button" onClick={() => updateSettings({ gardenPerformance: !lite })} className={`garden-chip garden-chip-button${lite ? " is-on" : ""}`} aria-pressed={lite} title="A plainer map that runs smoother on slower devices"><Gauge size={16} />Performance{lite ? ": on" : ""}</button>
         {fields?.canBuild && props.length > 0 && <button type="button" onClick={() => { setEditing((on) => !on); setEditId(null); setDraft(null); setPlacing(null); }} className={`garden-chip garden-chip-button${editing ? " is-on" : ""}`} aria-pressed={editing}><Move size={16} />{editing ? "Done editing" : "Edit"}</button>}
         {fields && !fields.isOwner && <span className={`garden-chip${fields.canPlant ? " is-good" : ""}`}><Sprout size={16} />{fields.canPlant ? "You can plant" : `Ask ${ownerName} to plant`}</span>}
         {fields && !fields.isOwner && fields.canBuild && <span className="garden-chip is-good"><Hammer size={16} />You can build</span>}

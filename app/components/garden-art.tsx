@@ -114,6 +114,9 @@ const DECOR: Decor[] = (() => {
   return list;
 })();
 
+// Performance mode keeps just a couple of dozen of the bigger things.
+const LITE_DECOR = DECOR.filter((item) => item.kind === "bush" || item.kind === "rock" || item.kind === "flower").slice(0, 24);
+
 const FLOWER_COLORS = [["#fff", "#ffd23f"], ["#ffd23f", "#e07a12"], ["#ff8fb8", "#fff3a8"], ["#ff7a45", "#ffe066"]];
 
 function DecorSprite({ item }: { item: Decor }) {
@@ -146,6 +149,18 @@ function DecorSprite({ item }: { item: Decor }) {
 }
 
 // The ground: a big grass field with soft light and dark patches and blades everywhere.
+// Performance mode: flat grass with a few plain patches.
+function LiteGround() {
+  const random = seeded(77);
+  const patches = Array.from({ length: 10 }, () => ({ x: random() * WORLD.width, y: random() * WORLD.height, rx: 180 + random() * 220, ry: 110 + random() * 130, light: random() < 0.55 }));
+  return (
+    <svg className="garden-decor" style={{ left: 0, top: 0, zIndex: -1000 }} width={WORLD.width} height={WORLD.height} aria-hidden="true">
+      <rect width={WORLD.width} height={WORLD.height} fill="#5cbd40" />
+      {patches.map((patch, index) => <ellipse key={index} cx={patch.x} cy={patch.y} rx={patch.rx} ry={patch.ry} fill={patch.light ? "#6cc94d" : "#52b038"} />)}
+    </svg>
+  );
+}
+
 function Ground() {
   const random = seeded(77);
   const patches = Array.from({ length: 30 }, () => ({ x: random() * WORLD.width, y: random() * WORLD.height, rx: 140 + random() * 260, ry: 90 + random() * 160, light: random() < 0.55 }));
@@ -170,6 +185,20 @@ function Ground() {
       {patches.map((patch, index) => <ellipse key={index} cx={patch.x} cy={patch.y} rx={patch.rx} ry={patch.ry} fill={`url(#garden-patch-${patch.light ? "light" : "dark"})`} />)}
       <rect width={WORLD.width} height={WORLD.height} fill="url(#garden-blades-a)" />
       <rect width={WORLD.width} height={WORLD.height} fill="url(#garden-blades-b)" />
+    </svg>
+  );
+}
+
+// Performance mode: just the dirt.
+function LitePath() {
+  const points = PATH_POINTS.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+  const plaza = { x: STAND.x + 10, y: STAND.y + 62 };
+  return (
+    <svg className="garden-decor" style={{ left: 0, top: 0, zIndex: -900 }} width={WORLD.width} height={WORLD.height} aria-hidden="true">
+      <ellipse cx={plaza.x} cy={plaza.y} rx="178" ry="68" fill="#a87545" />
+      <polyline points={points} fill="none" stroke="#a87545" strokeWidth="112" strokeLinecap="round" strokeLinejoin="round" />
+      <ellipse cx={plaza.x} cy={plaza.y - 2} rx="170" ry="62" fill="#d4a86e" />
+      <polyline points={points} fill="none" stroke="#d4a86e" strokeWidth="100" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -255,14 +284,15 @@ function Tree({ x, y, size }: { x: number; y: number; size: number }) {
   return <img src="/assets/garden/tree-prop.svg" alt="" className="garden-decor garden-decor-img" style={{ left: x, top: y, width: 170 * size, zIndex: Math.round(y), transform: "translate(-50%, -100%)" }} draggable={false} />;
 }
 
-export const Meadow = memo(function Meadow({ isOwner }: { isOwner: boolean }) {
+// lite: performance mode (a plainer map).
+export const Meadow = memo(function Meadow({ isOwner, lite = false }: { isOwner: boolean; lite?: boolean }) {
   return (
     <>
-      <Ground />
-      <Path />
+      {lite ? <LiteGround /> : <Ground />}
+      {lite ? <LitePath /> : <Path />}
       <div className="garden-lawn" style={{ left: GARDEN.x, top: GARDEN.y, width: GARDEN.width, height: GARDEN.height }} />
       {ROWS.map((row, index) => <div key={index} className="garden-row" style={{ left: row.x, top: row.y, width: row.width, height: row.height }} />)}
-      {DECOR.map((item, index) => <DecorSprite key={index} item={item} />)}
+      {(lite ? LITE_DECOR : DECOR).map((item, index) => <DecorSprite key={index} item={item} />)}
       {TREES.map((tree, index) => <Tree key={index} {...tree} />)}
       <Fence isOwner={isOwner} />
     </>

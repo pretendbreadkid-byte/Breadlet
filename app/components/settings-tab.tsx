@@ -12,6 +12,8 @@ export type Settings = {
   sounds: boolean;
   // How the tabs are laid out (Settings > Layout). Classic is the normal sidebar.
   navLayout: NavLayout;
+  // Garden performance mode: a plainer map for slower devices (toggled at the top of the garden).
+  gardenPerformance: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -23,6 +25,7 @@ export const defaultSettings: Settings = {
   popups: true,
   sounds: true,
   navLayout: "rail",
+  gardenPerformance: false,
 };
 
 const storageKey = "breadlet-settings";
