@@ -488,6 +488,7 @@ export const liveCapsules: Capsule[] = [
       ["Fireplace", "Epic"],
       ["Igloo", "Epic"],
       ["Festive Breadlet", "Legendary"],
+      ["Minti's Holiday Edition", "Legendary"],
       ["Frozen Ted", "Mythic"],
       ["Reindeer", "Secret"],
       ["Christmas Tree Dragon", "Breadled"],

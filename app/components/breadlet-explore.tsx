@@ -85,7 +85,7 @@ function IslandWorld({ island, player, artFor, leave }: { island: Island; player
         <span className="ml-auto flex items-center gap-2 text-sm font-bold text-[#bde8ff]"><Users size={16} />{connected ? `${Object.keys(others).length + 1} here` : "Connecting…"}</span>
       </div>
       <div ref={viewportRef} onPointerDown={walkTo} className="explore-viewport relative flex-1 overflow-hidden rounded-3xl border-4 border-[#0b2a4d] shadow-xl" style={{ background: `radial-gradient(circle at 50% 50%, ${island.water}, ${island.waterDeep})` }}>
-        <div className="absolute left-0 top-0" style={{ width: WORLD.width, height: WORLD.height, transform: `translate3d(${-camera.x}px, ${-camera.y}px, 0)` }}>
+        <div data-walk-world className="absolute left-0 top-0" style={{ width: WORLD.width, height: WORLD.height }}>{/* the camera transform is set every frame by useWalkWorld */}
           <div className="absolute rounded-[50%]" style={{ left: ISLAND.cx - ISLAND.rx, top: ISLAND.cy - ISLAND.ry, width: ISLAND.rx * 2, height: ISLAND.ry * 2, background: `radial-gradient(ellipse at 50% 45%, ${island.ground} 70%, ${island.shore} 100%)`, boxShadow: `0 0 0 18px ${island.shore}55, 0 30px 60px rgba(0,0,0,.35)` }} />
           {DECOR_SPOTS.map((spot, index) => (
             <span key={index} className="pointer-events-none absolute select-none text-5xl" style={{ left: spot.x, top: spot.y, transform: "translate(-50%, -100%)" }} aria-hidden="true">{island.decor[index % island.decor.length]}</span>

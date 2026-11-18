@@ -429,6 +429,7 @@ const artFor = (name: string) =>
     "Gingerbread Cookie": "/assets/winter/gingerbread-cookie.svg",
     Present: "/assets/winter/present.svg",
     "Festive Breadlet": "/assets/winter/festive-breadlet-2.svg",
+    "Minti's Holiday Edition": "/assets/winter/mintis-holiday-edition.webp",
     Reindeer: "/assets/winter/reindeer-animated.svg",
     Gnome: "/assets/winter/gnome-animated.svg",
     "Christmas Tree Dragon": "/assets/winter/christmas-tree-dragon.svg",

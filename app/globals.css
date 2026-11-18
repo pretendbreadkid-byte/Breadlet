@@ -1764,7 +1764,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 .coin-flip-spinning { animation: coin-flip-spin 2.4s cubic-bezier(.2,.6,.3,1) both; }
 /* Breadlet Explore */
 .explore-viewport { cursor: pointer; touch-action: none; user-select: none; }
-.explore-walker-remote { transition: transform 160ms linear; }
+.explore-walker-remote { transition: none; } /* other players glide in code now (walk-world.tsx) */
 .explore-bubble { animation: explore-bubble-pop 180ms cubic-bezier(.2,.9,.3,1.3) both; }
 .explore-bubble::after { content: ""; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); border: 6px solid transparent; border-bottom: 0; border-top-color: rgba(255,255,255,.8); }
 .explore-island-card { transition: transform 160ms ease, box-shadow 160ms ease; }

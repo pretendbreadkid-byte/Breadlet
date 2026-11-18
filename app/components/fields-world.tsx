@@ -93,7 +93,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const pendingRef = useRef<Target | null>(null);
   const solidRef = useRef<ReturnType<typeof propCircles>>([]);
 
-  const { viewportRef, me, others, walkers, connected, camera, walkToPoint, say } = useWalkWorld({
+  const { viewportRef, me, others, walkers, connected, camera, cameraNow, walkToPoint, say } = useWalkWorld({
     room: `garden-${ownerId}`,
     player,
     world: WORLD,
@@ -267,7 +267,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
 
   const worldPoint = (event: React.PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    return { x: event.clientX - rect.left + camera.x, y: event.clientY - rect.top + camera.y };
+    const live = cameraNow();
+    return { x: event.clientX - rect.left + live.x, y: event.clientY - rect.top + live.y };
   };
   // A click on the ground: place the prop you're holding, plant your seed on a row, or walk.
   const clickGround = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -352,7 +353,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const selectedProp = editId ? (draft && draft.id === editId ? draft : props.find((prop) => prop.id === editId)) || null : null;
   const viewportPoint = (clientX: number, clientY: number) => {
     const rect = viewportRef.current?.getBoundingClientRect();
-    return { x: clientX - (rect?.left || 0) + camera.x, y: clientY - (rect?.top || 0) + camera.y };
+    const live = cameraNow();
+    return { x: clientX - (rect?.left || 0) + live.x, y: clientY - (rect?.top || 0) + live.y };
   };
   // Saves a moved, resized or flipped prop. If it can't go there, it snaps back.
   const saveDraft = (next: PlacedProp) => {
@@ -456,7 +458,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
           if (drag?.moved && draft) saveDraft(draft);
         }}
         className={`explore-viewport garden-viewport${placing ? " is-placing" : ""}${lite ? " is-lite" : ""}`}>
-        <div className="garden-world" style={{ width: WORLD.width, height: WORLD.height, transform: `translate3d(${-camera.x}px, ${-camera.y}px, 0)` }}>
+        <div data-walk-world className="garden-world" style={{ width: WORLD.width, height: WORLD.height }}>{/* the camera transform is set every frame by useWalkWorld */}
           <Meadow isOwner={fields ? fields.isOwner : !gardenId} lite={lite} />
           <SeedStand near={nearest?.kind === "stand"} />
           <button type="button" aria-label="Ted's Seed Stand" className="garden-stand-hit" style={{ left: STAND.x, top: STAND.y }} onPointerDown={(event) => { event.stopPropagation(); choose({ kind: "stand" }); }} />
@@ -472,7 +474,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
 
           {!lite && <Ambient />}
           {walkers.map((walker) => <WalkerSprite key={walker.id} walker={walker} isMe={walker.id === player.id} artFor={artFor} />)}
-          {held && <img src={artFor(held.seed)} alt="" className="garden-held" style={{ left: me.x + 30 * me.facing, top: me.y - 34, zIndex: Math.round(me.y) + 1 }} draggable={false} />}
+          {held && <img data-follow-me data-follow-dx="30" data-follow-dy="-34" src={artFor(held.seed)} alt="" className="garden-held" style={{ left: 0, top: 0 }} draggable={false} />}
           {held && Object.values(others).map((walker) => (
             <div key={walker.id} className="garden-give" style={{ left: walker.x, top: walker.y, zIndex: 3000 + Math.round(walker.y) }}
               onPointerEnter={() => setGiveTo(walker.id)} onPointerLeave={() => setGiveTo((id) => (id === walker.id ? null : id))} onPointerDown={(event) => { event.stopPropagation(); setGiveTo(walker.id); }}>
