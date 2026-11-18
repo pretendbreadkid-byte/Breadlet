@@ -4119,33 +4119,33 @@ main.auth-screen .device-recovery .device-recovery-error { color: #ff9a8a; font-
 main.auth-screen .device-recovery-go { padding: 11px; border: 3px solid #13120F; border-radius: 14px; background: #ED7117; color: #fff; font-weight: 900; }
 main.auth-screen .device-recovery-go:disabled { opacity: .6; }
 
-/* Page titles: small, tucked in the top-left corner of every page, in the site's title font
-   (Titan One, loaded by the site edits). */
-main.breadlet-blue-theme.breadlet-blue-theme section.game-workspace { position: relative; }
+/* Page titles: small, in the site's title font (Titan One, loaded by the site edits), sitting in
+   the page like normal text (no box, nothing on top of the page underneath). */
 main.breadlet-blue-theme.breadlet-blue-theme section.game-workspace .page-sign,
-main.breadlet-blue-theme.breadlet-blue-theme section.game-workspace h1.bazaar-shop-title {
-  position: absolute !important;
-  top: 16px;
-  left: 22px;
-  z-index: 6;
-  margin: 0 !important;
+main.breadlet-blue-theme.breadlet-blue-theme section.game-workspace h1.bazaar-shop-title,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-title.teds-shop-heading {
+  position: static !important;
+  display: inline-block;
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  -webkit-text-stroke: 0 !important;
+  color: #fff !important;
   font-family: "Titan One", Quicksand, ui-rounded, system-ui, sans-serif !important;
-  font-size: 1.2rem !important;
+  font-size: 1.35rem !important;
   font-weight: 400 !important;
   letter-spacing: .01em !important;
   line-height: 1.2 !important;
-  padding: 3px 12px 4px !important;
-  border: 2px solid #13120F !important;
-  border-radius: 10px !important;
-  background: #27251F !important;
-  box-shadow: 0 3px 0 #13120F !important;
-  text-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
+  /* A thin dark outline instead of a box, so it reads on stripes and awnings too. */
+  text-shadow: 2px 0 0 #13120F, -2px 0 0 #13120F, 0 2px 0 #13120F, 0 -2px 0 #13120F, 1.5px 1.5px 0 #13120F, -1.5px -1.5px 0 #13120F, 1.5px -1.5px 0 #13120F, -1.5px 1.5px 0 #13120F, 0 4px 0 #13120F !important;
   white-space: nowrap;
 }
-/* Ted's Shop's title is a button next to the Quick/Auto open switches, so it stays in the row, just small. */
-main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-title.teds-shop-heading { font-family: "Titan One", Quicksand, ui-rounded, system-ui, sans-serif !important; font-size: 1.2rem !important; font-weight: 400 !important; line-height: 1.2 !important; letter-spacing: .01em !important; padding: 3px 12px 4px !important; border: 2px solid #13120F !important; border-radius: 10px !important; background: #27251F !important; box-shadow: 0 3px 0 #13120F !important; text-shadow: none !important; -webkit-text-stroke: 0 !important; color: #fff !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-title.teds-shop-heading { margin: 0 !important; }
 
 /* Bazaar: a slimmer top (awning, search, filters, tabs) so the stalls / notice board get the room. */
 .bazaar-scene .bazaar-awning { transform: scaleY(.62); transform-origin: top; }
