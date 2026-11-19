@@ -37,6 +37,8 @@ export function AdminPlayerPanel({ target, openPlayerProfile }: { target: { id: 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteName, setDeleteName] = useState("");
   const [deleted, setDeleted] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/admin/history?targetId=${encodeURIComponent(target.id)}`, { cache: "no-store" }).catch(() => null);
@@ -88,6 +90,15 @@ export function AdminPlayerPanel({ target, openPlayerProfile }: { target: { id: 
       : "Recovery access taken back.");
     void load();
   };
+  const setPassword = async () => {
+    if (newPassword.length < 4) { setNotice("The new password needs at least 4 characters."); return; }
+    if (await act({ method: "POST", body: JSON.stringify({ action: "setPassword", targetId: target.id, password: newPassword }) })) {
+      setNotice(`${target.username}'s password is now "${newPassword}". Tell them, and ask them to change it after they log in.`);
+      setNewPassword("");
+      setPasswordOpen(false);
+      void load();
+    }
+  };
   const remove = async () => {
     if (deleteName !== target.username) { setNotice(`Type ${target.username} exactly to delete the account.`); return; }
     if (await act({ method: "DELETE" }, `/api/admin?targetId=${encodeURIComponent(target.id)}`)) {
@@ -133,8 +144,9 @@ export function AdminPlayerPanel({ target, openPlayerProfile }: { target: { id: 
               : <button type="button" disabled={busy} className="is-danger" onClick={() => { setBanOpen((open) => !open); setDeleteOpen(false); }}><Ban size={15} />Ban</button>}
             {profile?.recoveryUntil
               ? <button type="button" disabled={busy} onClick={() => void recovery(false)}><KeyRound size={15} />Cancel recovery</button>
-              : <button type="button" disabled={busy} onClick={() => void recovery(true)} title="Lets the device that last logged in set a new password (30 minutes, one use)"><KeyRound size={15} />Give recovery access</button>}
-            <button type="button" disabled={busy} className="is-danger" onClick={() => { setDeleteOpen((open) => !open); setBanOpen(false); }}><Trash2 size={15} />Delete account</button>
+              : null}
+            <button type="button" disabled={busy} onClick={() => { setPasswordOpen((open) => !open); setBanOpen(false); setDeleteOpen(false); }} title="Choose a new password for this player, then tell them it"><KeyRound size={15} />Set new password</button>
+            <button type="button" disabled={busy} className="is-danger" onClick={() => { setDeleteOpen((open) => !open); setBanOpen(false); setPasswordOpen(false); }}><Trash2 size={15} />Delete account</button>
           </span>
         </div>
       )}
@@ -145,6 +157,14 @@ export function AdminPlayerPanel({ target, openPlayerProfile }: { target: { id: 
           <div className="admin-player-choices">{BANS.map((item) => <button key={item.hours} type="button" aria-pressed={banHours === item.hours} onClick={() => setBanHours(item.hours)}>{item.label}</button>)}</div>
           <p>Their devices are blocked for the whole ban and their IPs for up to 7 days.</p>
           <button type="button" className="is-danger" disabled={busy} onClick={() => void ban()}>Ban {target.username}</button>
+        </div>
+      )}
+      {passwordOpen && (
+        <div className="admin-player-form">
+          <p>Type a new password for {target.username}. It works right away; tell them what it is.</p>
+          <input value={newPassword} onChange={(event) => setNewPassword(event.target.value)} maxLength={72} placeholder="New password" autoComplete="off"
+            onKeyDown={(event) => { if (event.key === "Enter") void setPassword(); }} />
+          <button type="button" disabled={busy || newPassword.length < 4} onClick={() => void setPassword()}>Save password</button>
         </div>
       )}
       {deleteOpen && (

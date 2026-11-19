@@ -118,6 +118,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, expiresAt, lastSeenAt: last.last_seen_at });
   }
 
+  // Admin sets a new password for a player straight from their profile (no device needed). The admin
+  // then tells the player the new password. Other admins' passwords can't be changed this way.
+  if (body.action === 'setPassword') {
+    const targetId = String(body.targetId || '');
+    const password = String(body.password || '');
+    if (password.length < 4 || password.length > 72) return NextResponse.json({ error: 'Use a password with 4 to 72 characters.' }, { status: 400 });
+    if (targetId === session.userId) return NextResponse.json({ error: 'Change your own password from your settings.' }, { status: 400 });
+    const { data: target } = await session.supabase.from('profiles').select('id, username, stats').eq('id', targetId).maybeSingle();
+    if (!target) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+    const { data: targetAdminRole } = await session.supabase.from('admin_roles').select('role').eq('profile_id', targetId).limit(1).maybeSingle();
+    if (targetAdminRole) return NextResponse.json({ error: "Admin accounts' passwords can't be changed from this panel." }, { status: 403 });
+    const { error } = await session.supabase.auth.admin.updateUserById(targetId, { password });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    // Any open device recovery isn't needed any more.
+    const { recovery: _old, ...stats } = (target.stats || {}) as Record<string, unknown>;
+    if (_old) await session.supabase.from('profiles').update({ stats }).eq('id', targetId);
+    return NextResponse.json({ ok: true, username: target.username });
+  }
+
   if (body.action === 'rename') {
     const result = await adminRenamePlayer(session.supabase, String(body.targetId || ''), String(body.username || ''));
     return 'error' in result ? NextResponse.json({ error: result.error }, { status: result.status }) : NextResponse.json(result);
