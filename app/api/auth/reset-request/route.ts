@@ -17,19 +17,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
   }
 
-  let email = '';
+  // Find the account's email by its id (a list of users stops at the first 1000 accounts).
   const { data: profile } = await admin
     .from('profiles')
-    .select('email')
+    .select('id, email')
     .ilike('username', username)
     .maybeSingle();
-  email = profile?.email || '';
+  let email = profile?.email || '';
+  if (profile && !email) {
+    const { data } = await admin.auth.admin.getUserById(profile.id);
+    email = data?.user?.email || '';
+  }
 
-  if (!email) {
-    const { data: users } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    email = users.users.find((user) =>
-      String(user.user_metadata?.username || '').toLowerCase() === username.toLowerCase(),
-    )?.email || '';
+  // Accounts made without an email have a made-up address that can't get mail. Say so instead of
+  // pretending a link was sent, and point them at the other ways back in.
+  if (profile && (!email || email.endsWith('@accounts.breadlet.com'))) {
+    return NextResponse.json({
+      ok: false,
+      noEmail: true,
+      message: "This account doesn't have an email, so we can't send a reset link. Tap \"Ask an admin for help\" below.",
+    });
   }
 
   if (email) {

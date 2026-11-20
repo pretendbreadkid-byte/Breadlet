@@ -6,6 +6,13 @@ import { ADMIN_USERNAME, ARTIST_USERNAMES, LIMITED_MODERATOR_USERNAMES, MODERATO
 
 export const dynamic = 'force-dynamic';
 
+const FAKE_EMAIL_DOMAIN = '@accounts.breadlet.com';
+// ab•••@gmail.com
+const maskEmail = (email: string) => {
+  const [name, domain] = email.split('@');
+  return `${name.slice(0, 2)}${'•'.repeat(Math.max(1, Math.min(6, name.length - 2)))}@${domain}`;
+};
+
 const RENAME_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 // Staff powers and some badges are tied to these usernames, so they can't be renamed (a freed
 // staff name could otherwise be taken by someone else).
@@ -56,5 +63,43 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  // Recovery email: the address password reset links go to. Accounts made without an email have a
+  // made-up one (breadlet-...@accounts.breadlet.com) that can't get mail. Login looks the email up from
+  // profiles.email first, so both copies are changed together.
+  if (body.action === 'email') {
+    const email = String(body.email || '').trim().toLowerCase();
+    const currentPassword = String(body.currentPassword || '');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254 || email.endsWith(FAKE_EMAIL_DOMAIN)) {
+      return NextResponse.json({ error: 'Enter a real email address.' }, { status: 400 });
+    }
+    if (!user.email) return NextResponse.json({ error: 'This account has no login email.' }, { status: 400 });
+    if (email === user.email.toLowerCase()) return NextResponse.json({ error: 'That is already your recovery email.' }, { status: 400 });
+    const { error: checkError } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPassword });
+    if (checkError) return NextResponse.json({ error: 'Your current password is wrong.' }, { status: 401 });
+    const oldEmail = user.email;
+    const { error } = await admin.auth.admin.updateUserById(user.id, { email, email_confirm: true, user_metadata: { ...(user.user_metadata || {}), emailProvided: true } });
+    if (error) {
+      const taken = /already|registered|exists/i.test(error.message);
+      return NextResponse.json({ error: taken ? 'Another account already uses that email.' : error.message }, { status: taken ? 409 : 400 });
+    }
+    const { error: profileError } = await admin.from('profiles').update({ email }).eq('id', user.id);
+    if (profileError) {
+      // Put the old one back so logging in keeps working.
+      await admin.auth.admin.updateUserById(user.id, { email: oldEmail, email_confirm: true });
+      return NextResponse.json({ error: 'Your email could not be saved. Try again.' }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, email: maskEmail(email) });
+  }
+
   return NextResponse.json({ error: 'Unknown account change.' }, { status: 400 });
+}
+
+// Settings > Account: is there a real recovery email on this account? (Shown partly hidden.)
+export async function GET() {
+  const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ error: 'Accounts are unavailable.' }, { status: 503 });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Sign in first.' }, { status: 401 });
+  const email = user.email || '';
+  return NextResponse.json({ email: email && !email.endsWith(FAKE_EMAIL_DOMAIN) ? maskEmail(email) : null });
 }

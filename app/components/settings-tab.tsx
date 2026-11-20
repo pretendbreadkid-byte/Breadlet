@@ -132,6 +132,7 @@ function AccountForms({ username, onRenamed }: { username: string; onRenamed: ()
         </div>
         {note(nameNote)}
       </div>
+      <RecoveryEmail />
       <div>
         <h3 className="text-2xl font-black text-white">Change password</h3>
         <p className="mb-2 text-sm text-[#c9c7c0]">At least 4 characters.</p>
@@ -144,6 +145,44 @@ function AccountForms({ username, onRenamed }: { username: string; onRenamed: ()
         {note(passwordNote)}
       </div>
     </>
+  );
+}
+
+// Recovery email: where "Forgot password?" sends a reset link. Accounts made without one can add it here.
+function RecoveryEmail() {
+  const [current, setCurrent] = useState<string | null | undefined>(undefined);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState({ ok: false, message: "" });
+  useEffect(() => {
+    fetch("/api/account", { cache: "no-store" }).then((response) => response.json()).then((data) => setCurrent(typeof data.email === "string" ? data.email : null)).catch(() => setCurrent(null));
+  }, []);
+  const save = async () => {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/account", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "email", email: email.trim(), currentPassword: password }) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) setNote({ ok: false, message: result.error || "That email didn't save." });
+      else { setCurrent(result.email); setEmail(""); setPassword(""); setNote({ ok: true, message: "Saved! If you forget your password, \"Forgot password?\" will email a reset link there." }); }
+    } catch {
+      setNote({ ok: false, message: "Could not reach the server." });
+    }
+    setBusy(false);
+  };
+  return (
+    <div className="mb-8">
+      <h3 className="text-2xl font-black text-white">Recovery email</h3>
+      {current === undefined ? <p className="mb-2 text-sm text-[#c9c7c0]">Checking...</p>
+        : current ? <p className="mb-2 text-sm text-[#c9c7c0]">Reset links go to <b className="text-white">{current}</b>. You can change it below.</p>
+        : <p className="mb-2 text-sm font-bold text-[#ffcf7a]">Your account has no email, so you can&apos;t reset your password if you forget it. Add one so you never get locked out.</p>}
+      <div className="grid gap-2">
+        <input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" aria-label="Recovery email" className={inputClass} />
+        <input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Current password" aria-label="Current password for recovery email" className={inputClass} />
+        <div><button type="button" disabled={busy || !email.includes("@") || !password} onClick={() => void save()} className={saveClass}>{current ? "Change email" : "Add email"}</button></div>
+      </div>
+      {note.message && <p role="status" className={`mt-2 text-sm font-bold ${note.ok ? "text-[#9be38f]" : "text-red-300"}`}>{note.message}</p>}
+    </div>
   );
 }
 

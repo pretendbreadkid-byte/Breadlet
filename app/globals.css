@@ -2396,7 +2396,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon * { color: #ff
 .inbox-item:hover:not(:disabled) { transform: none; box-shadow: none; background: #343129 !important; }
 .inbox-item.is-unread { border-color: #ffcb73; background: #3a2a14 !important; }
 .inbox-item-icon { display: grid; width: 38px; height: 38px; flex: none; place-items: center; border-radius: 10px; background: #13120F; font-size: 19px; }
-.inbox-item-message { display: block; margin-top: 2px; font-size: 13px; font-weight: 700; opacity: .85; overflow-wrap: anywhere; }
+.inbox-item-message { display: block; margin-top: 2px; white-space: pre-line; font-size: 13px; font-weight: 700; opacity: .85; overflow-wrap: anywhere; }
 .inbox-item-time { flex: none; align-self: flex-start; font-size: 11px; font-weight: 800; opacity: .65; }
 /* Chat messages that @mention you. */
 .global-chat .chat-mention { margin-left: -8px; border-left: 4px solid #ffcb73; border-radius: 6px; background: rgba(255, 203, 115, .14); padding-left: 6px; }
@@ -4109,13 +4109,20 @@ main.breadlet-blue-theme.breadlet-blue-theme .board-note.is-closed .board-art { 
 .bazaar-style-notices i:nth-child(1) { left: 9px; top: 9px; transform: rotate(-4deg); } .bazaar-style-notices i:nth-child(2) { left: 29px; top: 8px; transform: rotate(3deg); } .bazaar-style-notices i:nth-child(3) { left: 49px; top: 10px; transform: rotate(-2deg); }
 .bazaar-style-notices i:nth-child(4) { left: 10px; top: 28px; transform: rotate(2deg); } .bazaar-style-notices i:nth-child(5) { left: 30px; top: 29px; transform: rotate(-3deg); } .bazaar-style-notices i:nth-child(6) { left: 50px; top: 27px; transform: rotate(4deg); }
 
-/* "An admin gave me access" on the Reset your password screen. */
-main.auth-screen .device-recovery-open { display: block; width: 100%; margin-top: 12px; padding: 10px; border: 2px dashed #e9bd67; border-radius: 14px; background: transparent; color: #ffe2a0; font-weight: 900; }
-main.auth-screen .device-recovery { display: grid; gap: 8px; margin-top: 14px; padding: 14px; border: 3px solid #13120F; border-radius: 16px; background: #27251F; }
-main.auth-screen .device-recovery b { color: #ffe2a0; font-size: 1.05rem; }
-main.auth-screen .device-recovery p { margin: 0; color: #d8c3a8; font-size: .85rem; line-height: 1.4; }
-main.auth-screen .device-recovery input { padding: 10px 14px; border: 2px solid #4a4337; border-radius: 12px; background: #13120F; color: #fff; }
-main.auth-screen .device-recovery .device-recovery-error { color: #ff9a8a; font-weight: 800; }
+/* "Forgot your username?" and "Ask an admin for help" on the Reset your password screen. */
+main.auth-screen .account-help { margin-top: 14px; }
+main.auth-screen .account-help-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+main.auth-screen .account-help-buttons button { padding: 10px 8px; border: 2px dashed #e9bd67; border-radius: 14px; background: transparent; color: #ffe2a0 !important; font-weight: 900; font-size: .85rem; box-shadow: none !important; }
+main.auth-screen .account-help-buttons button[aria-pressed="true"] { border-style: solid; background: #3a2415; }
+main.auth-screen .account-help-box { display: grid; gap: 8px; margin-top: 10px; padding: 14px; border: 3px solid #13120F; border-radius: 16px; background: #27251F; }
+main.auth-screen .account-help-box p { margin: 0; color: #d8c3a8 !important; font-size: .85rem; line-height: 1.4; }
+main.auth-screen .account-help-box input, main.auth-screen .account-help-box textarea { padding: 10px 14px; border: 2px solid #4a4337; border-radius: 12px; background: #13120F; color: #fff; resize: vertical; font: inherit; }
+main.auth-screen .account-help-names { display: flex; flex-wrap: wrap; gap: 6px; }
+main.auth-screen .account-help-names button { padding: 6px 12px; border-radius: 999px; background: #e9bd67; color: #29170c !important; font-weight: 900; box-shadow: none !important; }
+main.auth-screen .account-help-send { padding: 10px; border-radius: 12px; background: #e9bd67; color: #29170c !important; font-weight: 900; box-shadow: none !important; }
+main.auth-screen .account-help-send:disabled { opacity: .6; }
+main.auth-screen .account-help-box .is-good { color: #9be38f !important; font-weight: 800; }
+main.auth-screen .account-help-box .is-bad { color: #ff9a8a !important; font-weight: 800; }
 main.auth-screen .device-recovery-go { padding: 11px; border: 3px solid #13120F; border-radius: 14px; background: #ED7117; color: #fff; font-weight: 900; }
 main.auth-screen .device-recovery-go:disabled { opacity: .6; }
 

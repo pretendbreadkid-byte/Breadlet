@@ -156,9 +156,9 @@ type PublicProfile = {
   createdAt?: string | null;
 };
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
-type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number; from?: string; messageId?: string }; is_read?: boolean; created_at?: string };
+type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number; from?: string; messageId?: string; username?: string }; is_read?: boolean; created_at?: string };
 
-const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", referral: "🎉", wishlist: "⭐", admin_gift: "🎁", summary: "📬" };
+const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", referral: "🎉", wishlist: "⭐", admin_gift: "🎁", summary: "📬", recovery_request: "🔑" };
 
 // A short two-note chime for new Inbox notifications (Web Audio, so no sound file to load).
 function playChime() {
@@ -634,6 +634,7 @@ function MainPage() {
   const [guestWelcomeOpen, setGuestWelcomeOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const resetClickCountRef = useRef(0);
+  const resetNameRef = useRef("");
   const pendingGuestRef = useRef<Player | null>(null);
   const playerSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const gameplayBusyRef = useRef(false);
@@ -1086,6 +1087,7 @@ function MainPage() {
   const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (forgotPassword) {
+      if (resetNameRef.current !== username.trim().toLowerCase()) { resetNameRef.current = username.trim().toLowerCase(); resetClickCountRef.current = 0; }
       resetClickCountRef.current += 1;
       const clicks = resetClickCountRef.current;
       if (clicks === 5) {
@@ -2276,7 +2278,7 @@ function MainPage() {
               <span className="min-w-0 text-left"><b>{inboxToast.title}</b>{inboxToast.message && <span>{inboxToast.message}</span>}</span>
             </button>
           )}
-          {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} openMention={(messageId) => { setInboxOpen(false); setChatJump(messageId); setTab("chat"); }} />}
+          {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} openMention={(messageId) => { setInboxOpen(false); setChatJump(messageId); setTab("chat"); }} openProfile={(name) => { setInboxOpen(false); void openPlayerProfile(name); }} />}
           {tab === "profile" && <ProfileTab isAdmin={adminUnlocked} player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} kidMode={kidMode} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} savePrefs={savePrefs} toggleBlock={toggleBlock} />}
           {tab === "wheel" && <WheelTab player={player} isGuest={isGuest} onClaim={() => setClaimOpen(true)} />}
           {claimOpen && <ClaimPopup player={player} isGuest={isGuest} spin={spinWheel} onClose={closeClaim} />}
@@ -2655,7 +2657,7 @@ function LoginScreen({
         </button>
         {authFeedback && <p role="status" className="mt-3 text-center text-xs leading-5 text-emerald-200">{authFeedback}</p>}
         {authMode === "login" && !forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(true); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Forgot password?</button>}
-        {forgotPassword && <p className="device-recovery-open">No email on your account? Ask an admin in the Breadlet Discord to set a new password for you.</p>}
+        {forgotPassword && <AccountHelp username={username} onPick={(name) => { setUsername(name); setAuthFeedback(""); }} />}
         {forgotPassword && <button type="button" onClick={() => { resetClickCountRef.current = 0; setAuthFeedback(""); setForgotPassword(false); }} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">Back to log in</button>}
         {!forgotPassword && authMode === "login" && <button type="button" onClick={startGuest} className="auth-guest mt-4 w-full rounded-xl px-4 py-3 font-black">Play as guest · free</button>}
         {!forgotPassword && <button type="button" onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="mt-3 w-full text-sm font-bold text-[#bde8ff]">
@@ -2669,7 +2671,7 @@ function LoginScreen({
 
 // Inbox pop-up (from the Inbox button on your profile, or a toast): @mentions, Bazaar sales,
 // completed trades and gifts, newest first.
-function InboxModal({ unreadCount, markRead, close, openMention }: { unreadCount: number; markRead: (body: { id: string } | { all: true }) => Promise<void>; close: () => void; openMention: (messageId: string) => void }) {
+function InboxModal({ unreadCount, markRead, close, openMention, openProfile }: { unreadCount: number; markRead: (body: { id: string } | { all: true }) => Promise<void>; close: () => void; openMention: (messageId: string) => void; openProfile?: (username: string) => void }) {
   const [items, setItems] = useState<PlayerNotification[] | null>(null);
   const load = useCallback(async () => {
     const response = await fetch("/api/notifications?inbox=1", { cache: "no-store" }).catch(() => null);
@@ -2684,6 +2686,8 @@ function InboxModal({ unreadCount, markRead, close, openMention }: { unreadCount
   };
   const readOne = async (item: PlayerNotification) => {
     if (item.type === "mention" && item.payload.messageId) openMention(item.payload.messageId);
+    // Account help requests open that player's profile (Moderation > Set new password).
+    if (item.type === "recovery_request" && typeof item.payload.username === "string") openProfile?.(item.payload.username);
     if (item.is_read) return;
     await markRead({ id: item.id });
     setItems((current) => current?.map((row) => (row.id === item.id ? { ...row, is_read: true } : row)) || current);
@@ -5320,6 +5324,59 @@ function LeaderboardTab({ player, showBadge, openPlayerProfile }: { player: Play
   );
 }// On the "Reset your password" screen: when an admin has given this device recovery access (from
 // the player's profile), the player can choose a new password here without an email.
+// "Forgot password?" extras: find which accounts were used on this device, or ask the admin for help
+// (app/api/auth/recovery-help). The admin then sets a new password from the player's profile.
+function AccountHelp({ username, onPick }: { username: string; onPick: (username: string) => void }) {
+  const [open, setOpen] = useState<"" | "names" | "ask">("");
+  const [accounts, setAccounts] = useState<string[] | null>(null);
+  const [contact, setContact] = useState("");
+  const [note, setNote] = useState("");
+  const [message, setMessage] = useState({ ok: false, text: "" });
+  const [busy, setBusy] = useState(false);
+  const call = async (body: Record<string, string>) => {
+    const response = await fetch("/api/auth/recovery-help", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    const data = await response?.json().catch(() => ({})) || {};
+    return { ok: Boolean(response?.ok), data };
+  };
+  const findNames = async () => {
+    setOpen("names");
+    setAccounts(null);
+    const { data } = await call({ action: "accounts" });
+    setAccounts(Array.isArray(data.accounts) ? data.accounts : []);
+  };
+  const ask = async () => {
+    if (username.trim().length < 3) { setMessage({ ok: false, text: "Type the account's username above first." }); return; }
+    setBusy(true);
+    const { ok, data } = await call({ action: "request", username: username.trim(), contact, note });
+    setBusy(false);
+    setMessage(ok ? { ok: true, text: "Sent! The admin will check it and set a new password for you. Ask in the Breadlet Discord to find out what it is." } : { ok: false, text: data.error || "That didn't send. Try again." });
+  };
+  return (
+    <div className="account-help">
+      <div className="account-help-buttons">
+        <button type="button" aria-pressed={open === "names"} onClick={() => void (open === "names" ? setOpen("") : findNames())}>Forgot your username?</button>
+        <button type="button" aria-pressed={open === "ask"} onClick={() => { setOpen(open === "ask" ? "" : "ask"); setMessage({ ok: false, text: "" }); }}>Ask an admin for help</button>
+      </div>
+      {open === "names" && (
+        <div className="account-help-box">
+          {accounts === null ? <p>Looking...</p> : accounts.length
+            ? <><p>Accounts used on this device. Tap one to fill it in:</p><div className="account-help-names">{accounts.map((name) => <button key={name} type="button" onClick={() => { onPick(name); setOpen(""); }}>{name}</button>)}</div></>
+            : <p>No accounts have logged in on this device yet. Try the device you usually play on.</p>}
+        </div>
+      )}
+      {open === "ask" && (
+        <div className="account-help-box">
+          <p>Type the account&apos;s username above. The admin gets your request and can set a new password for you. It helps to send this from the device you usually play on.</p>
+          <input value={contact} onChange={(event) => setContact(event.target.value)} maxLength={120} placeholder="Your Discord name (so we can tell you)" />
+          <textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={400} rows={2} placeholder="Anything that proves it's yours (best Breadlets, when you made it...)" />
+          <button type="button" className="account-help-send" disabled={busy || message.ok} onClick={() => void ask()}>{busy ? "Sending..." : message.ok ? "Sent" : "Send request"}</button>
+          {message.text && <p role="status" className={message.ok ? "is-good" : "is-bad"}>{message.text}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BadgeModal({ badge, close }: { badge: string; close: () => void }) {
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
