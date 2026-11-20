@@ -4869,6 +4869,16 @@ function ChatTab({ openGarden, player, showBadge, giftNotice, clearGiftNotice, i
       setCommandResult("Edit mode switched. Type /edit again to switch it back.");
       return;
     }
+    // Stats commands (/leaderboard, !me, !<player>, !mycoinflips, !coinflips <player>): the answer only
+    // shows to you. A "!word" that isn't a player is sent to chat as a normal message.
+    if ((commandName === "leaderboard" || /^![a-zA-Z0-9_@]/.test(text)) && supabase) {
+      const response = await fetch("/api/chat/stats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).catch(() => null);
+      const result = await response?.json().catch(() => ({}));
+      if (response?.ok && result?.notCommand) { await sendMessageText(text); return; }
+      if (response?.ok) { setChatError(""); setCommandResult(result?.message || "Done."); }
+      else { setCommandResult(""); setChatError(result?.error || "That command didn't work."); }
+      return;
+    }
     if (SERVER_COMMANDS.has(commandName)) {
       const response = await fetch("/api/chat/command", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) }).catch(() => null);
       const result = await response?.json().catch(() => ({}));

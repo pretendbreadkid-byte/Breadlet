@@ -8,6 +8,8 @@ export const CHAT_COMMANDS: ChatCommand[] = [
   { name: 'ai', usage: '/ai <question>', description: 'Ask Breadlet a question', role: 'everyone' },
   { name: 'accept', usage: '/accept', description: 'Join the open coin flip', role: 'everyone' },
   { name: 'cancel', usage: '/cancel', description: 'Cancel your game', role: 'everyone' },
+  // Stats (app/api/chat/stats): also !me, !<player>, !mycoinflips and !coinflips <player>.
+  { name: 'leaderboard', usage: '/leaderboard', description: 'Players with the most coin flips and their win ratio (only you see it). Also try !me, !<player>, !mycoinflips, !coinflips <player>', role: 'everyone' },
   { name: 'mute', usage: '/mute <player> [minutes]', description: 'Time a player out of chat (30 minutes if no time given)', role: 'mod' },
   { name: 'unmute', usage: '/unmute <player>', description: 'End a player\'s chat timeout', role: 'mod' },
   { name: 'ban', usage: '/ban <player> [hours] [reason]', description: 'Ban a player (permanent if no hours given)', role: 'admin' },
