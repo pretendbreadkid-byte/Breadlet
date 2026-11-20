@@ -233,6 +233,7 @@ const badgeDescriptions: Record<string, string> = {
   Birthday: "Happy birthday! Given by an admin on your birthday.",
   "Fall Fiesta": "Earned in the Breadlet Fall Fiesta.",
   "Breadlet Breaks Bad": "From the Breadlet Breaks Bad event.",
+  "High Roller": "Given to players who do a coin flip over 100K Bread Bucks.",
 };
 // Badges an admin can hand out. Token milestones are automatic and kept once earned, OG from the
 // account age, and Owner / Moderator are tied to the staff usernames, so granting those by hand
@@ -261,6 +262,7 @@ const badgeIconFor = (badge: string) => ({
   Birthday: "/assets/birthday-badge.svg",
   "Fall Fiesta": "/assets/fall-badge.svg",
   "Breadlet Breaks Bad": "/assets/breaking-bad/badge.svg",
+  "High Roller": "/assets/high-roller-badge.svg",
 })[badge] || "/assets/verified-badge-2.svg";
 // Red box + name placeholder for items awaiting final artwork.
 const placeholderArt = (label: string) =>
