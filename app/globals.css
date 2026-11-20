@@ -3121,11 +3121,18 @@ main.breadlet-blue-theme.breadlet-blue-theme .casino-station-card header button 
   main.breadlet-blue-theme > aside.breadlet-sidebar { position: sticky !important; top: 0; z-index: 40; flex-direction: row !important; align-items: center; justify-content: space-between; gap: 8px; height: auto; padding: 6px 12px !important; border-bottom-width: 4px !important; }
   main.breadlet-blue-theme > aside.breadlet-sidebar > div:first-child { display: flex; align-items: center; }
   main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-brand { width: 96px !important; margin: 0; }
-  main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-wordmark { height: 30px !important; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-wordmark { height: 30px !important; display: flex; align-items: center; }
+  /* Fit the logo inside its 30px box (it used to spill over the top of the screen and get cut off). */
+  main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-wordmark img { width: auto !important; max-width: 100%; height: 100% !important; margin: 0 !important; object-fit: contain; }
   .breadlet-sidebar .sidebar-brand:hover::after { content: none; }
   main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-footer { margin: 0 !important; padding: 0 !important; gap: 18px; background: transparent !important; }
   main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; display: flex; gap: 2px; margin: 0; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; border-top: 3px solid #E77D22; background: #13120F; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); scrollbar-width: none; }
   main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav::-webkit-scrollbar { display: none; }
+  /* The buttons sit inside group boxes (for the Grouped layout); on phones the boxes step aside so
+     every tab lines up in the one scrolling bottom bar instead of stacking up the screen. */
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav .sidebar-nav-group { display: contents; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav .sidebar-nav-heading { display: none; }
+  main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav > * + *, main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav .sidebar-nav-group > * + * { margin-top: 0 !important; }
   main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button { position: relative; width: 68px !important; min-height: 54px !important; flex: 0 0 auto; flex-direction: column; justify-content: center; gap: 3px; margin: 0 !important; border-radius: 12px !important; padding: 6px 2px !important; font-size: 11px !important; line-height: 1.1; scroll-snap-align: start; }
   main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button > span { align-items: center !important; white-space: nowrap; }
   main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav .nav-unread-badge { position: absolute; top: 2px; right: 8px; margin: 0; }
