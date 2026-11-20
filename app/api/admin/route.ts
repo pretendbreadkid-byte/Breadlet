@@ -19,9 +19,16 @@ async function adminSession() {
 export async function GET() {
   const session = await adminSession();
   if ('error' in session) return session.error;
-  const { data, error } = await session.supabase.from('profiles').select('id, username, is_banned, ban_reason, ban_expires_at').order('username').limit(1000);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data || []);
+  // Every account, 1000 at a time (one request stops at 1000 rows, which left most players out of
+  // the admin player search).
+  const rows: any[] = [];
+  for (let from = 0; from < 50000; from += 1000) {
+    const { data, error } = await session.supabase.from('profiles').select('id, username, is_banned, ban_reason, ban_expires_at').order('username').order('id').range(from, from + 999);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return NextResponse.json(rows);
 }
 
 export async function POST(request: Request) {

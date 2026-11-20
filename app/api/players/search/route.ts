@@ -23,9 +23,24 @@ export async function GET(request: Request) {
     return NextResponse.json((data || []).map((row) => ({ username: row.username, equippedBlook: nameById.get(row.equipped_blook_id) || '' })), { headers: { 'Cache-Control': 'private, max-age=30' } });
   }
   if (query.length < 2) return NextResponse.json([]);
-  const { data, error } = await supabase.from('profiles').select('id, username, tokens, equipped_blook_id, stats, created_at').ilike('username', `%${query}%`).neq('id', user.id).limit(20);
+  // The exact name first, then names starting with it, then names containing it. (Just "containing,
+  // any 20" could leave the exact player out: searching Redkit showed FatBatRedkit but not Redkit.)
+  // Usernames are letters, numbers and _ only; _ is a wildcard in ilike, so escape it.
+  const safe = query.replace(/[^a-zA-Z0-9_]/g, '').replace(/_/g, '\\_');
+  if (!safe) return NextResponse.json([]);
+  const columns = 'id, username, tokens, equipped_blook_id, stats, created_at';
+  const [exact, starts, contains] = await Promise.all([
+    supabase.from('profiles').select(columns).ilike('username', safe).neq('id', user.id).limit(1),
+    supabase.from('profiles').select(columns).ilike('username', `${safe}%`).neq('id', user.id).order('username').limit(20),
+    supabase.from('profiles').select(columns).ilike('username', `%${safe}%`).neq('id', user.id).order('username').limit(40),
+  ]);
+  const error = exact.error || starts.error || contains.error;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  const profiles = data || [];
+  const seen = new Set<string>();
+  const lower = query.toLowerCase();
+  const profiles = [...(exact.data || []), ...(starts.data || []), ...(contains.data || []).sort((a: any, b: any) => a.username.length - b.username.length)]
+    .filter((profile: any) => !seen.has(profile.id) && seen.add(profile.id) && profile.username.toLowerCase().includes(lower))
+    .slice(0, 20);
   const statsDb = createAdminClient() || supabase;
   const profileIds = profiles.map((profile) => profile.id);
   const equippedIds = profiles.map((profile) => profile.equipped_blook_id).filter(Boolean);
@@ -33,17 +48,16 @@ export async function GET(request: Request) {
     profileIds.length ? statsDb.from('inventory').select('profile_id, quantity').in('profile_id', profileIds) : Promise.resolve({ data: [] }),
     equippedIds.length ? supabase.from('blooks').select('id, name').in('id', equippedIds) : Promise.resolve({ data: [] }),
   ]);
-  const [{ data: chestRolls }, { data: chatMessages }] = await Promise.all([
-    profileIds.length ? statsDb.from('chest_rolls').select('profile_id').in('profile_id', profileIds) : Promise.resolve({ data: [] }),
-    profileIds.length ? statsDb.from('global_chat_messages').select('profile_id').in('profile_id', profileIds).is('deleted_at', null) : Promise.resolve({ data: [] }),
-  ]);
+  // Counted per player (fetching every row was slow and stopped at 1000 rows for busy players).
+  const counts = await Promise.all(profileIds.map((id) => Promise.all([
+    statsDb.from('chest_rolls').select('profile_id', { count: 'exact', head: true }).eq('profile_id', id),
+    statsDb.from('global_chat_messages').select('profile_id', { count: 'exact', head: true }).eq('profile_id', id).is('deleted_at', null),
+  ])));
   const equippedById = new Map((equippedBlooks || []).map((blook: any) => [blook.id, blook.name === 'Surgeon' ? 'Doctor' : blook.name]));
   const countByProfile = new Map<string, number>();
   (inventory || []).forEach((item: any) => countByProfile.set(item.profile_id, (countByProfile.get(item.profile_id) || 0) + Number(item.quantity || 0)));
-  const capsulesByProfile = new Map<string, number>();
-  (chestRolls || []).forEach((item: any) => capsulesByProfile.set(item.profile_id, (capsulesByProfile.get(item.profile_id) || 0) + 1));
-  const messagesByProfile = new Map<string, number>();
-  (chatMessages || []).forEach((item: any) => messagesByProfile.set(item.profile_id, (messagesByProfile.get(item.profile_id) || 0) + 1));
+  const capsulesByProfile = new Map<string, number>(profileIds.map((id, index) => [id, counts[index][0].count || 0]));
+  const messagesByProfile = new Map<string, number>(profileIds.map((id, index) => [id, counts[index][1].count || 0]));
   return NextResponse.json(profiles.map((profile) => {
     const tokens = Number(profile.tokens) || 0;
     return {

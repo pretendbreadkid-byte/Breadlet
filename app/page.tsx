@@ -5852,7 +5852,14 @@ function AdminTab({
   const filteredBlooks = allBlooks.filter((b) =>
     b.toLowerCase().includes(blookSearch.toLowerCase())
   );
-  const filteredPlayers = players.filter((profile) => profile.username.toLowerCase().includes(targetSearch.trim().toLowerCase()));
+  // Exact name first, then names starting with what you typed, then the rest (shortest first).
+  const filteredPlayers = (() => {
+    const typed = targetSearch.trim().toLowerCase();
+    const rank = (name: string) => (name === typed ? 0 : name.startsWith(typed) ? 1 : 2);
+    return players
+      .filter((profile) => profile.username.toLowerCase().includes(typed))
+      .sort((a, b) => rank(a.username.toLowerCase()) - rank(b.username.toLowerCase()) || a.username.length - b.username.length || a.username.localeCompare(b.username));
+  })();
 
   return (
     <div className="max-w-6xl space-y-6">
