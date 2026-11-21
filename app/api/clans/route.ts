@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { kidModeBlock } from '../../../lib/kid-mode';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { createClient } from '../../../lib/supabase/server';
-import { hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
+import { calmText, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,8 +121,8 @@ export async function POST(request: Request) {
   { const kid = await kidModeBlock(user.id); if (kid) return kid; }
 
   const body = await request.json();
-  const name = String(body.name || '').trim().slice(0, 30);
-  const description = String(body.description || '').trim().slice(0, 200);
+  const name = calmText(String(body.name || '')).trim().slice(0, 30);
+  const description = calmText(String(body.description || '')).trim().slice(0, 200);
   const tags = Array.isArray(body.tags) ? body.tags.map((t: string) => String(t).trim()).filter(Boolean).slice(0, 3) : [];
   const thumbnailUrl = String(body.thumbnailUrl || '').trim().slice(0, 2_000_000);
   const profileBlook = String(body.profileBlook || '').trim();

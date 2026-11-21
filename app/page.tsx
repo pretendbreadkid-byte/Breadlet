@@ -35,6 +35,7 @@ import { shrinkImage } from "../lib/shrink-image";
 import { useForcedStock } from "./components/forced-stock";
 import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
+import { calmText } from "../lib/chat-filter";
 import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { onlyTopTokenBadge } from "../lib/badges";
 import type { BlockedPlayer } from "../lib/blocks";
@@ -4911,7 +4912,8 @@ function ChatTab({ openGarden, player, showBadge, giftNotice, clearGiftNotice, i
         />
       );
     }
-    return <p className={isBreadletBot ? "chat-breadlet-fact chat-message-text" : "chat-message-text text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderWithMentions(text)}</p>;
+    // calmText: older messages (or ones that slipped past the server) can't stack accent marks over the page.
+    return <p className={isBreadletBot ? "chat-breadlet-fact chat-message-text" : "chat-message-text text-[#d7b88c] whitespace-pre-wrap break-words"}>{renderWithMentions(calmText(text))}</p>;
   };
 
   const muteChatter = async (targetId: string, name: string) => {

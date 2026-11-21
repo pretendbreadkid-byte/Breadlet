@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { networkIdentity } from '../../../../lib/network-identity';
 import { ADMIN_USERNAME } from '../../../../lib/admin-access';
+import { calmText } from '../../../../lib/chat-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +31,8 @@ export async function POST(request: Request) {
 
   if (body.action === 'request') {
     const username = String(body.username || '').trim();
-    const contact = String(body.contact || '').trim().slice(0, 120);
-    const note = String(body.note || '').trim().slice(0, 400);
+    const contact = calmText(String(body.contact || '')).trim().slice(0, 120);
+    const note = calmText(String(body.note || '')).trim().slice(0, 400);
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) return NextResponse.json({ error: 'Type the username of the account you want back.' }, { status: 400 });
     const { data: target } = await admin.from('profiles').select('id, username').ilike('username', username).maybeSingle();
     if (!target) return NextResponse.json({ error: "There's no account with that username. Try \"Forgot your username?\"." }, { status: 404 });

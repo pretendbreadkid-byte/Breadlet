@@ -74,9 +74,21 @@ export function hasBannableSlur(text: string) {
   });
 }
 
+// "Zalgo" text: one letter with dozens of accent marks stacked on it. Browsers draw those marks as tall
+// towers that spill over the page, and a few hundred of them froze or crashed everyone looking at chat.
+// Real writing never needs more than a couple in a row (emoji use up to 2, some languages 3), so any
+// run longer than that is cut down. Also drops the invisible characters used to break layouts.
+const MARK_RUN = new RegExp('(\\p{M}{3})\\p{M}+', 'gu');
+// Hangul fillers, the blank Braille cell, Mongolian vowel separator, invisible math operators,
+// deprecated format characters and interlinear annotation marks.
+const INVISIBLE = new RegExp('[\\u115F\\u1160\\u3164\\uFFA0\\u2800\\u180E\\u2061-\\u2064\\u206A-\\u206F\\uFFF9-\\uFFFB]', 'g');
+export function calmText(text: string) {
+  return text.normalize('NFC').replace(MARK_RUN, '$1').replace(INVISIBLE, '');
+}
+
 // Masks any word containing profanity or a slur.
 export function filterProfanity(text: string) {
-  return text.replace(/\S+/g, (word) => {
+  return calmText(text).replace(/\S+/g, (word) => {
     const squashed = squash(word);
     return wordHasSlur(word) || MILD_WORDS.some((mild) => squashed.includes(mild)) ? '*'.repeat(word.length) : word;
   });
