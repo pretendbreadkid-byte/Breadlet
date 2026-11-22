@@ -4152,12 +4152,12 @@ main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-title.teds-shop-h
   -webkit-text-stroke: 0 !important;
   color: #fff !important;
   font-family: "Titan One", Quicksand, ui-rounded, system-ui, sans-serif !important;
-  font-size: 1.35rem !important;
+  font-size: 1.8rem !important;
   font-weight: 400 !important;
   letter-spacing: .01em !important;
   line-height: 1.2 !important;
-  /* A thin dark outline instead of a box, so it reads on stripes and awnings too. */
-  text-shadow: 2px 0 0 #13120F, -2px 0 0 #13120F, 0 2px 0 #13120F, 0 -2px 0 #13120F, 1.5px 1.5px 0 #13120F, -1.5px -1.5px 0 #13120F, 1.5px -1.5px 0 #13120F, -1.5px 1.5px 0 #13120F, 0 4px 0 #13120F !important;
+  /* Plain white, no outline; a soft shadow keeps it readable on the stripes and awnings. */
+  text-shadow: 0 2px 8px rgba(40, 20, 5, .28) !important;
   white-space: nowrap;
 }
 main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-title.teds-shop-heading { margin: 0 !important; }
@@ -4198,3 +4198,123 @@ main.breadlet-blue-theme.breadlet-blue-theme .price-tag.is-closed .price-tag-art
 .bazaar-style-tags { background: #f5e1bf; }
 .bazaar-style-tags i { top: 9px; width: 18px; height: 34px; border-top: 3px solid #ED7117; border-radius: 4px; background: #3b2618; }
 .bazaar-style-tags i:nth-child(1) { left: 6px; } .bazaar-style-tags i:nth-child(2) { left: 28px; } .bazaar-style-tags i:nth-child(3) { left: 50px; } .bazaar-style-tags i:nth-child(n+4) { display: none; }
+
+/* ===== Look pass (Nov 22): see-through dark "glass" instead of solid black boxes, warm pop-ups,
+   friend cards, a compact Power Hour sign and a nicer battle pass. ===== */
+:root { --glass: rgba(28, 14, 4, .22); --glass-hover: rgba(28, 14, 4, .34); --glass-line: rgba(255, 238, 214, .28); }
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-input-row > form > label,
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-input-row > form > .relative.shrink-0 > button:first-child,
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-input-row > form > div > input,
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-input-row > form > button[type="submit"],
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-side-actions > div > button:first-child,
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-side-actions .chat-online-toggle,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-switch,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-restock,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-chip-button,
+main.breadlet-blue-theme.breadlet-blue-theme .workspace-account-button,
+main.breadlet-blue-theme.breadlet-blue-theme .workspace-island .workspace-tokens,
+main.breadlet-blue-theme.breadlet-blue-theme .event-countdown-unit,
+main.breadlet-blue-theme.breadlet-blue-theme .event-soon,
+main.breadlet-blue-theme.breadlet-blue-theme .event-rewards li {
+  border: 1.5px solid var(--glass-line) !important;
+  background: var(--glass) !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-input-row > form > div > input::placeholder { color: rgba(255, 245, 232, .7) !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-input-row > form > button[type="submit"] { background: rgba(255, 238, 214, .2) !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .global-chat .chat-input-row button:hover,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-switch:hover,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-chip-button:hover,
+main.breadlet-blue-theme.breadlet-blue-theme .workspace-account-button:hover { background: var(--glass-hover) !important; transform: none !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-switch[aria-pressed="true"] { background: rgba(255, 210, 63, .32) !important; border-color: #ffd23f !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-restock *,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-switch *,
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-chip-button * { color: #fff !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-switch-track { background: rgba(255, 255, 255, .22) !important; border-color: rgba(255, 255, 255, .35) !important; }
+
+/* Power Hour: a small sign at the right of the shop toolbar, not a banner in the middle. */
+.shop-header-right .power-hour { margin: 0; }
+.shop-header-right .power-hour-board { width: auto; gap: 8px; border: 1.5px solid var(--glass-line); border-radius: 999px; background: var(--glass); padding: 4px 6px 4px 4px; box-shadow: none; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.shop-header-right .power-hour-board::before, .shop-header-right .power-hour-board::after,
+.shop-header-right .power-hour-kicker, .shop-header-right .power-hour-perk, .shop-header-right .power-hour-clock small,
+.shop-header-right .power-hour.is-live .power-hour-board > .power-hour-text::after,
+.shop-header-right .power-hour.is-live .power-hour-board > :first-child::before { display: none !important; }
+.shop-header-right .power-hour-bolt { width: 34px; height: 34px; border-width: 2px; }
+.shop-header-right .power-hour-bolt img { height: 24px; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour-text b { font-family: Quicksand, ui-rounded, system-ui, sans-serif; font-size: .95rem; font-weight: 900; text-shadow: none; }
+.shop-header-right .power-hour-clock { min-width: 0; border: 0; border-radius: 999px; background: rgba(0, 0, 0, .28); padding: 5px 10px; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour-clock span { font-size: .9rem; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-live .power-hour-board { border-color: #ffd23f; background: rgba(255, 200, 60, .3); animation: none; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-live .power-hour-text b { color: #ffe27a !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-live .power-hour-text b::after { content: " \00B7  on now"; font-size: .8rem; color: #fff !important; }
+
+/* Breadlet card: tall art (the Magnifying Glass) stays inside its box instead of covering the text. */
+.blook-card-art { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+.blook-card-art > * { width: 100% !important; height: 100% !important; min-height: 0; }
+.blook-card-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* The Bread Bucks claim pop-up: warm Breadlet orange and brown instead of blue. */
+.claim-pop-layer { background: radial-gradient(circle at 50% 40%, rgba(60, 28, 8, .55), rgba(0, 0, 0, .86)); }
+.claim-pop { background: linear-gradient(180deg, #f08a2c, #b4540f 72%); }
+.claim-pop-rays { background: repeating-conic-gradient(from 0deg, rgba(255, 236, 200, .16) 0 12deg, transparent 12deg 24deg); }
+main.breadlet-blue-theme.breadlet-blue-theme .claim-pop-kicker { color: #ffe6c2 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .claim-pop-amount span { color: #fff3df !important; }
+
+/* Friends: a grid of cards (each friend's Breadlet and name), filter and "Show all". */
+.profile-lower-grid > .profile-list-panel:first-child { grid-column: 1 / -1; }
+.friend-filter { display: flex; align-items: center; gap: 6px; margin: 10px 0 0 auto; width: min(100%, 240px); border: 1.5px solid var(--glass-line); border-radius: 10px; background: var(--glass); padding: 6px 10px; }
+main.breadlet-blue-theme.breadlet-blue-theme .friend-filter input { min-width: 0; flex: 1; border: 0; background: transparent; outline: none; font-weight: 800; color: #fff !important; }
+.friend-filter input::placeholder { color: rgba(255, 245, 232, .75); }
+.friend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-top: 10px; }
+.friend-card { position: relative; }
+.friend-card-open { display: flex; width: 100%; align-items: center; gap: 12px; border: 1.5px solid var(--glass-line); border-radius: 14px; background: var(--glass); padding: 10px 14px; text-align: left; font-size: 1.05rem; font-weight: 900; box-shadow: none !important; transition: background .15s ease; }
+.friend-card-open:hover { background: var(--glass-hover); }
+.friend-card-open span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+main.breadlet-blue-theme.breadlet-blue-theme .friend-card-open, main.breadlet-blue-theme.breadlet-blue-theme .friend-card-open * { color: #fff !important; }
+.friend-card-art { width: 46px !important; height: 46px !important; flex: none; object-fit: contain; }
+.friend-card-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.friend-card-remove { position: absolute; top: 6px; right: 6px; display: none; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: rgba(0, 0, 0, .35) !important; box-shadow: none !important; }
+.friend-card:hover .friend-card-remove, .friend-card-remove:focus-visible { display: grid; }
+.friend-show-all { display: block; margin: 10px auto 0; border-radius: 999px; background: transparent !important; box-shadow: none !important; padding: 4px 12px; font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Battle pass: in colour (just a little dimmed) on see-through cards joined by a track line. */
+.bp-preview { border: 1.5px solid var(--glass-line); background: linear-gradient(160deg, rgba(40, 90, 40, .55), rgba(20, 40, 18, .6)); box-shadow: none; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.bp-preview > :not(.bp-lock) { filter: saturate(.75) brightness(.95); opacity: .92; }
+.bp-track { position: relative; gap: 12px; padding: 4px 2px 10px; }
+.bp-track li { width: 124px; border: 1.5px solid var(--glass-line); border-radius: 16px; background: rgba(0, 0, 0, .22); padding: 10px 8px 12px; }
+.bp-track li.has-breadlet { border-color: rgba(126, 226, 107, .7); background: linear-gradient(180deg, rgba(126, 226, 107, .28), rgba(0, 0, 0, .2)); }
+.bp-track li + li::before { content: ""; position: absolute; top: 50%; left: -13px; width: 12px; height: 3px; border-radius: 2px; background: var(--glass-line); }
+.bp-tier-reward { width: 80px; height: 80px; }
+.bp-tier-cost { background: rgba(0, 0, 0, .3); }
+.bp-progress { border: 1.5px solid var(--glass-line); background: rgba(0, 0, 0, .3); }
+main.breadlet-blue-theme.breadlet-blue-theme .bp-cook { border: 1.5px solid rgba(255, 255, 255, .35); box-shadow: none; }
+/* Look pass, part 2: the Power Hour pill drops its wooden board glow; battle pass icons sized right;
+   leaf shop buttons and the event's dark boxes go see-through too. */
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour-board { background: var(--glass) !important; box-shadow: none !important; animation: none !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-live .power-hour-board { background: rgba(255, 200, 60, .28) !important; }
+.shop-header-right .power-hour::before, .shop-header-right .power-hour::after { display: none !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour-text b { text-shadow: none !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour-clock { box-shadow: none !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .bp-track li .bp-tier-tokens img,
+main.breadlet-blue-theme.breadlet-blue-theme .bp-track li .bp-tier-cost img,
+main.breadlet-blue-theme.breadlet-blue-theme .bp-track li .bp-tier-badge img { width: 18px !important; height: 18px !important; min-width: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+main.breadlet-blue-theme.breadlet-blue-theme .bp-track li .bp-tier-reward img { width: auto; height: auto; max-width: 100% !important; max-height: 100% !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .bp-track li .bp-tier-reward img.bp-bucks { width: 54px !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-buy,
+main.breadlet-blue-theme.breadlet-blue-theme .event-page .dark-action-button { border: 1.5px solid var(--glass-line) !important; background: rgba(0, 0, 0, .22) !important; box-shadow: none !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-upcoming { border: 1.5px solid var(--glass-line); box-shadow: none; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-upcoming li,
+main.breadlet-blue-theme.breadlet-blue-theme .event-upcoming-badge { border: 1.5px solid var(--glass-line) !important; background: rgba(0, 0, 0, .22) !important; box-shadow: none !important; }
+/* Darker glass behind Power Hour so its gold text reads on the cream stripes. */
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour-board { background: rgba(45, 22, 6, .55) !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-live .power-hour-board { background: rgba(70, 34, 6, .62) !important; }
+/* Phones: the toolbar wraps instead of pushing Restock off the screen, and Power Hour stays on one line. */
+@media (max-width: 767px) {
+  .shop-header-right { flex-wrap: wrap; gap: 8px; }
+  .shop-header-right .power-hour-text b { white-space: nowrap; }
+  main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-live .power-hour-text b::after { content: none; }
+  main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-restock { white-space: nowrap; }
+}

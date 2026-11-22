@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { kidModeBlock } from '../../../lib/kid-mode';
+import { notify } from '../../../lib/inbox';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { createClient } from '../../../lib/supabase/server';
 import { calmText, hasSevereSlur, isNameAllowed } from '../../../lib/chat-filter';
@@ -164,6 +165,12 @@ export async function PATCH(request: Request) {
     if (!admin) return NextResponse.json({ error: 'Clan requests are not configured.' }, { status: 503 });
     const { data, error } = await admin.rpc('secure_clan_join_request', { p_profile_id: user.id, p_clan_id: clanId });
     if (error) return NextResponse.json({ error: error.message }, { status: 409 });
+    // The leader gets an Inbox message (and a red number on the Clans tab).
+    const [{ data: clan }, { data: me }] = await Promise.all([
+      admin.from('clans').select('name, owner_profile_id').eq('id', clanId).maybeSingle(),
+      admin.from('profiles').select('username').eq('id', user.id).maybeSingle(),
+    ]);
+    if (clan?.owner_profile_id) await notify(admin, clan.owner_profile_id, 'clan_request', { title: `${me?.username || 'Someone'} wants to join ${clan.name}`, message: 'Open the Clans tab to accept or decline.', from: me?.username || '' });
     return NextResponse.json({ ok: true, requestId: data }, { status: 201 });
   }
 
@@ -178,6 +185,11 @@ export async function PATCH(request: Request) {
       p_decision: decision,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 409 });
+    if (decision === 'approved') {
+      const { data: request } = await admin.from('clan_join_requests').select('profile_id, clans(name)').eq('id', body.requestId).maybeSingle();
+      const clanName = (request as any)?.clans?.name || 'the clan';
+      if (request?.profile_id) await notify(admin, request.profile_id, 'clan_joined', { title: `You joined ${clanName}!`, message: 'Your request to join was accepted.' });
+    }
     return NextResponse.json(data);
   }
 

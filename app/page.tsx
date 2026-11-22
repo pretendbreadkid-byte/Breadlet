@@ -36,6 +36,7 @@ import { useForcedStock } from "./components/forced-stock";
 import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { calmText } from "../lib/chat-filter";
+import { BazaarIcon, BreadletIcon, ChatIcon, ClanIcon, GoodybagIcon, TrophyIcon } from "./components/nav-icons";
 import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { onlyTopTokenBadge } from "../lib/badges";
 import type { BlockedPlayer } from "../lib/blocks";
@@ -159,7 +160,7 @@ type PublicProfile = {
 type NavItem = { id: Tab; label: string; icon: React.ReactNode };
 type PlayerNotification = { id: string; type: string; payload: { title?: string; message?: string; quantity?: number; from?: string; messageId?: string; username?: string }; is_read?: boolean; created_at?: string };
 
-const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", referral: "🎉", wishlist: "⭐", admin_gift: "🎁", summary: "📬", recovery_request: "🔑" };
+const inboxIcons: Record<string, string> = { mention: "💬", bazaar_sale: "🛒", trade_completed: "🤝", referral: "🎉", wishlist: "⭐", admin_gift: "🎁", summary: "📬", recovery_request: "🔑", clan_request: "🛡️", clan_joined: "🛡️" };
 
 // A short two-note chime for new Inbox notifications (Web Audio, so no sound file to load).
 function playChime() {
@@ -432,7 +433,7 @@ const artFor = (name: string) =>
     "Gingerbread Cookie": "/assets/winter/gingerbread-cookie.svg",
     Present: "/assets/winter/present.svg",
     "Festive Breadlet": "/assets/winter/festive-breadlet-2.svg",
-    "Minti's Holiday Edition": "/assets/winter/mintis-holiday-edition-2.webp",
+    "Minti's Holiday Edition": "/assets/winter/mintis-holiday-edition-3.webp",
     Reindeer: "/assets/winter/reindeer-animated.svg",
     Gnome: "/assets/winter/gnome-animated.svg",
     "Christmas Tree Dragon": "/assets/winter/christmas-tree-dragon.svg",
@@ -828,11 +829,22 @@ function MainPage() {
   // Pop-ups are only for notifications outside the Inbox (admin gifts, Breadlet swaps).
   const popupNotifications = playerNotifications.filter((item) => !isInboxType(item.type));
   const inboxUnreadCount = playerNotifications.filter((item) => isInboxType(item.type)).length;
+  // Red numbers on the Chat (unread @mentions) and Clans (join requests, accepted requests) tabs.
+  const tabBadgeTypes: Partial<Record<Tab, string[]>> = { chat: ["mention"], clan: ["clan_request", "clan_joined"] };
+  const tabBadgeCount = (id: Tab) => playerNotifications.filter((item) => tabBadgeTypes[id]?.includes(item.type)).length;
 
   const markNotificationsRead = async (body: { id: string } | { all: true }) => {
     await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => undefined);
     setPlayerNotifications((notifications) => "all" in body ? notifications.filter((item) => !isInboxType(item.type)) : notifications.filter((item) => item.id !== body.id));
   };
+
+  // Opening Chat or Clans clears that tab's red number.
+  useEffect(() => {
+    const types = tabBadgeTypes[tab];
+    if (!types) return;
+    playerNotifications.filter((item) => types.includes(item.type)).forEach((item) => void markNotificationsRead({ id: item.id }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, playerNotifications]);
 
   const dismissPlayerNotification = async () => {
     const current = popupNotifications[0];
@@ -1964,25 +1976,25 @@ function MainPage() {
     {
       id: "capsules",
       label: "Goodybags",
-      icon: <Gift size={20} strokeWidth={2.2} />,
+      icon: <GoodybagIcon size={20} />,
     },
     {
       id: "inventory",
       label: "Breadlets",
-      icon: <Croissant size={20} strokeWidth={2.2} />,
+      icon: <BreadletIcon size={20} />,
     },
-    { id: "clan", label: "Clans", icon: <Shield size={20} strokeWidth={2.2} /> },
+    { id: "clan", label: "Clans", icon: <ClanIcon size={20} /> },
     {
       id: "market",
       label: "Bazaar",
-      icon: <Store size={20} strokeWidth={2.2} />,
+      icon: <BazaarIcon size={20} />,
     },
     {
       id: "chat",
       label: "Chat",
-      icon: <MessagesSquare size={20} strokeWidth={2.2} />,
+      icon: <ChatIcon size={20} />,
     },
-    { id: "leaderboard", label: "Leaderboard", icon: <Trophy size={20} strokeWidth={2.2} /> },
+    { id: "leaderboard", label: "Leaderboard", icon: <TrophyIcon size={20} /> },
     // The Garden is open to everyone signed in (guests and kid accounts can't use it).
     ...(!isGuest && !kidMode ? [{ id: "games" as Tab, label: "Garden", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
   ];
@@ -2042,6 +2054,7 @@ function MainPage() {
                 {item.icon}
                 <span className="flex min-w-0 flex-col items-start leading-none"><span>{item.label}</span></span>
                 {item.id === "profile" && inboxUnreadCount > 0 && <span className="nav-unread-badge" aria-label={`${inboxUnreadCount} unread in your Inbox`}>{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
+                {tabBadgeCount(item.id) > 0 && <span className="nav-unread-badge" aria-label={`${tabBadgeCount(item.id)} new`}>{tabBadgeCount(item.id) > 9 ? "9+" : tabBadgeCount(item.id)}</span>}
               </button>
             ))}
               </div>
@@ -2774,7 +2787,9 @@ function ProfileTab({
   const [tradeMessages, setTradeMessages] = useState<any[]>([]);
   const [tradeChatInput, setTradeChatInput] = useState("");
   const [profileLookupOpen, setProfileLookupOpen] = useState(false);
-  const [friendsData, setFriendsData] = useState<{ friends: { id: string; username: string }[]; incoming: { id: string; username: string }[]; outgoing: { id: string; username: string }[]; relation: string }>({ friends: [], incoming: [], outgoing: [], relation: "none" });
+  const [friendFilter, setFriendFilter] = useState("");
+  const [showAllFriends, setShowAllFriends] = useState(false);
+  const [friendsData, setFriendsData] = useState<{ friends: { id: string; username: string; equipped?: string }[]; incoming: { id: string; username: string }[]; outgoing: { id: string; username: string }[]; relation: string }>({ friends: [], incoming: [], outgoing: [], relation: "none" });
   const friendsProfileId = viewedProfile && viewedProfile.id !== player.id ? viewedProfile.id : player.id;
   const loadFriends = useCallback(async () => {
     if (isGuest) return;
@@ -2918,7 +2933,26 @@ function ProfileTab({
       </div></section>
       {!kidMode && <div className="profile-lower-grid"><section className="profile-list-panel"><div className="profile-list-heading"><h2>Friends{friendsData.friends.length ? ` (${friendsData.friends.length})` : ""}</h2>{!viewingOther ? <button onClick={openLookup}>Find Player</button> : !isGuest && (friendsData.relation === "none" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Add Friend</button> : friendsData.relation === "pending-in" ? <button onClick={() => void friendAction("POST", { friendProfileId: viewedProfile!.id })}>Accept</button> : friendsData.relation === "pending-out" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Request Sent (Cancel)</button> : friendsData.relation === "friends" ? <button onClick={() => void friendAction("DELETE", { friendProfileId: viewedProfile!.id })}>Unfriend</button> : null)}</div><div className="profile-list-body">
         {!viewingOther && friendsData.incoming.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} wants to be friends</span><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "accept" })}>Accept</button><button onClick={() => void friendAction("PATCH", { requesterId: request.id, decision: "decline" })}>Decline</button></div>)}
-        {friendsData.friends.length ? friendsData.friends.map((friend) => <div key={friend.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><button onClick={() => void openPlayerProfile(friend.username)} className="min-w-0 flex-1 truncate text-left font-bold">{friend.username}</button>{!viewingOther && <button onClick={() => void friendAction("DELETE", { friendProfileId: friend.id })}>Remove</button>}</div>) : !friendsData.incoming.length && <p className="profile-empty">{isGuest ? "Sign in to add friends." : "No friends yet."}</p>}
+        {friendsData.friends.length ? (() => {
+          // A grid of friend cards (their Breadlet and name), with a filter and "Show all" after 8.
+          const typed = friendFilter.trim().toLowerCase();
+          const matching = friendsData.friends.filter((friend) => friend.username.toLowerCase().includes(typed));
+          const shown = showAllFriends || typed ? matching : matching.slice(0, 8);
+          return <>
+            {friendsData.friends.length > 8 && <label className="friend-filter"><Search size={15} aria-hidden="true" /><input value={friendFilter} onChange={(event) => setFriendFilter(event.target.value)} placeholder="Filter friends" aria-label="Filter friends" /></label>}
+            <div className="friend-grid">
+              {shown.map((friend) => <div key={friend.id} className="friend-card">
+                <button type="button" onClick={() => void openPlayerProfile(friend.username)} className="friend-card-open" title={`Open ${friend.username}'s profile`}>
+                  {friend.equipped ? <BlookImg name={friend.equipped} className="friend-card-art" /> : <img src="/assets/breadlet-icon.svg" alt="" className="friend-card-art" />}
+                  <span>{friend.username}</span>
+                </button>
+                {!viewingOther && <button type="button" className="friend-card-remove" onClick={() => void friendAction("DELETE", { friendProfileId: friend.id })} aria-label={`Remove ${friend.username}`} title="Remove friend"><X size={14} /></button>}
+              </div>)}
+            </div>
+            {!typed && matching.length > 8 && <button type="button" className="friend-show-all" onClick={() => setShowAllFriends((open) => !open)}>{showAllFriends ? "Show less" : `Show all ${matching.length}`}</button>}
+            {typed && !matching.length && <p className="profile-empty">No friends match that name.</p>}
+          </>;
+        })() : !friendsData.incoming.length && <p className="profile-empty">{isGuest ? "Sign in to add friends." : "No friends yet."}</p>}
         {!viewingOther && friendsData.outgoing.map((request) => <div key={request.id} className="profile-friend-row"><img src="/assets/breadlet-icon.svg" alt="" /><span className="min-w-0 flex-1 truncate">{request.username} (request sent)</span><button onClick={() => void friendAction("DELETE", { friendProfileId: request.id })}>Cancel</button></div>)}
       </div></section></div>}
       {!viewingOther && <div className="profile-lower-grid">
@@ -3152,11 +3186,12 @@ function CapsulesTab({
         <button type="button" aria-pressed={quickOpen} onClick={() => setQuickOpen(!quickOpen)} title="Faster opening animation" className="shop-switch"><span className="shop-switch-track"><Zap size={13} aria-hidden="true" /></span>Quick open</button>
         <button type="button" aria-pressed={autoOpen} onClick={() => setAutoOpen(!autoOpen)} title="Keeps opening the pack you pick until you run out of Bread Bucks or click the screen" className="shop-switch"><span className="shop-switch-track"><Repeat size={13} aria-hidden="true" /></span>Auto open</button>
         <div className="shop-header-right">
+          {/* Power Hour sits up here as a small sign instead of a big banner in the middle of the shop. */}
+          <PowerHourBanner />
           <div className="shop-restock" title="Stock rolls again every hour on the UTC hour"><Clock size={18} aria-hidden="true" /><span>Restock in</span><MarketRefreshCountdown /></div>
           <button type="button" onClick={showStockOdds} className="shop-chip-button" title="Chance for each bag to be in stock" aria-label="Show stock chances"><Info size={18} /></button>
         </div>
       </div>
-      <PowerHourBanner />
       <div className="shop-cabinets">
         {cabinet("Fresh stock", freshBags, false)}
         {soldOutBags.length > 0 && cabinet("Sold out", soldOutBags, true)}
@@ -3339,7 +3374,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   }
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`}>
-      <img src={art} alt={name} decoding="async" className="max-h-full max-w-full object-contain" />
+      {/* h-full w-full + contain: small pictures (160px PNGs like Blooket Gods) grow to fill the
+          box like the SVGs do, instead of sitting small in the middle. */}
+      <img src={art} alt={name} decoding="async" className="h-full w-full max-h-full max-w-full object-contain" />
     </span>
   );
 }

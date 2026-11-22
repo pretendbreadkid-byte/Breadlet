@@ -17,10 +17,16 @@ async function session() {
 
 type Row = { profile_id: string; friend_profile_id: string; status: string };
 
+// Username and equipped Breadlet for each id (the friends grid shows each friend's Breadlet).
 async function names(admin: any, ids: string[]) {
-  if (!ids.length) return new Map<string, string>();
-  const { data } = await admin.from('profiles').select('id, username').in('id', ids);
-  return new Map<string, string>((data || []).map((row: { id: string; username: string }) => [row.id, row.username]));
+  const people = new Map<string, { username: string; equipped: string }>();
+  if (!ids.length) return people;
+  const { data } = await admin.from('profiles').select('id, username, equipped_blook_id').in('id', ids);
+  const blookIds = Array.from(new Set((data || []).map((row: any) => row.equipped_blook_id).filter(Boolean)));
+  const { data: blooks } = blookIds.length ? await admin.from('blooks').select('id, name').in('id', blookIds) : { data: [] };
+  const blookName = new Map((blooks || []).map((row: any) => [row.id, row.name === 'Surgeon' ? 'Doctor' : row.name]));
+  for (const row of (data || []) as any[]) people.set(row.id, { username: row.username, equipped: String(blookName.get(row.equipped_blook_id) || '') });
+  return people;
 }
 
 // GET /api/friends            -> my friends plus requests
@@ -39,7 +45,7 @@ export async function GET(request: Request) {
   const incoming = profileId === user.id ? rows.filter((row) => row.status === 'pending' && row.friend_profile_id === user.id).map((row) => row.profile_id) : [];
   const outgoing = profileId === user.id ? rows.filter((row) => row.status === 'pending' && row.profile_id === user.id).map((row) => row.friend_profile_id) : [];
   const lookup = await names(admin, [...friendIds, ...incoming, ...outgoing]);
-  const toList = (ids: string[]) => ids.map((id) => ({ id, username: lookup.get(id) || 'Player' })).sort((a, b) => a.username.localeCompare(b.username));
+  const toList = (ids: string[]) => ids.map((id) => ({ id, username: lookup.get(id)?.username || 'Player', equipped: lookup.get(id)?.equipped || '' })).sort((a, b) => a.username.localeCompare(b.username));
 
   let relation: 'self' | 'friends' | 'pending-out' | 'pending-in' | 'none' = 'self';
   if (profileId !== user.id) {
