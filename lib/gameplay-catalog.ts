@@ -462,6 +462,44 @@ export const liveCapsules: Capsule[] = [
     }),
   },
   {
+    // Same tier odds as the Candy Bag, so opening and selling everything loses Bread Bucks on
+    // average (npm run test:packs). The Toxic Dragon is the Breadled, fixed at 0.005% like the
+    // other Breadled dragons.
+    name: "Toxic Bag",
+    price: 25,
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.3, Secret: 0.09 },
+    art: "/assets/toxic/toxic-bag.svg",
+    pool: rewards([
+      ["Toxic Mushroom", "Common"],
+      ["Hazard Symbol", "Common"],
+      ["Ooze Slime", "Common"],
+      ["Radioactive Rat", "Uncommon"],
+      ["Power Plant", "Uncommon"],
+      ["Radioactive Spider", "Rare"],
+      ["Uranium", "Rare"],
+      ["Mutated Cat", "Epic"],
+      ["Ooze Goblin", "Epic"],
+      ["Ooze Scientist", "Legendary"],
+      ["Hazmat Ted", "Mythic"],
+      ["Corrupted Breadlet", "Secret"],
+      ["Toxic Dragon", "Breadled"],
+    ], {
+      "Toxic Mushroom": "/assets/toxic/toxic-mushroom.webp",
+      "Hazard Symbol": "/assets/toxic/hazard-symbol.webp",
+      "Ooze Slime": "/assets/toxic/ooze-slime.webp",
+      "Radioactive Rat": "/assets/toxic/radioactive-rat.webp",
+      "Power Plant": "/assets/toxic/power-plant.svg",
+      "Radioactive Spider": "/assets/toxic/radioactive-spider.webp",
+      Uranium: "/assets/toxic/uranium.svg",
+      "Mutated Cat": "/assets/toxic/mutated-cat.webp",
+      "Ooze Goblin": "/assets/toxic/ooze-goblin.webp",
+      "Ooze Scientist": "/assets/toxic/ooze-scientist.svg",
+      "Hazmat Ted": "/assets/toxic/hazmat-ted.svg",
+      "Corrupted Breadlet": "/assets/toxic/corrupted-breadlet.webp",
+      "Toxic Dragon": "/assets/toxic/toxic-dragon.webp",
+    }, { "Toxic Dragon": 0.005 }),
+  },
+  {
     // Shows in the shop now, opens December 1 (seasonalPackOpensAt in market-stock.ts).
     // One cookie is in the pool each day: Chocolate Candy -> Sugar -> Macadamia Nut -> Gingerbread.
     name: "Winter Bag",
