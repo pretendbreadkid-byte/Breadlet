@@ -3,6 +3,7 @@
 // Admin tools on another player's profile: mute, ban / unban, delete, and their history
 // (Bread Bucks, trades, Bazaar, bans, chat and alts). Only rendered for admins; the server checks too.
 import { useCallback, useEffect, useState } from "react";
+import { KillButton } from "./staff-player-panel";
 import { Ban, History, KeyRound, MicOff, ShieldCheck, Trash2 } from "lucide-react";
 
 type Offer = { tokens: number; blooks: { name: string; quantity: number }[] };
@@ -142,6 +143,7 @@ export function AdminPlayerPanel({ target, openPlayerProfile }: { target: { id: 
             {profile?.isBanned
               ? <button type="button" disabled={busy} onClick={() => void unban()}><Ban size={15} />Unban</button>
               : <button type="button" disabled={busy} className="is-danger" onClick={() => { setBanOpen((open) => !open); setDeleteOpen(false); }}><Ban size={15} />Ban</button>}
+            <KillButton target={target} disabled={busy} onDone={(message) => { setNotice(message); void load(); }} />
             {profile?.recoveryUntil
               ? <button type="button" disabled={busy} onClick={() => void recovery(false)}><KeyRound size={15} />Cancel recovery</button>
               : null}

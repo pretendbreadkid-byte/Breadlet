@@ -7,6 +7,7 @@ import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketR
 import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { AdminPlayerPanel } from "./components/admin-player-panel";
+import { StaffPlayerPanel } from "./components/staff-player-panel";
 import { BazaarBoard, BazaarTags } from "./components/bazaar-board";
 import { GARDEN_TAG } from "../lib/garden-link";
 import { SettingsTab, readSettings, useSettings } from "./components/settings-tab";
@@ -680,6 +681,8 @@ function MainPage() {
   }, []);
   const [playerNotifications, setPlayerNotifications] = useState<PlayerNotification[]>([]);
   const seenNotificationIds = useRef(new Set<string>());
+  // Bumped when a staff kill is broadcast to you, so notifications load right away.
+  const [notificationPing, setNotificationPing] = useState(0);
   const [inboxToast, setInboxToast] = useState<{ type: string; title: string; message: string } | null>(null);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [onlineProfileIds, setOnlineProfileIds] = useState<string[]>([]);
@@ -827,7 +830,17 @@ function MainPage() {
     // Every 60s (was 20s) to go easy on the database's disk budget.
     const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 60000);
     return () => window.clearInterval(timer);
-  }, [isGuest, player?.id, refreshPlayerFromServer]);
+  }, [isGuest, player?.id, refreshPlayerFromServer, notificationPing]);
+  // Staff kills are announced on this channel; the WASTED screen only shows if the server has one.
+  const killPlayerId = !isGuest && player?.id ? player.id : "";
+  useEffect(() => {
+    const client = supabaseClient;
+    if (!killPlayerId || !client) return;
+    const channel = client.channel("breadlet-kills")
+      .on("broadcast", { event: "kill" }, ({ payload }) => { if (payload?.targetId === killPlayerId) setNotificationPing((value) => value + 1); })
+      .subscribe();
+    return () => { void client.removeChannel(channel); };
+  }, [killPlayerId, supabaseClient]);
 
   useEffect(() => {
     if (!inboxToast) return;
@@ -836,7 +849,15 @@ function MainPage() {
   }, [inboxToast]);
 
   // Pop-ups are only for notifications outside the Inbox (admin gifts, Breadlet swaps).
-  const popupNotifications = playerNotifications.filter((item) => !isInboxType(item.type));
+  const popupNotifications = playerNotifications.filter((item) => !isInboxType(item.type) && item.type !== "killed");
+  // A staff "kill" (app/api/moderation): the WASTED screen, which clears itself after a few seconds.
+  const killNotification = playerNotifications.find((item) => item.type === "killed");
+  useEffect(() => {
+    if (!killNotification) return;
+    const timer = window.setTimeout(() => void markNotificationsRead({ id: killNotification.id }), 5500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [killNotification?.id]);
   const inboxUnreadCount = playerNotifications.filter((item) => isInboxType(item.type)).length;
   // Red numbers on the Chat (unread @mentions) and Clans (join requests, accepted requests) tabs.
   const tabBadgeTypes: Partial<Record<Tab, string[]>> = { chat: ["mention"], clan: ["clan_request", "clan_joined"] };
@@ -2283,6 +2304,14 @@ function MainPage() {
               </div>
             </div>
           )}
+          {killNotification && (
+            <div className="wasted-layer" role="alert" onClick={() => void markNotificationsRead({ id: killNotification.id })}>
+              <div className="wasted-band">
+                <b>WASTED</b>
+                <span>{killNotification.payload.message || "You were killed."}</span>
+              </div>
+            </div>
+          )}
           {!notice && popupNotifications[0] && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
               <div className="w-full max-w-sm rounded-3xl border border-cyan-300/60 bg-[#103f75] p-6 text-center shadow-2xl">
@@ -2304,7 +2333,7 @@ function MainPage() {
             </button>
           )}
           {inboxOpen && <InboxModal unreadCount={inboxUnreadCount} markRead={markNotificationsRead} close={() => setInboxOpen(false)} openMention={(messageId) => { setInboxOpen(false); setChatJump(messageId); setTab("chat"); }} openProfile={(name) => { setInboxOpen(false); void openPlayerProfile(name); }} />}
-          {tab === "profile" && <ProfileTab isAdmin={adminUnlocked} player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} kidMode={kidMode} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} savePrefs={savePrefs} toggleBlock={toggleBlock} />}
+          {tab === "profile" && <ProfileTab isAdmin={adminUnlocked} isBanMod={!isGuest && BAN_MODERATOR_USERNAMES.includes(player.username.toLowerCase())} player={player} setTab={setTab} openClaim={() => setClaimOpen(true)} showBadge={setBadgeInfo} savePlayer={save} addFriend={addFriend} isGuest={isGuest} kidMode={kidMode} onlineProfileIds={onlineProfileIds} presenceReady={presenceReady} viewedProfile={viewedProfile} openPlayerProfile={openPlayerProfile} closeViewedProfile={() => setViewedProfile(null)} inboxUnreadCount={inboxUnreadCount} openInbox={() => setInboxOpen(true)} refreshStats={() => refreshPlayerFromServer({ full: true })} savePrefs={savePrefs} toggleBlock={toggleBlock} />}
           {tab === "wheel" && <WheelTab player={player} isGuest={isGuest} onClaim={() => setClaimOpen(true)} />}
           {claimOpen && <ClaimPopup player={player} isGuest={isGuest} spin={spinWheel} onClose={closeClaim} />}
           {tab === "capsules" && (
@@ -2760,8 +2789,10 @@ function ProfileTab({
   savePrefs,
   toggleBlock,
   isAdmin = false,
+  isBanMod = false,
 }: {
   isAdmin?: boolean;
+  isBanMod?: boolean;
   savePrefs: (patch: { hideBadges?: boolean }) => void;
   toggleBlock: (target: BlockedPlayer) => void;
   player: Player;
@@ -2935,6 +2966,7 @@ function ProfileTab({
         <section className="profile-badges-panel"><div className="profile-section-label">Badges</div><div className="profile-badge-row">{displayedBadges.length ? displayedBadges.map((badge) => <button key={badge} title={badge} onClick={() => showBadge(badge)}><img src={badgeIconFor(badge)} alt={badge} /></button>) : <span className="profile-empty">No badges yet</span>}</div><div className="profile-token-rank">{["1M Tokens", "100K Tokens", "10K Tokens"].find((badge) => displayedBadges.includes(badge)) || "Token milestones: 10K · 100K · 1M"}</div>{!viewingOther && !isGuest && <button onClick={() => savePrefs({ hideBadges: !player.hideBadges })} className="profile-hide-badges" aria-pressed={Boolean(player.hideBadges)}>{player.hideBadges ? "Badges hidden from others · Show them" : "Hide my badges"}</button>}</section>
       </div>
       {isAdmin && viewingOther && viewedProfile && <AdminPlayerPanel target={{ id: viewedProfile.id, username: viewedProfile.username }} openPlayerProfile={openPlayerProfile} />}
+      {!isAdmin && isBanMod && viewingOther && viewedProfile && <StaffPlayerPanel target={{ id: viewedProfile.id, username: viewedProfile.username }} />}
       <section className="profile-stats-panel"><div className="profile-section-label">Stats</div><div className="profile-stats-grid">
         <ProfileMetric label="Tokens" value={profileTokens.toLocaleString()} icon="/assets/Bread%20bucks.svg" />
         <ProfileMetric label="Breadlets Owned" value={profileInventoryCount.toLocaleString()} icon={<Backpack size={38} strokeWidth={2.4} />} />
