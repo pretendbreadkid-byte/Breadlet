@@ -4432,3 +4432,49 @@ main.breadlet-blue-theme.breadlet-blue-theme .bf-start { min-width: 160px; borde
 @keyframes wasted-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes wasted-slam { from { opacity: 0; transform: scale(2.4); } to { opacity: 1; transform: scale(1); } }
 .staff-ipban { display: flex; align-items: center; gap: 8px; font-size: .85rem; font-weight: 800; }
+
+/* ===== Beta look (Settings > Layout > Beta look): html.beta-look ===== */
+/* Every Breadlet drawn the same size: TrimmedArt measures the empty space around each picture. */
+html.beta-look .reward-art-img { transform: scale(var(--trim-scale, 1)) translate(var(--trim-x, 0%), var(--trim-y, 0%)); }
+
+/* A dark orange sidebar (not black), square so no background peeks out of the corners. */
+html.beta-look main.breadlet-blue-theme > aside.breadlet-sidebar { background: linear-gradient(180deg, #b8560f, #9a420a) !important; border-right: 0 !important; border-radius: 0 !important; box-shadow: 4px 0 18px rgba(80, 30, 0, .25); }
+html.beta-look main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-footer,
+html.beta-look .breadlet-sidebar > div.sidebar-footer { background: rgba(70, 26, 0, .35) !important; border-radius: 0 !important; }
+html.beta-look main.breadlet-blue-theme > aside.breadlet-sidebar nav button:hover { background: rgba(255, 230, 200, .16) !important; }
+html.beta-look main.breadlet-blue-theme > aside.breadlet-sidebar nav button[aria-current="page"] { background: rgba(255, 240, 220, .22) !important; }
+html.beta-look .layout-bottom-bar { background: rgba(160, 70, 10, .94); }
+html.beta-look .layout-more { background: #9a420a !important; }
+
+/* Red numbers: a bright round badge with a white ring, so you notice it. */
+html.beta-look .nav-unread-badge { border: 2px solid #fff; background: #ff3b30; box-shadow: 0 2px 6px rgba(120, 0, 0, .35); }
+.workspace-account-button { position: relative; }
+.account-unread-badge { position: absolute; top: -8px; right: -8px; margin: 0 !important; }
+
+/* Notifications: a soft cream card with an orange icon that slides in, instead of a black box. */
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-toast { border: 0; border-radius: 20px; background: linear-gradient(135deg, #fff8ee, #ffe6c7); padding: 12px 18px 12px 12px; box-shadow: 0 12px 34px rgba(90, 40, 5, .35), inset 0 0 0 2px rgba(240, 138, 44, .35); }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-toast:hover:not(:disabled) { background: linear-gradient(135deg, #fffaf3, #ffecd2); box-shadow: 0 14px 38px rgba(90, 40, 5, .4), inset 0 0 0 2px rgba(240, 138, 44, .5); }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-toast * { color: #4a2508 !important; }
+html.beta-look .inbox-toast-icon { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(180deg, #f6a04a, #e2701a); box-shadow: 0 3px 8px rgba(200, 90, 10, .4); }
+html.beta-look .inbox-toast::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: 6px; height: 3px; border-radius: 3px; background: #f08a2c; transform-origin: left; animation: beta-toast-time 6s linear forwards; opacity: .6; }
+@keyframes beta-toast-time { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-modal { border: 0; border-radius: 26px; background: #fff6ea; box-shadow: 0 30px 70px rgba(40, 15, 0, .5); }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-modal * { color: #4a2508 !important; }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-read-all { border: 0; background: #f08a2c; box-shadow: 0 3px 0 #b8560f; color: #fff !important; }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-item { border: 0; border-radius: 16px; background: #fff !important; box-shadow: 0 2px 8px rgba(90, 40, 5, .1); }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-item:hover:not(:disabled) { background: #fff2e0 !important; }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-item.is-unread { position: relative; background: #ffe9cc !important; box-shadow: inset 4px 0 0 #f08a2c, 0 2px 8px rgba(90, 40, 5, .12); }
+html.beta-look .inbox-item-icon { border-radius: 50%; background: #ffd7a8; }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .inbox-item-time { color: #a0683a !important; }
+
+/* The "you got something" pop-up (gifts, Breadlet swaps): warm instead of blue. */
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .player-popup { position: relative; border: 0; border-radius: 28px; background: linear-gradient(180deg, #fff8ee, #ffe4c2); padding-top: 52px; box-shadow: 0 30px 70px rgba(40, 15, 0, .55); }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .player-popup p { color: #4a2508 !important; }
+html.beta-look main.breadlet-blue-theme.breadlet-blue-theme .player-popup button { border-radius: 999px; background: #f08a2c; color: #fff !important; box-shadow: 0 4px 0 #b8560f; }
+.player-popup-icon { display: none; }
+html.beta-look .player-popup-icon { position: absolute; left: 50%; top: -30px; display: grid; width: 68px; height: 68px; place-items: center; transform: translateX(-50%); border: 4px solid #fff; border-radius: 50%; background: linear-gradient(180deg, #f6a04a, #e2701a); font-size: 32px; box-shadow: 0 8px 18px rgba(150, 60, 0, .35); }
+
+/* The Beta look switch in Settings. */
+.beta-look-option { border-color: #f08a2c !important; }
+.beta-look-tag { display: grid; width: 64px; height: 42px; flex: none; place-items: center; border-radius: 12px; background: #f08a2c; font-size: .8rem; font-weight: 900; letter-spacing: .08em; color: #fff; }

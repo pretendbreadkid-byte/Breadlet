@@ -54,3 +54,38 @@ export function TrophyIcon({ size = 20 }: IconProps) {
     </svg>
   );
 }
+
+// Beta look (Settings > Layout) icons: crossed swords for Clans, a gavel for the Bazaar and a
+// suitcase for Breadlets.
+export function SwordsIcon({ size = 20 }: IconProps) {
+  // One sword pointing up, drawn twice and turned each way so they cross.
+  const sword = <><path d="M12 1.2 14 4v11h-4V4Z" /><rect x="7" y="15" width="10" height="2.3" rx="1.1" /><rect x="10.9" y="17" width="2.2" height="4" /><circle cx="12" cy="21.8" r="1.6" /></>;
+  return (
+    <svg {...box(size)} fill="currentColor">
+      <g transform="rotate(-45 12 12) translate(0 .4) scale(.94) translate(.75 .75)">{sword}</g>
+      <g transform="rotate(45 12 12) translate(0 .4) scale(.94) translate(.75 .75)">{sword}</g>
+    </svg>
+  );
+}
+
+export function GavelIcon({ size = 20 }: IconProps) {
+  // A gavel: the head across the top and the handle going down, tipped over to the left.
+  return (
+    <svg {...box(size)} fill="currentColor">
+      <g transform="rotate(45 12 12)">
+        <rect x="5.5" y="2.5" width="13" height="7" rx="1.6" />
+        <rect x="4" y="1.5" width="3" height="9" rx="1.2" />
+        <rect x="17" y="1.5" width="3" height="9" rx="1.2" />
+        <rect x="10.6" y="9" width="2.8" height="13.5" rx="1.4" />
+      </g>
+    </svg>
+  );
+}
+
+export function SuitcaseIcon({ size = 20 }: IconProps) {
+  return (
+    <svg {...box(size)} fill="currentColor" fillRule="evenodd">
+      <path d="M9 2.5h6A2.5 2.5 0 0 1 17.5 5v1.5H19A2.5 2.5 0 0 1 21.5 9v10a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 19V9A2.5 2.5 0 0 1 5 6.5h1.5V5A2.5 2.5 0 0 1 9 2.5Zm0 2a.5.5 0 0 0-.5.5v1.5h7V5a.5.5 0 0 0-.5-.5ZM7 9v10.5h1.8V9Zm8.2 0v10.5H17V9Z" />
+    </svg>
+  );
+}

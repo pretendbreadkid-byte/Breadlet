@@ -16,6 +16,9 @@ export type Settings = {
   gardenPerformance: boolean;
   // How the Bazaar shows what's for sale: market booths, or paper notes on a notice board.
   bazaarStyle: "tags" | "booths" | "notices";
+  // Beta look (Settings > Layout): new icons, an orange sidebar, nicer notifications and Breadlets
+  // trimmed to the same size everywhere. Off unless turned on.
+  betaLook: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -29,6 +32,7 @@ export const defaultSettings: Settings = {
   navLayout: "rail",
   gardenPerformance: false,
   bazaarStyle: "notices",
+  betaLook: false,
 };
 
 const storageKey = "breadlet-settings";
@@ -271,7 +275,11 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = 
         {section === "Kid mode" && !isGuest && <KidModeSection kidMode={kidMode} onChanged={(value) => onKidModeChanged?.(value)} />}
         {section === "Layout" && (
           <>
-            <p className="mb-4 text-[#c9c7c0]">Try a different way to get around Breadlet. It only changes this device, and you can switch back any time.</p>
+            <button type="button" onClick={() => update({ betaLook: !settings.betaLook })} aria-pressed={settings.betaLook} className="layout-option beta-look-option">
+              <span className="beta-look-tag" aria-hidden="true">BETA</span>
+              <span className="layout-option-text"><b>Beta look{settings.betaLook ? " ✓ (on)" : " (off)"}</b><small>Try the new look: swords, gavel and suitcase icons, a dark orange sidebar, nicer notifications and every Breadlet shown at the same size.</small></span>
+            </button>
+            <p className="mb-4 mt-6 text-[#c9c7c0]">Try a different way to get around Breadlet. It only changes this device, and you can switch back any time.</p>
             <div className="layout-options">
               {NAV_LAYOUTS.map((layout) => (
                 <button key={layout.id} type="button" onClick={() => update({ navLayout: layout.id })} aria-pressed={settings.navLayout === layout.id} className="layout-option">

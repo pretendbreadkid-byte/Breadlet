@@ -37,7 +37,7 @@ import { useForcedStock } from "./components/forced-stock";
 import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { calmText } from "../lib/chat-filter";
-import { BazaarIcon, BreadletIcon, ChatIcon, ClanIcon, GoodybagIcon, TrophyIcon } from "./components/nav-icons";
+import { BazaarIcon, BreadletIcon, ChatIcon, ClanIcon, GavelIcon, GoodybagIcon, SuitcaseIcon, SwordsIcon, TrophyIcon } from "./components/nav-icons";
 import { ButterflyCatch, GardenChooser } from "./components/butterfly-catch";
 import { ADMIN_USERNAME, BAN_MODERATOR_USERNAMES, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { onlyTopTokenBadge } from "../lib/badges";
@@ -47,6 +47,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
 import {
   Backpack,
+  Bell,
   CircleUserRound,
   Crown,
   Sprout,
@@ -711,6 +712,11 @@ function MainPage() {
   // Settings > Layout: which way the tabs are shown. Home tiles start on the home screen.
   const { settings: uiSettings } = useSettings();
   const navLayout = uiSettings.navLayout || "classic";
+  // Beta look (Settings > Layout): a class on <html>, so pop-ups and full-screen worlds get it too.
+  const betaLook = Boolean(uiSettings.betaLook);
+  useEffect(() => {
+    document.documentElement.classList.toggle("beta-look", betaLook);
+  }, [betaLook]);
   const [homeOpen, setHomeOpen] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
@@ -862,6 +868,11 @@ function MainPage() {
   // Red numbers on the Chat (unread @mentions) and Clans (join requests, accepted requests) tabs.
   const tabBadgeTypes: Partial<Record<Tab, string[]>> = { chat: ["mention"], clan: ["clan_request", "clan_joined"] };
   const tabBadgeCount = (id: Tab) => playerNotifications.filter((item) => tabBadgeTypes[id]?.includes(item.type)).length;
+  // The red number on a tab (every layout: sidebar, rail, bottom bar, More menu and home tiles).
+  const tabBadge = (id: Tab) => {
+    const count = tabBadgeCount(id);
+    return count > 0 ? <span className="nav-unread-badge" aria-label={`${count} new`}>{count > 9 ? "9+" : count}</span> : null;
+  };
 
   const markNotificationsRead = async (body: { id: string } | { all: true }) => {
     await fetch("/api/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => undefined);
@@ -2011,13 +2022,13 @@ function MainPage() {
     {
       id: "inventory",
       label: "Breadlets",
-      icon: <BreadletIcon size={20} />,
+      icon: betaLook ? <SuitcaseIcon size={20} /> : <BreadletIcon size={20} />,
     },
-    { id: "clan", label: "Clans", icon: <ClanIcon size={20} /> },
+    { id: "clan", label: "Clans", icon: betaLook ? <SwordsIcon size={20} /> : <ClanIcon size={20} /> },
     {
       id: "market",
       label: "Bazaar",
-      icon: <BazaarIcon size={20} />,
+      icon: betaLook ? <GavelIcon size={20} /> : <BazaarIcon size={20} />,
     },
     {
       id: "chat",
@@ -2084,7 +2095,7 @@ function MainPage() {
                 {item.icon}
                 <span className="flex min-w-0 flex-col items-start leading-none"><span>{item.label}</span></span>
                 {item.id === "profile" && inboxUnreadCount > 0 && <span className="nav-unread-badge" aria-label={`${inboxUnreadCount} unread in your Inbox`}>{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
-                {tabBadgeCount(item.id) > 0 && <span className="nav-unread-badge" aria-label={`${tabBadgeCount(item.id)} new`}>{tabBadgeCount(item.id) > 9 ? "9+" : tabBadgeCount(item.id)}</span>}
+                {tabBadge(item.id)}
               </button>
             ))}
               </div>
@@ -2115,7 +2126,7 @@ function MainPage() {
         <nav className="layout-bottom-bar" aria-label="Main tabs">
           {bottomMainFallback.map((item) => (
             <button key={item.id} type="button" onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>
-              {item.icon}<span>{item.label}</span>
+              {item.icon}<span>{item.label}</span>{tabBadge(item.id)}
             </button>
           ))}
           <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className={moreOpen ? "is-open" : ""}>
@@ -2124,7 +2135,7 @@ function MainPage() {
           {moreOpen && (
             <div className="layout-more" role="menu">
               {bottomMore.map((item) => (
-                <button key={item.id} type="button" onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>{item.icon}{item.label}</button>
+                <button key={item.id} type="button" onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>{item.icon}{item.label}{tabBadge(item.id)}</button>
               ))}
               {layoutExtras}
             </div>
@@ -2200,6 +2211,7 @@ function MainPage() {
                 </div>
                 <span title={player.username} className="min-w-0 max-w-[min(52vw,22rem)] whitespace-normal break-words text-left leading-tight [overflow-wrap:anywhere] sm:max-w-[24rem]">{player.username}</span>
                 <ChevronDown size={18} />
+                {inboxUnreadCount > 0 && <span className="nav-unread-badge account-unread-badge" aria-label={`${inboxUnreadCount} unread in your Inbox`}>{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
               </button>
 
               {userMenuOpen && (
@@ -2214,6 +2226,19 @@ function MainPage() {
                     <CircleUserRound size={18} />
                     Profile
                   </button>
+                  {!isGuest && (
+                    <button
+                      onClick={() => {
+                        setInboxOpen(true);
+                        setUserMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
+                    >
+                      <Bell size={18} />
+                      Inbox
+                      {inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setTab("resources");
@@ -2282,7 +2307,7 @@ function MainPage() {
                 {visibleNav.map((item) => (
                   <button key={item.id} type="button" onClick={() => goTab(item.id)} className="layout-home-tile">
                     <span className="layout-home-icon">{item.icon}</span>
-                    <b>{item.label}</b>
+                    <b>{item.label}</b>{tabBadge(item.id)}
                   </button>
                 ))}
               </div>
@@ -2314,7 +2339,8 @@ function MainPage() {
           )}
           {!notice && popupNotifications[0] && (
             <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 px-5 backdrop-blur-sm">
-              <div className="w-full max-w-sm rounded-3xl border border-cyan-300/60 bg-[#103f75] p-6 text-center shadow-2xl">
+              <div className="player-popup w-full max-w-sm rounded-3xl border border-cyan-300/60 bg-[#103f75] p-6 text-center shadow-2xl">
+                <span className="player-popup-icon" aria-hidden="true">{inboxIcons[popupNotifications[0].type] || "🎁"}</span>
                 <p className="text-xl font-black text-cyan-100">{popupNotifications[0].payload.title || "Bread updated"}</p>
                 <p className="mt-3 text-sm leading-6 text-[#d9f3ff]">{popupNotifications[0].payload.message || "One of your Pixel Breadlets was replaced."}</p>
                 <button onClick={() => void dismissPlayerNotification()} className="mt-6 w-full rounded-2xl bg-cyan-300 px-4 py-3 font-black text-cyan-950 hover:bg-cyan-200">Got it</button>
@@ -3419,9 +3445,73 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
     <span className={`relative inline-flex items-center justify-center ${className}`}>
       {/* h-full w-full + contain: small pictures (160px PNGs like Blooket Gods) grow to fill the
           box like the SVGs do, instead of sitting small in the middle. */}
-      <img src={art} alt={name} decoding="async" className="h-full w-full max-h-full max-w-full object-contain" />
+      <TrimmedArt src={art} alt={name} />
     </span>
   );
+}
+
+// Beta look: Breadlet pictures have different amounts of empty space around the drawing, so some
+// look small and some big. Each picture is measured once (where its non-see-through pixels are)
+// and, only with the beta look on, zoomed and centred so the drawing fills its box the same way.
+type Trim = { scale: number; x: number; y: number };
+const trimCache = new Map<string, Trim | null>();
+const trimWaiting = new Map<string, Promise<Trim | null>>();
+function measureTrim(image: HTMLImageElement): Promise<Trim | null> {
+  const key = image.currentSrc || image.src;
+  if (trimCache.has(key)) return Promise.resolve(trimCache.get(key)!);
+  if (trimWaiting.has(key)) return trimWaiting.get(key)!;
+  const job = new Promise<Trim | null>((resolve) => {
+    try {
+      const natW = image.naturalWidth || 100;
+      const natH = image.naturalHeight || 100;
+      const fit = 96 / Math.max(natW, natH);
+      const width = Math.max(1, Math.round(natW * fit));
+      const height = Math.max(1, Math.round(natH * fit));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return resolve(null);
+      context.drawImage(image, 0, 0, width, height);
+      const pixels = context.getImageData(0, 0, width, height).data;
+      let left = width, top = height, right = -1, bottom = -1;
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          if (pixels[(y * width + x) * 4 + 3] > 24) {
+            if (x < left) left = x;
+            if (x > right) right = x;
+            if (y < top) top = y;
+            if (y > bottom) bottom = y;
+          }
+        }
+      }
+      if (right < 0) return resolve(null);
+      // Where the drawing sits inside a square box the picture is fitted into.
+      const shownW = width >= height ? 1 : width / height;
+      const shownH = height >= width ? 1 : height / width;
+      const drawW = ((right - left + 1) / width) * shownW;
+      const drawH = ((bottom - top + 1) / height) * shownH;
+      const centreX = 0.5 + (((left + right + 1) / 2) / width - 0.5) * shownW;
+      const centreY = 0.5 + (((top + bottom + 1) / 2) / height - 0.5) * shownH;
+      const scale = Math.max(0.85, Math.min(1.7, 0.9 / Math.max(drawW, drawH)));
+      resolve({ scale: Math.round(scale * 1000) / 1000, x: Math.round((0.5 - centreX) * 1000) / 10, y: Math.round((0.5 - centreY) * 1000) / 10 });
+    } catch {
+      resolve(null); // a picture from another site can't be measured: leave it as it is
+    }
+  }).then((trim) => { trimCache.set(key, trim); trimWaiting.delete(key); return trim; });
+  trimWaiting.set(key, job);
+  return job;
+}
+function TrimmedArt({ src, alt }: { src: string; alt: string }) {
+  const [trim, setTrim] = useState<Trim | null>(() => trimCache.get(src) || null);
+  useEffect(() => { setTrim(trimCache.get(src) || null); }, [src]);
+  const onLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    if (!document.documentElement.classList.contains("beta-look")) return;
+    const image = event.currentTarget;
+    void measureTrim(image).then((result) => { trimCache.set(src, result); setTrim(result); });
+  };
+  const style = trim ? ({ "--trim-scale": trim.scale, "--trim-x": `${trim.x}%`, "--trim-y": `${trim.y}%` } as React.CSSProperties) : undefined;
+  return <img src={src} alt={alt} decoding="async" onLoad={onLoad} style={style} className="reward-art-img h-full w-full max-h-full max-w-full object-contain" />;
 }
 
 let blookEmojiCache: CustomEmoji[] | null = null;
