@@ -4509,7 +4509,10 @@ html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button { 
 html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button:hover { background: rgba(70, 26, 0, .42) !important; }
 html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button[aria-current="page"] { background: rgba(255, 240, 220, .24) !important; }
 @media (min-width: 768px) {
-  main.nav-rail > aside.breadlet-sidebar nav.sidebar-nav button { width: 54px !important; margin-left: auto; margin-right: auto; border-radius: 14px !important; }
+  /* Smaller boxes with room between them, so they don't clump together. */
+  main.nav-rail > aside.breadlet-sidebar nav.sidebar-nav button { width: 46px !important; min-height: 46px !important; height: 46px; margin: 0 auto 10px !important; border-radius: 13px !important; }
+  main.nav-rail > aside.breadlet-sidebar nav.sidebar-nav button svg, main.nav-rail > aside.breadlet-sidebar nav.sidebar-nav button .picture-icon { width: 24px !important; height: 24px !important; }
+  main.nav-rail > aside.breadlet-sidebar nav.sidebar-nav button[aria-current="page"]::after { bottom: 4px; width: 22px; height: 3px; }
 }
 
 /* The red number sits on the icon's corner in the icon rail. */
