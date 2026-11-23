@@ -17,11 +17,42 @@ const EDGE = 70;
 const CATCH_RADIUS = 72;
 const DRIFT = 55; // pixels a second
 const VALUES: Record<Kind, number> = { Orange: 6, Blue: 10, Golden: 25 };
-const ART: Record<Kind, string> = {
-  Orange: "/assets/butterflies/butterfly.svg",
-  Blue: "/assets/butterflies/blue-butterfly.svg",
-  Golden: "/assets/butterflies/butterfly.svg",
+// Breadlet's own butterflies: four rounded wings with spots, a little body with a smiley face and
+// curly antennae. Each kind has its own colours; the Golden one sparkles.
+const PALETTE: Record<Kind, { wing: string; edge: string; inner: string; spot: string; body: string }> = {
+  Orange: { wing: "#ff9a2e", edge: "#9c4310", inner: "#ffc15e", spot: "#fff3d6", body: "#5a2f12" },
+  Blue: { wing: "#4aa8ff", edge: "#1d4f8f", inner: "#9fd4ff", spot: "#ffffff", body: "#2b2140" },
+  Golden: { wing: "#ffd23f", edge: "#a0700a", inner: "#fff09a", spot: "#ffffff", body: "#6b4a12" },
 };
+export function ButterflyArt({ kind, className }: { kind: Kind; className?: string }) {
+  const c = PALETTE[kind];
+  return (
+    <svg viewBox="0 0 120 100" className={className} aria-hidden="true">
+      {kind === "Golden" && <circle cx="60" cy="50" r="46" fill="#fff6b0" opacity=".45" />}
+      <g stroke={c.edge} strokeWidth="4" strokeLinejoin="round">
+        <path d="M56 46C46 18 18 4 8 16c-9 11 2 34 26 36 10 1 18-1 22-6Z" fill={c.wing} />
+        <path d="M64 46c10-28 38-42 48-30 9 11-2 34-26 36-10 1-18-1-22-6Z" fill={c.wing} />
+        <path d="M56 54c-16 0-34 8-34 22 0 12 14 18 24 10 7-6 11-18 10-32Z" fill={c.wing} />
+        <path d="M64 54c16 0 34 8 34 22 0 12-14 18-24 10-7-6-11-18-10-32Z" fill={c.wing} />
+      </g>
+      <path d="M50 42C42 26 26 18 19 24c-6 6 1 20 15 22 7 1 13 0 16-4Z" fill={c.inner} />
+      <path d="M70 42c8-16 24-24 31-18 6 6-1 20-15 22-7 1-13 0-16-4Z" fill={c.inner} />
+      <g fill={c.spot}>
+        <circle cx="20" cy="22" r="4.5" /><circle cx="100" cy="22" r="4.5" />
+        <circle cx="31" cy="36" r="3" /><circle cx="89" cy="36" r="3" />
+        <circle cx="36" cy="76" r="4" /><circle cx="84" cy="76" r="4" />
+      </g>
+      <path d="M55 30c-4-10-8-16-14-18M65 30c4-10 8-16 14-18" stroke={c.body} strokeWidth="3" strokeLinecap="round" fill="none" />
+      <circle cx="41" cy="12" r="3.5" fill={c.body} /><circle cx="79" cy="12" r="3.5" fill={c.body} />
+      <rect x="53" y="30" width="14" height="52" rx="7" fill={c.body} />
+      <circle cx="60" cy="34" r="11" fill={c.body} />
+      <circle cx="56" cy="33" r="2.6" fill="#fff" /><circle cx="64" cy="33" r="2.6" fill="#fff" />
+      <circle cx="56.6" cy="33.4" r="1.3" fill="#111" /><circle cx="64.6" cy="33.4" r="1.3" fill="#111" />
+      <path d="M56.5 38.5c2 2 5 2 7 0" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+      {kind === "Golden" && <g fill="#fff"><path d="M14 52l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" /><path d="M104 56l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6Z" /></g>}
+    </svg>
+  );
+}
 
 async function post(body: Record<string, unknown>) {
   const response = await fetch("/api/fields", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
@@ -231,6 +262,21 @@ export function ButterflyCatch({ player, onBalance, onExit, onGarden, artFor }: 
   };
 
   const full = earned >= limit;
+  // While you play, the bar counts what you've caught this round too (the server pays it at the end).
+  const shown = Math.min(limit, earned + (round ? score : 0));
+  // Leaving mid-round still hands in what you caught.
+  const roundRef = useRef<Round | null>(null);
+  roundRef.current = round;
+  useEffect(() => () => {
+    const current = roundRef.current;
+    if (!current || finishedRef.current) return;
+    finishedRef.current = true;
+    void fetch("/api/fields", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "butterflyFinish", round: current.id, caught: caughtRef.current }) }).catch(() => null);
+  }, []);
+  const leave = async (then: () => void) => {
+    if (round && !finishedRef.current) await finish(round);
+    then();
+  };
   return createPortal(
     <div className="garden-screen bm-screen">
       <div ref={viewportRef} onPointerDown={clickGround} className="explore-viewport garden-viewport bm-viewport">
@@ -239,7 +285,7 @@ export function ButterflyCatch({ player, onBalance, onExit, onGarden, artFor }: 
           <div ref={layerRef}>
             {round && round.butterflies.map((butterfly) => (
               <div key={butterfly.id} data-bf={butterfly.id} className={`bm-butterfly is-${butterfly.kind.toLowerCase()}`} style={{ display: "none" }}>
-                <img src={ART[butterfly.kind]} alt="" draggable={false} />
+                <ButterflyArt kind={butterfly.kind} />
               </div>
             ))}
           </div>
@@ -250,14 +296,14 @@ export function ButterflyCatch({ player, onBalance, onExit, onGarden, artFor }: 
 
       <div className="bm-hud bm-top">
         <div className="bf-top-buttons">
-          <button type="button" className="bf-back" onClick={onExit}><ArrowLeft size={18} />Back</button>
-          <button type="button" className="bf-back" onClick={onGarden}><Sprout size={18} />Garden</button>
+          <button type="button" className="bf-back" onClick={() => void leave(onExit)}><ArrowLeft size={18} />Back</button>
+          <button type="button" className="bf-back" onClick={() => void leave(onGarden)}><Sprout size={18} />Garden</button>
         </div>
         <img src="/assets/butterflies/butterfly-catching-logo.svg" alt="Butterfly Catching" className="bf-logo" />
         <div className="bm-top-right">
-          <div className="bf-meter" aria-label={`${earned} of ${limit} Bread Bucks earned today`}>
-            <span style={{ width: `${Math.min(100, (earned / limit) * 100)}%` }} />
-            <b><img src="/assets/Bread%20bucks.svg" alt="" />{earned.toLocaleString()} / {limit.toLocaleString()} today</b>
+          <div className="bf-meter" aria-label={`${shown} of ${limit} Bread Bucks earned today`}>
+            <span style={{ width: `${Math.min(100, (shown / limit) * 100)}%` }} />
+            <b><img src="/assets/Bread%20bucks.svg" alt="" />{shown.toLocaleString()} / {limit.toLocaleString()} today</b>
           </div>
           {round && <div className="bf-round"><span>⏱ {left}s</span><span>+{score}</span></div>}
         </div>
@@ -269,7 +315,7 @@ export function ButterflyCatch({ player, onBalance, onExit, onGarden, artFor }: 
           {message ? <p>{message}</p> : <p>Walk around the meadow (WASD, arrow keys or tap) and walk into butterflies to catch them. Each round lasts 60 seconds.</p>}
           <ul className="bf-key">
             {(Object.keys(VALUES) as Kind[]).map((kind) => (
-              <li key={kind}><img src={ART[kind]} alt="" className={`is-${kind.toLowerCase()}`} />{kind}<b>{VALUES[kind]}</b></li>
+              <li key={kind}><ButterflyArt kind={kind} />{kind}<b>{VALUES[kind]}</b></li>
             ))}
           </ul>
           <button type="button" className="bf-start" disabled={busy || full} onClick={() => void start()}>

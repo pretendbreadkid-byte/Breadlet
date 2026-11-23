@@ -4372,8 +4372,8 @@ main.breadlet-blue-theme.breadlet-blue-theme .bf-meter b { position: relative; d
 .bf-meter img { width: 20px; height: 20px; }
 .bf-round { display: flex; gap: 8px; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-round span { border: 1.5px solid var(--glass-line); border-radius: 999px; background: var(--glass); padding: 7px 14px; font-weight: 900; color: #fff !important; }
-.bm-butterfly img, .bf-key img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(60, 30, 5, .3)); }
-.bm-butterfly.is-golden img, .bf-key img.is-golden { filter: sepia(1) saturate(5) hue-rotate(5deg) brightness(1.25) drop-shadow(0 0 8px rgba(255, 215, 70, .9)); }
+.bm-butterfly svg, .bf-key svg { width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(60, 30, 5, .3)); }
+.bm-butterfly.is-golden svg { filter: drop-shadow(0 0 8px rgba(255, 215, 70, .9)); }
 .bf-pop { position: absolute; z-index: 3; transform: translate(-50%, -50%); font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: 1.5rem; font-weight: 900; pointer-events: none; animation: bf-pop .9s ease-out forwards; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-pop { color: #fff !important; text-shadow: 0 2px 0 #8a3f0c, 0 0 6px rgba(0, 0, 0, .35); }
 @keyframes bf-pop { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -48px; } }
@@ -4382,7 +4382,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .bf-card h2 { font-family: "DynaPuf
 main.breadlet-blue-theme.breadlet-blue-theme .bf-card p, main.breadlet-blue-theme.breadlet-blue-theme .bf-card small { font-weight: 800; color: #fff0da !important; }
 .bf-key { display: flex; justify-content: center; gap: 10px; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-key li { display: flex; flex-direction: column; align-items: center; gap: 2px; border-radius: 14px; background: rgba(255, 255, 255, .1); padding: 8px 10px; font-size: .8rem; font-weight: 800; color: #fff !important; }
-.bf-key img { width: 44px; height: 44px; }
+.bf-key svg { width: 48px; height: 40px; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-key b { color: #ffd23f !important; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-start { min-width: 160px; border: 0; border-radius: 999px; background: #f08a2c !important; padding: 10px 24px; font-size: 1.1rem; font-weight: 900; color: #fff !important; box-shadow: 0 4px 0 #a04c10 !important; }
 .bf-start:disabled { opacity: .55; cursor: not-allowed; }
