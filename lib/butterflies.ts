@@ -3,10 +3,10 @@
 // had already flown in when they finished. Pays up to BUTTERFLY_DAILY_LIMIT Bread Bucks a day.
 
 export const BUTTERFLY_DAILY_LIMIT = 1500;
-// How long a round lasts, and how long each butterfly takes to cross the meadow.
-export const ROUND_MS = 40_000;
-export const FLIGHT_MS = 6_500;
-export const BUTTERFLIES_PER_ROUND = 16;
+// How long a round lasts, and how long each butterfly stays in the meadow before flying off.
+export const ROUND_MS = 60_000;
+export const FLIGHT_MS = 14_000;
+export const BUTTERFLIES_PER_ROUND = 22;
 // A little slack for the network when finishing a round.
 export const FINISH_GRACE_MS = 15_000;
 
@@ -18,9 +18,9 @@ export const BUTTERFLY_KINDS: { kind: ButterflyKind; value: number; chance: numb
 ];
 export const butterflyValue = (kind: ButterflyKind) => BUTTERFLY_KINDS.find((entry) => entry.kind === kind)?.value || 0;
 
-// One butterfly in a round: when it appears (ms after the round starts), where it enters (0-1 down
-// the meadow), which way it flies and how much it wobbles.
-export type RoundButterfly = { id: string; kind: ButterflyKind; at: number; y: number; dir: 1 | -1; wave: number };
+// One butterfly in a round: when it appears (ms after the round starts), where (x and y as 0-1 of
+// the meadow), which way it drifts (angle in radians) and how much it wobbles.
+export type RoundButterfly = { id: string; kind: ButterflyKind; at: number; x: number; y: number; angle: number; wave: number };
 export type ButterflyRound = { id: string; startedAt: number; butterflies: RoundButterfly[] };
 export type ButterflyState = { day: string; amount: number; round?: ButterflyRound };
 
@@ -37,8 +37,9 @@ export function rollRound(random: () => number, now = Date.now()): ButterflyRoun
       id: `${index}-${Math.floor(random() * 1e9).toString(36)}`,
       kind,
       at: Math.round(index * spacing + random() * spacing * 0.6),
-      y: Math.round((0.12 + random() * 0.7) * 100) / 100,
-      dir: random() < 0.5 ? 1 : -1,
+      x: Math.round((0.06 + random() * 0.88) * 1000) / 1000,
+      y: Math.round((0.1 + random() * 0.8) * 1000) / 1000,
+      angle: Math.round(random() * Math.PI * 2 * 100) / 100,
       wave: Math.round((0.5 + random()) * 100) / 100,
     });
   }

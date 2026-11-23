@@ -4327,15 +4327,6 @@ main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-l
 .blook-tilt:has(> .locked-blook-art)::after { content: "?"; position: absolute; inset: 0; display: grid; place-items: center; font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; color: rgba(255, 245, 232, .55); pointer-events: none; }
 main.breadlet-blue-theme.breadlet-blue-theme .blook-tilt:has(> .locked-blook-art)::after { color: rgba(255, 245, 232, .55) !important; }
 
-/* Ted's Shop: see-through cabinets with soft shelf lines instead of solid wood. */
-.shop-cabinet { border: 2px solid rgba(255, 238, 214, .4); background: rgba(120, 58, 14, .34); box-shadow: none; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.shop-cabinet::after { display: none; }
-.shop-cabinet-shelves {
-  background:
-    linear-gradient(to bottom, transparent calc(100% - 14px), rgba(255, 230, 200, .34) calc(100% - 14px), rgba(255, 230, 200, .34) calc(100% - 8px), rgba(30, 14, 4, .3) calc(100% - 8px), transparent calc(100% - 2px)) 0 0 / 100% var(--shelf-row) repeat-y,
-    rgba(80, 36, 8, .3);
-}
-
 /* Profile: see-through stat boxes and Friends bar; warm buttons instead of blue. */
 main.breadlet-blue-theme.breadlet-blue-theme .profile-metric,
 main.breadlet-blue-theme.breadlet-blue-theme .profile-list-heading {
@@ -4372,24 +4363,17 @@ main.breadlet-blue-theme.breadlet-blue-theme .garden-choice b { font-family: "Dy
 main.breadlet-blue-theme.breadlet-blue-theme .garden-choice span { font-size: .92rem; font-weight: 800; color: #fff4df !important; }
 @media (max-width: 560px) { .garden-chooser { grid-template-columns: 1fr 1fr; gap: 10px; } .garden-choice { padding: 14px 10px 16px; border-radius: 18px; } .garden-choice img { height: 80px; } main.breadlet-blue-theme.breadlet-blue-theme .garden-choice b { font-size: 1rem; } main.breadlet-blue-theme.breadlet-blue-theme .garden-choice span { font-size: .78rem; } }
 
-.bf-page { display: flex; min-height: calc(100vh - 12rem); flex-direction: column; gap: 12px; }
-.bf-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
-.bf-top-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-back { white-space: nowrap; }
 .bf-logo { height: 92px; width: auto; max-width: none; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .25)); }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-back { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--glass-line) !important; border-radius: 999px; background: var(--glass) !important; padding: 8px 14px; font-weight: 900; color: #fff !important; box-shadow: none !important; }
-.bf-stats { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .bf-meter { position: relative; flex: 1 1 260px; height: 38px; overflow: hidden; border: 1.5px solid var(--glass-line); border-radius: 999px; background: var(--glass); }
 .bf-meter > span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #f6b33c, #f08a2c); transition: width .4s ease; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-meter b { position: relative; display: flex; height: 100%; align-items: center; justify-content: center; gap: 6px; font-weight: 900; color: #fff !important; }
 .bf-meter img { width: 20px; height: 20px; }
 .bf-round { display: flex; gap: 8px; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-round span { border: 1.5px solid var(--glass-line); border-radius: 999px; background: var(--glass); padding: 7px 14px; font-weight: 900; color: #fff !important; }
-.bf-meadow { position: relative; flex: 1; min-height: 440px; overflow: hidden; border: 3px solid rgba(255, 238, 214, .45); border-radius: 24px; background: linear-gradient(180deg, #ffd9a0 0%, #ffe9c4 38%, #9fdc7c 62%, #5fb85a 100%); touch-action: manipulation; user-select: none; }
-.bf-hills { position: absolute; inset: auto -10% -18% -10%; height: 55%; border-radius: 50% 50% 0 0; background: radial-gradient(circle at 20% 30%, #ffffff 0 4px, transparent 5px) 0 0 / 70px 60px, radial-gradient(circle at 60% 70%, #ff8fb0 0 4px, transparent 5px) 0 0 / 90px 70px, linear-gradient(180deg, #7ccc63, #4a9e46); pointer-events: none; }
-.bf-butterfly { position: absolute; z-index: 2; display: grid; width: 74px; height: 74px; place-items: center; border: 0; background: transparent !important; padding: 0; box-shadow: none !important; cursor: pointer; }
-.bf-butterfly img, .bf-key img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(60, 30, 5, .3)); }
-.bf-butterfly.is-golden img, .bf-key img.is-golden { filter: sepia(1) saturate(5) hue-rotate(5deg) brightness(1.25) drop-shadow(0 0 8px rgba(255, 215, 70, .9)); }
+.bm-butterfly img, .bf-key img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 3px rgba(60, 30, 5, .3)); }
+.bm-butterfly.is-golden img, .bf-key img.is-golden { filter: sepia(1) saturate(5) hue-rotate(5deg) brightness(1.25) drop-shadow(0 0 8px rgba(255, 215, 70, .9)); }
 .bf-pop { position: absolute; z-index: 3; transform: translate(-50%, -50%); font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: 1.5rem; font-weight: 900; pointer-events: none; animation: bf-pop .9s ease-out forwards; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-pop { color: #fff !important; text-shadow: 0 2px 0 #8a3f0c, 0 0 6px rgba(0, 0, 0, .35); }
 @keyframes bf-pop { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -48px; } }
@@ -4402,4 +4386,40 @@ main.breadlet-blue-theme.breadlet-blue-theme .bf-key li { display: flex; flex-di
 main.breadlet-blue-theme.breadlet-blue-theme .bf-key b { color: #ffd23f !important; }
 main.breadlet-blue-theme.breadlet-blue-theme .bf-start { min-width: 160px; border: 0; border-radius: 999px; background: #f08a2c !important; padding: 10px 24px; font-size: 1.1rem; font-weight: 900; color: #fff !important; box-shadow: 0 4px 0 #a04c10 !important; }
 .bf-start:disabled { opacity: .55; cursor: not-allowed; }
-@media (max-width: 640px) { .bf-top { grid-template-columns: 1fr auto; } .bf-top > span { display: none; } .bf-top-buttons { flex-direction: column; align-items: flex-start; } .bf-logo { height: 64px; width: auto; max-width: 100%; } .bf-meadow { min-height: 380px; } .bf-butterfly { width: 60px; height: 60px; } }
+/* Butterfly Meadow: a full-screen walkable world like the Garden, with its own scenery. */
+.bm-screen .bm-viewport, .bm-screen .bm-world { background-color: #6cc64c; }
+.bm-decor { position: absolute; pointer-events: none; overflow: visible; filter: drop-shadow(0 4px 2px rgba(20, 60, 10, .25)); }
+.bm-pond { position: absolute; width: 380px; height: 220px; border: 6px solid #3f8f32; border-radius: 50%; background: radial-gradient(ellipse at 40% 35%, #7fe0c8, #2fa59a 70%); z-index: 1; pointer-events: none; }
+.bm-pond span { position: absolute; left: 22%; top: 30%; width: 34px; height: 22px; border-radius: 50% 50% 50% 0; background: #4cae3e; box-shadow: 140px 40px 0 #4cae3e, 90px -10px 0 #5bbf45; }
+.bm-path { position: absolute; left: 920px; top: 0; width: 150px; height: 1400px; background: repeating-linear-gradient(180deg, #e2c48c 0 60px, #d9b97c 60px 120px); border-radius: 75px; opacity: .55; pointer-events: none; z-index: 0; }
+.bm-butterfly { position: absolute; left: 0; top: 0; width: 64px; height: 64px; pointer-events: none; will-change: transform, opacity; }
+.bm-hud { position: absolute; z-index: 20000; }
+.bm-top { left: 14px; right: 14px; top: 12px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px; pointer-events: none; }
+.bm-top > * { pointer-events: auto; }
+.bf-top-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.bm-top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.bm-top-right .bf-meter { width: min(100%, 300px); flex: none; }
+.bm-screen .bf-back { background: rgba(40, 20, 6, .55) !important; border: 1.5px solid rgba(255, 238, 214, .4) !important; color: #fff !important; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 8px 14px; font-weight: 900; white-space: nowrap; }
+.bm-screen .bf-meter { background: rgba(40, 20, 6, .55); }
+.bm-screen .bf-meter b, .bm-screen .bf-round span { color: #fff; }
+.bm-screen .bf-round span { border: 1.5px solid rgba(255, 238, 214, .4); border-radius: 999px; background: rgba(40, 20, 6, .55); padding: 7px 14px; font-weight: 900; }
+.bm-screen .bf-meter b { position: relative; display: flex; height: 100%; align-items: center; justify-content: center; gap: 6px; font-weight: 900; }
+.bm-card { position: absolute; left: 50%; top: 55%; }
+.bm-screen .bf-card h2 { font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: 1.5rem; color: #fff; }
+.bm-screen .bf-card p, .bm-screen .bf-card small { font-weight: 800; color: #fff0da; }
+.bm-screen .bf-key li { display: flex; flex-direction: column; align-items: center; gap: 2px; border-radius: 14px; background: rgba(255, 255, 255, .1); padding: 8px 10px; font-size: .8rem; font-weight: 800; color: #fff; }
+.bm-screen .bf-key b { color: #ffd23f; }
+.bm-screen .bf-start { min-width: 160px; border: 0; border-radius: 999px; background: #f08a2c; padding: 10px 24px; font-size: 1.1rem; font-weight: 900; color: #fff; box-shadow: 0 4px 0 #a04c10; }
+.bm-screen .bf-pop { position: absolute; color: #fff; text-shadow: 0 2px 0 #8a3f0c, 0 0 6px rgba(0, 0, 0, .35); }
+.bm-chat { right: 14px; bottom: 14px; width: min(calc(100% - 28px), 340px); }
+.bm-chat form input { border: 2px solid rgba(255, 238, 214, .5) !important; border-radius: 12px !important; background: rgba(40, 20, 6, .7) !important; padding: 8px 12px !important; color: #fff !important; }
+.bm-chat form input::placeholder { color: #e9d6bd !important; }
+.bm-say { display: flex; align-items: center; gap: 6px; border-radius: 12px; background: #f08a2c; padding: 8px 14px; font-weight: 900; color: #fff; }
+@media (max-width: 640px) {
+  .bm-top { grid-template-columns: 1fr auto; }
+  .bm-top .bf-logo { display: none; }
+  .bf-top-buttons { flex-direction: column; align-items: flex-start; }
+  .bm-top-right .bf-meter { width: 190px; }
+  .bm-card { top: 52%; }
+  .bm-butterfly { width: 56px; height: 56px; }
+}

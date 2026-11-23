@@ -2356,7 +2356,7 @@ function MainPage() {
           {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
           {gardenChooser && <GardenChooser onClose={() => setGardenChooser(false)} onPick={(mode) => { setGardenChooser(false); setGamesMode(mode); setTab("games"); }} />}
-          {tab === "games" && gamesMode === "butterflies" && !gardenVisit && !kidMode && !isGuest && player.id && <ButterflyCatch onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onExit={leaveGarden} onGarden={() => setGamesMode("garden")} />}
+          {tab === "games" && gamesMode === "butterflies" && !gardenVisit && !kidMode && !isGuest && player.id && <ButterflyCatch player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} artFor={artFor} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onExit={leaveGarden} onGarden={() => setGamesMode("garden")} />}
           {tab === "games" && (gamesMode === "garden" || gardenVisit) && !kidMode && !isGuest && player.id && <FieldsTab player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} gardenId={gardenVisit && gardenVisit !== player.id ? gardenVisit : undefined} tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onBreadlet={() => void refreshPlayerFromServer()} onExit={leaveGarden} artFor={artFor} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
