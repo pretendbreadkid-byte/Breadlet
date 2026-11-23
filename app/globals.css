@@ -4460,19 +4460,8 @@ html .inbox-toast-icon { width: 46px; height: 46px; border-radius: 50%; backgrou
 html .inbox-toast::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: 6px; height: 3px; border-radius: 3px; background: #f08a2c; transform-origin: left; animation: beta-toast-time 6s linear forwards; opacity: .6; }
 @keyframes beta-toast-time { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
-html main.breadlet-blue-theme.breadlet-blue-theme .inbox-modal { border: 0; border-radius: 26px; background: #fff6ea; box-shadow: 0 30px 70px rgba(40, 15, 0, .5); }
-html main.breadlet-blue-theme.breadlet-blue-theme .inbox-modal * { color: #4a2508 !important; }
-html main.breadlet-blue-theme.breadlet-blue-theme .inbox-read-all { border: 0; background: #f08a2c; box-shadow: 0 3px 0 #b8560f; color: #fff !important; }
-html main.breadlet-blue-theme.breadlet-blue-theme .inbox-item { border: 0; border-radius: 16px; background: #fff !important; box-shadow: 0 2px 8px rgba(90, 40, 5, .1); }
-html main.breadlet-blue-theme.breadlet-blue-theme .inbox-item:hover:not(:disabled) { background: #fff2e0 !important; }
-html main.breadlet-blue-theme.breadlet-blue-theme .inbox-item.is-unread { position: relative; background: #ffe9cc !important; box-shadow: inset 4px 0 0 #f08a2c, 0 2px 8px rgba(90, 40, 5, .12); }
-html .inbox-item-icon { border-radius: 50%; background: #ffd7a8; }
-html main.breadlet-blue-theme.breadlet-blue-theme .inbox-item-time { color: #a0683a !important; }
 
-/* The "you got something" pop-up (gifts, Breadlet swaps): warm instead of blue. */
-html main.breadlet-blue-theme.breadlet-blue-theme .player-popup { position: relative; border: 0; border-radius: 28px; background: linear-gradient(180deg, #fff8ee, #ffe4c2); padding-top: 52px; box-shadow: 0 30px 70px rgba(40, 15, 0, .55); }
-html main.breadlet-blue-theme.breadlet-blue-theme .player-popup p { color: #4a2508 !important; }
-html main.breadlet-blue-theme.breadlet-blue-theme .player-popup button { border-radius: 999px; background: #f08a2c; color: #fff !important; box-shadow: 0 4px 0 #b8560f; }
+/* The "you got something" pop-up (gifts, Breadlet swaps): black like the other windows. */
 .player-popup-icon { display: none; }
 html .player-popup-icon { position: absolute; left: 50%; top: -30px; display: grid; width: 68px; height: 68px; place-items: center; transform: translateX(-50%); border: 4px solid #fff; border-radius: 50%; background: linear-gradient(180deg, #f6a04a, #e2701a); font-size: 32px; box-shadow: 0 8px 18px rgba(150, 60, 0, .35); }
 
@@ -4485,8 +4474,6 @@ html .player-popup-icon { position: absolute; left: 50%; top: -30px; display: gr
 main.breadlet-blue-theme.breadlet-blue-theme .event-redeem-corner { position: absolute; right: 0; top: 0; z-index: 5; display: inline-flex; align-items: center; gap: 8px; border: 2px solid rgba(255, 238, 214, .5); border-radius: 999px; background: #e8781f; padding: 8px 16px 8px 10px; font-weight: 900; color: #fff !important; box-shadow: 0 4px 0 #9a420a; }
 .event-redeem-corner img { width: 28px; height: 28px; object-fit: contain; }
 .event-redeem-layer { position: fixed; inset: 0; z-index: 9990; display: grid; place-items: center; background: rgba(40, 15, 0, .6); padding: 16px; }
-main.breadlet-blue-theme.breadlet-blue-theme .event-redeem { position: relative; width: min(100%, 520px); max-height: calc(100vh - 32px); overflow-y: auto; border-radius: 26px; background: #fff6ea; padding: 22px; box-shadow: 0 30px 70px rgba(40, 15, 0, .5); }
-main.breadlet-blue-theme.breadlet-blue-theme .event-redeem * { color: #4a2508 !important; }
 main.breadlet-blue-theme.breadlet-blue-theme .event-redeem h2 { font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: 1.6rem; font-weight: 900; }
 main.breadlet-blue-theme.breadlet-blue-theme .event-redeem-close { position: absolute; right: 14px; top: 10px; width: 36px; height: 36px; border-radius: 50%; background: #ffe2bf !important; font-size: 1.4rem; font-weight: 900; box-shadow: none !important; }
 .event-redeem .event-wallet { display: flex; align-items: center; gap: 8px; margin: 6px 0 12px; font-weight: 900; }
@@ -4505,9 +4492,9 @@ main.breadlet-blue-theme.breadlet-blue-theme .event-redeem-code a { text-decorat
 
 /* ===== Sidebar: a slightly darker box behind every tab icon (not the log out button), and the
    Clans and Bazaar icons drawn as big as the others. ===== */
-html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button { background: rgba(70, 26, 0, .28) !important; }
-html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button:hover { background: rgba(70, 26, 0, .42) !important; }
-html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button[aria-current="page"] { background: rgba(255, 240, 220, .24) !important; }
+html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button { background: rgba(255, 225, 190, .14) !important; }
+html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button:hover { background: rgba(255, 225, 190, .24) !important; }
+html main.breadlet-blue-theme > aside.breadlet-sidebar nav.sidebar-nav button[aria-current="page"] { background: rgba(255, 240, 220, .34) !important; }
 @media (min-width: 768px) {
   /* Smaller boxes with room between them, so they don't clump together. */
   main.nav-rail > aside.breadlet-sidebar nav.sidebar-nav button { width: 46px !important; min-height: 46px !important; height: 46px; margin: 0 auto 10px !important; border-radius: 13px !important; }
@@ -4562,4 +4549,35 @@ main.breadlet-blue-theme.breadlet-blue-theme .auction-own { font-size: .8rem; fo
 .auction-ended p { font-size: .9rem; font-weight: 700; }
 
 /* The leaves count in the redeem window: light, like the rest of it. */
-main.breadlet-blue-theme.breadlet-blue-theme .event-redeem .event-wallet { border: 0; border-radius: 999px; background: #ffe2bf !important; padding: 6px 14px; width: fit-content; box-shadow: none; }
+
+/* ===== Black windows (like the Inbox and Breadlet cards were), the bell, Settings and Other ===== */
+main.breadlet-blue-theme.breadlet-blue-theme .player-popup { position: relative; border: 3px solid #090908 !important; border-radius: 22px; background: #22211e !important; padding-top: 52px; box-shadow: 0 8px 0 #090908, 0 30px 60px rgba(0, 0, 0, .5) !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .player-popup p { color: #fff !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .player-popup button { border-radius: 999px; background: #ED7117 !important; color: #fff !important; box-shadow: 0 4px 0 #090908; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-redeem { position: relative; width: min(100%, 520px); max-height: calc(100vh - 32px); overflow-y: auto; border: 3px solid #090908; border-radius: 22px; background: #22211e; padding: 22px; box-shadow: 0 8px 0 #090908, 0 30px 60px rgba(0, 0, 0, .5); }
+main.breadlet-blue-theme.breadlet-blue-theme .event-redeem * { color: #fff !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-redeem .event-wallet { width: fit-content; border: 0; border-radius: 999px; background: #13120F !important; padding: 6px 14px; box-shadow: none; }
+.event-redeem-list li { background: #27251F; box-shadow: none; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-redeem-close { background: #13120F !important; }
+.event-redeem-code { background: #27251F; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-redeem-code code { color: #ffd23f !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .event-redeem-code a { color: #ffb36b !important; }
+
+/* The Inbox bell, right next to your name at the top right. */
+.workspace-account { display: flex; align-items: center; }
+main.breadlet-blue-theme.breadlet-blue-theme .workspace-bell { position: relative; display: grid; width: 44px; height: 44px; flex: none; place-items: center; border: 2px solid #7d3406; border-radius: 12px; background: #9a420a; color: #fff !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .workspace-bell:hover { background: #a9490c; }
+.workspace-bell .nav-unread-badge { position: absolute; top: -8px; right: -8px; margin: 0; }
+
+/* Settings: a black window over the page you're on. */
+.settings-overlay-layer { position: fixed; inset: 0; z-index: 9995; display: grid; place-items: center; background: rgba(0, 0, 0, .55); padding: 16px; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+main.breadlet-blue-theme.breadlet-blue-theme .settings-overlay { position: relative; width: min(100%, 1080px); max-height: calc(100vh - 32px); overflow-y: auto; border: 3px solid #090908; border-radius: 22px; background: #13120F; padding: 18px; box-shadow: 0 8px 0 #090908, 0 30px 70px rgba(0, 0, 0, .55); }
+main.breadlet-blue-theme.breadlet-blue-theme .settings-overlay-close { position: absolute; right: 14px; top: 12px; z-index: 2; display: grid; width: 38px; height: 38px; place-items: center; border-radius: 50%; background: #27251F !important; font-size: 1.5rem; font-weight: 900; color: #fff !important; box-shadow: none !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .settings-overlay .ui-panel { background: #1b1a17 !important; }
+
+/* Other: a little pop-out next to the menu with Take a tour, Resources, Socials, GitHub... */
+.other-popout-layer { position: fixed; inset: 0; z-index: 9990; }
+main.breadlet-blue-theme.breadlet-blue-theme .other-popout { position: fixed; left: 86px; bottom: 70px; display: flex; min-width: 200px; flex-direction: column; gap: 2px; border: 3px solid #090908; border-radius: 18px; background: #22211e; padding: 8px; box-shadow: 0 8px 0 #090908, 0 20px 40px rgba(0, 0, 0, .45); }
+main.breadlet-blue-theme.breadlet-blue-theme .other-popout > * { display: flex; align-items: center; gap: 10px; border-radius: 12px; background: transparent !important; padding: 10px 12px; font-size: .95rem; font-weight: 800; color: #fff !important; box-shadow: none !important; text-align: left; }
+main.breadlet-blue-theme.breadlet-blue-theme .other-popout > *:hover { background: #343129 !important; }
+@media (max-width: 767px) { main.breadlet-blue-theme.breadlet-blue-theme .other-popout { left: 12px; right: 12px; bottom: 86px; } }

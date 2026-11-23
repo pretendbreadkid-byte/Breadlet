@@ -49,6 +49,7 @@ import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi,
 import {
   Backpack,
   Bell,
+  MoreHorizontal,
   CircleUserRound,
   Crown,
   Sprout,
@@ -109,7 +110,9 @@ type Tab =
   | "explore"
   | "event"
   | "games"
-  | "inbox";
+  | "inbox"
+  | "news"
+  | "other";
 
 
 type Listing = { id: number | string; seller: string; sellerId?: string; blook: string; price: number; quantity?: number; listedAt?: string; sellerBlook?: string };
@@ -672,6 +675,12 @@ function MainPage() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [tab, setTab] = useState<Tab>("profile");
+  // Settings is a window over the page you're on; Other is a small pop-out from the menu.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [otherOpen, setOtherOpen] = useState(false);
+  useEffect(() => {
+    if (tab === "settings") { setTab("profile"); setSettingsOpen(true); }
+  }, [tab]);
   // Refreshing keeps you on the tab you were on (saved in this browser).
   // First run: switch to the saved tab (and don't save the starting "profile" over it).
   const tabRestored = useRef(false);
@@ -2046,23 +2055,33 @@ function MainPage() {
       label: "Chat",
       icon: <ChatIcon size={20} />,
     },
-    // The Inbox (sales, trades, gifts, mentions...) with its red number, right under Chat.
-    ...(!isGuest ? [{ id: "inbox" as Tab, label: "Inbox", icon: <Bell size={20} strokeWidth={2.4} fill="currentColor" /> }] : []),
     { id: "leaderboard", label: "Leaderboard", icon: <TrophyIcon size={20} /> },
+    // News opens Breadlet News; Other pops out Take a tour, Resources, Socials, GitHub and more.
+    { id: "news" as Tab, label: "News", icon: <Newspaper size={20} strokeWidth={2.4} /> },
+    { id: "other" as Tab, label: "Other", icon: <MoreHorizontal size={22} strokeWidth={3} /> },
     // The Garden is open to everyone signed in (guests and kid accounts can't use it).
     ...(!isGuest && !kidMode ? [{ id: "games" as Tab, label: "Garden", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
     : kidMode ? nav.filter((item) => !KID_HIDDEN_TABS.includes(item.id)) : nav;
-  shortcutTabsRef.current = visibleNav.map((item) => item.id).filter((id) => id !== "inbox");
+  shortcutTabsRef.current = visibleNav.map((item) => item.id).filter((id) => !["inbox", "news", "other"].includes(id));
   // Settings > Layout groups (Grouped sidebar) and the tabs that fit on the Bottom bar.
   const groupOf: Record<string, string> = { event: "Play", capsules: "Play", games: "Play", inventory: "Collection", crafting: "Collection", chat: "Social", inbox: "Social", clan: "Social", leaderboard: "Social", market: "Market" };
   const navGroups = ["Play", "Collection", "Social", "Market", "More"].map((title) => ({ title, items: visibleNav.filter((item) => (groupOf[item.id] || "More") === title) }));
   const bottomMain = visibleNav.filter((item) => ["capsules", "inventory", "market", "chat"].includes(item.id)).slice(0, 4);
   const bottomMainFallback = bottomMain.length >= 3 ? bottomMain : visibleNav.slice(0, 4);
   const bottomMore = visibleNav.filter((item) => !bottomMainFallback.includes(item));
-  const goTab = (id: Tab) => { setHomeOpen(false); setMoreOpen(false); if (id === "games") setGardenChooser(true); else if (id === "inbox") setInboxOpen(true); else setTab(id); };
+  const goTab = (id: Tab) => {
+    setHomeOpen(false);
+    setMoreOpen(false);
+    if (id === "games") setGardenChooser(true);
+    else if (id === "inbox") setInboxOpen(true);
+    else if (id === "news") setNewsOpen(true);
+    else if (id === "other") setOtherOpen((open) => !open);
+    else if (id === "settings") setSettingsOpen(true);
+    else { setOtherOpen(false); setTab(id); }
+  };
   const layoutExtras = (
     <div className="layout-extras">
       <button type="button" onClick={() => { setViewedProfile(null); goTab("profile"); }}><CircleUserRound size={18} />Profile</button>
@@ -2214,6 +2233,12 @@ function MainPage() {
             </div>
 
             {/* Corner Username Dropdown */}
+            {!isGuest && (
+              <button type="button" className="workspace-bell pointer-events-auto" onClick={() => setInboxOpen(true)} aria-label={inboxUnreadCount ? `Inbox, ${inboxUnreadCount} unread` : "Inbox"} title="Inbox">
+                <Bell size={20} strokeWidth={2.4} fill="currentColor" />
+                {inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
+              </button>
+            )}
             <div ref={userMenuRef} className="workspace-account relative pointer-events-auto">
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
@@ -2238,32 +2263,9 @@ function MainPage() {
                     <CircleUserRound size={18} />
                     Profile
                   </button>
-                  {!isGuest && (
-                    <button
-                      onClick={() => {
-                        setInboxOpen(true);
-                        setUserMenuOpen(false);
-                      }}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
-                    >
-                      <Bell size={18} />
-                      Inbox
-                      {inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
-                    </button>
-                  )}
                   <button
                     onClick={() => {
-                      setTab("resources");
-                      setUserMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
-                  >
-                    <Info size={18} />
-                    Resources
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTab("settings");
+                      setSettingsOpen(true);
                       setUserMenuOpen(false);
                     }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-[#bde8ff] hover:bg-[#18558f]"
@@ -2284,16 +2286,6 @@ function MainPage() {
                     </button>
                   )}
                   <hr className="my-1 border-[#3d91cd]/40" />
-                  {!isGuest && <button onClick={() => { setViewedProfile(null); setUserMenuOpen(false); setTourOpen(true); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><HelpCircle size={18} />Take a tour</button>}
-                  {navLayout === "rail" && (
-                    <>
-                      {/* Icon rail has no sidebar footer, so its small buttons live here. */}
-                      <button onClick={() => { setNewsOpen(true); setUserMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><Newspaper size={18} />News</button>
-                      {!kidMode && <button onClick={() => { setSocialsOpen(true); setUserMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><Users size={18} />Socials</button>}
-                      {!kidMode && <button onClick={() => { setProjectsOpen(true); setUserMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><Sparkles size={18} />Other projects</button>}
-                      {!kidMode && <a href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" onClick={() => setUserMenuOpen(false)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><GitBranch size={18} />GitHub</a>}
-                    </>
-                  )}
                   <button
                     onClick={() => {
                       leaveSession();
@@ -2418,7 +2410,25 @@ function MainPage() {
               redeem={redeemPromo}
             />
           )}
-          {tab === "settings" && <SettingsTab blockedPlayers={player.blockedPlayers || []} onUnblock={toggleBlock} username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} kidMode={kidMode} onKidModeChanged={(value) => setPlayer((current) => current ? { ...current, kidMode: value } : current)} />}
+          {otherOpen && (
+            <div className="other-popout-layer" onClick={() => setOtherOpen(false)}>
+              <div className="other-popout" role="menu" aria-label="Other" onClick={(event) => event.stopPropagation()}>
+                {!isGuest && <button type="button" onClick={() => { setOtherOpen(false); setViewedProfile(null); setTourOpen(true); }}><HelpCircle size={18} />Take a tour</button>}
+                <button type="button" onClick={() => { setOtherOpen(false); setTab("resources"); }}><Info size={18} />Resources</button>
+                {!kidMode && <button type="button" onClick={() => { setOtherOpen(false); setSocialsOpen(true); }}><Users size={18} />Socials</button>}
+                {!kidMode && <a href="https://github.com/pretendbreadkid-byte/Breadlet/tree/master" target="_blank" rel="noreferrer" onClick={() => setOtherOpen(false)}><GitBranch size={18} />GitHub</a>}
+                {!kidMode && <button type="button" onClick={() => { setOtherOpen(false); setProjectsOpen(true); }}><Sparkles size={18} />Other projects</button>}
+              </div>
+            </div>
+          )}
+          {settingsOpen && (
+            <div className="settings-overlay-layer" onClick={() => setSettingsOpen(false)}>
+              <div className="settings-overlay" role="dialog" aria-modal="true" aria-label="Settings" onClick={(event) => event.stopPropagation()}>
+                <button type="button" className="settings-overlay-close" onClick={() => setSettingsOpen(false)} aria-label="Close settings">×</button>
+                <SettingsTab blockedPlayers={player.blockedPlayers || []} onUnblock={toggleBlock} username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} kidMode={kidMode} onKidModeChanged={(value) => setPlayer((current) => current ? { ...current, kidMode: value } : current)} />
+              </div>
+            </div>
+          )}
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} kidMode={kidMode} />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
@@ -5281,7 +5291,7 @@ function ChatTab({ openGarden, player, showBadge, giftNotice, clearGiftNotice, i
           return (
             <div key={`${group.user}-${latest.index}`} className="chat-group">
               <button disabled={group.isBreadletBot} onClick={() => !group.isBreadletBot && void openPlayerProfile(group.user)} aria-label={group.isBreadletBot ? "Breadlet chat bot" : `Open ${group.user}'s profile`} title={group.isBreadletBot ? "Breadlet" : `View ${group.user}'s profile`} className="chat-avatar disabled:cursor-default">
-                {group.isBreadletBot ? <img src="/assets/breadlet-icon.svg" alt="Breadlet logo" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}
+                {group.isBreadletBot ? <img src="/assets/robo-bread-2.svg" alt="Breadlet bot" className="h-full w-full object-contain" /> : latestItem.equippedBlook || (group.user === player.username && player.equipped) ? <BlookImg name={latestItem.equippedBlook || player.equipped} className="h-full w-full" /> : <img src="/assets/breadlet-icon.svg" alt="" className="h-full w-full object-contain" />}
               </button>
               <div className="min-w-0 flex-1">
                 <div className="chat-group-header">
@@ -6996,7 +7006,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 function savedTab(): Tab | null {
   try {
     const saved = window.localStorage.getItem("breadlet-last-tab") as Tab | null;
-    return saved && !["admin", "inbox"].includes(saved) ? saved : null;
+    return saved && !["admin", "inbox", "news", "other", "settings"].includes(saved) ? saved : null;
   } catch {
     return null;
   }
