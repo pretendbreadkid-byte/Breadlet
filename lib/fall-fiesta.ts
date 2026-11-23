@@ -22,3 +22,13 @@ export const showerAt = (now: number) => {
   const endsAt = startsAt + SHOWER_MINUTES * 60000;
   return { startsAt, endsAt, live: now < endsAt, nextAt: startsAt + HOUR };
 };
+
+// The Fall Fiesta ended at midnight Central (Nov 23, 2026). After that no leaves fall, the Event
+// tab shows Breadlet Breaks Bad, and leftover leaves can be redeemed (migration 0113).
+export const FIESTA_ENDS_AT = Date.parse("2026-11-23T06:00:00Z");
+export const fiestaOver = (now = Date.now()) => now >= FIESTA_ENDS_AT;
+
+// What leftover leaves buy after the event (besides any Fall Breadlets you haven't bought yet).
+export const LEFTOVER_CLAN_THEME_PRICE = 1000;
+export const LEFTOVER_BLOOKBERRY_PRICE = 100;
+export const LEFTOVER_BUCKS_PER_LEAF = 5;

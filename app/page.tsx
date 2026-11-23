@@ -8,6 +8,7 @@ import { GameTour } from "./components/game-tour";
 import { LiveTrade } from "./components/live-trade";
 import { AdminPlayerPanel } from "./components/admin-player-panel";
 import { StaffPlayerPanel } from "./components/staff-player-panel";
+import { BazaarAuctions } from "./components/bazaar-auctions";
 import { BazaarBoard, BazaarTags } from "./components/bazaar-board";
 import { GARDEN_TAG } from "../lib/garden-link";
 import { SettingsTab, readSettings, useSettings } from "./components/settings-tab";
@@ -107,7 +108,8 @@ type Tab =
   | "admin"
   | "explore"
   | "event"
-  | "games";
+  | "games"
+  | "inbox";
 
 
 type Listing = { id: number | string; seller: string; sellerId?: string; blook: string; price: number; quantity?: number; listedAt?: string; sellerBlook?: string };
@@ -208,6 +210,8 @@ type ClanRecord = {
   colorsUnlocked: boolean;
   theme: string;
   animatedProfiles: boolean;
+  // The Fall clan theme, from leftover Fall Fiesta leaves (migration 0113).
+  fallTheme?: boolean;
 };
 type ClanJoinRequest = { id: string; clanId: string; username: string; createdAt: string };
 type ClanMemberRecord = { profileId: string; username: string; role: string; tokenContributions: number; equippedBlook: string };
@@ -302,7 +306,7 @@ const artFor = (name: string) =>
     Globe: "/assets/earth-globe-2.svg",
     Surgeon: "/assets/doctor 2.0.svg",
     Doctor: "/assets/doctor 2.0.svg",
-    "Crystal Ball": "/assets/crystal-ball-3.svg",
+    "Crystal Ball": "/assets/crystal-ball-4.webp",
     "Pixel Bomb": "/assets/Lost and found + food pack/Pixel bomb.png?v=2",
     "Pixel Constellation": "/assets/Lost and found + food pack/Pixel constilation.png?v=2",
     "Pixel Aztec Coin": "/assets/Lost and found + food pack/Pixel axtect coin.png?v=2",
@@ -409,7 +413,7 @@ const artFor = (name: string) =>
     "Candy Corn": "/assets/candy-corn-refreshed.svg",
     Caramel: "/assets/Lost and found + food pack/carmel.svg",
     "Sprinkle Bread": "/assets/Sprinkle bread improved.svg",
-    "Ice Cream": "/assets/Lost and found + food pack/ice cream .svg",
+    "Ice Cream": "/assets/ice-cream-2.webp",
     Pickle: "/assets/pickle-2.svg",
     "The Bomb": "/assets/the-bomb-2.webp",
     Tank: "/assets/tank.webp",
@@ -668,6 +672,18 @@ function MainPage() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [tab, setTab] = useState<Tab>("profile");
+  // Refreshing keeps you on the tab you were on (saved in this browser).
+  // First run: switch to the saved tab (and don't save the starting "profile" over it).
+  const tabRestored = useRef(false);
+  useEffect(() => {
+    if (!tabRestored.current) {
+      tabRestored.current = true;
+      const saved = savedTab();
+      if (saved && saved !== tab) { setTab(saved); return; }
+    }
+    try { window.localStorage.setItem("breadlet-last-tab", tab); } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
   const [notice, setNotice] = useState("");
   // A player banned with a custom ban screen (lib/ban-screen.ts) sees only that.
   const [banScreen, setBanScreen] = useState<BanScreen | null>(null);
@@ -862,7 +878,7 @@ function MainPage() {
   const inboxUnreadCount = playerNotifications.filter((item) => isInboxType(item.type)).length;
   // Red numbers on the Chat (unread @mentions) and Clans (join requests, accepted requests) tabs.
   const tabBadgeTypes: Partial<Record<Tab, string[]>> = { chat: ["mention"], clan: ["clan_request", "clan_joined"] };
-  const tabBadgeCount = (id: Tab) => playerNotifications.filter((item) => tabBadgeTypes[id]?.includes(item.type)).length;
+  const tabBadgeCount = (id: Tab) => id === "inbox" ? inboxUnreadCount : playerNotifications.filter((item) => tabBadgeTypes[id]?.includes(item.type)).length;
   // The red number on a tab (every layout: sidebar, rail, bottom bar, More menu and home tiles).
   const tabBadge = (id: Tab) => {
     const count = tabBadgeCount(id);
@@ -1305,7 +1321,7 @@ function MainPage() {
     setIsGuest(true);
     setPlayer(guestPlayer);
     pendingGuestRef.current = null;
-    setTab("wheel");
+    setTab(savedTab() || "wheel");
     setNotice("");
     setGuestWelcomeOpen(true);
     if (guestProgressUnlocked) {
@@ -2030,6 +2046,8 @@ function MainPage() {
       label: "Chat",
       icon: <ChatIcon size={20} />,
     },
+    // The Inbox (sales, trades, gifts, mentions...) with its red number, right under Chat.
+    ...(!isGuest ? [{ id: "inbox" as Tab, label: "Inbox", icon: <Bell size={20} strokeWidth={2.4} fill="currentColor" /> }] : []),
     { id: "leaderboard", label: "Leaderboard", icon: <TrophyIcon size={20} /> },
     // The Garden is open to everyone signed in (guests and kid accounts can't use it).
     ...(!isGuest && !kidMode ? [{ id: "games" as Tab, label: "Garden", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
@@ -2037,14 +2055,14 @@ function MainPage() {
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
     : kidMode ? nav.filter((item) => !KID_HIDDEN_TABS.includes(item.id)) : nav;
-  shortcutTabsRef.current = visibleNav.map((item) => item.id);
+  shortcutTabsRef.current = visibleNav.map((item) => item.id).filter((id) => id !== "inbox");
   // Settings > Layout groups (Grouped sidebar) and the tabs that fit on the Bottom bar.
-  const groupOf: Record<string, string> = { event: "Play", capsules: "Play", games: "Play", inventory: "Collection", crafting: "Collection", chat: "Social", clan: "Social", leaderboard: "Social", market: "Market" };
+  const groupOf: Record<string, string> = { event: "Play", capsules: "Play", games: "Play", inventory: "Collection", crafting: "Collection", chat: "Social", inbox: "Social", clan: "Social", leaderboard: "Social", market: "Market" };
   const navGroups = ["Play", "Collection", "Social", "Market", "More"].map((title) => ({ title, items: visibleNav.filter((item) => (groupOf[item.id] || "More") === title) }));
   const bottomMain = visibleNav.filter((item) => ["capsules", "inventory", "market", "chat"].includes(item.id)).slice(0, 4);
   const bottomMainFallback = bottomMain.length >= 3 ? bottomMain : visibleNav.slice(0, 4);
   const bottomMore = visibleNav.filter((item) => !bottomMainFallback.includes(item));
-  const goTab = (id: Tab) => { setHomeOpen(false); setMoreOpen(false); if (id === "games") setGardenChooser(true); else setTab(id); };
+  const goTab = (id: Tab) => { setHomeOpen(false); setMoreOpen(false); if (id === "games") setGardenChooser(true); else if (id === "inbox") setInboxOpen(true); else setTab(id); };
   const layoutExtras = (
     <div className="layout-extras">
       <button type="button" onClick={() => { setViewedProfile(null); goTab("profile"); }}><CircleUserRound size={18} />Profile</button>
@@ -2206,7 +2224,6 @@ function MainPage() {
                 </div>
                 <span title={player.username} className="min-w-0 max-w-[min(52vw,22rem)] whitespace-normal break-words text-left leading-tight [overflow-wrap:anywhere] sm:max-w-[24rem]">{player.username}</span>
                 <ChevronDown size={18} />
-                {inboxUnreadCount > 0 && <span className="nav-unread-badge account-unread-badge" aria-label={`${inboxUnreadCount} unread in your Inbox`}>{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
               </button>
 
               {userMenuOpen && (
@@ -2387,6 +2404,7 @@ function MainPage() {
               isGuest={isGuest}
               toggleWish={toggleWish}
               setPlayerListings={(listings) => setPlayer((prev) => (prev ? { ...prev, listings } : null))}
+              refreshPlayer={() => void refreshPlayerFromServer({ full: true })}
             />
           )}
           {tab === "leaderboard" && <LeaderboardTab player={player} showBadge={setBadgeInfo} openPlayerProfile={openPlayerProfile} />}
@@ -4041,7 +4059,9 @@ function Bazaar({
   setPlayerListings,
   isGuest,
   toggleWish,
+  refreshPlayer,
 }: {
+  refreshPlayer?: () => void;
   toggleWish: (name: string) => void;
   player: Player;
   createListing: (blook: string, price: number) => void;
@@ -4068,7 +4088,8 @@ function Bazaar({
   const ownedNames = useMemo(() => new Set(player.inventory), [player.inventory]);
   const wishlist = player.wishlist || [];
   const [showForm, setShowForm] = useState(false);
-  const [view, setView] = useState<"browse" | "mine">("browse");
+  // Listings (everyone's, or just "mine" with the small My listings button) or Auctions.
+  const [view, setView] = useState<"browse" | "mine" | "auctions">("browse");
   const [marketListings, setMarketListings] = useState<Listing[]>(player.listings);
   const [selectedBlook, setSelectedBlook] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -4203,10 +4224,11 @@ function Bazaar({
       <div className="bazaar-quick-filters">
         <button type="button" aria-pressed={onlyMissing} onClick={() => setOnlyMissing(!onlyMissing)}>Only ones I don&apos;t own</button>
         <button type="button" aria-pressed={onlyWishlist} onClick={() => setOnlyWishlist(!onlyWishlist)}>★ My wishlist{wishlist.length ? ` (${wishlist.length})` : ""}</button>
+        {view !== "auctions" && <button type="button" aria-pressed={view === "mine"} onClick={() => setView(view === "mine" ? "browse" : "mine")}>My listings</button>}
       </div>
       <div className="bazaar-view-tabs mt-4 flex rounded-2xl border p-1">
-        <button aria-pressed={view === "browse"} onClick={() => setView("browse")} className="flex-1 rounded-xl px-4 py-3 font-black">Browse</button>
-        <button aria-pressed={view === "mine"} onClick={() => setView("mine")} className="flex-1 rounded-xl px-4 py-3 font-bold">My listings</button>
+        <button aria-pressed={view !== "auctions"} onClick={() => setView("browse")} className="flex-1 rounded-xl px-4 py-3 font-black">Listings</button>
+        <button aria-pressed={view === "auctions"} onClick={() => setView("auctions")} className="flex-1 rounded-xl px-4 py-3 font-black">Auctions</button>
       </div>
       {showForm && (
         <form
@@ -4238,7 +4260,11 @@ function Bazaar({
           <p className="text-sm font-bold opacity-80 md:col-span-3">10% Bazaar fee: if it sells, you get {Math.max(0, Math.floor(Number(price) || 0) - Math.floor((Math.floor(Number(price) || 0)) * BAZAAR_FEE_RATE)).toLocaleString()} Bread Bucks.</p>
         </form>
       )}
-      {boardStyle ? (() => {
+      {view === "auctions" ? (
+        isGuest
+          ? <p className="bazaar-empty mt-6 rounded-2xl border p-8 text-center">Log in to bid on auctions.</p>
+          : <BazaarAuctions ownedBlooks={ownedBlooks} tokens={player.tokens} onChanged={() => refreshPlayer?.()} BlookArt={BlookImg} search={search} />
+      ) : boardStyle ? (() => {
         const noteFor = (name: string) => {
           const blookListings = listings.filter((listing) => listing.blook === name);
           return {
@@ -6360,6 +6386,7 @@ function ClanTab({
     colorsUnlocked: Boolean(entry.colors_unlocked),
     theme: typeof entry.theme === "string" ? entry.theme : "breadlet",
     animatedProfiles: Boolean(entry.animated_profiles),
+    fallTheme: Boolean(entry.fall_theme),
   });
 
   const loadClans = useCallback(async () => {
@@ -6421,7 +6448,7 @@ function ClanTab({
   const selectableBlooks = availableBlooks.filter((blook) => blook.name.toLowerCase().includes(blookSearch.trim().toLowerCase()));
   const isOwner = Boolean(clan?.id && player.id && clan.ownerProfileId === player.id);
   const pendingByClan = new Map(myRequests.filter((request) => request.status === "pending").map((request) => [request.clanId, request.id]));
-  const themeNames: Record<string, string> = { breadlet: "Breadlet", ocean: "Ocean", sunset: "Sunset", forest: "Forest", royal: "Royal", ember: "Ember" };
+  const themeNames: Record<string, string> = { breadlet: "Breadlet", ocean: "Ocean", sunset: "Sunset", forest: "Forest", royal: "Royal", ember: "Ember", fall: "Fall 🍂" };
 
   const handleCreateClan = async () => {
     setCreateError("");
@@ -6683,7 +6710,7 @@ function ClanTab({
     { feature: "member_capacity", title: "More members", detail: "Add 5 places, up to 100 clan members.", price: 20000, owned: (clan?.memberCapacity || 25) >= 100, level: clan ? `${clan.memberCapacity}/100` : "" },
     { feature: "animated_profiles", title: "Animated profile", detail: "Add a subtle animated finish to your clan profile.", price: 30000, owned: clan?.animatedProfiles || false },
   ];
-  const themeOptions = ["breadlet", "ocean", "sunset", "forest", "royal", "ember"];
+  const themeOptions = [...(clan?.colorsUnlocked ? ["breadlet", "ocean", "sunset", "forest", "royal", "ember"] : ["breadlet"]), ...(clan?.fallTheme ? ["fall"] : [])];
 
   return (
     <div className="clan-workspace space-y-6">
@@ -6804,7 +6831,7 @@ function ClanTab({
               {upgradeOptions.map((upgrade) => <article key={upgrade.feature} className="clan-upgrade-card rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black">{upgrade.title}{upgrade.level ? <span className="clan-eyebrow ml-2 text-xs">{upgrade.level}</span> : null}</h3><p className="clan-text-muted mt-1 text-sm leading-5">{upgrade.detail}</p></div>{upgrade.owned && <span className="clan-owned-badge rounded-full px-2.5 py-1 text-[10px] font-black uppercase">Unlocked</span>}</div><button type="button" disabled={isGuest || upgrade.owned || clan.treasury < upgrade.price} onClick={() => void upgradeClan(upgrade.feature)} className="clan-upgrade-button mt-4 w-full rounded-lg px-3 py-2.5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-45">{upgrade.owned ? "Purchased" : `Unlock · ${upgrade.price.toLocaleString()} Bread Bucks`}</button></article>)}
             </div>
             {clan.nameChangeUnlocked && <div className="mt-5 flex flex-col gap-2 sm:flex-row"><input aria-label="New clan name" value={renamedClan} onChange={(event) => setRenamedClan(event.target.value)} maxLength={30} className="clan-input min-w-0 flex-1 rounded-xl border px-3 py-2.5" /><button type="button" onClick={() => void renameClan()} disabled={renamedClan.trim().length < 2 || renamedClan.trim() === clan.name} className="clan-primary-button rounded-xl px-4 py-2.5 font-black disabled:opacity-45">Save clan name</button></div>}
-            {clan.colorsUnlocked && <div className="mt-5"><label htmlFor="clan-theme" className="clan-text-muted mb-2 block text-sm font-bold">Clan color theme</label><select id="clan-theme" value={clan.theme} onChange={(event) => void upgradeClan("theme", event.target.value)} className="clan-input rounded-xl border px-4 py-3">{themeOptions.map((theme) => <option key={theme} value={theme}>{themeNames[theme]}</option>)}</select></div>}
+            {(clan.colorsUnlocked || clan.fallTheme) && <div className="mt-5"><label htmlFor="clan-theme" className="clan-text-muted mb-2 block text-sm font-bold">Clan color theme</label><select id="clan-theme" value={clan.theme} onChange={(event) => void upgradeClan("theme", event.target.value)} className="clan-input rounded-xl border px-4 py-3">{themeOptions.map((theme) => <option key={theme} value={theme}>{themeNames[theme]}</option>)}</select></div>}
             {clan.bannerUnlocked && <div className="mt-5"><label className="clan-text-muted mb-2 block text-sm font-bold">Clan banner · wide image visible to all members</label><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadClanBanner(file); event.currentTarget.value = ""; }} className="clan-input block max-w-full text-sm" /></div>}
           </section>
         </>
@@ -6819,7 +6846,7 @@ function ClanTab({
           const pending = pendingByClan.has(item.id || "");
           const full = item.members >= item.memberCapacity;
           const ownClan = membershipClanId === item.id;
-          const theme = item.colorsUnlocked ? item.theme : "breadlet";
+          const theme = item.colorsUnlocked || item.theme === "fall" ? item.theme : "breadlet";
           const canRequest = !(isGuest || ownClan || pending || full || Boolean(membershipClanId));
           const status = ownClan ? "Your clan" : pending ? "Request pending" : full ? "Clan full" : membershipClanId ? "" : isGuest ? "Sign in to join" : "Request to join";
           return <article key={item.id || item.name} className={`clan-discover-card clan-theme-${theme} ${item.animatedProfiles ? "clan-profile-animated" : ""}`}>
@@ -6964,6 +6991,16 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+
+// The tab you were on last (Refreshing keeps you there). Not admin tools or the Inbox pop-up.
+function savedTab(): Tab | null {
+  try {
+    const saved = window.localStorage.getItem("breadlet-last-tab") as Tab | null;
+    return saved && !["admin", "inbox"].includes(saved) ? saved : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function Game() {
   // The owner's edit mode changes. Loading them re-renders the game with the edited packs.

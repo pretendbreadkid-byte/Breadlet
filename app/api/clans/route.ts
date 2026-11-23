@@ -12,7 +12,9 @@ export const dynamic = 'force-dynamic';
 const CLAN_FIELDS = 'id, name, description, tags, treasury, member_count, member_capacity, owner_profile_id, profile_blook, banner_unlocked, name_change_unlocked, colors_unlocked, theme, animated_profiles, created_at';
 
 async function listClans(supabase: any) {
-  const light = await supabase.from('clans').select(`${CLAN_FIELDS}, has_thumbnail, thumbnail_version`).order('treasury', { ascending: false });
+  // fall_theme comes with migration 0113; before it, load without it.
+  let light = await supabase.from('clans').select(`${CLAN_FIELDS}, fall_theme, has_thumbnail, thumbnail_version`).order('treasury', { ascending: false });
+  if (light.error) light = await supabase.from('clans').select(`${CLAN_FIELDS}, has_thumbnail, thumbnail_version`).order('treasury', { ascending: false });
   if (!light.error) {
     return { error: null, data: (light.data || []).map(({ has_thumbnail, thumbnail_version, ...clan }: any) => ({ ...clan, thumbnail_url: has_thumbnail ? `/api/clans/image?id=${clan.id}&v=${thumbnail_version}` : '' })) };
   }

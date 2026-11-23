@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FIESTA_SHOP, LEAVES_PER_SHOWER, SHOWER_MINUTES, showerAt } from "../../lib/fall-fiesta";
+import { FIESTA_SHOP, LEAVES_PER_SHOWER, LEFTOVER_BLOOKBERRY_PRICE, LEFTOVER_BUCKS_PER_LEAF, LEFTOVER_CLAN_THEME_PRICE, SHOWER_MINUTES, fiestaOver, showerAt } from "../../lib/fall-fiesta";
 import { BATTLE_PASS_TIERS, BREAKING_BAD_BADGE, BREAKING_BAD_BREADLETS, CRYSTAL_ART } from "../../lib/breaking-bad";
 
 // Breadlet Fall Fiesta: the hourly leaf shower over the whole game, and the Event tab's leaf shop.
 
-type Fiesta = { ready: boolean; leaves: number; caught: number; bought: string[]; adminEndsAt: number | null };
+type Fiesta = { ready: boolean; leaves: number; caught: number; bought: string[]; adminEndsAt: number | null; blookberryCode?: string | null };
 
 const FIESTA_CHANGED = "breadlet-fiesta-changed";
 const FIESTA_REFRESH = "breadlet-fiesta-refresh";
@@ -72,6 +72,8 @@ export function FallFiestaLayer({ onlineIds = [], onTanuki }: { onlineIds?: stri
   const shower = showerAt(now);
   const fiesta = useFiesta(shower.live ? shower.startsAt : null);
   const until = fallingUntil(fiesta, now);
+  // The Fiesta is over: no more leaf showers.
+  if (fiestaOver(now)) return null;
   if (!until || !fiesta?.ready || fiesta.caught >= LEAVES_PER_SHOWER) return null;
   return <LeafShower key={until} caught={fiesta.caught} onlineIds={onlineIds} onTanuki={onTanuki} />;
 }
@@ -165,6 +167,115 @@ const UPCOMING_BREADLETS = BREAKING_BAD_BREADLETS;
 
 export function EventTab({ isGuest, onBought }: { isGuest: boolean; onBought: () => void }) {
   const now = useNow();
+  if (fiestaOver(now)) return <BreakingBadEventTab isGuest={isGuest} onBought={onBought} />;
+  return <FallFiestaEventTab isGuest={isGuest} onBought={onBought} now={now} />;
+}
+
+// After the Fiesta: the whole Event tab is Breadlet Breaks Bad, with a "Redeem leaves" button in
+// the corner for leftover leaves (Fall Breadlets, a Fall clan theme, a BlookBerry code or Bread Bucks).
+function BreakingBadEventTab({ isGuest, onBought }: { isGuest: boolean; onBought: () => void }) {
+  const [redeemOpen, setRedeemOpen] = useState(false);
+  return (
+    <div className="event-page event-page-bb mx-auto w-full max-w-4xl">
+      {!isGuest && <button type="button" className="event-redeem-corner" onClick={() => setRedeemOpen(true)}><img src="/assets/fall/fall-leaf.webp" alt="" aria-hidden="true" />Redeem leaves</button>}
+      <section className="event-upcoming event-bb-full" aria-labelledby="event-bb-title">
+        <p id="event-bb-title" className="event-upcoming-tag">Coming next</p>
+        <img src="/assets/breaking-bad/logo.svg" alt="Breadlet Breaks Bad" className="event-upcoming-logo" />
+        <div className="event-upcoming-badge"><img src={BREAKING_BAD_BADGE.art} alt="" /><span>Event badge</span></div>
+        <h3>Breadlets so far</h3>
+        <ul>
+          {UPCOMING_BREADLETS.map((breadlet) => <li key={breadlet.name}><img src={breadlet.art} alt="" /><span>{breadlet.name}</span></li>)}
+          <li className="event-upcoming-more"><span className="event-upcoming-question" aria-hidden="true">?</span><span>More coming soon</span></li>
+        </ul>
+        <BattlePassPreview />
+      </section>
+      {redeemOpen && <LeafRedeem onClose={() => setRedeemOpen(false)} onBought={onBought} />}
+    </div>
+  );
+}
+
+function LeafRedeem({ onClose, onBought }: { onClose: () => void; onBought: () => void }) {
+  const fiesta = useFiesta(0);
+  const [busy, setBusy] = useState("");
+  const [notice, setNotice] = useState("");
+  const [code, setCode] = useState<string | null>(null);
+  const [confirmBucks, setConfirmBucks] = useState(false);
+  const shownCode = code || fiesta?.blookberryCode || null;
+  const leaves = fiesta?.leaves ?? 0;
+
+  const run = async (label: string, body: Record<string, unknown>) => {
+    setBusy(label);
+    setNotice("");
+    const response = await fiestaPost(body);
+    const result = await response?.json().catch(() => null);
+    setBusy("");
+    if (!response?.ok) return setNotice(result?.error || "That did not work. Try again.");
+    announce({ leaves: result.leaves, ...(result.bought ? { bought: result.bought } : {}) });
+    if (result.code) setCode(result.code);
+    setNotice(result.message || (result.code ? "Here is your BlookBerry code!" : `${label} is yours!`));
+    onBought();
+  };
+
+  return (
+    <div className="event-redeem-layer" role="dialog" aria-modal="true" aria-label="Redeem leftover leaves" onClick={onClose}>
+      <div className="event-redeem" onClick={(event) => event.stopPropagation()}>
+        <button type="button" className="event-redeem-close" onClick={onClose} aria-label="Close">×</button>
+        <h2>Redeem your leaves</h2>
+        <p className="event-wallet"><img src="/assets/fall/fall-leaf.webp" alt="" aria-hidden="true" />{fiesta ? `${leaves} leaves left` : "Loading your leaves…"}</p>
+        <ul className="event-redeem-list">
+          {FIESTA_SHOP.map((item) => {
+            const owned = Boolean(fiesta?.bought.includes(item.name));
+            return (
+              <li key={item.name}>
+                <img src={item.art} alt="" aria-hidden="true" />
+                <div><b>{item.name}{item.badge ? " Badge" : ""}</b><small>{item.badge ? "The Fall Fiesta badge" : "Fall Fiesta Breadlet"}</small></div>
+                <button type="button" disabled={owned || leaves < item.price || Boolean(busy)} onClick={() => void run(item.name, { action: "buy", item: item.name })}>
+                  {owned ? "Owned" : busy === item.name ? "…" : `${item.price} leaves`}
+                </button>
+              </li>
+            );
+          })}
+          <li>
+            <span className="event-redeem-icon" aria-hidden="true">🍂</span>
+            <div><b>Fall clan theme</b><small>Your clan gets an autumn look. Clan owners only.</small></div>
+            <button type="button" disabled={leaves < LEFTOVER_CLAN_THEME_PRICE || Boolean(busy)} onClick={() => void run("Fall clan theme", { action: "redeem", item: "clan_theme" })}>
+              {busy === "Fall clan theme" ? "…" : `${LEFTOVER_CLAN_THEME_PRICE.toLocaleString()} leaves`}
+            </button>
+          </li>
+          <li>
+            <span className="event-redeem-icon" aria-hidden="true">🫐</span>
+            <div><b>BlookBerry Fall theme</b><small>A code for the Fall theme on BlookBerry. One per player.</small></div>
+            <button type="button" disabled={Boolean(busy) || (!shownCode && leaves < LEFTOVER_BLOOKBERRY_PRICE)} onClick={() => void run("BlookBerry code", { action: "redeem", item: "blookberry" })}>
+              {shownCode ? "Show code" : busy === "BlookBerry code" ? "…" : `${LEFTOVER_BLOOKBERRY_PRICE} leaves`}
+            </button>
+          </li>
+          <li>
+            <img src="/assets/Bread%20bucks.svg" alt="" aria-hidden="true" />
+            <div><b>Bread Bucks</b><small>Every leaf you have left becomes {LEFTOVER_BUCKS_PER_LEAF} Bread Bucks.</small></div>
+            {confirmBucks
+              ? <button type="button" disabled={Boolean(busy)} onClick={() => { setConfirmBucks(false); void run("Bread Bucks", { action: "redeem", item: "bucks" }); }}>Yes, swap all</button>
+              : <button type="button" disabled={leaves < 1 || Boolean(busy)} onClick={() => setConfirmBucks(true)}>{(leaves * LEFTOVER_BUCKS_PER_LEAF).toLocaleString()} Bread Bucks</button>}
+          </li>
+        </ul>
+        {shownCode && (
+          <div className="event-redeem-code">
+            <p>Your BlookBerry Fall theme code:</p>
+            <code>{shownCode}</code>
+            <ol>
+              <li>Go to <a href="https://blookberry.com" target="_blank" rel="noreferrer">blookberry.com</a></li>
+              <li>Click <b>Codes</b></li>
+              <li>Paste your code and redeem it</li>
+            </ol>
+            <button type="button" onClick={() => void navigator.clipboard?.writeText(shownCode).then(() => setNotice("Code copied!"))}>Copy code</button>
+          </div>
+        )}
+        {notice && <p role="status" className="event-notice">{notice}</p>}
+      </div>
+    </div>
+  );
+}
+
+function FallFiestaEventTab({ isGuest, onBought, now }: { isGuest: boolean; onBought: () => void; now: number }) {
   const shower = showerAt(now);
   const fiesta = useFiesta(isGuest ? null : shower.startsAt);
   const [buying, setBuying] = useState("");

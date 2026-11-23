@@ -61,7 +61,7 @@ export function SwordsIcon({ size = 20 }: IconProps) {
   // One sword pointing up, drawn twice and turned each way so they cross.
   const sword = <><path d="M12 1.2 14 4v11h-4V4Z" /><rect x="7" y="15" width="10" height="2.3" rx="1.1" /><rect x="10.9" y="17" width="2.2" height="4" /><circle cx="12" cy="21.8" r="1.6" /></>;
   return (
-    <svg {...box(size)} fill="currentColor">
+    <svg {...box(size)} viewBox="1.6 1.6 20.8 20.8" fill="currentColor">
       <g transform="rotate(-45 12 12) translate(0 .4) scale(.94) translate(.75 .75)">{sword}</g>
       <g transform="rotate(45 12 12) translate(0 .4) scale(.94) translate(.75 .75)">{sword}</g>
     </svg>
@@ -71,7 +71,7 @@ export function SwordsIcon({ size = 20 }: IconProps) {
 export function GavelIcon({ size = 20 }: IconProps) {
   // A gavel: the head across the top and the handle going down, tipped over to the left.
   return (
-    <svg {...box(size)} fill="currentColor">
+    <svg {...box(size)} viewBox="1.8 1.8 20.4 20.4" fill="currentColor">
       <g transform="rotate(45 12 12)">
         <rect x="5.5" y="2.5" width="13" height="7" rx="1.6" />
         <rect x="4" y="1.5" width="3" height="9" rx="1.2" />

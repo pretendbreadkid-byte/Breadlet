@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
-import { FIESTA_SHOP, LEAVES_PER_SHOWER, SHOWER_MINUTES, showerAt } from '../../../../lib/fall-fiesta';
+import { FIESTA_SHOP, LEAVES_PER_SHOWER, SHOWER_MINUTES, fiestaOver, showerAt } from '../../../../lib/fall-fiesta';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +53,13 @@ export async function GET() {
   // A badge an admin awarded counts as owned, so nobody pays for one they already have.
   const awarded = FIESTA_SHOP.filter((item) => item.badge && profile.data?.stats?.badges?.includes(item.name)).map((item) => item.name);
   const bought = Array.from(new Set([...(wallet.data?.bought || []), ...awarded]));
-  return NextResponse.json({ ready: true, leaves: wallet.data?.leaves || 0, caught: shower.data?.catches || 0, bought, adminEndsAt: adminShower ? Date.parse(adminShower.ends_at) : null });
+  // After the Fiesta: the BlookBerry code this player already redeemed (migration 0113).
+  let blookberryCode: string | null = null;
+  if (fiestaOver()) {
+    const { data: code } = await database.from('blookberry_codes').select('code').eq('profile_id', user.id).maybeSingle();
+    blookberryCode = code?.code || null;
+  }
+  return NextResponse.json({ ready: true, leaves: wallet.data?.leaves || 0, caught: shower.data?.catches || 0, bought, adminEndsAt: adminShower ? Date.parse(adminShower.ends_at) : null, blookberryCode });
 }
 
 // Catch one leaf during a shower, or buy something from the leaf shop.
@@ -64,6 +70,17 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
 
   let call;
+  // The Fiesta is over: no more leaves or Tanukis; leftover leaves can be redeemed.
+  if (fiestaOver() && ['catch', 'tanuki', 'catch-tanuki'].includes(body.action)) {
+    return NextResponse.json({ error: 'The Fall Fiesta is over. Redeem your leftover leaves in the Event tab.' }, { status: 409 });
+  }
+  if (body.action === 'redeem') {
+    if (!fiestaOver()) return NextResponse.json({ error: 'You can redeem leftover leaves after the Fiesta ends.' }, { status: 409 });
+    if (!['clan_theme', 'blookberry', 'bucks'].includes(body.item)) return NextResponse.json({ error: 'Pick something to redeem.' }, { status: 400 });
+    const { data, error } = await database.rpc('redeem_fall_leftover', { p_profile_id: user.id, p_item: body.item });
+    if (error) return NextResponse.json({ error: NOT_INSTALLED.has(error.code) ? 'Redeeming leaves is still being set up.' : error.message }, { status: 409 });
+    return NextResponse.json(data);
+  }
   if (body.action === 'tanuki' || body.action === 'catch-tanuki') {
     const at = await liveShowerAt(database);
     if (!at) return NextResponse.json({ tanuki: false });
