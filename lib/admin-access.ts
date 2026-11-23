@@ -11,11 +11,15 @@ export const MODERATOR_USERNAMES = ['xyl1x', 'h0mer'];
 // players a day (30 minutes each): no deleting messages and no AI log.
 export const LIMITED_MODERATOR_USERNAMES = ['ethan32'];
 export const LIMITED_MUTES_PER_DAY = 2;
+// Ban moderators get the Admin badge and can only mute/unmute, ban and IP ban players (chat
+// commands /mute, /unmute, /ban, /banip). Nothing else: no deleting, unbanning, giving or editing.
+export const BAN_MODERATOR_USERNAMES = ['minti_icecreamet'];
 
-export async function chatModerationRole(database: any, userId: string): Promise<'full' | 'limited' | null> {
+export async function chatModerationRole(database: any, userId: string): Promise<'full' | 'limited' | 'ban' | null> {
   const { data: profile } = await database.from('profiles').select('username').eq('id', userId).maybeSingle();
   const name = String(profile?.username || '').trim().toLowerCase();
   if (name === ADMIN_USERNAME || MODERATOR_USERNAMES.includes(name)) return 'full';
+  if (BAN_MODERATOR_USERNAMES.includes(name)) return 'ban';
   return LIMITED_MODERATOR_USERNAMES.includes(name) ? 'limited' : null;
 }
 // Artists who drew Breadlet art get the Artist badge (admins can also grant it to others).
@@ -29,7 +33,7 @@ export async function isChatModerator(database: any, userId: string): Promise<bo
 
 export function isProtectedFromMute(username: string) {
   const name = String(username || '').trim().toLowerCase();
-  return name === ADMIN_USERNAME || MODERATOR_USERNAMES.includes(name);
+  return name === ADMIN_USERNAME || MODERATOR_USERNAMES.includes(name) || BAN_MODERATOR_USERNAMES.includes(name);
 }
 
 // Folds characters people swap in to fake a name ("breadbIook", "breadb1ook", "bread_blook")
@@ -75,12 +79,12 @@ function isReservedName(name: string) {
 export function isStaffLookalike(username: string) {
   const name = String(username || '').trim().toLowerCase();
   if (isReservedName(name)) return true;
-  return [ADMIN_USERNAME, ...MODERATOR_USERNAMES, ...LIMITED_MODERATOR_USERNAMES].some((staff) => name !== staff && withinOneEdit(lookalikeKey(name), lookalikeKey(staff)));
+  return [ADMIN_USERNAME, ...MODERATOR_USERNAMES, ...LIMITED_MODERATOR_USERNAMES, ...BAN_MODERATOR_USERNAMES].some((staff) => name !== staff && withinOneEdit(lookalikeKey(name), lookalikeKey(staff)));
 }
 
 // Staff badges are tied to usernames, so they can't be granted or removed by editing stats.
 export function moderatorBadges(username?: string | null): string[] {
   const name = String(username || '').trim().toLowerCase();
   if (name === ADMIN_USERNAME) return ['Owner'];
-  return [...(MODERATOR_USERNAMES.includes(name) || LIMITED_MODERATOR_USERNAMES.includes(name) ? ['Moderator'] : []),...(ARTIST_USERNAMES.includes(name) ? ['Artist'] : [])];
+  return [...(MODERATOR_USERNAMES.includes(name) || LIMITED_MODERATOR_USERNAMES.includes(name) ? ['Moderator'] : []), ...(BAN_MODERATOR_USERNAMES.includes(name) ? ['Admin'] : []), ...(ARTIST_USERNAMES.includes(name) ? ['Artist'] : [])];
 }

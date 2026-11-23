@@ -37,7 +37,7 @@ import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { calmText } from "../lib/chat-filter";
 import { BazaarIcon, BreadletIcon, ChatIcon, ClanIcon, GoodybagIcon, TrophyIcon } from "./components/nav-icons";
-import { ADMIN_USERNAME, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
+import { ADMIN_USERNAME, BAN_MODERATOR_USERNAMES, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { onlyTopTokenBadge } from "../lib/badges";
 import type { BlockedPlayer } from "../lib/blocks";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
@@ -230,6 +230,7 @@ const badgeDescriptions: Record<string, string> = {
   OG: "Awarded to the original Breadlet players who joined before October 22, 2026.",
   Moderator: "Trusted community moderator who keeps the chat friendly.",
   Owner: "The creator and owner of Breadlet.",
+  Admin: "Breadlet staff who can mute and ban players to keep the game safe.",
   Contributor: "Helped build Breadlet with art, ideas or code.",
   Artist: "Drew artwork for Breadlet.",
   Birthday: "Happy birthday! Given by an admin on your birthday.",
@@ -238,9 +239,9 @@ const badgeDescriptions: Record<string, string> = {
   "High Roller": "Given to players who do a coin flip over 100K Bread Bucks.",
 };
 // Badges an admin can hand out. Token milestones are automatic and kept once earned, OG from the
-// account age, and Owner / Moderator are tied to the staff usernames, so granting those by hand
+// account age, and Owner / Moderator / Admin are tied to the staff usernames, so granting those by hand
 // would only fake them.
-const grantableBadges = Object.keys(badgeDescriptions).filter((badge) => !["10K Tokens", "100K Tokens", "1M Tokens", "OG", "Owner", "Moderator"].includes(badge));
+const grantableBadges = Object.keys(badgeDescriptions).filter((badge) => !["10K Tokens", "100K Tokens", "1M Tokens", "OG", "Owner", "Moderator", "Admin"].includes(badge));
 // OG is no longer automatic: the server adds it only for accounts made before the cutoff (lib/og-badge.ts).
 const tokenBadgesFor = (tokens: number) => [
   ...(tokens >= 10000 ? ["10K Tokens"] : []),
@@ -259,8 +260,9 @@ const badgeIconFor = (badge: string) => ({
   OG: "/assets/og-badge.svg",
   Moderator: "/assets/moderator-badge.svg",
   Owner: "/assets/owner-badge.svg",
+  Admin: "/assets/admin-badge.svg",
   Contributor: "/assets/contributer.svg",
-  Artist: "/assets/artist-badge.svg?v=2",
+  Artist: "/assets/artist-badge.svg?v=3",
   Birthday: "/assets/birthday-badge.svg",
   "Fall Fiesta": "/assets/fall-badge.svg",
   "Breadlet Breaks Bad": "/assets/breaking-bad/badge.svg",
@@ -4606,7 +4608,7 @@ function ChatTab({ openGarden, player, showBadge, giftNotice, clearGiftNotice, i
   const canSendImages = player.badges?.includes("Verified");
   // Commands this player can use, for the "/" pop-up (the server checks again).
   const lowerName = player.username.toLowerCase();
-  const commandRole = lowerName === ADMIN_USERNAME ? "admin" : MODERATOR_USERNAMES.includes(lowerName) ? "full" : LIMITED_MODERATOR_USERNAMES.includes(lowerName) ? "limited" : null;
+  const commandRole = lowerName === ADMIN_USERNAME ? "admin" : MODERATOR_USERNAMES.includes(lowerName) ? "full" : BAN_MODERATOR_USERNAMES.includes(lowerName) ? "ban" : LIMITED_MODERATOR_USERNAMES.includes(lowerName) ? "limited" : null;
   const availableCommands = commandsFor(commandRole);
   const [commandResult, setCommandResult] = useState("");
   // @mention and / command pop-up above the message box.

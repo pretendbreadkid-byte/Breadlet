@@ -1,7 +1,8 @@
 // Slash commands for chat. The chat box shows the ones a player can use when they type "/".
 // "everyone" commands run in the chat box itself (/ai goes to chat, /accept and /cancel to the
 // games API); mod and admin commands run on the server at /api/chat/command.
-export type ChatCommandRole = 'everyone' | 'mod' | 'admin';
+// 'mod' = admins, full moderators and ban moderators; 'ban' = admins and ban moderators.
+export type ChatCommandRole = 'everyone' | 'mod' | 'ban' | 'admin';
 export type ChatCommand = { name: string; usage: string; description: string; role: ChatCommandRole };
 
 export const CHAT_COMMANDS: ChatCommand[] = [
@@ -12,7 +13,8 @@ export const CHAT_COMMANDS: ChatCommand[] = [
   { name: 'leaderboard', usage: '/leaderboard', description: 'Players with the most coin flips and their win ratio (only you see it). Also try !me, !<player>, !mycoinflips, !coinflips <player>', role: 'everyone' },
   { name: 'mute', usage: '/mute <player> [minutes]', description: 'Time a player out of chat (30 minutes if no time given)', role: 'mod' },
   { name: 'unmute', usage: '/unmute <player>', description: 'End a player\'s chat timeout', role: 'mod' },
-  { name: 'ban', usage: '/ban <player> [hours] [reason]', description: 'Ban a player (permanent if no hours given)', role: 'admin' },
+  { name: 'ban', usage: '/ban <player> [hours] [reason]', description: 'Ban a player (permanent if no hours given)', role: 'ban' },
+  { name: 'banip', usage: '/banip <player> [hours] [reason]', description: 'Ban a player plus their devices and Wi-Fi for the whole ban (permanent if no hours given)', role: 'ban' },
   { name: 'unban', usage: '/unban <player>', description: 'Unban a player', role: 'admin' },
   { name: 'unbannetwork', usage: '/unbannetwork <player>', description: 'Lift the device and Wi-Fi bans a banned player left (they stay banned)', role: 'admin' },
   { name: 'rename', usage: '/rename <player> <new name>', description: 'Change a player\'s username (they log in with the new one)', role: 'admin' },
@@ -26,5 +28,8 @@ export const CHAT_COMMANDS: ChatCommand[] = [
 
 export const SERVER_COMMANDS = new Set(CHAT_COMMANDS.filter((command) => command.role !== 'everyone').map((command) => command.name));
 
-export const commandsFor = (role: 'admin' | 'full' | 'limited' | null) =>
-  CHAT_COMMANDS.filter((command) => command.role === 'everyone' || (command.role === 'mod' && (role === 'admin' || role === 'full')) || (command.role === 'admin' && role === 'admin'));
+export const commandsFor = (role: 'admin' | 'full' | 'limited' | 'ban' | null) =>
+  CHAT_COMMANDS.filter((command) => command.role === 'everyone'
+    || (command.role === 'mod' && (role === 'admin' || role === 'full' || role === 'ban'))
+    || (command.role === 'ban' && (role === 'admin' || role === 'ban'))
+    || (command.role === 'admin' && role === 'admin'));

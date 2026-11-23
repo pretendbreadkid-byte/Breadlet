@@ -4318,3 +4318,49 @@ main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-l
   main.breadlet-blue-theme.breadlet-blue-theme .shop-header-right .power-hour.is-live .power-hour-text b::after { content: none; }
   main.breadlet-blue-theme.breadlet-blue-theme .shop-scene .shop-restock { white-space: nowrap; }
 }
+
+/* ===== Look pass 2 (Nov 22): quieter missing Breadlets, softer Bazaar paper, see-through shop
+   cabinets and profile boxes, warm profile buttons (no blue) and a fainter background. ===== */
+/* Breadlets you don't have yet: a small faint outline with a "?" instead of a big dark shape. */
+.locked-blook-art { transform: scale(.72); opacity: .13 !important; }
+.blook-tilt:has(> .locked-blook-art) { position: relative; }
+.blook-tilt:has(> .locked-blook-art)::after { content: "?"; position: absolute; inset: 0; display: grid; place-items: center; font-family: "DynaPuff", ui-rounded, system-ui, sans-serif; font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; color: rgba(255, 245, 232, .55); pointer-events: none; }
+main.breadlet-blue-theme.breadlet-blue-theme .blook-tilt:has(> .locked-blook-art)::after { color: rgba(255, 245, 232, .55) !important; }
+
+/* Bazaar: the paper notices a little darker and warmer so they don't glare (the Breadlet on them
+   is brightened back, so only the paper changes). */
+main.breadlet-blue-theme.breadlet-blue-theme .board-note { filter: brightness(.84) sepia(.12) drop-shadow(0 8px 6px rgba(40, 20, 5, .35)); }
+main.breadlet-blue-theme.breadlet-blue-theme .board-note .board-art { filter: brightness(1.19); }
+
+/* Ted's Shop: see-through cabinets with soft shelf lines instead of solid wood. */
+.shop-cabinet { border: 2px solid rgba(255, 238, 214, .4); background: rgba(120, 58, 14, .34); box-shadow: none; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.shop-cabinet::after { display: none; }
+.shop-cabinet-shelves {
+  background:
+    linear-gradient(to bottom, transparent calc(100% - 14px), rgba(255, 230, 200, .34) calc(100% - 14px), rgba(255, 230, 200, .34) calc(100% - 8px), rgba(30, 14, 4, .3) calc(100% - 8px), transparent calc(100% - 2px)) 0 0 / 100% var(--shelf-row) repeat-y,
+    rgba(80, 36, 8, .3);
+}
+
+/* Profile: see-through stat boxes and Friends bar; warm buttons instead of blue. */
+main.breadlet-blue-theme.breadlet-blue-theme .profile-metric,
+main.breadlet-blue-theme.breadlet-blue-theme .profile-list-heading {
+  border: 1.5px solid var(--glass-line) !important;
+  background: var(--glass) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+main.breadlet-blue-theme.breadlet-blue-theme .profile-metric-icon { color: #ffe2b8 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .profile-quick-actions button,
+main.breadlet-blue-theme.breadlet-blue-theme .profile-list-heading button {
+  border: 1.5px solid var(--glass-line) !important;
+  background: var(--glass) !important;
+  box-shadow: none !important;
+  color: #fff !important;
+}
+main.breadlet-blue-theme.breadlet-blue-theme .profile-quick-actions button:first-child { border-color: #ffb45e !important; background: #e8781f !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .profile-quick-actions button:hover,
+main.breadlet-blue-theme.breadlet-blue-theme .profile-list-heading button:hover { filter: brightness(1.12); }
+
+/* The bread shapes drifting in the background: fainter, so text on top reads easier. */
+.bread-drift { opacity: .18; }

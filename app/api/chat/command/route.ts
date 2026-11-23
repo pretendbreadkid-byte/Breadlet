@@ -80,7 +80,7 @@ export async function POST(request: Request) {
   const { data: target } = await database.from('profiles').select('id, username, tokens, stats, is_banned').ilike('username', name).maybeSingle();
   if (!target) return reply(`No player named ${name}.`, 404);
   if (target.id === user.id && command !== 'give') return reply('You can\'t do that to yourself.', 400);
-  if (['mute', 'ban'].includes(command) && isProtectedFromMute(target.username)) return reply(`${target.username} is staff and can't be ${command === 'ban' ? 'banned' : 'muted'}.`, 403);
+  if (['mute', 'ban', 'banip'].includes(command) && isProtectedFromMute(target.username)) return reply(`${target.username} is staff and can't be ${command === 'mute' ? 'muted' : 'banned'}.`, 403);
 
   if (command === 'mute') {
     const minutes = Math.min(1440, Math.max(1, Math.floor(Number(args[1]) || 30)));
@@ -96,13 +96,32 @@ export async function POST(request: Request) {
     if (muteError) return reply(muteError.message, 500);
     return reply(chatMutedUntil || removedMutes?.length ? `${target.username} can chat again.` : `${target.username} wasn't muted.`);
   }
-  if (command === 'ban') {
+  if (command === 'ban' || command === 'banip') {
     const hours = /^\d+$/.test(String(args[1] || '')) ? Math.min(8760, Math.max(1, Number(args[1]))) : 0;
     const reason = args.slice(hours ? 2 : 1).join(' ').trim().slice(0, 500) || 'Banned by an admin.';
     const expiresAt = hours ? new Date(Date.now() + hours * 60 * 60 * 1000).toISOString() : null;
     const { error } = await database.from('bans').insert({ profile_id: target.id, reason, is_permanent: !hours, expires_at: expiresAt, created_by_admin_id: user.id });
     if (error) return reply(error.message, 500);
     await database.from('profiles').update({ is_banned: true, ban_reason: reason, ban_expires_at: expiresAt }).eq('id', target.id);
+    if (command === 'banip') {
+      // Banning the profile added the default device bans and a 7-day IP ban (migration 0052);
+      // stretch every device, fingerprint and IP ban to the whole ban.
+      const withFingerprints = await database.from('account_devices').select('device_hash, ip_hash, fingerprint_hash').eq('profile_id', target.id);
+      const seen: any[] = (withFingerprints.error ? (await database.from('account_devices').select('device_hash, ip_hash').eq('profile_id', target.id)).data : withFingerprints.data) || [];
+      const unique = (key: string) => Array.from(new Set(seen.map((row: any) => row[key]).filter(Boolean))) as string[];
+      const ips = unique('ip_hash');
+      const rows = [
+        ...unique('device_hash').map((hash) => ({ kind: 'device', value_hash: hash, profile_id: target.id, expires_at: expiresAt })),
+        ...unique('fingerprint_hash').map((hash) => ({ kind: 'fingerprint', value_hash: hash, profile_id: target.id, expires_at: expiresAt })),
+        ...ips.map((hash) => ({ kind: 'ip', value_hash: hash, profile_id: target.id, expires_at: expiresAt })),
+      ];
+      await database.from('network_bans').delete().eq('profile_id', target.id);
+      if (rows.length) {
+        const { error: networkError } = await database.from('network_bans').insert(rows);
+        if (networkError) return reply(`${target.username} is banned, but their IPs couldn't be: ${networkError.message}`, 500);
+      }
+      return reply(`${target.username} and ${ips.length} IP${ips.length === 1 ? '' : 's'} are banned ${hours ? `for ${hours} hour${hours === 1 ? '' : 's'}` : 'permanently'}. Reason: ${reason}`);
+    }
     return reply(`${target.username} is banned ${hours ? `for ${hours} hour${hours === 1 ? '' : 's'}` : 'permanently'}. Reason: ${reason}`);
   }
   if (command === 'unban') {
