@@ -37,7 +37,7 @@ import { useForcedStock } from "./components/forced-stock";
 import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { calmText } from "../lib/chat-filter";
-import { BazaarIcon, BreadletIcon, ChatIcon, ClanIcon, GavelIcon, GoodybagIcon, SuitcaseIcon, SwordsIcon, TrophyIcon } from "./components/nav-icons";
+import { BreadletsPictureIcon, ChatIcon, GavelIcon, GoodybagsPictureIcon, RoundStarIcon, SwordsIcon, TrophyIcon } from "./components/nav-icons";
 import { ButterflyCatch, GardenChooser } from "./components/butterfly-catch";
 import { ADMIN_USERNAME, BAN_MODERATOR_USERNAMES, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { onlyTopTokenBadge } from "../lib/badges";
@@ -712,11 +712,6 @@ function MainPage() {
   // Settings > Layout: which way the tabs are shown. Home tiles start on the home screen.
   const { settings: uiSettings } = useSettings();
   const navLayout = uiSettings.navLayout || "classic";
-  // Beta look (Settings > Layout): a class on <html>, so pop-ups and full-screen worlds get it too.
-  const betaLook = Boolean(uiSettings.betaLook);
-  useEffect(() => {
-    document.documentElement.classList.toggle("beta-look", betaLook);
-  }, [betaLook]);
   const [homeOpen, setHomeOpen] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
   const [socialsOpen, setSocialsOpen] = useState(false);
@@ -2013,22 +2008,22 @@ function MainPage() {
       />
     );
   const nav: NavItem[] = [
-    { id: "event", label: "Event", icon: <PartyPopper size={20} strokeWidth={2.2} /> },
+    { id: "event", label: "Event", icon: <RoundStarIcon size={20} /> },
     {
       id: "capsules",
       label: "Goodybags",
-      icon: <GoodybagIcon size={20} />,
+      icon: <GoodybagsPictureIcon size={20} />,
     },
     {
       id: "inventory",
       label: "Breadlets",
-      icon: betaLook ? <SuitcaseIcon size={20} /> : <BreadletIcon size={20} />,
+      icon: <BreadletsPictureIcon size={20} />,
     },
-    { id: "clan", label: "Clans", icon: betaLook ? <SwordsIcon size={20} /> : <ClanIcon size={20} /> },
+    { id: "clan", label: "Clans", icon: <SwordsIcon size={20} /> },
     {
       id: "market",
       label: "Bazaar",
-      icon: betaLook ? <GavelIcon size={20} /> : <BazaarIcon size={20} />,
+      icon: <GavelIcon size={20} />,
     },
     {
       id: "chat",
@@ -3450,9 +3445,9 @@ function RewardArt({ name, art, className }: { name: string; art: string; classN
   );
 }
 
-// Beta look: Breadlet pictures have different amounts of empty space around the drawing, so some
-// look small and some big. Each picture is measured once (where its non-see-through pixels are)
-// and, only with the beta look on, zoomed and centred so the drawing fills its box the same way.
+// Breadlet pictures have different amounts of empty space around the drawing, so some look small
+// and some big. Each picture is measured once (where its non-see-through pixels are), then zoomed
+// and centred so the drawing fills its box the same way.
 type Trim = { scale: number; x: number; y: number };
 const trimCache = new Map<string, Trim | null>();
 const trimWaiting = new Map<string, Promise<Trim | null>>();
@@ -3506,7 +3501,6 @@ function TrimmedArt({ src, alt }: { src: string; alt: string }) {
   const [trim, setTrim] = useState<Trim | null>(() => trimCache.get(src) || null);
   useEffect(() => { setTrim(trimCache.get(src) || null); }, [src]);
   const onLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    if (!document.documentElement.classList.contains("beta-look")) return;
     const image = event.currentTarget;
     void measureTrim(image).then((result) => { trimCache.set(src, result); setTrim(result); });
   };

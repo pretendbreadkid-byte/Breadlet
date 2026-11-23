@@ -89,3 +89,23 @@ export function SuitcaseIcon({ size = 20 }: IconProps) {
     </svg>
   );
 }
+
+// Icons made from your pictures (public/assets/icons, white shapes).
+// zoom: the pictures have empty space around the shape, so they're enlarged to match the others.
+function PictureIcon({ src, size, zoom }: { src: string; size: number; zoom: number }) {
+  return <img src={src} alt="" aria-hidden="true" draggable={false} className="picture-icon" style={{ width: size, height: size, transform: `scale(${zoom})` }} />;
+}
+export function GoodybagsPictureIcon({ size = 20 }: IconProps) {
+  return <PictureIcon src="/assets/icons/goodybags.svg" size={size} zoom={1.3} />;
+}
+export function BreadletsPictureIcon({ size = 20 }: IconProps) {
+  return <PictureIcon src="/assets/icons/breadlets.svg" size={size} zoom={1.65} />;
+}
+// The Event tab: a star with rounded points.
+export function RoundStarIcon({ size = 20 }: IconProps) {
+  return (
+    <svg {...box(size)} fill="currentColor" stroke="currentColor" strokeWidth={2.4} strokeLinejoin="round">
+      <path d="M12 2.8l2.75 5.6 6.15.9-4.45 4.35 1.05 6.12L12 16.87l-5.5 2.9 1.05-6.12L3.1 9.3l6.15-.9Z" />
+    </svg>
+  );
+}
