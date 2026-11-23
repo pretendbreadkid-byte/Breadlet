@@ -37,6 +37,7 @@ import { NetworkBansPanel } from "./components/network-bans";
 import { SERVER_COMMANDS, commandsFor, type ChatCommand } from "../lib/chat-commands";
 import { calmText } from "../lib/chat-filter";
 import { BazaarIcon, BreadletIcon, ChatIcon, ClanIcon, GoodybagIcon, TrophyIcon } from "./components/nav-icons";
+import { ButterflyCatch, GardenChooser } from "./components/butterfly-catch";
 import { ADMIN_USERNAME, BAN_MODERATOR_USERNAMES, LIMITED_MODERATOR_USERNAMES, MODERATOR_USERNAMES } from "../lib/admin-access";
 import { onlyTopTokenBadge } from "../lib/badges";
 import type { BlockedPlayer } from "../lib/blocks";
@@ -725,6 +726,12 @@ function MainPage() {
   useEffect(() => {
     if (gardenVisit && gardenPlayerId) setTab("games");
   }, [gardenVisit, gardenPlayerId]);
+  // The Garden button opens a chooser: the Breadlet Garden or Butterfly Catching (both on this tab).
+  const [gardenChooser, setGardenChooser] = useState(false);
+  const [gamesMode, setGamesMode] = useState<"garden" | "butterflies">("garden");
+  useEffect(() => {
+    if (gardenVisit) setGamesMode("garden");
+  }, [gardenVisit]);
   const leaveGarden = () => {
     if (gardenVisit) {
       const url = new URL(window.location.href);
@@ -2010,7 +2017,7 @@ function MainPage() {
   const bottomMain = visibleNav.filter((item) => ["capsules", "inventory", "market", "chat"].includes(item.id)).slice(0, 4);
   const bottomMainFallback = bottomMain.length >= 3 ? bottomMain : visibleNav.slice(0, 4);
   const bottomMore = visibleNav.filter((item) => !bottomMainFallback.includes(item));
-  const goTab = (id: Tab) => { setTab(id); setHomeOpen(false); setMoreOpen(false); };
+  const goTab = (id: Tab) => { setHomeOpen(false); setMoreOpen(false); if (id === "games") setGardenChooser(true); else setTab(id); };
   const layoutExtras = (
     <div className="layout-extras">
       <button type="button" onClick={() => { setViewedProfile(null); goTab("profile"); }}><CircleUserRound size={18} />Profile</button>
@@ -2045,7 +2052,7 @@ function MainPage() {
               <button
                 key={item.id}
                 data-tour-target={item.id}
-                onClick={() => setTab(item.id)}
+                onClick={() => goTab(item.id)}
                 aria-current={tab === item.id ? "page" : undefined}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 font-extrabold text-sm transition ${
                   tab === item.id
@@ -2348,7 +2355,9 @@ function MainPage() {
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
-          {tab === "games" && !kidMode && !isGuest && player.id && <FieldsTab player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} gardenId={gardenVisit && gardenVisit !== player.id ? gardenVisit : undefined} tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onBreadlet={() => void refreshPlayerFromServer()} onExit={leaveGarden} artFor={artFor} />}
+          {gardenChooser && <GardenChooser onClose={() => setGardenChooser(false)} onPick={(mode) => { setGardenChooser(false); setGamesMode(mode); setTab("games"); }} />}
+          {tab === "games" && gamesMode === "butterflies" && !gardenVisit && !kidMode && !isGuest && player.id && <ButterflyCatch onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onExit={leaveGarden} onGarden={() => setGamesMode("garden")} />}
+          {tab === "games" && (gamesMode === "garden" || gardenVisit) && !kidMode && !isGuest && player.id && <FieldsTab player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} gardenId={gardenVisit && gardenVisit !== player.id ? gardenVisit : undefined} tokens={player.tokens} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onBreadlet={() => void refreshPlayerFromServer()} onExit={leaveGarden} artFor={artFor} />}
           {tab === "admin" && adminUnlocked && (
             <AdminTab
               player={player}

@@ -9,6 +9,10 @@ import {
   canPlaceProp, cropValue, gardenDay, inRow, propNamed, rollSize, seedNamed, seedStockFor, sizeLabel,
   type Crop, type FieldsView, type GardenPerson, type PlacedProp, type Plant, type PropKind, type SeedName,
 } from '../../../lib/fields';
+import {
+  BUTTERFLY_DAILY_LIMIT, FINISH_GRACE_MS, FLIGHT_MS, ROUND_MS, butterfliesEarnedToday, butterflyDay, butterflyValue, normalizeButterflies, rollRound,
+  type ButterflyState,
+} from '../../../lib/butterflies';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +33,8 @@ type State = {
   gardenTokens: number;
   // Every Garden Token you've ever got (spending doesn't lower it). The leaderboard ranks this.
   gardenTokensTotal: number;
+  // Butterfly Catching (lib/butterflies.ts): what you earned today and the round you're playing.
+  butterflies: ButterflyState;
 };
 
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
@@ -70,7 +76,7 @@ function normalize(raw: any): State {
     .filter((crop: any) => crop && typeof crop.id === 'string' && seedNamed(crop.seed) && isSize(crop.size))
     .slice(0, MAX_BASKET)
     .map((crop: any) => ({ id: crop.id.slice(0, 40), seed: crop.seed, size: crop.size, from: name(crop.from) }));
-  return { plants, props, seeds, propBag, helpers: people(raw?.helpers), builders: people(raw?.builders), earned, crops, gardenTokens: count(raw?.gardenTokens), gardenTokensTotal: Math.max(count(raw?.gardenTokensTotal), count(raw?.gardenTokens)) };
+  return { plants, props, seeds, propBag, helpers: people(raw?.helpers), builders: people(raw?.builders), earned, crops, gardenTokens: count(raw?.gardenTokens), gardenTokensTotal: Math.max(count(raw?.gardenTokensTotal), count(raw?.gardenTokens)), butterflies: normalizeButterflies(raw?.butterflies) };
 }
 
 async function session(gardenParam: unknown) {
@@ -214,6 +220,59 @@ export async function POST(request: Request) {
     }
     return result.error || '';
   };
+
+  // Butterfly Catching. 'butterflyStatus' -> what you've earned today; 'butterflyStart' rolls a new
+  // round; 'butterflyFinish' { round, caught: ids } pays for the butterflies you caught.
+  if (body.action === 'butterflyStatus') {
+    return NextResponse.json({ earnedToday: butterfliesEarnedToday(mine.butterflies), limit: BUTTERFLY_DAILY_LIMIT });
+  }
+  if (body.action === 'butterflyStart') {
+    if (butterfliesEarnedToday(mine.butterflies) >= BUTTERFLY_DAILY_LIMIT) return fail(`You've caught today's ${BUTTERFLY_DAILY_LIMIT.toLocaleString()} Bread Bucks of butterflies. Come back tomorrow!`);
+    const round = rollRound(random);
+    const problem = await updateMine((state) => {
+      state.butterflies = { day: state.butterflies.day, amount: state.butterflies.amount, round };
+    });
+    if (problem) return fail(problem, 409);
+    return NextResponse.json({
+      round: { id: round.id, butterflies: round.butterflies, roundMs: ROUND_MS, flightMs: FLIGHT_MS },
+      earnedToday: butterfliesEarnedToday(mine.butterflies), limit: BUTTERFLY_DAILY_LIMIT,
+    });
+  }
+  if (body.action === 'butterflyFinish') {
+    const caughtIds = Array.isArray(body.caught) ? Array.from(new Set(body.caught.filter((id: unknown) => typeof id === 'string'))) as string[] : [];
+    let pay = 0;
+    let caught = 0;
+    const problem = await updateMine((state) => {
+      const round = state.butterflies.round;
+      if (!round || round.id !== body.round) return 'That round is over. Start a new one.';
+      const now = Date.now();
+      const already = butterfliesEarnedToday(state.butterflies);
+      const late = now - round.startedAt > ROUND_MS + FINISH_GRACE_MS;
+      pay = 0;
+      caught = 0;
+      if (!late) {
+        for (const butterfly of round.butterflies) {
+          // Only butterflies that had flown in by now count.
+          if (!caughtIds.includes(butterfly.id) || round.startedAt + butterfly.at > now + 500) continue;
+          caught += 1;
+          pay += butterflyValue(butterfly.kind);
+        }
+      }
+      pay = Math.max(0, Math.min(pay, BUTTERFLY_DAILY_LIMIT - already));
+      state.butterflies = { day: butterflyDay(), amount: already + pay };
+      if (late) return 'That round ran out of time. Start a new one.';
+    });
+    if (problem) return fail(problem, 409);
+    const paid = pay > 0 ? await changeTokens(database, userId, pay) : {};
+    const earnedToday = butterfliesEarnedToday(mine.butterflies);
+    return NextResponse.json({
+      payout: pay, caught, earnedToday, limit: BUTTERFLY_DAILY_LIMIT,
+      tokens: 'tokens' in paid ? paid.tokens : undefined,
+      message: caught
+        ? `You caught ${caught} butterfl${caught === 1 ? 'y' : 'ies'} for ${pay} Bread Bucks!${earnedToday >= BUTTERFLY_DAILY_LIMIT ? ` That's today's ${BUTTERFLY_DAILY_LIMIT.toLocaleString()} limit.` : ''}`
+        : 'No butterflies this time. Try again!',
+    });
+  }
 
   if (body.action === 'permit') {
     if (!isOwner) return fail('Only the garden owner can do that.', 403);
