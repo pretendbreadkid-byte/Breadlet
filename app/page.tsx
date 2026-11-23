@@ -2056,9 +2056,6 @@ function MainPage() {
       icon: <ChatIcon size={20} />,
     },
     { id: "leaderboard", label: "Leaderboard", icon: <TrophyIcon size={20} /> },
-    // News opens Breadlet News; Other pops out Take a tour, Resources, Socials, GitHub and more.
-    { id: "news" as Tab, label: "News", icon: <Newspaper size={20} strokeWidth={2.4} /> },
-    { id: "other" as Tab, label: "Other", icon: <MoreHorizontal size={22} strokeWidth={3} /> },
     // The Garden is open to everyone signed in (guests and kid accounts can't use it).
     ...(!isGuest && !kidMode ? [{ id: "games" as Tab, label: "Garden", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
   ];
