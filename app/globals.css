@@ -4438,7 +4438,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .bf-start { min-width: 160px; borde
 html .reward-art-img { transform: scale(var(--trim-scale, 1)) translate(var(--trim-x, 0%), var(--trim-y, 0%)); }
 
 /* A dark orange sidebar (not black), square so no background peeks out of the corners. */
-html main.breadlet-blue-theme > aside.breadlet-sidebar { background: linear-gradient(180deg, #b8560f, #9a420a) !important; border-right: 6px solid #2e1405 !important; border-radius: 0 !important; box-shadow: 4px 0 18px rgba(80, 30, 0, .25); }
+html main.breadlet-blue-theme > aside.breadlet-sidebar { background: linear-gradient(180deg, #b8560f, #9a420a) !important; border-right: 6px solid #7d3406 !important; border-radius: 0 !important; box-shadow: 4px 0 18px rgba(80, 30, 0, .25); }
 html main.breadlet-blue-theme > aside.breadlet-sidebar .sidebar-footer,
 html .breadlet-sidebar > div.sidebar-footer { background: rgba(70, 26, 0, .35) !important; border-radius: 0 !important; }
 html main.breadlet-blue-theme > aside.breadlet-sidebar nav button:hover { background: rgba(255, 230, 200, .16) !important; }
