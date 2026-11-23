@@ -2233,13 +2233,14 @@ function MainPage() {
             </div>
 
             {/* Corner Username Dropdown */}
-            {!isGuest && (
-              <button type="button" className="workspace-bell pointer-events-auto" onClick={() => setInboxOpen(true)} aria-label={inboxUnreadCount ? `Inbox, ${inboxUnreadCount} unread` : "Inbox"} title="Inbox">
-                <Bell size={20} strokeWidth={2.4} fill="currentColor" />
-                {inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
-              </button>
-            )}
             <div ref={userMenuRef} className="workspace-account relative pointer-events-auto">
+              {/* The Inbox bell, beside the name button. */}
+              {!isGuest && (
+                <button type="button" className="workspace-bell pointer-events-auto" onClick={() => setInboxOpen(true)} aria-label={inboxUnreadCount ? `Inbox, ${inboxUnreadCount} unread` : "Inbox"} title="Inbox">
+                  <Bell size={20} strokeWidth={2.4} fill="currentColor" />
+                  {inboxUnreadCount > 0 && <span className="nav-unread-badge">{inboxUnreadCount > 9 ? "9+" : inboxUnreadCount}</span>}
+                </button>
+              )}
               <button
                 onClick={() => setUserMenuOpen((prev) => !prev)}
                 className="workspace-account-button flex max-w-[calc(100vw-8rem)] items-center gap-2 rounded-xl border border-[#3c3a34] bg-[#13120F] px-2 py-2 font-black text-[#e9bd67] transition hover:bg-[#27251F] sm:max-w-none sm:gap-2.5 sm:px-3.5"
@@ -2286,6 +2287,9 @@ function MainPage() {
                     </button>
                   )}
                   <hr className="my-1 border-[#3d91cd]/40" />
+                  <hr className="my-1 border-[#3d91cd]/40" />
+                  <button onClick={() => { setNewsOpen(true); setUserMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><Newspaper size={18} />News</button>
+                  <button onClick={() => { setOtherOpen(true); setUserMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold"><MoreHorizontal size={18} />More</button>
                   <button
                     onClick={() => {
                       leaveSession();
