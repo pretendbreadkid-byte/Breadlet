@@ -232,7 +232,7 @@ export const liveCapsules: Capsule[] = [
     price: 25,
     // Average resale was above the price (open-and-sell printed tokens); now ~17.
     rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.21 },
-    art: "/assets/inventions-bag-3.svg",
+    art: "/assets/bags/inventions-bag.svg",
     pool: rewards([
       ["Wheel", "Common"],
       ["Magnifying Glass", "Common"],
@@ -243,7 +243,7 @@ export const liveCapsules: Capsule[] = [
       ["Leonardo da Vinci", "Legendary"],
       ["Bitcoin", "Mythic"],
     ], {
-      "Magnifying Glass": "/assets/breadlets/inventions-bag/magnifying-glass.svg",
+      "Magnifying Glass": "/assets/breadlets/inventions-bag/magnifying-glass.webp",
     }),
   },
   {
@@ -331,7 +331,7 @@ export const liveCapsules: Capsule[] = [
       ["Treasure Chest", "Mythic"],
       ["Timeglass", "Secret"],
     ], {
-      "Clay Vase": "/assets/breadlets/artifact-bag/clay-vase.svg",
+      "Clay Vase": "/assets/breadlets/artifact-bag/clay-vase.webp",
       "Treasure Chest": "/assets/breadlets/artifact-bag/treasure-chest.svg",
     }),
   },
@@ -408,7 +408,7 @@ export const liveCapsules: Capsule[] = [
       "Robo Bread": "/assets/breadlets/bread-bag/robo-bread.svg",
       "Slime Bread": "/assets/breadlets/bread-bag/slime-bread.svg",
       "Gold Bread": "/assets/breadlets/bread-bag/gold-bread.svg",
-      "Holy Bread": "/assets/breadlets/bread-bag/holy-bread.svg",
+      "Holy Bread": "/assets/breadlets/bread-bag/holy-bread.webp",
       "Golden Toaster": "/assets/breadlets/bread-bag/golden-toaster.svg",
     },
     // Fixed odds keep the average resale value (~16) well under the price, so opening
