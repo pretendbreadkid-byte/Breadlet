@@ -276,7 +276,7 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Bag",
     price: 25,
-    art: "/assets/lost-and-found-2.svg",
+    art: "/assets/bags/lost-and-found-bag.svg",
     pool: rewards([
       ["Car Keys", "Common"],
       ["Hand Mirror", "Common"],

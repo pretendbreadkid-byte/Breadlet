@@ -306,17 +306,23 @@ const BUTTERFLIES = [
   { x: 1500, y: 1380, color: "#ff7a45", reach: 160, time: 10 }, { x: 2200, y: 260, color: "#fff3df", reach: 140, time: 9.5 },
   { x: 900, y: 1380, color: "#ffd23f", reach: 130, time: 7.5 },
 ];
+// The garden's butterfly, flapping its wings. Butterfly Catching uses the same one.
+export function ButterflySvg({ color, width, height, className }: { color: string; width?: number; height?: number; className?: string }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 30 24" className={className} aria-hidden="true">
+      <g className="garden-wing garden-wing-left"><path d="M14 12 C8 0 0 2 2 10 C0 16 8 20 14 13Z" fill={color} stroke="#3B1F0E" strokeWidth="1.6" /></g>
+      <g className="garden-wing garden-wing-right"><path d="M16 12 C22 0 30 2 28 10 C30 16 22 20 16 13Z" fill={color} stroke="#3B1F0E" strokeWidth="1.6" /></g>
+      <rect x="13.6" y="6" width="2.8" height="13" rx="1.4" fill="#3B1F0E" />
+    </svg>
+  );
+}
 export const Ambient = memo(function Ambient() {
   return (
     <>
       {BUTTERFLIES.map((fly, index) => (
         <div key={index} className="garden-fly" style={{ left: fly.x, top: fly.y, "--reach": `${fly.reach}px`, animationDuration: `${fly.time}s`, animationDelay: `${-index * 1.7}s` } as CSSProperties}>
           <div className="garden-fly-bob" style={{ animationDelay: `${-index * 0.5}s` }}>
-            <svg width="30" height="24" viewBox="0 0 30 24" aria-hidden="true">
-              <g className="garden-wing garden-wing-left"><path d="M14 12 C8 0 0 2 2 10 C0 16 8 20 14 13Z" fill={fly.color} stroke="#3B1F0E" strokeWidth="1.6" /></g>
-              <g className="garden-wing garden-wing-right"><path d="M16 12 C22 0 30 2 28 10 C30 16 22 20 16 13Z" fill={fly.color} stroke="#3B1F0E" strokeWidth="1.6" /></g>
-              <rect x="13.6" y="6" width="2.8" height="13" rx="1.4" fill="#3B1F0E" />
-            </svg>
+            <ButterflySvg color={fly.color} width={30} height={24} />
           </div>
         </div>
       ))}

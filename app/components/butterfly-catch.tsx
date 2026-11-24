@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Sprout } from "lucide-react";
+import { ButterflySvg } from "./garden-art";
 import { WalkChat, WalkerSprite, useWalkWorld, type WalkPlayer } from "./walk-world";
 
 type Kind = "Orange" | "Blue" | "Golden";
@@ -17,41 +18,10 @@ const EDGE = 70;
 const CATCH_RADIUS = 72;
 const DRIFT = 55; // pixels a second
 const VALUES: Record<Kind, number> = { Orange: 6, Blue: 10, Golden: 25 };
-// Breadlet's own butterflies: four rounded wings with spots, a little body with a smiley face and
-// curly antennae. Each kind has its own colours; the Golden one sparkles.
-const PALETTE: Record<Kind, { wing: string; edge: string; inner: string; spot: string; body: string }> = {
-  Orange: { wing: "#ff9a2e", edge: "#9c4310", inner: "#ffc15e", spot: "#fff3d6", body: "#5a2f12" },
-  Blue: { wing: "#4aa8ff", edge: "#1d4f8f", inner: "#9fd4ff", spot: "#ffffff", body: "#2b2140" },
-  Golden: { wing: "#ffd23f", edge: "#a0700a", inner: "#fff09a", spot: "#ffffff", body: "#6b4a12" },
-};
+// The same butterflies that fly around the Garden, one colour per kind.
+const WING: Record<Kind, string> = { Orange: "#ff7a45", Blue: "#7cc4ff", Golden: "#ffd23f" };
 export function ButterflyArt({ kind, className }: { kind: Kind; className?: string }) {
-  const c = PALETTE[kind];
-  return (
-    <svg viewBox="0 0 120 100" className={className} aria-hidden="true">
-      {kind === "Golden" && <circle cx="60" cy="50" r="46" fill="#fff6b0" opacity=".45" />}
-      <g stroke={c.edge} strokeWidth="4" strokeLinejoin="round">
-        <path d="M56 46C46 18 18 4 8 16c-9 11 2 34 26 36 10 1 18-1 22-6Z" fill={c.wing} />
-        <path d="M64 46c10-28 38-42 48-30 9 11-2 34-26 36-10 1-18-1-22-6Z" fill={c.wing} />
-        <path d="M56 54c-16 0-34 8-34 22 0 12 14 18 24 10 7-6 11-18 10-32Z" fill={c.wing} />
-        <path d="M64 54c16 0 34 8 34 22 0 12-14 18-24 10-7-6-11-18-10-32Z" fill={c.wing} />
-      </g>
-      <path d="M50 42C42 26 26 18 19 24c-6 6 1 20 15 22 7 1 13 0 16-4Z" fill={c.inner} />
-      <path d="M70 42c8-16 24-24 31-18 6 6-1 20-15 22-7 1-13 0-16-4Z" fill={c.inner} />
-      <g fill={c.spot}>
-        <circle cx="20" cy="22" r="4.5" /><circle cx="100" cy="22" r="4.5" />
-        <circle cx="31" cy="36" r="3" /><circle cx="89" cy="36" r="3" />
-        <circle cx="36" cy="76" r="4" /><circle cx="84" cy="76" r="4" />
-      </g>
-      <path d="M55 30c-4-10-8-16-14-18M65 30c4-10 8-16 14-18" stroke={c.body} strokeWidth="3" strokeLinecap="round" fill="none" />
-      <circle cx="41" cy="12" r="3.5" fill={c.body} /><circle cx="79" cy="12" r="3.5" fill={c.body} />
-      <rect x="53" y="30" width="14" height="52" rx="7" fill={c.body} />
-      <circle cx="60" cy="34" r="11" fill={c.body} />
-      <circle cx="56" cy="33" r="2.6" fill="#fff" /><circle cx="64" cy="33" r="2.6" fill="#fff" />
-      <circle cx="56.6" cy="33.4" r="1.3" fill="#111" /><circle cx="64.6" cy="33.4" r="1.3" fill="#111" />
-      <path d="M56.5 38.5c2 2 5 2 7 0" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" />
-      {kind === "Golden" && <g fill="#fff"><path d="M14 52l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" /><path d="M104 56l1.6 4 4 1.6-4 1.6-1.6 4-1.6-4-4-1.6 4-1.6Z" /></g>}
-    </svg>
-  );
+  return <ButterflySvg color={WING[kind]} className={className} />;
 }
 
 async function post(body: Record<string, unknown>) {
@@ -125,20 +95,10 @@ function Scenery() {
         </svg>
       ))}
       {items.bushes.map((bush, index) => (
-        <svg key={`b${index}`} className="bm-decor" style={{ left: bush.x - 50, top: bush.y - 50, zIndex: Math.round(bush.y) }} width="100" height="64" viewBox="0 0 100 64" aria-hidden="true">
-          <path d="M8 58c-6-14 4-28 18-26 2-14 20-22 32-12 12-8 30 2 28 16 12 4 14 20 6 22Z" fill="#3f9d3a" stroke="#256b22" strokeWidth="3" />
-          <circle cx={30 + bush.r * 30} cy="34" r="4" fill={bush.r > 0.5 ? "#ff5d7a" : "#ffd23f"} />
-          <circle cx={60 - bush.r * 20} cy="42" r="4" fill={bush.r > 0.5 ? "#ff5d7a" : "#ffd23f"} />
-        </svg>
+        <img key={`b${index}`} src="/assets/garden/berry-bush.svg" alt="" className="bm-decor bm-decor-img" style={{ left: bush.x, top: bush.y, width: 92, zIndex: Math.round(bush.y) }} draggable={false} />
       ))}
       {items.trees.map((tree, index) => (
-        <svg key={`t${index}`} className="bm-decor bm-tree" style={{ left: tree.x - 80, top: tree.y - 190, zIndex: Math.round(tree.y) }} width="160" height="200" viewBox="0 0 160 200" aria-hidden="true">
-          <ellipse cx="80" cy="192" rx="46" ry="8" fill="rgba(0,40,0,.22)" />
-          <path d="M70 190c4-30 4-60 2-90h16c-2 30-2 60 2 90Z" fill="#8a5426" stroke="#55300f" strokeWidth="3" />
-          <path d="M80 12c30 0 52 22 50 50 18 10 18 40-4 48-6 18-30 22-46 14-16 8-40 4-46-14-22-8-22-38-4-48-2-28 20-50 50-50Z" fill={tree.r > 0.5 ? "#4cae3e" : "#5bbf45"} stroke="#2a7322" strokeWidth="3.5" />
-          <path d="M52 52c8-12 22-18 36-16" stroke="#7fd96a" strokeWidth="5" strokeLinecap="round" fill="none" />
-          {tree.r > 0.35 && <><circle cx="60" cy="80" r="6" fill="#ff7a59" /><circle cx="104" cy="66" r="6" fill="#ff7a59" /><circle cx="88" cy="100" r="6" fill="#ff7a59" /></>}
-        </svg>
+        <img key={`t${index}`} src="/assets/garden/tree-prop.svg" alt="" className="bm-decor bm-decor-img bm-tree" style={{ left: tree.x, top: tree.y, width: 150 + tree.r * 40, zIndex: Math.round(tree.y) }} draggable={false} />
       ))}
     </>
   );
