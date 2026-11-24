@@ -45,7 +45,7 @@ import { ADMIN_USERNAME, BAN_MODERATOR_USERNAMES, LIMITED_MODERATOR_USERNAMES, M
 import { onlyTopTokenBadge } from "../lib/badges";
 import type { BlockedPlayer } from "../lib/blocks";
 import { CustomEmoji, EmojiPicker, renderEmojiText, useCustomEmojis } from "./components/emoji-picker";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createClient as createSupabaseClient, fetchGameplayApi, fetchSecretApi, fetchTradeApi } from "../lib/supabase/client";
 import {
   Backpack,
@@ -293,7 +293,7 @@ const artFor = (name: string) =>
     "Coffee Mug": "/assets/breadlets/lost-and-found-bag/coffee-mug.svg",
     "Clay Vase": "/assets/breadlets/artifact-bag/clay-vase.svg",
     Map: "/assets/breadlets/artifact-bag/map.svg",
-    Wallet: "/assets/breadlets/lost-and-found-bag/wallet.svg",
+    Wallet: "/assets/breadlets/lost-and-found-bag/wallet.svg?v=2",
     "Pixel Apple": "/assets/breadlets/pixel-bag/pixel-apple.png?v=2",
     "Pixel Caramel": "/assets/breadlets/pixel-bag/pixel-caramel.png?v=2",
     "Pixel Crystal Ball": "/assets/breadlets/pixel-bag/pixel-crystal-ball.png?v=2",
@@ -403,11 +403,11 @@ const artFor = (name: string) =>
     Blackbeard: "/assets/breadlets/crafted/blackbeard.svg",
     Rock: "/assets/breadlets/food-bag/rock.svg",
     Button: "/assets/breadlets/lost-and-found-bag/button.svg",
-    "Car Keys": "/assets/breadlets/lost-and-found-bag/car-keys.svg",
-    "Hand Mirror": "/assets/breadlets/lost-and-found-bag/hand-mirror.svg",
-    Hat: "/assets/breadlets/lost-and-found-bag/hat.svg",
+    "Car Keys": "/assets/breadlets/lost-and-found-bag/car-keys.svg?v=2",
+    "Hand Mirror": "/assets/breadlets/lost-and-found-bag/hand-mirror.svg?v=2",
+    Hat: "/assets/breadlets/lost-and-found-bag/hat.svg?v=2",
     Book: "/assets/breadlets/lost-and-found-bag/book.svg",
-    Tablet: "/assets/breadlets/lost-and-found-bag/tablet.svg",
+    Tablet: "/assets/breadlets/lost-and-found-bag/tablet.svg?v=2",
     Apple: "/assets/breadlets/food-bag/apple.svg",
     Avocado: "/assets/breadlets/food-bag/avocado.svg",
     Potato: "/assets/breadlets/food-bag/potato.webp",
@@ -678,6 +678,14 @@ function MainPage() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [tab, setTab] = useState<Tab>("profile");
+  // The page-open animation only runs right after switching pages, so things that appear later
+  // (like new chat messages) don't fade in.
+  const [pageEntering, setPageEntering] = useState(false);
+  useLayoutEffect(() => {
+    setPageEntering(true);
+    const timer = window.setTimeout(() => setPageEntering(false), 800);
+    return () => window.clearTimeout(timer);
+  }, [tab]);
   // Settings is a window over the page you're on; Other is a small pop-out from the menu.
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [otherOpen, setOtherOpen] = useState(false);
@@ -2306,7 +2314,7 @@ function MainPage() {
         </div>
 
         {/* Dynamic Page Section */}
-        <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""}`}>
+        <section data-tab={tab} className={`game-workspace flex-1 overflow-y-auto px-6 pb-6 pt-36 ${tab === "chat" ? "chat-workspace" : ""} ${pageEntering ? "page-entering" : ""}`}>
           {tab !== "capsules" && <BreadDrift className="page-drift" />}
           {navLayout === "home" && homeOpen && (
             <div className="layout-home">

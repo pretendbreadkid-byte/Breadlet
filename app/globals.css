@@ -4585,20 +4585,20 @@ main.breadlet-blue-theme.breadlet-blue-theme .other-popout > *:hover { backgroun
 @media (max-width: 767px) { main.breadlet-blue-theme.breadlet-blue-theme .other-popout { left: 12px; right: 12px; bottom: 86px; } }
 
 /* Opening a page: the page slides up into place and its pieces fade in one after another. Plays
-   when a tab's content mounts (switching tabs). Only opacity and the translate property are
+   only while .page-entering is on (the first 0.8s after switching tabs), so new chat messages etc. don't fade. Only opacity and the translate property are
    animated, and :where() keeps it at zero specificity so anything with its own animation keeps it; nothing's own transform is touched. */
 @keyframes page-in { from { opacity: 0; translate: 0 18px; } to { opacity: 1; translate: 0 0; } }
 @keyframes page-piece-in { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
 @keyframes page-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: no-preference) {
-  :where(.game-workspace > :not(.claim-ready-pill)) { animation: page-in .38s cubic-bezier(.2, .8, .25, 1) both; }
-  :where(.game-workspace > :not(.claim-ready-pill) > *) { animation: page-piece-in .42s cubic-bezier(.2, .8, .25, 1) both; }
-  :where(.game-workspace > :not(.claim-ready-pill) > :nth-child(2)) { animation-delay: .05s; }
-  :where(.game-workspace > :not(.claim-ready-pill) > :nth-child(3)) { animation-delay: .1s; }
-  :where(.game-workspace > :not(.claim-ready-pill) > :nth-child(4)) { animation-delay: .15s; }
-  :where(.game-workspace > :not(.claim-ready-pill) > :nth-child(5)) { animation-delay: .2s; }
-  :where(.game-workspace > :not(.claim-ready-pill) > :nth-child(n+6)) { animation-delay: .25s; }
-  :where(.game-workspace > :not(.claim-ready-pill) > * > *) { animation: page-fade-in .4s ease both; animation-delay: .12s; }
-  :where(.game-workspace > :not(.claim-ready-pill) > * > :nth-child(n+3)) { animation-delay: .18s; }
-  :where(.game-workspace > :not(.claim-ready-pill) > * > :nth-child(n+6)) { animation-delay: .24s; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill)) { animation: page-in .38s cubic-bezier(.2, .8, .25, 1) both; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > *) { animation: page-piece-in .42s cubic-bezier(.2, .8, .25, 1) both; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > :nth-child(2)) { animation-delay: .05s; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > :nth-child(3)) { animation-delay: .1s; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > :nth-child(4)) { animation-delay: .15s; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > :nth-child(5)) { animation-delay: .2s; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > :nth-child(n+6)) { animation-delay: .25s; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > * > *) { animation: page-fade-in .4s ease both; animation-delay: .12s; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > * > :nth-child(n+3)) { animation-delay: .18s; }
+  :where(.game-workspace.page-entering > :not(.claim-ready-pill) > * > :nth-child(n+6)) { animation-delay: .24s; }
 }
