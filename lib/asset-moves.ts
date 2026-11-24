@@ -74,7 +74,7 @@ export const MOVED_ARTWORK_KEYS: Record<string, string> = {
   "slime-bread-2.svg": "breadlets/bread-bag/slime-bread.svg",
   "solar ecplise but good.svg": "breadlets/space-bag/eclipse.svg",
   "sour-dough-2.svg": "breadlets/bread-bag/sour-dough.svg",
-  "space goo 2.0.svg": "breadlets/space-bag/space-goo.svg",
+  "space goo 2.0.svg": "breadlets/space-bag/space-goo-new.svg",
   "srn-blooktuber.png": "breadlets/youtube-bag/srn.png",
   "sun.svg": "breadlets/space-bag/sun.svg",
   "sword way better.svg": "breadlets/combat-bag/sword.svg",

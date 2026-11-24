@@ -1,7 +1,6 @@
 import { luckyChanceFor as chanceFor, craftRecipeFor, dismantleBundleFor, isUntradableBreadlet, liveCapsules, packIsSafe, sellValueForBlook, untradableReason, wheelRewards } from './gameplay-catalog';
 import { isMarketPackInStock, isSeasonalPackLocked, seasonalPackOpensAt, type ForcedStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
-import { LIMITED_SHOP_NAMES } from './limited-shop';
 
 export const MAX_MASS_OPEN_COUNT = 2500;
 
@@ -77,12 +76,14 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
     if (!body.quantities || typeof body.quantities !== 'object' || Array.isArray(body.quantities)) throw new Error('Choose extra Breadlets to sell.');
     const quantities = Object.entries(body.quantities as Record<string, unknown>);
     if (!quantities.length || quantities.length > 200) throw new Error('Invalid sale selection.');
+    // You can sell every copy of a Breadlet, but not every Breadlet you own.
+    let left = Object.values(snapshot.inventory).reduce((sum, item) => sum + Math.max(0, item.quantity), 0);
     for (const [name, value] of quantities) {
       const quantity = integer(value, 100000);
       const owned = snapshot.inventory[name];
-      // One-per-player shop Breadlets (the American Flag) can be sold outright; others keep a copy.
-      const sellsLast = LIMITED_SHOP_NAMES.includes(name.replace(/^Shiny /, ''));
-      if (!owned || quantity > owned.quantity || (!sellsLast && quantity >= owned.quantity)) throw new Error(`Keep one copy of ${name}.`);
+      if (!owned || quantity > owned.quantity) throw new Error(`You don't have that many ${name}.`);
+      left -= quantity;
+      if (left < 1) throw new Error('Keep at least one Breadlet.');
       if (isUntradableBreadlet(name)) throw new Error(`${untradableReason(name)} and can't be sold.`);
       addItem(name, -quantity);
       plan.sold[name] = quantity;

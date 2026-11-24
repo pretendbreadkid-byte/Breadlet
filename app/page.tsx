@@ -372,7 +372,7 @@ const artFor = (name: string) =>
     "Star Ship": "/assets/star ship frame 1.svg",
     "Skeleton Pirate": "/assets/Skeleton pirate frame 1.svg",
     "Festive Skeleton Pirate": "/assets/breadlets/other/festive-skeleton-pirate.svg",
-    "Space Goo": "/assets/breadlets/space-bag/space-goo.svg?v=2",
+    "Space Goo": "/assets/breadlets/space-bag/space-goo-new.svg",
     "Bread Blook": "/assets/breadlets/youtube-bag/bread-blook.png",
     "Golden Shuriken": "/assets/breadlets/combat-bag/golden-shuriken.svg",
     "Holy Bread": "/assets/breadlets/bread-bag/holy-bread.webp",
@@ -1604,7 +1604,7 @@ function MainPage() {
       return;
     }
     const owned = player.inventory.filter((item) => item === name).length;
-    const amount = Math.min(count, LIMITED_SHOP_NAMES.includes(name) ? owned : owned - 1);
+    const amount = Math.min(count, owned, player.inventory.length - 1);
     if (amount <= 0) return;
     const inventory = [...player.inventory];
     for (let sold = 0; sold < amount; sold += 1) inventory.splice(inventory.indexOf(name), 1);
@@ -3843,10 +3843,10 @@ function BlookDetail({
   const worth = sellValueForBlook(reward.name, reward.rarity);
   const chance = dropChanceFor(reward.name);
   const exist = existCounts[reward.name] || 0;
-  const canSell = quantity > 0 && (quantity > 1 || LIMITED_SHOP_NAMES.includes(reward.name)) && !locked;
+  // Every copy can be sold, except the copy you have equipped (equip something else first).
+  const sellable = equipped ? quantity - 1 : quantity;
+  const canSell = sellable > 0 && !locked;
   const [selling, setSelling] = useState(false);
-  // You keep your last copy (Limited shop Breadlets can all be sold).
-  const sellable = LIMITED_SHOP_NAMES.includes(reward.name) ? quantity : quantity - 1;
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm" onClick={onClose}>
       <div className="blook-card" style={{ "--rarity": stallColors[reward.rarity] || stallColors.Common } as React.CSSProperties} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="blook-card-name">
@@ -3882,7 +3882,7 @@ function BlookDetail({
             <button
               type="button"
               disabled={!canSell}
-              title={locked ? "Unlock this Breadlet to sell it" : quantity === 1 ? "You keep your last copy" : undefined}
+              title={locked ? "Unlock this Breadlet to sell it" : !canSell ? "Equip a different Breadlet to sell your last copy" : undefined}
               onClick={() => setSelling(true)}
             >
               <img src="/assets/Bread%20bucks.svg" alt="" />Sell
