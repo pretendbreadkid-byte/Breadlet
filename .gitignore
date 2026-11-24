@@ -7,3 +7,6 @@ npm-debug.log*
 .env.local
 supabase/migrations/.env.local
 *.mp4
+
+# Old, unused art moved out of public/assets (kept on this PC only)
+old-art/

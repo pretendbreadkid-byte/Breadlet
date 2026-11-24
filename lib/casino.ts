@@ -37,9 +37,9 @@ export function validRoulettePick(pick: string) {
 // Slots: three reels. Weights are out of 100 per reel.
 export const SLOT_SYMBOLS = [
   { id: 'bread', label: 'Bread', art: '/assets/bread-capsule.svg', weight: 34, three: 6, two: 0.5 },
-  { id: 'acorn', label: 'Acorn', art: '/assets/fall/acorn.svg', weight: 26, three: 10, two: 1 },
-  { id: 'leaf', label: 'Leaf', art: '/assets/fall/fall-leaf.webp', weight: 20, three: 18, two: 2 },
-  { id: 'hat', label: 'Pilgrim Hat', art: '/assets/fall/pilgrim-hat.webp', weight: 13, three: 50, two: 3 },
+  { id: 'acorn', label: 'Acorn', art: '/assets/breadlets/fall-fiesta/acorn.svg', weight: 26, three: 10, two: 1 },
+  { id: 'leaf', label: 'Leaf', art: '/assets/breadlets/fall-fiesta/fall-leaf.webp', weight: 20, three: 18, two: 2 },
+  { id: 'hat', label: 'Pilgrim Hat', art: '/assets/breadlets/fall-fiesta/pilgrim-hat.webp', weight: 13, three: 50, two: 3 },
   { id: 'bucks', label: 'Bread Bucks', art: '/assets/Bread%20bucks.svg', weight: 7, three: 150, two: 5 },
 ] as const;
 export type SlotSymbol = (typeof SLOT_SYMBOLS)[number]['id'];

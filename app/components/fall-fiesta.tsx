@@ -142,12 +142,12 @@ function LeafShower({ caught, onlineIds, onTanuki }: { caught: number; onlineIds
           onClick={(click) => void catchLeaf(leaf.id, click.clientX, click.clientY)}
           style={{ left: `${leaf.left}%`, width: leaf.size, height: leaf.size, animationDelay: `${leaf.delay}s`, animationDuration: `${leaf.duration}s`, "--bread-spin": leaf.spin } as React.CSSProperties}
         >
-          <img src="/assets/fall/fall-leaf.webp" alt="" draggable={false} />
+          <img src="/assets/breadlets/fall-fiesta/fall-leaf.webp" alt="" draggable={false} />
         </button>
       ))}
       {tanuki && (
         <button type="button" aria-label="Catch the Tanuki" className="admin-bread fiesta-leaf fiesta-tanuki" onClick={(click) => void catchTanuki(click.clientX, click.clientY)} style={{ left: `${tanuki.left}%`, width: tanuki.size, height: tanuki.size, animationDuration: "4.5s", "--bread-spin": 0 } as React.CSSProperties}>
-          <img src="/assets/fall/tanuki-animated.svg" alt="" draggable={false} />
+          <img src="/assets/breadlets/fall-bag/tanuki.svg" alt="" draggable={false} />
         </button>
       )}
       {pops.map((item) => <span key={item.id} className="admin-bread-pop" style={{ left: item.x, top: item.y }}>{item.text}</span>)}
@@ -177,7 +177,7 @@ function BreakingBadEventTab({ isGuest, onBought }: { isGuest: boolean; onBought
   const [redeemOpen, setRedeemOpen] = useState(false);
   return (
     <div className="event-page event-page-bb mx-auto w-full max-w-4xl">
-      {!isGuest && <button type="button" className="event-redeem-corner" onClick={() => setRedeemOpen(true)}><img src="/assets/fall/fall-leaf.webp" alt="" aria-hidden="true" />Redeem leaves</button>}
+      {!isGuest && <button type="button" className="event-redeem-corner" onClick={() => setRedeemOpen(true)}><img src="/assets/breadlets/fall-fiesta/fall-leaf.webp" alt="" aria-hidden="true" />Redeem leaves</button>}
       <section className="event-upcoming event-bb-full" aria-labelledby="event-bb-title">
         <p id="event-bb-title" className="event-upcoming-tag">Coming next</p>
         <img src="/assets/breaking-bad/logo.svg" alt="Breadlet Breaks Bad" className="event-upcoming-logo" />
@@ -221,7 +221,7 @@ function LeafRedeem({ onClose, onBought }: { onClose: () => void; onBought: () =
       <div className="event-redeem" onClick={(event) => event.stopPropagation()}>
         <button type="button" className="event-redeem-close" onClick={onClose} aria-label="Close">×</button>
         <h2>Redeem your leaves</h2>
-        <p className="event-wallet"><img src="/assets/fall/fall-leaf.webp" alt="" aria-hidden="true" />{fiesta ? `${leaves} leaves left` : "Loading your leaves…"}</p>
+        <p className="event-wallet"><img src="/assets/breadlets/fall-fiesta/fall-leaf.webp" alt="" aria-hidden="true" />{fiesta ? `${leaves} leaves left` : "Loading your leaves…"}</p>
         <ul className="event-redeem-list">
           {FIESTA_SHOP.map((item) => {
             const owned = Boolean(fiesta?.bought.includes(item.name));
@@ -301,7 +301,7 @@ function FallFiestaEventTab({ isGuest, onBought, now }: { isGuest: boolean; onBo
 
   return (
     <div className="event-page mx-auto w-full max-w-4xl">
-      {!until && <div className="event-leaves" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <img key={index} src="/assets/fall/fall-leaf.webp" alt="" style={{ "--leaf-index": index } as React.CSSProperties} />)}</div>}
+      {!until && <div className="event-leaves" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <img key={index} src="/assets/breadlets/fall-fiesta/fall-leaf.webp" alt="" style={{ "--leaf-index": index } as React.CSSProperties} />)}</div>}
       <img src="/assets/fall-fiesta-logo.webp" alt="Breadlet Fall Fiesta" className="event-logo" />
       <p className="event-soon">{until ? "Leaves are falling!" : "Next leaf shower"}</p>
       <div className="event-countdown event-countdown-short" role="timer" aria-label={until ? "Time left in this leaf shower" : "Time until the next leaf shower"}>
@@ -309,7 +309,7 @@ function FallFiestaEventTab({ isGuest, onBought, now }: { isGuest: boolean; onBo
       </div>
       <section className="event-rewards" aria-labelledby="event-rewards-title">
         <h2 id="event-rewards-title">Leaf shop</h2>
-        {isGuest ? <p>Log in to catch leaves and buy these.</p> : fiesta?.ready === false ? <p>The leaf shop is opening soon.</p> : <p className="event-wallet"><img src="/assets/fall/fall-leaf.webp" alt="" aria-hidden="true" />{fiesta ? `${fiesta.leaves} leaves` : "Loading your leaves…"}</p>}
+        {isGuest ? <p>Log in to catch leaves and buy these.</p> : fiesta?.ready === false ? <p>The leaf shop is opening soon.</p> : <p className="event-wallet"><img src="/assets/breadlets/fall-fiesta/fall-leaf.webp" alt="" aria-hidden="true" />{fiesta ? `${fiesta.leaves} leaves` : "Loading your leaves…"}</p>}
         <ul>
           {FIESTA_SHOP.map((item) => {
             const owned = Boolean(fiesta?.bought.includes(item.name));

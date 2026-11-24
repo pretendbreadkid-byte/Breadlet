@@ -1580,7 +1580,7 @@ main.breadlet-blue-theme .clan-workspace .clan-theme-sunset { background-image: 
 main.breadlet-blue-theme .clan-workspace .clan-theme-forest { background-image: linear-gradient(145deg, #263a2c, #27251F 65%) !important; }
 main.breadlet-blue-theme .clan-workspace .clan-theme-royal { background-image: linear-gradient(145deg, #383044, #27251F 65%) !important; }
 main.breadlet-blue-theme .clan-workspace .clan-theme-ember { background-image: linear-gradient(145deg, #4b2c25, #27251F 65%) !important; }
-main.breadlet-blue-theme .clan-workspace .clan-theme-fall { background-image: url("/assets/fall/fall-leaf.webp"), linear-gradient(145deg, #8a3d0c, #5a2a0c 55%, #27251F) !important; background-size: 90px, auto !important; background-position: right 18px top 14px, center !important; background-repeat: no-repeat !important; }
+main.breadlet-blue-theme .clan-workspace .clan-theme-fall { background-image: url("/assets/breadlets/fall-fiesta/fall-leaf.webp"), linear-gradient(145deg, #8a3d0c, #5a2a0c 55%, #27251F) !important; background-size: 90px, auto !important; background-position: right 18px top 14px, center !important; background-repeat: no-repeat !important; }
 main.breadlet-blue-theme .clan-workspace .clan-eyebrow,
 main.breadlet-blue-theme .clan-workspace .clan-text-muted { color: #d3cfc4 !important; }
 main.breadlet-blue-theme .clan-workspace .clan-stats,

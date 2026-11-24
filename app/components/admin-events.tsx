@@ -81,7 +81,7 @@ export function AdminEventsLayer({ onReward }: { onReward: () => void }) {
       {live("snowstorm") && <Snowstorm />}
       {confetti && <Confetti key={confetti.id} />}
       {live("lights_out") && <LightsOut />}
-      {jumpscare && <div key={jumpscare.id} className="admin-jumpscare" aria-hidden="true"><img src="/assets/ted-2.svg" alt="" /><span>BOO!</span></div>}
+      {jumpscare && <div key={jumpscare.id} className="admin-jumpscare" aria-hidden="true"><img src="/assets/breadlets/other/ted.svg" alt="" /><span>BOO!</span></div>}
       {parade && <Parade key={parade.id} />}
     </>
   );
@@ -179,7 +179,7 @@ function LightsOut() {
   return <div ref={ref} className="admin-lights-out" aria-hidden="true"><span>🔦 Lights out!</span></div>;
 }
 
-const PARADE = ["/assets/Bread.svg", "/assets/american-flag-2.svg", "/assets/winter/frozen-ted.svg", "/assets/megalodon.svg", "/assets/gold-play-button.svg", "/assets/sugar-glider.svg", "/assets/crimsonoctopus.svg", "/assets/camera.svg", "/assets/winter/fireplace.svg", "/assets/ted-2.svg"];
+const PARADE = ["/assets/Bread.svg", "/assets/breadlets/other/american-flag.svg", "/assets/breadlets/winter-bag/frozen-ted.svg", "/assets/breadlets/crafted/megalodon.svg", "/assets/breadlets/youtube-bag/gold-play-button.svg", "/assets/breadlets/crafted/sugar-glider.svg", "/assets/breadlets/remix-bag/crimson-octopus.svg", "/assets/breadlets/youtube-bag/camera.svg", "/assets/breadlets/winter-bag/fireplace.svg", "/assets/breadlets/other/ted.svg"];
 function Parade() {
   return (
     <div className="admin-parade" aria-hidden="true">

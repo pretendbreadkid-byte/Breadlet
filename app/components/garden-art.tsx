@@ -140,7 +140,7 @@ function DecorSprite({ item }: { item: Decor }) {
     return <img src="/assets/garden/berry-bush.svg" alt="" className="garden-decor garden-decor-img" style={{ ...style, width: 92 }} draggable={false} />;
   }
   if (item.kind === "rock") {
-    return <img src="/assets/rock-3.svg" alt="" className="garden-decor garden-decor-img" style={{ ...style, width: 64 }} draggable={false} />;
+    return <img src="/assets/breadlets/food-bag/rock.svg" alt="" className="garden-decor garden-decor-img" style={{ ...style, width: 64 }} draggable={false} />;
   }
   if (item.kind === "pebble") {
     return <svg className="garden-decor" style={style} width="26" height="14" viewBox="0 0 26 14" aria-hidden="true"><ellipse cx="9" cy="9" rx="7" ry="4.5" fill="#a9a59c" /><ellipse cx="8" cy="7.5" rx="3" ry="1.5" fill="#d6d3cb" /><ellipse cx="20" cy="10" rx="4.5" ry="3" fill="#938f86" /></svg>;
