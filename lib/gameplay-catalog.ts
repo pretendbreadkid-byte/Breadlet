@@ -331,7 +331,7 @@ export const liveCapsules: Capsule[] = [
       ["Treasure Chest", "Mythic"],
       ["Timeglass", "Secret"],
     ], {
-      "Clay Vase": "/assets/breadlets/artifact-bag/clay-vase.webp",
+      "Clay Vase": "/assets/breadlets/artifact-bag/clay-vase.svg",
       "Treasure Chest": "/assets/breadlets/artifact-bag/treasure-chest.svg",
     }),
   },
