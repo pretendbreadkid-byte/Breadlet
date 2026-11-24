@@ -12,7 +12,7 @@ import { useSettings } from "./settings-tab";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
 import {
   DAILY_EARN_LIMIT, GARDEN_TOKEN_ART, MAX_BASKET, MAX_SEEDS_PER_BUY, PLANT_GAP, PROPS, SEEDS,
-  MAX_PROP_SCALE, MIN_PROP_SCALE, canPlaceProp, cropValue, nextSeedRestock, seedStockFor, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
+  MAX_PROP_SCALE, MIN_PROP_SCALE, canPlaceProp, cropValue, nextSeedRestock, readyAt, seedStockFor, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
   type Crop, type FieldsView, type PlacedProp, type PropKind, type SeedName,
 } from "../../lib/fields";
 import { GardenBook, gardenBookSeen } from "./garden-book";
@@ -40,6 +40,8 @@ const SEED_ART: Record<SeedName, string> = {
   Pumpkin: "/assets/garden/seed-pumpkin.svg",
   Avocado: "/assets/garden/seed-avocado.svg",
   "Pumpkin Dragon": "/assets/garden/seed-pumpkin-dragon.svg",
+  Pepper: "/assets/garden/seed-pepper.svg",
+  "Ghost Pepper": "/assets/garden/seed-ghost-pepper.svg",
 };
 
 type GardenResponse = FieldsView & { tokens?: number; message?: string; breadlet?: string; payout?: number; crop?: Crop };
@@ -227,7 +229,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     const seed = plant && seedNamed(plant.seed);
     if (!plant || !seed) return;
     if ((plant.plantedBy || fields.owner.id) !== player.id) return setToast(`That's ${plant.plantedByName || fields.owner.username}'s ${seed.name}.`);
-    if (now < plant.plantedAt + seed.growMs) return setToast(`${seed.name} is still growing: ${clock(plant.plantedAt + seed.growMs - now)} left.`);
+    if (now < readyAt(plant, seed)) return setToast(`${seed.name} is still growing: ${clock(readyAt(plant, seed) - now)} left.`);
     void post({ action: "harvest", plant: plant.id }).then((data) => data?.crop && float(plant.x, plant.y - 90, cropName(data.crop), "crop", data.crop.seed));
   };
 
@@ -289,7 +291,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const nearestPlant = nearest?.kind === "plant" ? plantById(nearest.id) : undefined;
   const nearestSeed = nearestPlant && seedNamed(nearestPlant.seed);
   const nearestMine = Boolean(nearestPlant && (nearestPlant.plantedBy || fields?.owner.id) === player.id);
-  const nearestReady = Boolean(nearestPlant && nearestSeed && now >= nearestPlant.plantedAt + nearestSeed.growMs);
+  const nearestReady = Boolean(nearestPlant && nearestSeed && now >= readyAt(nearestPlant, nearestSeed));
   const canPlantHere = Boolean(selected && fields?.canPlant && freeSpot(me.x, me.y));
 
   // Picking a seed or a crop puts the other away; picking the one you're holding empties your hand.
@@ -319,7 +321,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     : nearestPlant && nearestSeed && nearestMine && nearestReady ? `Press E to pick your ${nearestPlant.size ? `${sizeLabel(nearestPlant.size)} ` : ""}${nearestSeed.name}`
     : canPlantHere ? `Press E or click a row to plant a ${selected} seed`
     : nearest?.kind === "stand" ? "Press E to shop for seeds"
-    : nearestPlant && nearestSeed ? (nearestMine ? `${nearestSeed.name} ready in ${clock(nearestPlant.plantedAt + nearestSeed.growMs - now)}` : `${nearestPlant.plantedByName || fields?.owner.username}'s ${nearestSeed.name}`)
+    : nearestPlant && nearestSeed ? (nearestMine ? `${nearestSeed.name} ready in ${clock(readyAt(nearestPlant, nearestSeed) - now)}` : `${nearestPlant.plantedByName || fields?.owner.username}'s ${nearestSeed.name}`)
     : selected && fields && !fields.canPlant ? `Only players ${fields.owner.username} allows can plant here`
     : selected ? "Click a dirt row to plant" : "WASD / arrow keys or click to walk";
 
@@ -374,7 +376,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const plantLayer = useMemo(() => plants.map((plant) => {
             const seed = seedNamed(plant.seed);
             if (!seed) return null;
-            const progress = Math.min(1, (now - plant.plantedAt) / seed.growMs);
+            // Pepper plants waiting for their next peppers show the grown plant without fruit.
+            const progress = plant.regrowAt ? (now >= plant.regrowAt ? 1 : 0.999) : Math.min(1, (now - plant.plantedAt) / seed.growMs);
             const ready = progress >= 1;
             const theirs = (plant.plantedBy || ownerKey) !== player.id;
             const isNearest = nearestPlantId === plant.id;
@@ -385,7 +388,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                 <span className="garden-mound" aria-hidden="true" />
                 <CropArt seed={seed.name} progress={progress} size={plant.size} />
                 {ready && <span className="garden-sparkles" aria-hidden="true"><i /><i /><i /><i /></span>}
-                {!ready && <span className="garden-timer">{theirs ? `${plant.plantedByName || "Friend"} · ` : ""}{clock(plant.plantedAt + seed.growMs - now)}</span>}
+                {!ready && <span className="garden-timer">{theirs ? `${plant.plantedByName || "Friend"} · ` : ""}{clock(readyAt(plant, seed) - now)}</span>}
                 {ready && theirs && <span className="garden-ready">{plant.plantedByName || "Friend"}&apos;s</span>}
               </button>
             );
@@ -687,7 +690,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                   <span className="garden-shop-art"><img src={SEED_ART[seed.name]} alt="" /></span>
                   <span className="garden-shop-info">
                     <b>{seed.name}</b>
-                    <small>{clock(seed.growMs)} · sells for ~<em>{seed.payout}</em></small>
+                    <small>{clock(seed.growMs)}{seed.regrowMs ? ` · then a pepper every ${clock(seed.regrowMs)}` : ""} · sells for ~<em>{seed.payout}</em></small>
                     <small>{stockNow[seed.name] ? `You have ${fields.seeds[seed.name]}` : `Out of stock · ${Math.round(seed.stock * 100)}% chance each hour`}</small>
                   </span>
                   <span className="garden-shop-buy">

@@ -30,6 +30,8 @@ export function useWalkWorld({ room, player, world, clamp, spawn, collide }: { r
   if (!meRef.current) meRef.current = { id: player.id, username: player.username, blook: player.equipped, ...spawn(), facing: 1 };
   const targetRef = useRef<Point | null>(null);
   const keysRef = useRef(new Set<string>());
+  // The on-screen joystick on phones and tablets: x/y from -1 to 1.
+  const stickRef = useRef({ x: 0, y: 0 });
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
   const lastSentRef = useRef(0);
   const [me, setMe] = useState<Walker>(meRef.current);
@@ -182,6 +184,10 @@ export function useWalkWorld({ room, player, world, clamp, spawn, collide }: { r
       const keys = keysRef.current;
       let dx = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0);
       let dy = (keys.has("s") || keys.has("arrowdown") ? 1 : 0) - (keys.has("w") || keys.has("arrowup") ? 1 : 0);
+      let pace = 1;
+      const stick = stickRef.current;
+      const push = Math.hypot(stick.x, stick.y);
+      if (!dx && !dy && push > 0.15) { dx = stick.x; dy = stick.y; pace = Math.min(1, push); }
       const target = targetRef.current;
       const current = meRef.current!;
       if (!dx && !dy && target) {
@@ -195,7 +201,7 @@ export function useWalkWorld({ room, player, world, clamp, spawn, collide }: { r
       movingRef.current = Boolean(dx || dy);
       if (dx || dy) {
         const length = Math.hypot(dx, dy);
-        const stepTo = clampRef.current(current.x + (dx / length) * SPEED * seconds, current.y + (dy / length) * SPEED * seconds);
+        const stepTo = clampRef.current(current.x + (dx / length) * SPEED * pace * seconds, current.y + (dy / length) * SPEED * pace * seconds);
         const next = collideRef.current ? collideRef.current(current, stepTo) : stepTo;
         // Stuck against something (a table): stop walking toward the clicked spot.
         if (Math.hypot(next.x - current.x, next.y - current.y) < 0.5) targetRef.current = null;
@@ -210,6 +216,50 @@ export function useWalkWorld({ room, player, world, clamp, spawn, collide }: { r
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
   }, [broadcastPosition, drawFrame]);
+
+  // Phones and tablets get a joystick in the bottom-left corner to walk with. It's added straight to
+  // the page so every walkable world (Garden, Butterfly Meadow, Explore) gets it without extra code.
+  useEffect(() => {
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
+    const base = document.createElement("div");
+    base.className = "walk-stick";
+    base.setAttribute("aria-hidden", "true");
+    const knob = document.createElement("div");
+    knob.className = "walk-stick-knob";
+    base.appendChild(knob);
+    document.body.appendChild(base);
+    const reach = 46;
+    let pointer: number | null = null;
+    const move = (event: PointerEvent) => {
+      const box = base.getBoundingClientRect();
+      let x = event.clientX - (box.left + box.width / 2);
+      let y = event.clientY - (box.top + box.height / 2);
+      const distance = Math.hypot(x, y);
+      if (distance > reach) { x *= reach / distance; y *= reach / distance; }
+      knob.style.transform = `translate(${x}px, ${y}px)`;
+      stickRef.current = { x: x / reach, y: y / reach };
+      targetRef.current = null;
+    };
+    const release = (event: PointerEvent) => {
+      if (event.pointerId !== pointer) return;
+      pointer = null;
+      knob.style.transform = "";
+      stickRef.current = { x: 0, y: 0 };
+    };
+    const press = (event: PointerEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      pointer = event.pointerId;
+      base.setPointerCapture(pointer);
+      move(event);
+    };
+    const drag = (event: PointerEvent) => { if (event.pointerId === pointer) move(event); };
+    base.addEventListener("pointerdown", press);
+    base.addEventListener("pointermove", drag);
+    base.addEventListener("pointerup", release);
+    base.addEventListener("pointercancel", release);
+    return () => { base.remove(); stickRef.current = { x: 0, y: 0 }; };
+  }, []);
 
   // Drop chat bubbles after a few seconds.
   useEffect(() => {

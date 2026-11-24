@@ -6,7 +6,7 @@ import { isKidAccount } from '../../../lib/kid-mode';
 import { BLOCKED_MESSAGE, isBlockedBetween } from '../../../lib/blocks';
 import {
   DAILY_EARN_LIMIT, MAX_BASKET, MAX_PROP_SCALE, MIN_PROP_SCALE, MAX_HELPERS, MAX_PLANTS, MAX_PROPS, MAX_SEEDS_PER_BUY, MAX_SIZE, MIN_SIZE, PLANT_GAP, PROPS, ROWS, SEEDS,
-  canPlaceProp, cropValue, gardenDay, inRow, propNamed, rollSize, seedNamed, seedStockFor, sizeLabel,
+  canPlaceProp, cropValue, gardenDay, inRow, propNamed, readyAt, rollSize, seedNamed, seedStockFor, sizeLabel,
   type Crop, type FieldsView, type GardenPerson, type PlacedProp, type Plant, type PropKind, type SeedName,
 } from '../../../lib/fields';
 import {
@@ -43,6 +43,11 @@ const isId = (value: unknown) => typeof value === 'string' && /^[0-9a-f-]{36}$/i
 const isSize = (value: unknown) => typeof value === 'number' && value >= MIN_SIZE && value <= MAX_SIZE;
 const newId = () => `${Date.now().toString(36)}${randomInt(0, 2 ** 32).toString(36)}`;
 const name = (value: unknown) => (typeof value === 'string' ? value.slice(0, 40) : undefined);
+// Picking a crop: most plants come out of the ground. Plants that keep fruiting (peppers) stay and
+// grow their next crop, rolling a new size for it.
+const pickPlant = (plants: Plant[], id: string, seed: { regrowMs?: number }) => seed.regrowMs
+  ? plants.map((item) => (item.id === id ? { ...item, regrowAt: Date.now() + (seed.regrowMs as number), size: rollSize(random()) } : item))
+  : plants.filter((item) => item.id !== id);
 const count = (value: unknown) => Math.max(0, Math.floor(Number(value) || 0));
 
 // Gardens from before the rows had 9 beds: their crops move onto the rows, evenly spaced.
@@ -59,7 +64,7 @@ function normalize(raw: any): State {
   const plants: Plant[] = (Array.isArray(raw?.plants) ? raw.plants : fromBeds)
     .filter((plant: any) => plant && typeof plant.id === 'string' && seedNamed(plant.seed) && Number.isFinite(plant.plantedAt) && Number.isFinite(plant.x) && Number.isFinite(plant.y))
     .slice(0, MAX_PLANTS)
-    .map((plant: any) => ({ id: plant.id.slice(0, 40), seed: plant.seed, x: plant.x, y: plant.y, plantedAt: plant.plantedAt, plantedBy: isId(plant.plantedBy) ? plant.plantedBy : undefined, plantedByName: name(plant.plantedByName), size: isSize(plant.size) ? plant.size : undefined }));
+    .map((plant: any) => ({ id: plant.id.slice(0, 40), seed: plant.seed, x: plant.x, y: plant.y, plantedAt: plant.plantedAt, plantedBy: isId(plant.plantedBy) ? plant.plantedBy : undefined, plantedByName: name(plant.plantedByName), size: isSize(plant.size) ? plant.size : undefined, regrowAt: Number.isFinite(plant.regrowAt) ? plant.regrowAt : undefined }));
   const props: PlacedProp[] = (Array.isArray(raw?.props) ? raw.props : [])
     .filter((prop: any) => prop && typeof prop.id === 'string' && propNamed(prop.kind) && Number.isFinite(prop.x) && Number.isFinite(prop.y))
     .slice(0, MAX_PROPS)
@@ -352,14 +357,14 @@ export async function POST(request: Request) {
     if (!plant || !seed) return fail('Nothing is growing there.');
     // Whoever planted it picks it (crops from before helpers existed belong to the owner).
     if ((plant.plantedBy || owner.id) !== userId) return fail(`That's ${plant.plantedByName || owner.username}'s ${seed.name}. Only they can pick it.`, 403);
-    if (Date.now() < plant.plantedAt + seed.growMs) return fail(`Your ${seed.name} isn't ready yet.`);
+    if (Date.now() < readyAt(plant, seed)) return fail(`Your ${seed.name} isn't ready yet.`);
     if (mine.crops.length >= MAX_BASKET) return fail(`Your basket is full (${MAX_BASKET} crops). Sell or give some away first.`);
     const crop: Crop = { id: newId(), seed: seed.name, size: plant.size ?? rollSize(random()) };
     if (isOwner) {
       const problem = await updateMine((state) => {
         if (!state.plants.some((item) => item.id === plant.id)) return 'Nothing is growing there.';
         if (state.crops.length >= MAX_BASKET) return 'Your basket is full.';
-        state.plants = state.plants.filter((item) => item.id !== plant.id);
+        state.plants = pickPlant(state.plants, plant.id, seed);
         state.crops.push(crop);
         state.gardenTokens += seed.gardenTokens;
         state.gardenTokensTotal += seed.gardenTokens;
@@ -368,7 +373,7 @@ export async function POST(request: Request) {
     } else {
       const problem = await updateGarden((state) => {
         if (!state.plants.some((item) => item.id === plant.id)) return 'Nothing is growing there.';
-        state.plants = state.plants.filter((item) => item.id !== plant.id);
+        state.plants = pickPlant(state.plants, plant.id, seed);
       });
       if (problem) return fail(problem, 409);
       const stored = await updateMine((state) => { state.crops.push(crop); state.gardenTokens += seed.gardenTokens; state.gardenTokensTotal += seed.gardenTokens; });

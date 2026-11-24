@@ -372,7 +372,7 @@ const artFor = (name: string) =>
     "Star Ship": "/assets/star ship frame 1.svg",
     "Skeleton Pirate": "/assets/Skeleton pirate frame 1.svg",
     "Festive Skeleton Pirate": "/assets/breadlets/other/festive-skeleton-pirate.svg",
-    "Space Goo": "/assets/breadlets/space-bag/space-goo.svg",
+    "Space Goo": "/assets/breadlets/space-bag/space-goo.svg?v=2",
     "Bread Blook": "/assets/breadlets/youtube-bag/bread-blook.png",
     "Golden Shuriken": "/assets/breadlets/combat-bag/golden-shuriken.svg",
     "Holy Bread": "/assets/breadlets/bread-bag/holy-bread.webp",
@@ -1595,23 +1595,27 @@ function MainPage() {
       setNotice(`${name} equipped.`);
     }
   };
-  const sell = (name: string) => {
+  // count: how many copies to sell (the sell picker in a Breadlet's card chooses it).
+  const sell = (name: string, count = 1) => {
     if (!player || player.inventory.length <= 1) return;
     if (isUntradableBreadlet(name)) return setNotice(`${untradableReason(name)} and can't be sold.`);
     if (!isGuest) {
-      void massSell({ [name]: 1 });
+      void massSell({ [name]: count });
       return;
     }
-    const index = player.inventory.indexOf(name);
-    const inventory = player.inventory.filter((_, itemIndex) => itemIndex !== index);
-    const value = sellValueForBlook(name, rarityFor(name));
+    const owned = player.inventory.filter((item) => item === name).length;
+    const amount = Math.min(count, LIMITED_SHOP_NAMES.includes(name) ? owned : owned - 1);
+    if (amount <= 0) return;
+    const inventory = [...player.inventory];
+    for (let sold = 0; sold < amount; sold += 1) inventory.splice(inventory.indexOf(name), 1);
+    const value = sellValueForBlook(name, rarityFor(name)) * amount;
     save({
       ...player,
       tokens: player.tokens + value,
       inventory,
-      equipped: player.equipped === name ? inventory[0] : player.equipped,
+      equipped: inventory.includes(player.equipped) ? player.equipped : inventory[0],
     }, { inventory: true });
-    setNotice(`${name} sold for ${value} Bread Bucks.`);
+    setNotice(`${amount > 1 ? `${amount}x ` : ""}${name} sold for ${value.toLocaleString()} Bread Bucks.`);
   };
   const massSell = async (quantities: Record<string, number>) => {
     if (!player) return false;
@@ -3587,7 +3591,7 @@ function InventoryTab({
 }: {
   player: Player;
   equip: (name: string) => void;
-  sell: (name: string) => void;
+  sell: (name: string, count?: number) => void;
   massSell: (quantities: Record<string, number>) => Promise<boolean>;
   toggleLock: (name: string) => void;
   toggleWish: (name: string) => void;
@@ -3774,6 +3778,44 @@ const dropChanceFor = (name: string) => {
   return "";
 };
 
+// Choose how many copies of a Breadlet to sell: a stepper, a slider and quick picks, with the total.
+function SellPicker({ name, art, each, most, onCancel, onSell }: { name: string; art: string; each: number; most: number; onCancel: () => void; onSell: (count: number) => void }) {
+  const [count, setCount] = useState(1);
+  const set = (value: number) => setCount(Math.max(1, Math.min(most, Math.floor(value) || 1)));
+  const picks = [
+    { label: "Just 1", value: 1 },
+    { label: "Half", value: Math.max(1, Math.floor(most / 2)) },
+    { label: most > 1 ? `All ${most}` : "All", value: most },
+  ];
+  return (
+    <div className="sell-picker" role="dialog" aria-modal="true" aria-labelledby="sell-picker-title">
+      <div className="sell-picker-head">
+        <img src={art} alt="" />
+        <div>
+          <h3 id="sell-picker-title">Sell {name}</h3>
+          <small>You can sell up to {most.toLocaleString()}</small>
+        </div>
+      </div>
+      <div className="sell-picker-stepper">
+        <button type="button" onClick={() => set(count - 1)} disabled={count <= 1} aria-label="One fewer">−</button>
+        <input type="number" inputMode="numeric" min={1} max={most} value={count} onChange={(event) => set(Number(event.target.value))} aria-label="How many to sell" />
+        <button type="button" onClick={() => set(count + 1)} disabled={count >= most} aria-label="One more">+</button>
+      </div>
+      {most > 1 && <input className="sell-picker-slider" type="range" min={1} max={most} value={count} onChange={(event) => set(Number(event.target.value))} aria-label="How many to sell" />}
+      <div className="sell-picker-picks">
+        {picks.map((pick) => (
+          <button key={pick.label} type="button" className={count === pick.value ? "is-on" : ""} onClick={() => set(pick.value)}>{pick.label}</button>
+        ))}
+      </div>
+      <p className="sell-picker-total"><img src="/assets/Bread%20bucks.svg" alt="" />{(count * each).toLocaleString()} <small>Bread Bucks</small></p>
+      <div className="sell-picker-actions">
+        <button type="button" onClick={onCancel}>Cancel</button>
+        <button type="button" className="is-sell" onClick={() => onSell(count)}>Sell {count}</button>
+      </div>
+    </div>
+  );
+}
+
 function BlookDetail({
   reward,
   quantity,
@@ -3791,7 +3833,7 @@ function BlookDetail({
   equipped: boolean;
   onClose: () => void;
   equip: (name: string) => void;
-  sell: (name: string) => void;
+  sell: (name: string, count?: number) => void;
   locked: boolean;
   wished: boolean;
   toggleLock: () => void;
@@ -3802,10 +3844,23 @@ function BlookDetail({
   const chance = dropChanceFor(reward.name);
   const exist = existCounts[reward.name] || 0;
   const canSell = quantity > 0 && (quantity > 1 || LIMITED_SHOP_NAMES.includes(reward.name)) && !locked;
+  const [selling, setSelling] = useState(false);
+  // You keep your last copy (Limited shop Breadlets can all be sold).
+  const sellable = LIMITED_SHOP_NAMES.includes(reward.name) ? quantity : quantity - 1;
   return (
     <div className="modal-layer fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm" onClick={onClose}>
       <div className="blook-card" style={{ "--rarity": stallColors[reward.rarity] || stallColors.Common } as React.CSSProperties} onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="blook-card-name">
         <button type="button" onClick={onClose} className="blook-card-close" aria-label="Close"><X size={18} /></button>
+        {selling && (
+          <SellPicker
+            name={reward.name}
+            art={artFor(reward.name)}
+            each={worth}
+            most={sellable}
+            onCancel={() => setSelling(false)}
+            onSell={(count) => { sell(reward.name, count); onClose(); }}
+          />
+        )}
         <h2 id="blook-card-name">{reward.name}</h2>
         <p className="blook-card-rarity"><span>{reward.rarity}</span>{chance && <small>{chance}</small>}</p>
         <div className="blook-card-art">
@@ -3828,12 +3883,7 @@ function BlookDetail({
               type="button"
               disabled={!canSell}
               title={locked ? "Unlock this Breadlet to sell it" : quantity === 1 ? "You keep your last copy" : undefined}
-              onClick={() => {
-                if (window.confirm(`Sell ${reward.name} for ${worth} Bread Bucks?`)) {
-                  sell(reward.name);
-                  onClose();
-                }
-              }}
+              onClick={() => setSelling(true)}
             >
               <img src="/assets/Bread%20bucks.svg" alt="" />Sell
             </button>

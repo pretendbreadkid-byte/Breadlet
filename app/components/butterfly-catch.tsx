@@ -58,7 +58,7 @@ function Scenery() {
   const items = useMemo(() => {
     const rand = seeded(42);
     const pick = (count: number, margin = 120) => Array.from({ length: count }, () => ({ x: margin + rand() * (WORLD.width - margin * 2), y: margin + rand() * (WORLD.height - margin * 2), r: rand() }));
-    return { trees: pick(9, 150), bushes: pick(14), patches: pick(26, 80), rocks: pick(8), logs: pick(3, 220) };
+    return { trees: pick(5, 180), bushes: pick(6), patches: pick(12, 100), rocks: pick(4), logs: pick(2, 240) };
   }, []);
   return (
     <>

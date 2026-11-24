@@ -3,10 +3,12 @@
 // choose who may plant and who may build (place props).
 // Shared by the API route (app/api/fields) and the Games tab (app/components/fields-world.tsx).
 
-export type SeedName = "Carrot" | "Potato" | "Pumpkin" | "Avocado" | "Pumpkin Dragon";
+export type SeedName = "Carrot" | "Potato" | "Pumpkin" | "Avocado" | "Pumpkin Dragon" | "Pepper" | "Ghost Pepper";
 // gardenTokens: Garden Tokens you get each time you pick one (they buy props).
 // stock: the chance the seed is in stock at Ted's Seed Stand each hour (the same for every player).
-export type Seed = { name: SeedName; cost: number; growMs: number; payout: number; breadletChance: number; stock: number; gardenTokens: number };
+// regrowMs: set on plants that keep fruiting. They grow once (growMs), then after every pick they stay
+// in the ground and grow a new crop in regrowMs.
+export type Seed = { name: SeedName; cost: number; growMs: number; payout: number; breadletChance: number; stock: number; gardenTokens: number; regrowMs?: number };
 
 // Every seed sells for more than it costs once grown; slower crops pay more per plant.
 // Very rarely the harvest is the Breadlet itself (it goes to the inventory).
@@ -17,7 +19,12 @@ export const SEEDS: Seed[] = [
   { name: "Avocado", cost: 150, growMs: 60 * 60_000, payout: 360, breadletChance: 1 / 25, stock: 0.3, gardenTokens: 7 },
   // The rare one: it can hatch the Pumpkin Dragon Breadlet (Unique, normally from the leaf shop).
   { name: "Pumpkin Dragon", cost: 300, growMs: 2 * 60 * 60_000, payout: 720, breadletChance: 1 / 60, stock: 0.03, gardenTokens: 20 },
+  // Pepper plants: plant once, then pick peppers from them again and again.
+  { name: "Pepper", cost: 120, growMs: 45 * 60_000, regrowMs: 20 * 60_000, payout: 45, breadletChance: 1 / 200, stock: 0.4, gardenTokens: 2 },
+  { name: "Ghost Pepper", cost: 260, growMs: 90 * 60_000, regrowMs: 40 * 60_000, payout: 100, breadletChance: 1 / 300, stock: 0.15, gardenTokens: 4 },
 ];
+// When a plant's crop is ready to pick: the first time after growMs, then after each regrow.
+export const readyAt = (plant: { plantedAt: number; regrowAt?: number }, seed: Seed) => plant.regrowAt ?? plant.plantedAt + seed.growMs;
 export const seedNamed = (name: unknown) => SEEDS.find((seed) => seed.name === name);
 
 // Ted's Seed Stand restocks every hour (UTC). Each seed rolls its stock chance; the roll is worked
@@ -57,8 +64,9 @@ export const DAILY_EARN_LIMIT = 1000;
 export const gardenDay = (time = Date.now()) => new Date(time).toISOString().slice(0, 10);
 
 // plantedBy: who planted it (they're the one who harvests it). size: how big it grows (rolled when
-// planted, shown once it's grown); bigger crops sell for more.
-export type Plant = { id: string; seed: SeedName; x: number; y: number; plantedAt: number; plantedBy?: string; plantedByName?: string; size?: number };
+// planted, shown once it's grown); bigger crops sell for more. regrowAt: for plants that keep
+// fruiting, when the next crop is ready (set each time it's picked).
+export type Plant = { id: string; seed: SeedName; x: number; y: number; plantedAt: number; plantedBy?: string; plantedByName?: string; size?: number; regrowAt?: number };
 
 // Harvests go into your basket instead of selling straight away. Sell them one by one or all at once,
 // hold one in your hand, or give it to another player. from: who gave it to you.

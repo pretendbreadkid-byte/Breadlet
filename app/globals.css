@@ -4602,3 +4602,49 @@ main.breadlet-blue-theme.breadlet-blue-theme .other-popout > *:hover { backgroun
   :where(.game-workspace.page-entering > :not(.claim-ready-pill) > * > :nth-child(n+3)) { animation-delay: .18s; }
   :where(.game-workspace.page-entering > :not(.claim-ready-pill) > * > :nth-child(n+6)) { animation-delay: .24s; }
 }
+
+/* Walking joystick for phones and tablets (walk-world.tsx adds it to every walkable world). */
+.walk-stick { position: fixed; left: 22px; bottom: 96px; z-index: 2147483000; width: 124px; height: 124px; border-radius: 50%; background: rgba(60, 28, 8, .42); border: 3px solid rgba(255, 214, 170, .55); box-shadow: 0 6px 18px rgba(0, 0, 0, .3); touch-action: none; user-select: none; -webkit-user-select: none; display: grid; place-items: center; }
+.walk-stick-knob { width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffc27a, #e0751c 70%); border: 3px solid #fff3e0; box-shadow: 0 4px 10px rgba(0, 0, 0, .35); pointer-events: none; transition: transform .08s ease-out; }
+
+/* Sell picker: choose how many copies of a Breadlet to sell (inside the Breadlet's card). */
+.blook-card { position: relative; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 22px; border-radius: inherit; background: linear-gradient(160deg, #3a1d0b, #1f0f06); border: 2px solid #c8641d; animation: sell-picker-in .18s ease-out both; }
+@keyframes sell-picker-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-head { display: flex; align-items: center; gap: 12px; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-head img { width: 58px; height: 58px; object-fit: contain; padding: 6px; border-radius: 14px; background: rgba(255, 200, 140, .12); }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-head h3 { margin: 0; font-size: 1.25rem; font-weight: 900; color: #ffe3c2 !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-head small { color: #e8b98a !important; font-weight: 700; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-stepper { display: flex; align-items: center; justify-content: center; gap: 10px; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-stepper button { width: 46px; height: 46px; border-radius: 50%; font-size: 1.6rem; font-weight: 900; line-height: 1; background: #e0751c; box-shadow: 0 4px 0 #8a3f0c; color: #fff !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-stepper button:active { transform: translateY(3px); box-shadow: 0 1px 0 #8a3f0c; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-stepper button:disabled { opacity: .35; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-stepper input { width: 96px; height: 52px; text-align: center; font-size: 1.6rem; font-weight: 900; border-radius: 14px; background: #120803; border: 2px solid #8a4a1c; color: #fff !important; -moz-appearance: textfield; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-slider { width: 100%; accent-color: #e0751c; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-picks { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-picks button { padding: 7px 14px; border-radius: 999px; font-weight: 800; background: rgba(255, 200, 140, .12); border: 2px solid rgba(255, 200, 140, .25); }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-picks button.is-on { background: #ffb347; border-color: #ffe0b0; color: #3a1d0b !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-total { margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.7rem; font-weight: 900; color: #ffd27a !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-total img { width: 30px; height: 30px; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-total small { font-size: .9rem; color: #e8b98a !important; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-actions button { padding: 12px; border-radius: 14px; font-weight: 900; background: #5a3a26; box-shadow: 0 4px 0 #2e1b10; }
+main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-actions button.is-sell { background: #e0751c; box-shadow: 0 4px 0 #8a3f0c; }
+
+/* News polls */
+.news-poll { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 12px; }
+.news-poll-option { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; overflow: hidden; padding: 11px 14px; border-radius: 12px; border: 2px solid #4a3a2c; background: #1b1712; text-align: left; font-weight: 800; color: #fff3e0; transition: border-color .15s, transform .1s; }
+.news-poll-option:not(:disabled):hover { border-color: #e0751c; }
+.news-poll-option:not(:disabled):active { transform: scale(.98); }
+.news-poll-option.is-mine { border-color: #ffb347; }
+.news-poll-bar { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, rgba(224, 117, 28, .55), rgba(255, 179, 71, .35)); transition: width .4s ease; }
+.news-poll-label, .news-poll-share { position: relative; }
+.news-poll-share { color: #ffd27a; }
+.news-poll-total { color: #b8a58f; }
+.news-poll-form { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 2px dashed #3c3a34; border-radius: 10px; }
+.news-poll-form b { display: flex; align-items: center; gap: 6px; color: #ffcf9a; }
+.news-poll-form-row { display: flex; gap: 6px; }
+.news-poll-form-row input { flex: 1; }
+.news-poll-form-row button, .news-poll-form-actions button { padding: 6px 10px; border-radius: 8px; background: #3a2c20; color: #ffe3c2; font-weight: 700; }
+.news-poll-form-actions { display: flex; gap: 8px; }

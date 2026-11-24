@@ -343,6 +343,9 @@ const CROP_FRAMES: Record<SeedName, string[]> = {
   Pumpkin: frames("pumpkin", 4),
   Avocado: frames("avocado", 4),
   "Pumpkin Dragon": frames("pumpkin-dragon", 4),
+  // Peppers: sprout, young plant, grown plant (shown again while the next peppers grow), with peppers.
+  Pepper: ["/assets/garden/pepper-1.webp", "/assets/garden/pepper-2.svg", "/assets/garden/pepper-3.svg", "/assets/garden/pepper-4.svg"],
+  "Ghost Pepper": frames("ghost-pepper", 4),
 };
 
 // The fully grown picture of a crop (for the basket and your hand).

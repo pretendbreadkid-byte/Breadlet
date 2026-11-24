@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { autoReplyFor } from '../../../lib/chat-auto-replies';
 import { kidModeBlock } from '../../../lib/kid-mode';
 import { publicBadges } from '../../../lib/badges';
 import { chatModerationRole, isChatModerator, isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
@@ -401,6 +402,15 @@ export async function POST(request: Request) {
   if (!isImageMessage) {
     const { error: gameError } = await database.rpc('chat_game_action', { p_profile_id: user.id, p_action: 'check_answer', p_message: message });
     if (gameError) console.error('[CHAT_POST] Game check failed:', gameError.message);
+  }
+
+  // The bot answers "chat is dead" and begging on its own (lib/chat-auto-replies.ts).
+  const autoReply = !isImageMessage ? autoReplyFor(message) : null;
+  if (autoReply) {
+    void (async () => {
+      const { error: sayError } = await database.rpc('chat_game_bot_say', { p_profile_id: user.id, p_message: autoReply });
+      if (sayError) console.error('[CHAT_POST] Auto reply failed:', sayError.message);
+    })();
   }
 
   // /ai replies in the background so posting never waits on the model.
