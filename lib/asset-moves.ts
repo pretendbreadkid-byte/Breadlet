@@ -30,7 +30,7 @@ export const MOVED_ARTWORK_KEYS: Record<string, string> = {
   "candy/rainbow-sour-gummy.gif": "breadlets/candy-bag/rainbow-sour-gummy.gif",
   "candy/red-sour-gummy-2.webp": "breadlets/candy-bag/red-sour-gummy.webp",
   "carrot-3.webp": "breadlets/food-bag/carrot.webp",
-  "cinnamon-roll-refreshed.svg": "breadlets/bread-bag/cinnamon-roll.svg",
+  "cinnamon-roll-refreshed.svg": "breadlets/bread-bag/cinnamon-roll.webp",
   "clay-vase-2.svg": "breadlets/artifact-bag/clay-vase.svg",
   "coffee-mug-2.svg": "breadlets/lost-and-found-bag/coffee-mug.svg",
   "croissant-2.svg": "breadlets/bread-bag/croissant.svg",

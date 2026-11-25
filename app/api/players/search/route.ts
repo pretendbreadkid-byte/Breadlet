@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
 import { moderatorBadges } from '../../../../lib/admin-access';
-import { ogBadges } from '../../../../lib/og-badge';
+import { birthdayBadges, ogBadges } from '../../../../lib/og-badge';
 import { publicBadges } from '../../../../lib/badges';
 
 export async function GET(request: Request) {
@@ -73,6 +73,7 @@ export async function GET(request: Request) {
       badges: publicBadges(Array.from(new Set([
         ...(profile.stats?.badges || []).filter((badge: string) => badge !== 'OG'),
         ...ogBadges(profile.created_at),
+        ...birthdayBadges(profile.stats),
         ...moderatorBadges(profile.username),
         ...(tokens >= 10000 ? ['10K Tokens'] : []),
         ...(tokens >= 100000 ? ['100K Tokens'] : []),

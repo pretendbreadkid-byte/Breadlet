@@ -14,7 +14,9 @@ export const BREAKING_BAD_BADGE = { name: "Breadlet Breaks Bad", art: "/assets/b
 export const BREAKING_BAD_NAMES = BREAKING_BAD_BREADLETS.map((breadlet) => breadlet.name);
 
 // Battle pass PREVIEW ONLY: shown greyed out in the event tab, nothing can be earned yet.
-// Cook a batch once an hour for crystals; each tier needs more crystals and pays more.
+// Everyone cooks batches together toward one global goal. When Breadlet has cooked GLOBAL_BATCH_GOAL
+// batches, a crystal rain falls for everyone: catch crystals to fill your battle pass. Each tier needs
+// more crystals and pays more.
 export const CRYSTAL_ART = ["/assets/breaking-bad/crystal-1.svg", "/assets/breaking-bad/crystal-2.svg", "/assets/breaking-bad/crystal-3.svg"];
 
 export type BattlePassTier = { tier: number; crystals: number; tokens: number; breadlet?: string; badge?: boolean };
@@ -32,3 +34,6 @@ export const BATTLE_PASS_TIERS: BattlePassTier[] = [
   { tier: 11, crystals: 135, tokens: 6000 },
   { tier: 12, crystals: 160, tokens: 10000, breadlet: "Battle Scarred Mike", badge: true },
 ];
+
+// Batches all players cook together before a crystal rain starts for everyone.
+export const GLOBAL_BATCH_GOAL = 500;

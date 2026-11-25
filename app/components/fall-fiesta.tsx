@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FIESTA_SHOP, LEAVES_PER_SHOWER, LEFTOVER_BLOOKBERRY_PRICE, LEFTOVER_BUCKS_PER_LEAF, LEFTOVER_CLAN_THEME_PRICE, SHOWER_MINUTES, fiestaOver, showerAt } from "../../lib/fall-fiesta";
-import { BATTLE_PASS_TIERS, BREAKING_BAD_BADGE, BREAKING_BAD_BREADLETS, CRYSTAL_ART } from "../../lib/breaking-bad";
+import { BATTLE_PASS_TIERS, BREAKING_BAD_BADGE, BREAKING_BAD_BREADLETS, CRYSTAL_ART, GLOBAL_BATCH_GOAL } from "../../lib/breaking-bad";
 
 // Breadlet Fall Fiesta: the hourly leaf shower over the whole game, and the Event tab's leaf shop.
 
@@ -358,13 +358,14 @@ function BattlePassPreview() {
         <div className="bp-crystals" aria-hidden="true">{CRYSTAL_ART.map((art) => <img key={art} src={art} alt="" />)}</div>
         <div>
           <h3>Breaking Bad Battle Pass</h3>
-          <p>Cook a batch every hour to collect crystals. Crystals fill up the battle pass, and every tier pays out more.</p>
+          <p>Everyone in Breadlet cooks batches together. When the whole game reaches {GLOBAL_BATCH_GOAL.toLocaleString()} batches, a crystal rain falls for everyone. Catch the crystals to fill your battle pass, and every tier pays out more.</p>
         </div>
       </div>
       <div className="bp-controls">
         <button type="button" disabled className="bp-cook">🧪 Cook a batch</button>
-        <div className="bp-progress"><span style={{ width: "0%" }} /><b><img src={CRYSTAL_ART[0]} alt="" />0 / {BATTLE_PASS_TIERS[BATTLE_PASS_TIERS.length - 1].crystals} crystals</b></div>
+        <div className="bp-progress bp-global"><span style={{ width: "0%" }} /><b>🧪 0 / {GLOBAL_BATCH_GOAL.toLocaleString()} batches cooked by everyone · then crystal rain!</b></div>
       </div>
+      <div className="bp-progress bp-mine"><span style={{ width: "0%" }} /><b><img src={CRYSTAL_ART[0]} alt="" />Your crystals: 0 / {BATTLE_PASS_TIERS[BATTLE_PASS_TIERS.length - 1].crystals}</b></div>
       <ol className="bp-track">
         {BATTLE_PASS_TIERS.map((tier, index) => (
           <li key={tier.tier} className={tier.breadlet ? "has-breadlet" : ""}>

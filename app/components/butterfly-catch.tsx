@@ -57,12 +57,29 @@ const FLOWER_COLOURS = ["#ff8fb0", "#ffd23f", "#ffffff", "#ff9f43", "#c99cff"];
 function Scenery() {
   const items = useMemo(() => {
     const rand = seeded(42);
-    const pick = (count: number, margin = 120) => Array.from({ length: count }, () => ({ x: margin + rand() * (WORLD.width - margin * 2), y: margin + rand() * (WORLD.height - margin * 2), r: rand() }));
-    return { trees: pick(5, 180), bushes: pick(6), patches: pick(12, 100), rocks: pick(4), logs: pick(2, 240) };
+    // Each piece keeps its distance from everything placed before it (and off the path), so
+    // bushes, logs and trees don't pile on top of each other.
+    const placed: { x: number; y: number; room: number }[] = [];
+    const pick = (count: number, margin: number, room: number) => {
+      const list: { x: number; y: number; r: number }[] = [];
+      for (let tries = 0; list.length < count && tries < count * 60; tries += 1) {
+        const spot = { x: margin + rand() * (WORLD.width - margin * 2), y: margin + rand() * (WORLD.height - margin * 2), r: rand() };
+        if (Math.abs(spot.x - 995) < 75 + room) continue;
+        if (placed.some((other) => Math.hypot(other.x - spot.x, other.y - spot.y) < other.room + room)) continue;
+        placed.push({ x: spot.x, y: spot.y, room });
+        list.push(spot);
+      }
+      return list;
+    };
+    const trees = pick(5, 180, 110);
+    const logs = pick(2, 240, 80);
+    const bushes = pick(6, 120, 70);
+    const rocks = pick(4, 120, 45);
+    const patches = pick(12, 100, 45);
+    return { trees, bushes, patches, rocks, logs };
   }, []);
   return (
     <>
-      <div className="bm-pond" style={{ left: 1320, top: 360 }} aria-hidden="true"><span /></div>
       <div className="bm-path" aria-hidden="true" />
       {items.patches.map((patch, index) => (
         <svg key={`f${index}`} className="bm-decor" style={{ left: patch.x - 40, top: patch.y - 30, zIndex: Math.round(patch.y) - 40 }} width="80" height="60" viewBox="0 0 80 60" aria-hidden="true">

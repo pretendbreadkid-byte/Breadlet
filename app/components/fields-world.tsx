@@ -7,7 +7,7 @@
 // Everything that costs or pays is decided by /api/fields.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, Boxes, Gauge, FlipHorizontal, Minus, Move, Plus, ChevronDown, ChevronUp, Gift, Hammer, Hand, Link2, ShoppingBasket, Sprout, UserPlus } from "lucide-react";
+import { ArrowLeft, Boxes, Gauge, FlipHorizontal, Minus, Move, Plus, ChevronDown, ChevronUp, Gift, Hammer, Hand, Link2, ShoppingBasket, Sprout, Trash2, UserPlus } from "lucide-react";
 import { useSettings } from "./settings-tab";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
 import {
@@ -403,7 +403,6 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
             const bad = selected && !canPlaceProp(prop.kind, prop.x, prop.y, props, prop.id, prop.scale || 1);
             return (
               <div key={prop.id} className={`garden-prop${mine || editable ? " is-mine" : ""}${selected ? " is-selected" : ""}${bad ? " is-bad" : ""}`} style={{ left: prop.x, top: prop.y, width: def.width * (prop.scale || 1), zIndex: Math.round(prop.y) }}
-                onPointerEnter={() => mine && !placing && !editing && setPropMenu(prop.id)} onPointerLeave={() => setPropMenu((id) => (id === prop.id ? null : id))}
                 onPointerDown={(event) => {
                   if (editing) {
                     if (!editable) return;
@@ -414,16 +413,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                     dragRef.current = { id: prop.id, offX: point.x - prop.x, offY: point.y - prop.y, moved: false };
                     return;
                   }
-                  if (!mine || placing) return;
-                  event.stopPropagation();
-                  setPropMenu(prop.id);
+                  // Outside edit mode props are just scenery: picking them up is in edit mode only.
                 }}>
                 <img src={def.art} alt={prop.kind} draggable={false} style={prop.flip ? { transform: "scaleX(-1)" } : undefined} />
-                {!editing && propMenu === prop.id && (
-                  <button type="button" className="garden-prop-pick" disabled={busy} onPointerDown={(event) => event.stopPropagation()} onClick={() => { setPropMenu(null); void act.current.post({ action: "pickUp", prop: prop.id }); }}>
-                    <Hand size={14} />Pick up
-                  </button>
-                )}
               </div>
             );
           }), [props, draft, editing, editId, propMenu, placing, busy, fields]);
@@ -634,6 +626,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                         <span className="garden-shop-buy">
                           <button type="button" onClick={() => { holdCrop(crop.id === heldId ? null : crop.id); if (crop.id !== heldId) setPanel(null); }}>{crop.id === heldId ? "Put away" : "Hold"}</button>
                           <button type="button" disabled={busy} onClick={() => sell({ crop: crop.id })}>Sell<img src="/assets/Bread%20bucks.svg" alt="" />{cropValue(crop.seed, crop.size)}</button>
+                          <button type="button" className="garden-trash" disabled={busy} onClick={() => { if (window.confirm(`Throw away this ${cropName(crop)}? You won't get anything for it.`)) { if (crop.id === heldId) holdCrop(null); void post({ action: "discard", crop: crop.id }); } }} aria-label={`Throw away ${cropName(crop)}`} title="Throw away"><Trash2 size={15} /></button>
                         </span>
                       </div>
                     ))}
@@ -666,6 +659,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
                   <span className="garden-shop-buy">
                     <button type="button" disabled={busy || fields.gardenTokens < prop.cost} onClick={() => void post({ action: "buyProp", kind: prop.kind })}><span>Buy</span><img src={GARDEN_TOKEN_ART} alt="Garden Tokens" />{prop.cost}</button>
                     <button type="button" disabled={!fields.canBuild || (fields.propBag[prop.kind] || 0) < 1} onClick={() => { setPlacing(prop.kind); setGhost(null); setSelected(null); setHeldId(null); setPanel(null); }}><Hammer size={14} />Place</button>
+                    <button type="button" className="garden-trash" disabled={busy || (fields.propBag[prop.kind] || 0) < 1} onClick={() => { if (window.confirm(`Throw away one ${prop.kind} from your bag? You won't get the Garden Tokens back.`)) void post({ action: "discardProp", kind: prop.kind }); }} aria-label={`Throw away one ${prop.kind}`} title="Throw away one"><Trash2 size={15} /></button>
                   </span>
                 </div>
               ))}

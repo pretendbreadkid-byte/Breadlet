@@ -7,6 +7,7 @@ import { notify } from '../../../../lib/inbox';
 import { NETWORK_BANNED_MESSAGE, deviceHasAccount, isFingerprintBanned, isNetworkBanned, networkIdentity, recordAccountDevice } from '../../../../lib/network-identity';
 import { deviceBanScreen } from '../../../../lib/ban-screen';
 import { isPin, turnOnKidMode } from '../../../../lib/kid-mode';
+import { cleanBirthday } from '../../../../lib/og-badge';
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -34,6 +35,9 @@ export async function POST(request: Request) {
   // Kid accounts need a 4-digit grown-up PIN, which is what turns kid mode off later.
   const kidAccount = body.kidAccount === true;
   if (kidAccount && !isPin(String(body.parentPin || ''))) return NextResponse.json({ error: 'Kid accounts need a 4-number grown-up PIN.' }, { status: 400 });
+  // Birthday (month and day only) for the Birthday badge. Optional.
+  const birthday = body.birthday ? cleanBirthday(body.birthday) : null;
+  if (body.birthday && !birthday) return NextResponse.json({ error: 'Pick a real birthday (month and day).' }, { status: 400 });
   if (suppliedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(suppliedEmail)) {
     return NextResponse.json({ error: 'Enter a valid email address or leave it blank.' }, { status: 400 });
   }
@@ -86,6 +90,10 @@ export async function POST(request: Request) {
   }
 
   if (created?.user) await recordAccountDevice(admin, request, created.user.id);
+  if (created?.user && birthday) {
+    const { data: fresh } = await admin.from('profiles').select('stats').eq('id', created.user.id).maybeSingle();
+    if (fresh) await admin.from('profiles').update({ stats: { ...(fresh.stats || {}), birthday } }).eq('id', created.user.id);
+  }
   if (created?.user && kidAccount) {
     const problem = await turnOnKidMode(admin, created.user.id, String(body.parentPin));
     if (problem) console.error('[KID_MODE] signup failed:', problem);

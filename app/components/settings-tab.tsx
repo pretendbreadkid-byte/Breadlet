@@ -226,7 +226,7 @@ function KidModeSection({ kidMode, onChanged }: { kidMode: boolean; onChanged: (
   );
 }
 
-export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = false, onKidModeChanged, blockedPlayers = [], onUnblock }: { username: string; onLogout: () => void; isGuest: boolean; onRenamed: () => void; kidMode?: boolean; onKidModeChanged?: (kidMode: boolean) => void; blockedPlayers?: { id: string; username: string }[]; onUnblock?: (player: { id: string; username: string }) => void }) {
+export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = false, onKidModeChanged, blockedPlayers = [], onUnblock, birthday = null, onBirthdaySaved }: { username: string; onLogout: () => void; isGuest: boolean; onRenamed: () => void; kidMode?: boolean; onKidModeChanged?: (kidMode: boolean) => void; blockedPlayers?: { id: string; username: string }[]; onUnblock?: (player: { id: string; username: string }) => void; birthday?: string | null; onBirthdaySaved?: (birthday: string) => void }) {
   const { settings, update } = useSettings();
   const [section, setSection] = useState<(typeof sections)[number]>("Account");
 
@@ -266,6 +266,7 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = 
             <p className="text-xs text-[#c9c7c0]">Username</p>
             <p className="mb-6 text-xl font-black">{username}</p>
             {!isGuest && <AccountForms username={username} onRenamed={onRenamed} />}
+            {!isGuest && <BirthdaySetting birthday={birthday} onSaved={(value) => onBirthdaySaved?.(value)} />}
           </>
         )}
         {section === "Kid mode" && !isGuest && <KidModeSection kidMode={kidMode} onChanged={(value) => onKidModeChanged?.(value)} />}
@@ -323,6 +324,57 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = 
           </>
         )}
       </section>
+    </div>
+  );
+}
+
+// Birthday for the Birthday badge: month and day, set once.
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function BirthdaySetting({ birthday, onSaved }: { birthday: string | null; onSaved: (birthday: string) => void }) {
+  const [month, setMonth] = useState("");
+  const [day, setDay] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (birthday) {
+    const [m, d] = birthday.split("-").map(Number);
+    return (
+      <div className="mb-6 mt-6">
+        <p className="text-xs text-[#c9c7c0]">Birthday</p>
+        <p className="text-xl font-black">🎂 {MONTH_NAMES[m - 1]} {d}</p>
+        <p className="text-sm text-[#c9c7c0]">You get the Birthday badge on this day.</p>
+      </div>
+    );
+  }
+  const days = month ? [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][Number(month) - 1] : 31;
+  const save = async () => {
+    if (!month || !day) return setMessage("Pick a month and a day.");
+    if (!window.confirm(`Set your birthday to ${MONTH_NAMES[Number(month) - 1]} ${Number(day)}? You can only set it once.`)) return;
+    setBusy(true);
+    const value = `${month}-${day}`;
+    const response = await fetch("/api/player/prefs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ birthday: value }) }).catch(() => null);
+    const data = await response?.json().catch(() => null);
+    setBusy(false);
+    if (!response?.ok) return setMessage(data?.error || "Could not save your birthday.");
+    onSaved(value);
+  };
+  return (
+    <div className="mb-6 mt-6">
+      <p className="mb-1 text-lg font-black">🎂 Birthday</p>
+      <p className="mb-3 text-sm text-[#c9c7c0]">Set your birthday (no year) to get the Birthday badge on that day. You can only set it once.</p>
+      <div className="birthday-picker">
+        <div>
+          <select value={month} onChange={(event) => { setMonth(event.target.value); if (day && Number(day) > [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][Number(event.target.value) - 1]) setDay(""); }} aria-label="Birthday month">
+            <option value="">Month</option>
+            {MONTH_NAMES.map((name, index) => <option key={name} value={String(index + 1).padStart(2, "0")}>{name}</option>)}
+          </select>
+          <select value={day} onChange={(event) => setDay(event.target.value)} aria-label="Birthday day">
+            <option value="">Day</option>
+            {Array.from({ length: days }, (_, index) => String(index + 1).padStart(2, "0")).map((number) => <option key={number} value={number}>{Number(number)}</option>)}
+          </select>
+        </div>
+      </div>
+      <button type="button" disabled={busy} onClick={() => void save()} className="dark-action-button mt-3 px-5 py-2">{busy ? "Saving…" : "Save birthday"}</button>
+      {message && <p className="mt-2 text-sm text-[#ffb3a0]" role="alert">{message}</p>}
     </div>
   );
 }

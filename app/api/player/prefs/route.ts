@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase/server';
 import { createAdminClient } from '../../../../lib/supabase/admin';
+import { cleanBirthday } from '../../../../lib/og-badge';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,16 @@ export async function POST(request: Request) {
       .map((entry: any) => ({ id: entry.id, username: String(entry.username || 'Player').slice(0, 40) }));
     const { error } = await admin.rpc('set_player_pref', { p_profile_id: user.id, p_key: 'blockedPlayers', p_value: list });
     if (error) return NextResponse.json({ error: error.message.includes('Invalid preference') ? 'Run migration 0105 to save this.' : error.message }, { status: 500 });
+  }
+  // Birthday (for the Birthday badge) can only be set once, so it can't be moved to today.
+  if ('birthday' in body) {
+    const birthday = cleanBirthday(body.birthday);
+    if (!birthday) return NextResponse.json({ error: 'Pick a real birthday (month and day).' }, { status: 400 });
+    const { data: profile } = await admin.from('profiles').select('stats').eq('id', user.id).maybeSingle();
+    if (!profile) return NextResponse.json({ error: 'Player not found.' }, { status: 404 });
+    if (profile.stats?.birthday) return NextResponse.json({ error: 'Your birthday is already set. Ask an admin if it is wrong.' }, { status: 409 });
+    const { error } = await admin.from('profiles').update({ stats: { ...(profile.stats || {}), birthday } }).eq('id', user.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }

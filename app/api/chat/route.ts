@@ -6,7 +6,7 @@ import { chatModerationRole, isChatModerator, isProtectedFromMute, isStaffLookal
 import { answerQuestion } from '../../../lib/chat-ai';
 import { gameKnowledge } from '../../../lib/game-knowledge';
 import { isEvilActive, isEvilFor } from '../../../lib/evil-ai';
-import { ogBadges } from '../../../lib/og-badge';
+import { birthdayBadges, ogBadges } from '../../../lib/og-badge';
 import { mentionedNames, notify } from '../../../lib/inbox';
 import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
@@ -157,6 +157,7 @@ export async function GET() {
       new Set([
       ...(profile?.stats?.badges || []).filter((badge: string) => badge !== 'OG'),
         ...ogBadges(profile?.created_at),
+        ...birthdayBadges(profile?.stats),
         ...moderatorBadges(profile?.username),
 
         ...(tokens >= 10000

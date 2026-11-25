@@ -404,7 +404,7 @@ export const liveCapsules: Capsule[] = [
       "Sour Dough": "/assets/breadlets/bread-bag/sour-dough.svg",
       Toaster: "/assets/breadlets/bread-bag/toaster.svg",
       Croissant: "/assets/breadlets/bread-bag/croissant.svg",
-      "Cinnamon Roll": "/assets/breadlets/bread-bag/cinnamon-roll.svg",
+      "Cinnamon Roll": "/assets/breadlets/bread-bag/cinnamon-roll.webp",
       "Robo Bread": "/assets/breadlets/bread-bag/robo-bread.svg",
       "Slime Bread": "/assets/breadlets/bread-bag/slime-bread.svg",
       "Gold Bread": "/assets/breadlets/bread-bag/gold-bread.svg",

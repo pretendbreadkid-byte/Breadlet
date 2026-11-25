@@ -153,6 +153,8 @@ type Player = {
   // Badges hidden from other players, and players this one blocked (Settings / profile).
   hideBadges?: boolean;
   blockedPlayers?: BlockedPlayer[];
+  // "MM-DD", set once (sign-up or Settings) for the Birthday badge.
+  birthday?: string | null;
 };
 type PublicProfile = {
   id: string;
@@ -242,7 +244,7 @@ const badgeDescriptions: Record<string, string> = {
   Moderator: "Trusted community moderator who keeps the chat friendly.",
   Owner: "The creator and owner of Breadlet.",
   Admin: "Breadlet staff who can mute and ban players to keep the game safe.",
-  Contributor: "Helped build Breadlet with art, ideas or code.",
+  Contributor: "Given to players for doing something notable in the community.",
   Artist: "Drew artwork for Breadlet.",
   Birthday: "Happy birthday! Given by an admin on your birthday.",
   "Fall Fiesta": "Earned in the Breadlet Fall Fiesta.",
@@ -381,7 +383,7 @@ const artFor = (name: string) =>
     "Mr. Receipt": "/assets/breadlets/other/mr-receipt.svg",
     "Mr. Frog": "/assets/breadlets/remix-bag/mr-frog.svg",
     Donut: "/assets/breadlets/legacy-bread-bag/donut.svg",
-    "Cinnamon Roll": "/assets/breadlets/bread-bag/cinnamon-roll.svg",
+    "Cinnamon Roll": "/assets/breadlets/bread-bag/cinnamon-roll.webp",
     Croissant: "/assets/breadlets/bread-bag/croissant.svg",
     "Robo Bread": "/assets/breadlets/bread-bag/robo-bread.svg",
     "Slime Bread": "/assets/breadlets/bread-bag/slime-bread.svg",
@@ -593,6 +595,7 @@ function playerFromServer(data: any): Player {
     shopBought: Array.isArray(data.profile.stats?.shopBought) ? data.profile.stats.shopBought : [],
     hideBadges: data.profile.stats?.hideBadges === true,
     blockedPlayers: Array.isArray(data.profile.stats?.blockedPlayers) ? data.profile.stats.blockedPlayers.filter((entry: any) => entry?.id) : [],
+    birthday: typeof data.profile.stats?.birthday === "string" ? data.profile.stats.birthday : null,
   };
 }
 
@@ -671,6 +674,8 @@ function MainPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [referralCode, setReferralCode] = useState("");
+  // Birthday on sign-up, "MM-DD" (no year), for the Birthday badge.
+  const [birthday, setBirthday] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [kidAccount, setKidAccount] = useState(false);
   const [parentPin, setParentPin] = useState("");
@@ -1225,7 +1230,7 @@ function MainPage() {
           method: "POST",
           signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
           headers: { "Content-Type": "application/json", "x-breadlet-fp": await deviceFingerprint() },
-          body: JSON.stringify(kidAccount ? { username: username.trim(), password, acceptedTerms, kidAccount: true, parentPin } : { email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim(), acceptedTerms }),
+          body: JSON.stringify(kidAccount ? { username: username.trim(), password, acceptedTerms, kidAccount: true, parentPin, birthday: /^\d{2}-\d{2}$/.test(birthday) ? birthday : undefined } : { email: email.trim(), username: username.trim(), password, referralCode: referralCode.trim(), acceptedTerms, birthday: /^\d{2}-\d{2}$/.test(birthday) ? birthday : undefined }),
         });
         const signupBody = await signupResponse.json().catch(() => null);
         if (signupBody?.banScreen) return setBanScreen(signupBody.banScreen);
@@ -2027,6 +2032,8 @@ function MainPage() {
         setEmail={setEmail}
         referralCode={referralCode}
         setReferralCode={setReferralCode}
+        birthday={birthday}
+        setBirthday={setBirthday}
         acceptedTerms={acceptedTerms}
         setAcceptedTerms={setAcceptedTerms}
         kidAccount={kidAccount}
@@ -2441,7 +2448,7 @@ function MainPage() {
             <div className="settings-overlay-layer" onClick={() => setSettingsOpen(false)}>
               <div className="settings-overlay" role="dialog" aria-modal="true" aria-label="Settings" onClick={(event) => event.stopPropagation()}>
                 <button type="button" className="settings-overlay-close" onClick={() => setSettingsOpen(false)} aria-label="Close settings">×</button>
-                <SettingsTab blockedPlayers={player.blockedPlayers || []} onUnblock={toggleBlock} username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} kidMode={kidMode} onKidModeChanged={(value) => setPlayer((current) => current ? { ...current, kidMode: value } : current)} />
+                <SettingsTab birthday={player.birthday || null} onBirthdaySaved={(value) => setPlayer((current) => current ? { ...current, birthday: value } : current)} blockedPlayers={player.blockedPlayers || []} onUnblock={toggleBlock} username={player.username} isGuest={isGuest} onLogout={leaveSession} onRenamed={() => void refreshPlayerFromServer()} kidMode={kidMode} onKidModeChanged={(value) => setPlayer((current) => current ? { ...current, kidMode: value } : current)} />
               </div>
             </div>
           )}
@@ -2621,6 +2628,34 @@ function BreadDrift({ className }: { className: string }) {
   return <div className={`bread-drift ${className}`} aria-hidden="true" />;
 }
 
+// Birthday on sign-up: month and day (no year). Optional; on that day you get the Birthday badge.
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function BirthdayPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [month, day] = value ? value.split("-") : ["", ""];
+  const daysIn = month ? [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][Number(month) - 1] : 31;
+  const set = (nextMonth: string, nextDay: string) => {
+    if (nextMonth && nextDay) onChange(`${nextMonth}-${String(Math.min(Number(nextDay), [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][Number(nextMonth) - 1])).padStart(2, "0")}`);
+    else onChange(nextMonth ? `${nextMonth}-` : "");
+  };
+  const pickedMonth = month || "";
+  const pickedDay = day || "";
+  return (
+    <div className="birthday-picker mt-2">
+      <span>🎂 Birthday <small>(optional, for a badge on your birthday)</small></span>
+      <div>
+        <select value={pickedMonth} onChange={(event) => set(event.target.value, pickedDay)} aria-label="Birthday month">
+          <option value="">Month</option>
+          {MONTHS.map((name, index) => <option key={name} value={String(index + 1).padStart(2, "0")}>{name}</option>)}
+        </select>
+        <select value={pickedDay} onChange={(event) => set(pickedMonth, event.target.value)} aria-label="Birthday day">
+          <option value="">Day</option>
+          {Array.from({ length: daysIn }, (_, index) => String(index + 1).padStart(2, "0")).map((number) => <option key={number} value={number}>{Number(number)}</option>)}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 function LoginScreen({
   username,
   email,
@@ -2629,6 +2664,8 @@ function LoginScreen({
   setEmail,
   referralCode,
   setReferralCode,
+  birthday,
+  setBirthday,
   acceptedTerms,
   setAcceptedTerms,
   kidAccount,
@@ -2655,6 +2692,8 @@ function LoginScreen({
   setEmail: (value: string) => void;
   referralCode: string;
   setReferralCode: (value: string) => void;
+  birthday: string;
+  setBirthday: (value: string) => void;
   acceptedTerms: boolean;
   setAcceptedTerms: (value: boolean) => void;
   kidAccount: boolean;
@@ -2741,6 +2780,7 @@ function LoginScreen({
         />}
         {!forgotPassword && authMode === "signup" && !kidAccount && <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]" htmlFor="referral">Referral code <span className="normal-case tracking-normal text-white/50">(optional)</span></label>}
         {!forgotPassword && authMode === "signup" && !kidAccount && <input id="referral" value={referralCode} maxLength={16} onChange={(event) => setReferralCode(event.target.value.toUpperCase())} placeholder="Got a friend's code?" className="mt-2 w-full rounded-xl bg-[#0c3b70] px-4 py-3 text-white outline-none focus:border-[#73c8ff]" />}
+        {!forgotPassword && authMode === "signup" && <BirthdayPicker value={birthday} onChange={setBirthday} />}
         {!forgotPassword && authMode === "signup" && !kidAccount && <p className="mt-1 text-xs text-white/55">Without email, you can’t receive password reset links.</p>}
         {!forgotPassword && <label
           className="mt-5 block text-xs font-bold uppercase tracking-widest text-[#eac477]"

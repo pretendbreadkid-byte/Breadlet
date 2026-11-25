@@ -466,6 +466,27 @@ export async function POST(request: Request) {
     return respond({ message: `You gave your ${sizeLabel(crop.size)} ${crop.seed} to ${friend.username}!` });
   }
 
+  // Throw away a crop from your basket, or one prop from your bag (nothing is paid back).
+  if (body.action === 'discard') {
+    const id = String(body.crop || '');
+    const problem = await updateMine((state) => {
+      if (!state.crops.some((crop) => crop.id === id)) return 'That crop is not in your basket.';
+      state.crops = state.crops.filter((crop) => crop.id !== id);
+    });
+    if (problem) return fail(problem, 409);
+    return respond({ message: 'Threw that crop away.' });
+  }
+  if (body.action === 'discardProp') {
+    const def = propNamed(body.kind);
+    if (!def) return fail('Pick a prop.');
+    const problem = await updateMine((state) => {
+      if ((state.propBag[def.kind] || 0) < 1) return `You don't have a ${def.kind} in your bag.`;
+      state.propBag[def.kind] -= 1;
+    });
+    if (problem) return fail(problem, 409);
+    return respond({ message: `Threw away a ${def.kind}.` });
+  }
+
   // Props: buy one into your bag, place it in a garden you can build in, pick it back up.
   if (body.action === 'buyProp') {
     const def = propNamed(body.kind);

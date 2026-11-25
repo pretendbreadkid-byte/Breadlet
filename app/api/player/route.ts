@@ -5,7 +5,7 @@ import { isNameAllowed } from '../../../lib/chat-filter';
 import { NETWORK_BANNED_MESSAGE, isNetworkBanned, recordAccountDevice } from '../../../lib/network-identity';
 import { autoBanDeviceAlts } from '../../../lib/alt-bans';
 import { banScreenFrom } from '../../../lib/ban-screen';
-import { ogBadges } from '../../../lib/og-badge';
+import { birthdayBadges, ogBadges } from '../../../lib/og-badge';
 import { isProtectedFromMute, isStaffLookalike, moderatorBadges } from '../../../lib/admin-access';
 
 const materialNames = ['Gold', 'Cloth', 'Gem', 'Sugar', 'Flower', 'Metal'];
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     profile: {
       ...profileFields,
       equipped_blook_name: equipped?.name || null,
-      badges: Array.from(new Set([...(profile.stats?.badges || []).filter((badge: string) => badge !== 'OG'), ...ogBadges(profile.created_at), ...moderatorBadges(profile.username)])),
+      badges: Array.from(new Set([...(profile.stats?.badges || []).filter((badge: string) => badge !== 'OG'), ...ogBadges(profile.created_at), ...birthdayBadges(profile.stats), ...moderatorBadges(profile.username)])),
       clan_tag: profile.stats?.clanTag || '',
       wheel_spun: Boolean(profile.stats?.wheelSpun) && wheelSpunToday,
       wheel_spun_at: typeof wheelSpunAt === 'string' ? wheelSpunAt : null,

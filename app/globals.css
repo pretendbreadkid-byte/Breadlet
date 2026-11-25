@@ -4648,3 +4648,25 @@ main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-actions button.is-sell
 .news-poll-form-row input { flex: 1; }
 .news-poll-form-row button, .news-poll-form-actions button { padding: 6px 10px; border-radius: 8px; background: #3a2c20; color: #ffe3c2; font-weight: 700; }
 .news-poll-form-actions { display: flex; gap: 8px; }
+
+/* Breadlet Breaks Bad event page: the green stripes fill the whole page area (not just a card),
+   with a slow drifting mist on top. The page's fixed background layer (.page-drift) becomes the
+   stripes, so the sidebar and top bar stay as they are. */
+.game-workspace[data-tab="event"]:has(.event-page-bb) { background: transparent !important; }
+.game-workspace[data-tab="event"]:has(.event-page-bb) > .page-drift { opacity: 1 !important; animation: none; background: radial-gradient(ellipse at 50% 0%, rgba(64, 140, 56, .55), transparent 60%), repeating-linear-gradient(45deg, #0d1f0c 0 14px, #112811 14px 28px); }
+.game-workspace[data-tab="event"]:has(.event-page-bb) > .page-drift::before,
+.game-workspace[data-tab="event"]:has(.event-page-bb) > .page-drift::after { content: ""; position: absolute; inset: -20%; pointer-events: none; background: radial-gradient(closest-side, rgba(210, 255, 210, .10), transparent), radial-gradient(closest-side at 20% 70%, rgba(200, 255, 200, .08), transparent 70%), radial-gradient(closest-side at 80% 30%, rgba(220, 255, 220, .07), transparent 70%); filter: blur(30px); animation: event-mist 38s ease-in-out infinite alternate; }
+.game-workspace[data-tab="event"]:has(.event-page-bb) > .page-drift::after { animation-duration: 52s; animation-direction: alternate-reverse; opacity: .8; }
+@keyframes event-mist { from { transform: translate(-6%, 3%) scale(1); } to { transform: translate(6%, -4%) scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .game-workspace[data-tab="event"]:has(.event-page-bb) > .page-drift::before, .game-workspace[data-tab="event"]:has(.event-page-bb) > .page-drift::after { animation: none; } }
+.event-page-bb .event-bb-full { border: 0; background: transparent; box-shadow: none; overflow: visible; }
+/* Throw-away button in the garden basket and props bag. */
+.garden-shop-buy .garden-trash { min-width: 0; padding: 6px 9px; background: #5a2a1c !important; }
+.garden-shop-buy .garden-trash:hover:not(:disabled) { background: #8a2f1c !important; }
+/* Birthday picker on the sign-up form. */
+.birthday-picker { display: flex; flex-direction: column; gap: 6px; text-align: left; font-weight: 800; color: #ffe3c2; }
+.birthday-picker small { font-weight: 600; opacity: .75; }
+.birthday-picker > div { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.birthday-picker select { width: 100%; border-radius: 12px; background: #0c3b70; padding: 12px 14px; color: #fff; outline: none; }
+.bp-progress.bp-global > span { background: linear-gradient(90deg, #3fbf5a, #9be37c); }
+.bp-progress.bp-mine { margin-top: 10px; }
