@@ -3732,7 +3732,8 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
   box-shadow: 0 0 0 8px #a86d34, 0 0 0 12px #5a3317, 0 10px 0 12px rgba(0, 0, 0, .14), inset 0 8px 14px rgba(0, 0, 0, .25); }
 .garden-plant { position: absolute; display: block; width: 96px; height: 96px; margin: -90px 0 0 -48px; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .garden-world .garden-plant:hover:not(:disabled), .garden-world .garden-plant:active:not(:disabled) { transform: none; scale: 1; box-shadow: none; }
-.garden-mound { position: absolute; left: 14px; right: 14px; bottom: 0; height: 18px; border-radius: 50%; background: radial-gradient(ellipse at 50% 35%, #6e4422, #4f2f15); box-shadow: 0 3px 0 rgba(0, 0, 0, .2); }
+/* A soft dug-in shadow in the row's own soil colour, so crops look planted in the row. */
+.garden-mound { position: absolute; left: 10px; right: 10px; bottom: -2px; height: 20px; border-radius: 50%; background: radial-gradient(ellipse at 50% 45%, rgba(70, 40, 16, .55), rgba(70, 40, 16, 0) 70%); }
 .garden-plant .garden-growth { position: absolute; left: 4px; bottom: 6px; width: 88px; height: 88px; margin: 0; transform-origin: 50% 100%; }
 .garden-plant.is-near { filter: drop-shadow(0 0 0 #ffd36b) drop-shadow(0 0 9px rgba(255, 211, 107, .95)); }
 .garden-plant.is-theirs { opacity: .92; }
@@ -4712,3 +4713,17 @@ main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"] svg { anim
 @keyframes advent-pop { from { transform: scale(.7); opacity: 0; } }
 @media (max-width: 520px) { .advent { padding: 16px; } .advent-board { grid-template-columns: repeat(3, 1fr); gap: 8px; } .advent-door.is-big { grid-column: span 3; aspect-ratio: 3 / 1; } .advent-head h1 { font-size: 1.6rem; } }
 @media (prefers-reduced-motion: reduce) { .advent-snow, main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"] svg { animation: none; } }
+
+/* Harvesting: the trowel in your Breadlet's hand digs twice. The outer span follows you, the img digs. */
+.garden-trowel { position: absolute; width: 26px; height: 42px; pointer-events: none; transform: translate(-50%, -50%); will-change: transform; z-index: 100000; }
+.garden-trowel img { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 90%; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .25)); animation: garden-dig 1.1s ease-in-out both; }
+@keyframes garden-dig {
+  0% { transform: rotate(150deg) scale(.4); opacity: 0; }
+  15% { transform: rotate(150deg) scale(1); opacity: 1; }
+  35% { transform: rotate(200deg) translateY(-8px); }
+  50% { transform: rotate(140deg); }
+  70% { transform: rotate(200deg) translateY(-8px); }
+  85% { transform: rotate(150deg); opacity: 1; }
+  100% { transform: rotate(150deg) scale(.6); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .garden-trowel img { animation: none; transform: rotate(160deg); } }

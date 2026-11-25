@@ -336,7 +336,7 @@ export function BedArt() {
 }
 
 // Each crop's growth frames: the last one is the ready crop, the others play out while it grows.
-const frames = (name: string, count: number) => Array.from({ length: count }, (_, index) => `/assets/garden/${name}-${index + 1}.svg`);
+const frames = (name: string, count: number) => Array.from({ length: count }, (_, index) => `/assets/garden/${name}-${index + 1}.svg?v=2`);
 const CROP_FRAMES: Record<SeedName, string[]> = {
   Carrot: frames("carrot", 5),
   Potato: frames("potato", 3),
@@ -344,7 +344,7 @@ const CROP_FRAMES: Record<SeedName, string[]> = {
   Avocado: frames("avocado", 4),
   "Pumpkin Dragon": frames("pumpkin-dragon", 4),
   // Peppers: sprout, young plant, grown plant (shown again while the next peppers grow), with peppers.
-  Pepper: ["/assets/garden/pepper-1.webp", "/assets/garden/pepper-2.svg", "/assets/garden/pepper-3.svg", "/assets/garden/pepper-4.svg"],
+  Pepper: ["/assets/garden/pepper-1.webp?v=2", "/assets/garden/pepper-2.svg?v=2", "/assets/garden/pepper-3.svg?v=2", "/assets/garden/pepper-4.svg?v=2"],
   "Ghost Pepper": frames("ghost-pepper", 4),
 };
 

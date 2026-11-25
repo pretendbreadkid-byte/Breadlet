@@ -89,13 +89,13 @@ export const GARDEN_TOKEN_ART = "/assets/garden/garden-token.svg";
 export type PropKind = "Rock" | "Chest" | "Green Screen" | "Tree" | "Berry Bush" | "Ice Cream" | "TV";
 export type PropDef = { kind: PropKind; cost: number; art: string; width: number; solid: { dx: number; r: number }[] };
 export const PROPS: PropDef[] = [
-  { kind: "Rock", cost: 10, art: "/assets/breadlets/food-bag/rock.svg", width: 130, solid: [{ dx: -28, r: 26 }, { dx: 28, r: 26 }] },
-  { kind: "Chest", cost: 40, art: "/assets/breadlets/artifact-bag/treasure-chest.svg", width: 110, solid: [{ dx: 0, r: 40 }] },
-  { kind: "Berry Bush", cost: 15, art: "/assets/garden/berry-bush.svg", width: 130, solid: [{ dx: -30, r: 26 }, { dx: 30, r: 26 }] },
-  { kind: "Tree", cost: 25, art: "/assets/garden/tree-prop.svg", width: 150, solid: [{ dx: -5, r: 22 }] },
-  { kind: "Ice Cream", cost: 30, art: "/assets/garden/mintis-icecream.svg", width: 170, solid: [{ dx: -45, r: 22 }, { dx: 0, r: 22 }, { dx: 45, r: 22 }] },
-  { kind: "TV", cost: 60, art: "/assets/garden/tv.webp", width: 160, solid: [{ dx: -40, r: 24 }, { dx: 0, r: 24 }, { dx: 40, r: 24 }] },
-  { kind: "Green Screen", cost: 75, art: "/assets/garden/green-screen.svg", width: 230, solid: [{ dx: -80, r: 22 }, { dx: -27, r: 22 }, { dx: 27, r: 22 }, { dx: 80, r: 22 }] },
+  { kind: "Rock", cost: 10, art: "/assets/breadlets/food-bag/rock.svg", width: 104, solid: [{ dx: -22, r: 21 }, { dx: 22, r: 21 }] },
+  { kind: "Chest", cost: 40, art: "/assets/breadlets/artifact-bag/treasure-chest.svg", width: 90, solid: [{ dx: 0, r: 32 }] },
+  { kind: "Berry Bush", cost: 15, art: "/assets/garden/berry-bush.svg", width: 104, solid: [{ dx: -24, r: 21 }, { dx: 24, r: 21 }] },
+  { kind: "Tree", cost: 25, art: "/assets/garden/tree-prop.svg", width: 124, solid: [{ dx: -4, r: 18 }] },
+  { kind: "Ice Cream", cost: 30, art: "/assets/garden/mintis-icecream.svg", width: 136, solid: [{ dx: -36, r: 18 }, { dx: 0, r: 18 }, { dx: 36, r: 18 }] },
+  { kind: "TV", cost: 60, art: "/assets/garden/tv.webp", width: 124, solid: [{ dx: -31, r: 19 }, { dx: 0, r: 19 }, { dx: 31, r: 19 }] },
+  { kind: "Green Screen", cost: 75, art: "/assets/garden/green-screen.svg", width: 184, solid: [{ dx: -64, r: 18 }, { dx: -22, r: 18 }, { dx: 22, r: 18 }, { dx: 64, r: 18 }] },
 ];
 export const propNamed = (kind: unknown) => PROPS.find((prop) => prop.kind === kind);
 export const MAX_PROPS = 30;
@@ -113,7 +113,13 @@ export const canPlaceProp = (kind: PropKind, x: number, y: number, props: Placed
   if (x - half < GARDEN.x + 30 || x + half > GARDEN.x + GARDEN.width - 30 || y < GARDEN.y + 90 || y > front - 30) return false;
   if (ROWS.some((row) => x + half > row.x && x - half < row.x + row.width && y > row.y - 10 && y < row.y + row.height + 40)) return false;
   if (Math.abs(x - GATE.x) < half + 70 && y > front - 130) return false;
-  return !props.some((prop) => prop.id !== ignoreId && Math.abs(prop.x - x) < (half + propWidth(prop) / 2) * 0.8 && Math.abs(prop.y - y) < 60);
+  // Props stand up from their feet, so one just in front of another hides it: keep them apart
+  // side to side, and front to back by about the height of the bigger one.
+  return !props.some((prop) => {
+    if (prop.id === ignoreId) return false;
+    const other = propWidth(prop);
+    return Math.abs(prop.x - x) < half + other / 2 + 12 && Math.abs(prop.y - y) < Math.max(70, Math.max(half * 2, other) * 0.7);
+  });
 };
 
 export type GardenPerson = { id: string; username: string };

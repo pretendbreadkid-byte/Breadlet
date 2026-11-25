@@ -66,6 +66,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   // What's in your hand: a seed packet, a crop from the basket, or nothing.
   const [selected, setSelected] = useState<SeedName | null>("Carrot");
   const [heldId, setHeldId] = useState<string | null>(null);
+  // Harvesting: your Breadlet takes out a trowel and digs for a moment.
+  const [digging, setDigging] = useState(0);
+  useEffect(() => { if (!digging) return; const timer = window.setTimeout(() => setDigging(0), 1100); return () => window.clearTimeout(timer); }, [digging]);
   const [giveTo, setGiveTo] = useState<string | null>(null);
   const [hotbarOpen, setHotbarOpen] = useState(true);
   // Placing a prop: it follows the pointer until you click a spot.
@@ -230,6 +233,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     if (!plant || !seed) return;
     if ((plant.plantedBy || fields.owner.id) !== player.id) return setToast(`That's ${plant.plantedByName || fields.owner.username}'s ${seed.name}.`);
     if (now < readyAt(plant, seed)) return setToast(`${seed.name} is still growing: ${clock(readyAt(plant, seed) - now)} left.`);
+    setDigging(Date.now());
     void post({ action: "harvest", plant: plant.id }).then((data) => data?.crop && float(plant.x, plant.y - 90, cropName(data.crop), "crop", data.crop.seed));
   };
 
@@ -469,7 +473,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
 
           {!lite && <Ambient />}
           {walkers.map((walker) => <WalkerSprite key={walker.id} walker={walker} isMe={walker.id === player.id} artFor={artFor} />)}
-          {held && <img data-follow-me data-follow-dx="30" data-follow-dy="-34" src={artFor(held.seed)} alt="" className="garden-held" style={{ left: 0, top: 0 }} draggable={false} />}
+          {held && !digging && <img data-follow-me data-follow-dx="30" data-follow-dy="-34" src={artFor(held.seed)} alt="" className="garden-held" style={{ left: 0, top: 0 }} draggable={false} />}
+          {digging > 0 && <span key={digging} data-follow-me data-follow-dx="34" data-follow-dy="-30" className="garden-trowel" style={{ left: 0, top: 0 }} aria-hidden="true"><img src="/assets/garden/trowel.webp" alt="" draggable={false} /></span>}
           {held && Object.values(others).map((walker) => (
             <div key={walker.id} className="garden-give" style={{ left: walker.x, top: walker.y, zIndex: 3000 + Math.round(walker.y) }}
               onPointerEnter={() => setGiveTo(walker.id)} onPointerLeave={() => setGiveTo((id) => (id === walker.id ? null : id))} onPointerDown={(event) => { event.stopPropagation(); setGiveTo(walker.id); }}>
