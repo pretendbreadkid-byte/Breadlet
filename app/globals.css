@@ -4670,3 +4670,45 @@ main.breadlet-blue-theme.breadlet-blue-theme .sell-picker-actions button.is-sell
 .birthday-picker select { width: 100%; border-radius: 12px; background: #0c3b70; padding: 12px 14px; color: #fff; outline: none; }
 .bp-progress.bp-global > span { background: linear-gradient(90deg, #3fbf5a, #9be37c); }
 .bp-progress.bp-mine { margin-top: 10px; }
+
+/* Christmas calendar tab (Settings > Beta): light blue so it stands out. */
+main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"] { background: linear-gradient(135deg, #bfe6ff, #8fd0ff) !important; color: #0b3a5c !important; box-shadow: 0 0 0 2px rgba(255,255,255,.55) inset, 0 4px 14px rgba(143,208,255,.35); }
+main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"] * { color: #0b3a5c !important; }
+main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"][aria-current="page"] { background: linear-gradient(135deg, #e4f5ff, #a9dcff) !important; }
+main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"] svg { animation: advent-spin 8s linear infinite; }
+@keyframes advent-spin { to { transform: rotate(360deg); } }
+
+/* Advent calendar page */
+.advent { position: relative; max-width: 980px; margin: 0 auto; padding: 22px; border-radius: 24px; overflow: hidden; background: radial-gradient(circle at 50% -10%, #3b6f9c 0%, #17324f 55%, #0d1d31 100%); border: 3px solid #a9dcff; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+.advent-snow { position: absolute; inset: 0; pointer-events: none; }
+.advent-snow i { position: absolute; top: -10px; width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: .7; animation: advent-fall linear infinite; }
+@keyframes advent-fall { to { transform: translate(30px, 760px); opacity: 0; } }
+.advent-head { position: relative; display: flex; align-items: center; gap: 14px; color: #e4f5ff; }
+.advent-head h1 { font-size: 2.2rem; font-weight: 900; line-height: 1; }
+.advent-head p { margin-top: 4px; opacity: .85; }
+.advent-beta { margin-left: auto; padding: 4px 12px; border-radius: 999px; background: #bfe6ff; color: #0b3a5c !important; font-weight: 900; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; }
+.advent-note { position: relative; margin: 12px 0 18px; padding: 8px 12px; border-radius: 10px; background: rgba(191,230,255,.12); border: 1px dashed #a9dcff; font-size: .9rem; font-weight: 700; }
+.advent-board { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
+.advent-door { position: relative; aspect-ratio: 1; perspective: 700px; border-radius: 14px; background: #0b1a2b; box-shadow: inset 0 0 0 2px rgba(169,220,255,.35); }
+.advent-door.is-big { grid-column: span 2; aspect-ratio: auto; }
+.advent-inside { position: absolute; inset: 8px; display: grid; place-items: center; }
+.advent-inside img { max-width: 78%; max-height: 78%; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,.4)); }
+.advent-flap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 14px; transform-origin: left center; transition: transform .6s cubic-bezier(.3,.7,.2,1); backface-visibility: hidden;
+  background: repeating-linear-gradient(45deg, #c8323a 0 14px, #b0262e 14px 28px); border: 3px solid #f4d38a; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+.advent-door:nth-child(3n+2) .advent-flap { background: repeating-linear-gradient(-45deg, #1f7a4a 0 14px, #18663d 14px 28px); }
+.advent-door:nth-child(3n) .advent-flap { background: linear-gradient(160deg, #e4f5ff, #9fd6ff); }
+.advent-door:nth-child(3n) .advent-flap b, .advent-door:nth-child(3n) .advent-flap svg { color: #0b3a5c !important; text-shadow: none; }
+.advent-flap b { font-size: 2rem; font-weight: 900; text-shadow: 0 2px 0 rgba(0,0,0,.3); }
+.advent-door:not(.is-open):hover .advent-flap { transform: rotateY(-14deg); }
+.advent-door.is-open .advent-flap { transform: rotateY(-105deg); }
+.advent-door.is-big .advent-flap { background: linear-gradient(135deg, #f4d38a, #e0a03c); border-color: #fff4d6; }
+.advent-door.is-big .advent-flap b, .advent-door.is-big .advent-flap svg { color: #5a3410 !important; }
+.advent-pop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; background: rgba(5,15,28,.6); }
+.advent-pop-card { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(320px, calc(100vw - 32px)); padding: 22px; border-radius: 20px; background: linear-gradient(180deg, #1d4266, #10263d); border: 3px solid #a9dcff; text-align: center; animation: advent-pop .35s cubic-bezier(.2,1.4,.4,1); }
+.advent-pop-card img { width: 120px; height: 120px; object-fit: contain; }
+.advent-pop-card b { font-size: 1.3rem; font-weight: 900; }
+.advent-pop-card p { font-size: .85rem; opacity: .8; }
+.advent-pop-card button { margin-top: 6px; padding: 8px 20px; border-radius: 12px; background: #bfe6ff; color: #0b3a5c !important; font-weight: 900; }
+@keyframes advent-pop { from { transform: scale(.7); opacity: 0; } }
+@media (max-width: 520px) { .advent { padding: 16px; } .advent-board { grid-template-columns: repeat(3, 1fr); gap: 8px; } .advent-door.is-big { grid-column: span 3; aspect-ratio: 3 / 1; } .advent-head h1 { font-size: 1.6rem; } }
+@media (prefers-reduced-motion: reduce) { .advent-snow, main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"] svg { animation: none; } }

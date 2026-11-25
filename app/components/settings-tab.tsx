@@ -16,6 +16,8 @@ export type Settings = {
   gardenPerformance: boolean;
   // How the Bazaar shows what's for sale: market booths, or paper notes on a notice board.
   bazaarStyle: "tags" | "booths" | "notices";
+  // Beta: show the Christmas advent calendar tab (looks only, no rewards yet).
+  christmasCalendar: boolean;
 };
 
 export const defaultSettings: Settings = {
@@ -29,6 +31,7 @@ export const defaultSettings: Settings = {
   navLayout: "rail",
   gardenPerformance: false,
   bazaarStyle: "notices",
+  christmasCalendar: false,
 };
 
 const storageKey = "breadlet-settings";
@@ -58,7 +61,7 @@ export function useSettings() {
   return { settings, update };
 }
 
-const sections = ["Account", "Layout", "Chat", "Trading & Social", "Kid mode", "Account Management"] as const;
+const sections = ["Account", "Layout", "Chat", "Trading & Social", "Kid mode", "Beta", "Account Management"] as const;
 
 export type NavLayout = "classic" | "grouped" | "rail" | "bottom" | "home";
 export const NAV_LAYOUTS: { id: NavLayout; title: string; description: string; preview: string }[] = [
@@ -295,6 +298,12 @@ export function SettingsTab({ username, onLogout, isGuest, onRenamed, kidMode = 
                 </button>
               ))}
             </div>
+          </>
+        )}
+        {section === "Beta" && (
+          <>
+            <p className="mb-5 text-[#c9c7c0]">Try things that aren&apos;t finished yet. They only change this device.</p>
+            {renderRows([{ key: "christmasCalendar", title: "Christmas calendar", description: "Adds a Calendar tab with a Christmas advent calendar. It's a sneak peek: the doors don't give anything yet." }])}
           </>
         )}
         {section === "Chat" && renderRows(chatRows)}

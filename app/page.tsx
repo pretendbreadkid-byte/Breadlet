@@ -17,6 +17,7 @@ import { BreadletExplore } from "./components/breadlet-explore";
 import { GAMES_CHANGED_EVENT } from "./components/chat-games";
 import { AdminAbusePanel, AdminEventsLayer } from "./components/admin-events";
 import { EventTab, FallFiestaLayer } from "./components/fall-fiesta";
+import { AdventCalendar } from "./components/advent-calendar";
 import { FIESTA_SHOP } from "../lib/fall-fiesta";
 import { TermsGate, TermsModal } from "./components/terms";
 import { BanCrawl } from "./components/ban-crawl";
@@ -90,6 +91,7 @@ import {
   MessagesSquare,
   Shield,
   Trophy,
+  Snowflake,
 } from "lucide-react";
 
 type Tab =
@@ -113,6 +115,7 @@ type Tab =
   | "games"
   | "inbox"
   | "news"
+  | "calendar"
   | "other";
 
 
@@ -2080,6 +2083,8 @@ function MainPage() {
     { id: "leaderboard", label: "Leaderboard", icon: <TrophyIcon size={20} /> },
     // The Garden is open to everyone signed in (guests and kid accounts can't use it).
     ...(!isGuest && !kidMode ? [{ id: "games" as Tab, label: "Garden", icon: <Sprout size={20} strokeWidth={2.2} /> }] : []),
+    // Beta (Settings > Beta): the Christmas advent calendar. Looks only for now, no rewards.
+    ...(uiSettings.christmasCalendar ? [{ id: "calendar" as Tab, label: "Calendar", icon: <Snowflake size={20} strokeWidth={2.2} /> }] : []),
   ];
   const visibleNav = isGuest
     ? nav.filter((item) => !["clan", "market", "chat", "leaderboard"].includes(item.id))
@@ -2135,6 +2140,7 @@ function MainPage() {
               <button
                 key={item.id}
                 data-tour-target={item.id}
+                data-nav-id={item.id}
                 onClick={() => goTab(item.id)}
                 aria-current={tab === item.id ? "page" : undefined}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 font-extrabold text-sm transition ${
@@ -2176,7 +2182,7 @@ function MainPage() {
       {navLayout === "bottom" && (
         <nav className="layout-bottom-bar" aria-label="Main tabs">
           {bottomMainFallback.map((item) => (
-            <button key={item.id} type="button" onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>
+            <button key={item.id} type="button" data-nav-id={item.id} onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>
               {item.icon}<span>{item.label}</span>{tabBadge(item.id)}
             </button>
           ))}
@@ -2186,7 +2192,7 @@ function MainPage() {
           {moreOpen && (
             <div className="layout-more" role="menu">
               {bottomMore.map((item) => (
-                <button key={item.id} type="button" onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>{item.icon}{item.label}{tabBadge(item.id)}</button>
+                <button key={item.id} type="button" data-nav-id={item.id} onClick={() => goTab(item.id)} aria-current={tab === item.id ? "page" : undefined}>{item.icon}{item.label}{tabBadge(item.id)}</button>
               ))}
               {layoutExtras}
             </div>
@@ -2332,7 +2338,7 @@ function MainPage() {
               <img src="/assets/breadlet-logo-2.svg" alt="Breadlet" className="layout-home-logo" />
               <div className="layout-home-tiles">
                 {visibleNav.map((item) => (
-                  <button key={item.id} type="button" onClick={() => goTab(item.id)} className="layout-home-tile">
+                  <button key={item.id} type="button" data-nav-id={item.id} onClick={() => goTab(item.id)} className="layout-home-tile">
                     <span className="layout-home-icon">{item.icon}</span>
                     <b>{item.label}</b>{tabBadge(item.id)}
                   </button>
@@ -2455,6 +2461,7 @@ function MainPage() {
           {tab === "resources" && <ResourcesTab open={(resource) => setTab(resource)} kidMode={kidMode} />}
           {tab === "bank" && <TokenBankTab isGuest={isGuest} />}
           {tab === "referrals" && !kidMode && <ReferralsTab isGuest={isGuest} />}
+          {tab === "calendar" && uiSettings.christmasCalendar && <AdventCalendar artFor={artFor} />}
           {tab === "event" && <EventTab isGuest={isGuest} onBought={() => void refreshPlayerFromServer({ full: true })} />}
           {gardenChooser && <GardenChooser onClose={() => setGardenChooser(false)} onPick={(mode) => { setGardenChooser(false); setGamesMode(mode); setTab("games"); }} />}
           {tab === "games" && gamesMode === "butterflies" && !gardenVisit && !kidMode && !isGuest && player.id && <ButterflyCatch player={{ id: player.id, username: player.username, equipped: player.equipped, chatMutedUntil: player.chatMutedUntil }} artFor={artFor} onBalance={(tokens) => setPlayer((current) => current ? { ...current, tokens } : current)} onExit={leaveGarden} onGarden={() => setGamesMode("garden")} />}
