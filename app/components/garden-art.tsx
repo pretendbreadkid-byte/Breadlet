@@ -1,6 +1,6 @@
 "use client";
 
-// Everything you see in the Breadlet Garden that isn't game logic: the meadow, the path, the fence,
+// Everything you see in the Breadlet Garden that isn't game logic: the meadow, the fence,
 // the shed, the well, the wheat field, trees, butterflies and every crop's growth stages.
 // fields-world.tsx places these and handles walking, planting and harvesting.
 import { memo, type CSSProperties } from "react";
@@ -9,7 +9,8 @@ export { GARDEN, GATE, ROWS };
 
 export const WORLD = { width: 2600, height: 1700 };
 const FRONT = GARDEN.y + GARDEN.height;
-export const STAND = { x: 380, y: 1390 };
+// Where you can walk: the garden and a strip of meadow around it (no wandering off across the map).
+export const WALK_AREA = { left: GARDEN.x - 190, right: GARDEN.x + GARDEN.width + 190, top: GARDEN.y - 140, bottom: FRONT + 210 };
 const SIGN = { x: GATE.x + 200, y: FRONT + 92 };
 const TREES = [
   { x: 260, y: 330, size: 1.1 }, { x: 640, y: 230, size: 0.9 }, { x: 2380, y: 1000, size: 1.1 }, { x: 2250, y: 1560, size: 0.95 },
@@ -27,28 +28,8 @@ const seeded = (start: number) => {
   };
 };
 
-// The dirt path from the garden gate to Ted's stand, as a smooth curve through these points.
-const PATH_KEYS: [number, number][] = [[GATE.x, FRONT + 6], [GATE.x - 10, FRONT + 90], [1320, 1460], [1100, 1500], [880, 1490], [680, 1490], [520, 1475], [STAND.x + 20, STAND.y + 60]];
-const PATH_POINTS = (() => {
-  const points: { x: number; y: number }[] = [];
-  for (let index = 0; index < PATH_KEYS.length - 1; index += 1) {
-    const [a, b, c, d] = [PATH_KEYS[index - 1] || PATH_KEYS[index], PATH_KEYS[index], PATH_KEYS[index + 1], PATH_KEYS[index + 2] || PATH_KEYS[index + 1]];
-    for (let step = 0; step < 20; step += 1) {
-      const t = step / 20;
-      const curve = (p0: number, p1: number, p2: number, p3: number) => 0.5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (3 * p1 - p0 - 3 * p2 + p3) * t * t * t);
-      points.push({ x: curve(a[0], b[0], c[0], d[0]), y: curve(a[1], b[1], c[1], d[1]) });
-    }
-  }
-  const [lastX, lastY] = PATH_KEYS[PATH_KEYS.length - 1];
-  points.push({ x: lastX, y: lastY });
-  return points;
-})();
-const nearPath = (x: number, y: number, distance: number) => PATH_POINTS.some((point) => Math.hypot(x - point.x, y - point.y) < distance);
-
 const blocked = (x: number, y: number) =>
   (x > GARDEN.x - 70 && x < GARDEN.x + GARDEN.width + 70 && y > GARDEN.y - 90 && y < GARDEN.y + GARDEN.height + 60)
-  || (x > STAND.x - 200 && x < STAND.x + 200 && y > STAND.y - 280 && y < STAND.y + 120)
-  || nearPath(x, y, 80)
   || (Math.abs(x - SIGN.x) < 100 && y > SIGN.y - 150 && y < SIGN.y + 30)
   || TREES.some((tree) => Math.hypot(x - tree.x, y - tree.y + 60) < 125 * tree.size);
 
@@ -93,18 +74,6 @@ const DECOR: Decor[] = (() => {
     if (blocked(x, y)) continue;
     list.push({ kind: kinds[Math.floor(random() * kinds.length)], x, y, tint: Math.floor(random() * 4), flip: random() < 0.5 });
   }
-  // Grass and pebbles spilling over both edges of the path, so it doesn't have a hard edge.
-  PATH_POINTS.forEach((point, index) => {
-    if (index % 8 || index >= PATH_POINTS.length - 6) return;
-    const next = PATH_POINTS[index + 1];
-    const length = Math.hypot(next.x - point.x, next.y - point.y) || 1;
-    const normal = { x: -(next.y - point.y) / length, y: (next.x - point.x) / length };
-    [-1, 1].forEach((side) => {
-      const reach = 46 + random() * 14;
-      const roll = random();
-      list.push({ kind: roll < 0.7 ? "tuft" : "flower", x: point.x + normal.x * reach * side, y: point.y + normal.y * reach * side + 8, tint: Math.floor(random() * 4), flip: random() < 0.5 });
-    });
-  });
   // Flower borders along the inside of the garden fence.
   for (let x = GARDEN.x + 40; x < GARDEN.x + GARDEN.width - 20; x += 70 + random() * 30) {
     list.push({ kind: random() < 0.75 ? "flower" : "tuft", x, y: GARDEN.y + 44, tint: Math.floor(random() * 4), flip: random() < 0.5 });
@@ -188,58 +157,33 @@ function Ground() {
   );
 }
 
-// Performance mode: just the dirt.
-function LitePath() {
-  const points = PATH_POINTS.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
-  const plaza = { x: STAND.x + 10, y: STAND.y + 62 };
-  return (
-    <svg className="garden-decor" style={{ left: 0, top: 0, zIndex: -900 }} width={WORLD.width} height={WORLD.height} aria-hidden="true">
-      <ellipse cx={plaza.x} cy={plaza.y} rx="178" ry="68" fill="#a87545" />
-      <polyline points={points} fill="none" stroke="#a87545" strokeWidth="112" strokeLinecap="round" strokeLinejoin="round" />
-      <ellipse cx={plaza.x} cy={plaza.y - 2} rx="170" ry="62" fill="#d4a86e" />
-      <polyline points={points} fill="none" stroke="#d4a86e" strokeWidth="100" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function Path() {
-  const points = PATH_POINTS.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
-  const random = seeded(31);
-  const stones = PATH_POINTS.filter((_, index) => index % 2 === 0).map((point) => ({ x: point.x + (random() - 0.5) * 60, y: point.y + (random() - 0.5) * 50, r: 3 + random() * 4, light: random() < 0.5 }));
-  const plaza = { x: STAND.x + 10, y: STAND.y + 62 };
-  return (
-    <svg className="garden-decor" style={{ left: 0, top: 0, zIndex: -900 }} width={WORLD.width} height={WORLD.height} aria-hidden="true">
-      <ellipse cx={plaza.x} cy={plaza.y} rx="190" ry="78" fill="#3f8f2f" opacity=".3" />
-      <polyline points={points} fill="none" stroke="#3f8f2f" strokeWidth="128" strokeLinecap="round" strokeLinejoin="round" opacity=".3" />
-      <ellipse cx={plaza.x} cy={plaza.y} rx="178" ry="68" fill="#a87545" />
-      <polyline points={points} fill="none" stroke="#a87545" strokeWidth="112" strokeLinecap="round" strokeLinejoin="round" />
-      <ellipse cx={plaza.x} cy={plaza.y - 2} rx="170" ry="62" fill="#d4a86e" />
-      <polyline points={points} fill="none" stroke="#d4a86e" strokeWidth="100" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points={points} fill="none" stroke="#e3bf8a" strokeWidth="58" strokeLinecap="round" strokeLinejoin="round" opacity=".75" />
-      <ellipse cx={plaza.x} cy={plaza.y - 4} rx="120" ry="38" fill="#e3bf8a" opacity=".75" />
-      <polyline points={points} fill="none" stroke="#c49460" strokeWidth="5" strokeLinecap="round" strokeDasharray="1 26" opacity=".7" />
-      {stones.map((stone, index) => <g key={index}><ellipse cx={stone.x} cy={stone.y + 1.5} rx={stone.r + 1} ry={stone.r * 0.7 + 1} fill="#8f6a40" opacity=".5" /><ellipse cx={stone.x} cy={stone.y} rx={stone.r} ry={stone.r * 0.7} fill={stone.light ? "#cfc3a8" : "#ab9f88"} /></g>)}
-    </svg>
-  );
-}
-
-// Side view, used for the top and bottom fences: pointed pickets on two rails, with a post every few.
+// The top and bottom fences: plain posts on two rails. Kept simple so it reads cleanly.
+const FENCE_WOOD = "#d79b5c";
+const FENCE_DARK = "#8a5428";
+const FENCE_LINE = "#5a3317";
 function FenceRun({ width }: { width: number }) {
-  const pickets = Array.from({ length: Math.floor(width / 30) + 1 }, (_, index) => index * 30);
+  const count = Math.max(1, Math.round(width / 110));
+  const posts = Array.from({ length: count + 1 }, (_, index) => (index * width) / count);
   return (
-    <svg width={width + 24} height="66" viewBox={`-12 0 ${width + 24} 66`} aria-hidden="true">
-      <rect x="-8" y="56" width={width + 16} height="9" rx="4" fill="rgba(0,0,0,.16)" />
-      <rect x="-6" y="22" width={width + 12} height="10" rx="4" fill="#b8773c" stroke="#3B1F0E" strokeWidth="3" />
-      <rect x="-6" y="40" width={width + 12} height="10" rx="4" fill="#b8773c" stroke="#3B1F0E" strokeWidth="3" />
-      {pickets.map((x, index) => index % 6 === 0
-        ? <g key={x}><rect x={x - 9} y="2" width="18" height="58" rx="5" fill="#d08a4c" stroke="#3B1F0E" strokeWidth="3" /><rect x={x - 11} y="0" width="22" height="8" rx="4" fill="#e3a565" stroke="#3B1F0E" strokeWidth="3" /></g>
-        : <g key={x}><path d={`M${x - 8} 58 V14 L${x} 5 L${x + 8} 14 V58Z`} fill="#e7ad6e" stroke="#3B1F0E" strokeWidth="3" strokeLinejoin="round" /><path d={`M${x + 3} 15 V55`} stroke="#c98a4b" strokeWidth="3" /></g>)}
+    <svg width={width + 24} height="60" viewBox={`-12 0 ${width + 24} 60`} aria-hidden="true">
+      <rect x="-6" y="52" width={width + 12} height="6" rx="3" fill="rgba(0,0,0,.12)" />
+      <rect x="-4" y="18" width={width + 8} height="9" rx="4.5" fill={FENCE_WOOD} stroke={FENCE_LINE} strokeWidth="2.5" />
+      <rect x="-4" y="36" width={width + 8} height="9" rx="4.5" fill={FENCE_WOOD} stroke={FENCE_LINE} strokeWidth="2.5" />
+      {posts.map((x) => <rect key={x} x={x - 8} y="6" width="16" height="48" rx="5" fill={FENCE_DARK} stroke={FENCE_LINE} strokeWidth="2.5" />)}
     </svg>
   );
 }
 
-function Picket() {
-  return <svg className="garden-picket" width="20" height="50" viewBox="0 0 20 50" aria-hidden="true"><ellipse cx="10" cy="47" rx="9" ry="3" fill="rgba(0,0,0,.16)" /><path d="M2 46 V12 L10 3 L18 12 V46Z" fill="#e7ad6e" stroke="#3B1F0E" strokeWidth="3" strokeLinejoin="round" /><path d="M13 13 V43" stroke="#c98a4b" strokeWidth="3" /></svg>;
+// A side fence seen from above: one rail with a post every so often.
+function FenceSide({ height }: { height: number }) {
+  const count = Math.max(1, Math.round(height / 110));
+  const posts = Array.from({ length: count + 1 }, (_, index) => (index * height) / count);
+  return (
+    <svg width="24" height={height + 12} viewBox={`-12 -6 24 ${height + 12}`} aria-hidden="true">
+      <rect x="-4.5" y="0" width="9" height={height} rx="4.5" fill={FENCE_WOOD} stroke={FENCE_LINE} strokeWidth="2.5" />
+      {posts.map((y) => <rect key={y} x="-8" y={y - 6} width="16" height="16" rx="5" fill={FENCE_DARK} stroke={FENCE_LINE} strokeWidth="2.5" />)}
+    </svg>
+  );
 }
 
 function GatePost({ x, y }: { x: number; y: number }) {
@@ -256,21 +200,15 @@ function GatePost({ x, y }: { x: number; y: number }) {
 }
 
 function Fence({ isOwner }: { isOwner: boolean }) {
-  const sides: { x: number; y: number }[] = [];
-  for (let y = GARDEN.y + 40; y < FRONT - 20; y += 34) {
-    sides.push({ x: GARDEN.x, y });
-    sides.push({ x: GARDEN.x + GARDEN.width, y });
-  }
   const leftWidth = GATE.x - GATE.width / 2 - GARDEN.x;
   const rightStart = GATE.x + GATE.width / 2;
   return (
     <>
-      <div className="garden-fence-run" style={{ left: GARDEN.x - 12, top: GARDEN.y - 52, zIndex: GARDEN.y }}><FenceRun width={GARDEN.width} /></div>
-      <div className="garden-fence-run" style={{ left: GARDEN.x - 12, top: FRONT - 52, zIndex: FRONT }}><FenceRun width={leftWidth} /></div>
-      <div className="garden-fence-run" style={{ left: rightStart - 12, top: FRONT - 52, zIndex: FRONT }}><FenceRun width={GARDEN.x + GARDEN.width - rightStart} /></div>
-      <div className="garden-fence-rail" style={{ left: GARDEN.x - 5, top: GARDEN.y, height: GARDEN.height }} />
-      <div className="garden-fence-rail" style={{ left: GARDEN.x + GARDEN.width - 5, top: GARDEN.y, height: GARDEN.height }} />
-      {sides.map((post, index) => <span key={index} className="garden-decor" style={{ left: post.x, top: post.y, zIndex: post.y, transform: "translate(-50%, -100%)" }}><Picket /></span>)}
+      <div className="garden-fence-run" style={{ left: GARDEN.x - 12, top: GARDEN.y - 46, zIndex: GARDEN.y }}><FenceRun width={GARDEN.width} /></div>
+      <div className="garden-fence-run" style={{ left: GARDEN.x - 12, top: FRONT - 46, zIndex: FRONT }}><FenceRun width={leftWidth} /></div>
+      <div className="garden-fence-run" style={{ left: rightStart - 12, top: FRONT - 46, zIndex: FRONT }}><FenceRun width={GARDEN.x + GARDEN.width - rightStart} /></div>
+      <div className="garden-fence-run" style={{ left: GARDEN.x - 12, top: GARDEN.y - 6, zIndex: GARDEN.y }}><FenceSide height={GARDEN.height} /></div>
+      <div className="garden-fence-run" style={{ left: GARDEN.x + GARDEN.width - 12, top: GARDEN.y - 6, zIndex: GARDEN.y }}><FenceSide height={GARDEN.height} /></div>
       <GatePost x={GATE.x - GATE.width / 2} y={FRONT + 8} />
       <GatePost x={GATE.x + GATE.width / 2} y={FRONT + 8} />
       <img src={`/assets/garden/sign-${isOwner ? "yours" : "theirs"}.svg`} alt={isOwner ? "Your Garden" : "Their Garden"} className="garden-sign" style={{ left: SIGN.x, top: SIGN.y, zIndex: SIGN.y }} draggable={false} />
@@ -288,7 +226,6 @@ export const Meadow = memo(function Meadow({ isOwner, lite = false }: { isOwner:
   return (
     <>
       {lite ? <LiteGround /> : <Ground />}
-      {lite ? <LitePath /> : <Path />}
       <div className="garden-lawn" style={{ left: GARDEN.x, top: GARDEN.y, width: GARDEN.width, height: GARDEN.height }} />
       {ROWS.map((row, index) => <div key={index} className="garden-row" style={{ left: row.x, top: row.y, width: row.width, height: row.height }} />)}
       {(lite ? LITE_DECOR : DECOR).map((item, index) => <DecorSprite key={index} item={item} />)}
@@ -358,10 +295,3 @@ export function CropArt({ seed, progress, size = 1 }: { seed: SeedName; progress
   return <img src={list[frame]} alt="" className={`garden-growth${ready ? " is-ready" : ""}`} style={ready ? { scale: String(0.75 + size * 0.3) } : undefined} draggable={false} />;
 }
 
-export function SeedStand({ near }: { near: boolean }) {
-  return (
-    <div className={`garden-stand${near ? " is-near" : ""}`} style={{ left: STAND.x, top: STAND.y, zIndex: STAND.y }}>
-      <img src="/assets/garden/seed-shop.svg" alt="Ted's Seed Shop" className="garden-stand-img" draggable={false} />
-    </div>
-  );
-}

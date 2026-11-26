@@ -3725,10 +3725,7 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
 .profile-quick-actions .profile-block-button { color: #ffb4a8; }
 
 /* Garden v2: two dirt rows you plant anywhere on, free-standing plants, props and the new HUD. */
-.garden-row { position: absolute; z-index: -790; border-radius: 26px; background:
-  repeating-linear-gradient(0deg, rgba(60, 30, 10, .22) 0 6px, transparent 6px 34px),
-  radial-gradient(circle at 20% 30%, rgba(255, 220, 170, .14) 0 2px, transparent 2.6px) 0 0 / 22px 19px,
-  linear-gradient(180deg, #8a5a32, #7a4c28);
+.garden-row { position: absolute; z-index: -790; border-radius: 26px; background: #8a5a32;
   box-shadow: 0 0 0 8px #a86d34, 0 0 0 12px #5a3317, 0 10px 0 12px rgba(0, 0, 0, .14), inset 0 8px 14px rgba(0, 0, 0, .25); }
 .garden-plant { position: absolute; display: block; width: 96px; height: 96px; margin: -90px 0 0 -48px; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .garden-world .garden-plant:hover:not(:disabled), .garden-world .garden-plant:active:not(:disabled) { transform: none; scale: 1; box-shadow: none; }
@@ -3814,11 +3811,8 @@ main.breadlet-blue-theme.breadlet-blue-theme .chat-clan-info span, .chat-clan-in
   .garden-book-left .garden-book-number { display: none; }
 }
 
-/* Garden: rows now run front to back, so the furrows do too. */
-.garden-row { background:
-  repeating-linear-gradient(90deg, rgba(60, 30, 10, .22) 0 6px, transparent 6px 34px),
-  radial-gradient(circle at 20% 30%, rgba(255, 220, 170, .14) 0 2px, transparent 2.6px) 0 0 / 22px 19px,
-  linear-gradient(90deg, #8a5a32, #7a4c28); }
+/* Garden rows: solid soil. */
+.garden-row { background: #8a5a32; }
 .garden-decor-img { height: auto; pointer-events: none; filter: drop-shadow(0 5px 3px rgba(0, 0, 0, .18)); }
 /* Edit mode. */
 .garden-chip.is-on { background: #F0894A; }
@@ -4730,3 +4724,26 @@ main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"] svg { anim
 
 /* Bonus garden seed after a pack's Breadlet. */
 .reveal-seed-note { margin-top: 10px; font-size: .9rem; font-weight: 800; opacity: .85; }
+
+/* Picking a crop: it pops up like a Breadlet from a bag, then fades away (click to skip). */
+.garden-pick { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: radial-gradient(circle at 50% 45%, rgba(40, 22, 8, .35), rgba(20, 10, 4, .55)); cursor: pointer; animation: garden-pick-fade 2.6s ease both; }
+.garden-pick.is-breadlet { animation-duration: 4.5s; }
+.garden-pick-stage { position: relative; display: grid; width: 190px; height: 190px; place-items: center; }
+.garden-pick-art { position: relative; width: 150px; height: 150px; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .35)); animation: garden-pick-pop .6s cubic-bezier(.2, 1.5, .4, 1) both; }
+.garden-pick-rays { position: absolute; inset: -60px; border-radius: 50%; background: repeating-conic-gradient(rgba(255, 214, 120, .45) 0 12deg, transparent 12deg 30deg); -webkit-mask: radial-gradient(circle, #000 25%, transparent 68%); mask: radial-gradient(circle, #000 25%, transparent 68%); animation: garden-pick-spin 6s linear infinite, garden-pick-grow .5s ease-out both; }
+.garden-pick.is-breadlet .garden-pick-rays { background: repeating-conic-gradient(rgba(255, 140, 60, .6) 0 12deg, transparent 12deg 30deg); }
+.garden-pick-burst i { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: #ffd27a; transform: rotate(var(--a)) translateY(0); animation: garden-pick-burst .7s ease-out .1s both; }
+.garden-pick-burst i:nth-child(even) { background: #ff9a3c; width: 9px; height: 9px; }
+.garden-pick-text { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; animation: garden-pick-up .45s ease-out .2s both; }
+.garden-pick-text small { font-weight: 800; color: #ffe3c2; text-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+.garden-pick-text b { font-size: 2rem; font-weight: 900; color: #fff; text-shadow: 0 3px 0 #5a3317, 0 0 18px rgba(255, 180, 80, .6); }
+.garden-pick-tags { display: flex; gap: 8px; }
+.garden-pick-tags span { display: flex; align-items: center; gap: 5px; padding: 4px 12px; border: 3px solid #13120F; border-radius: 999px; background: #f0894a; font-weight: 900; color: #fff; box-shadow: 0 3px 0 #13120F; }
+.garden-pick-tags img { width: 20px; height: 20px; object-fit: contain; }
+@keyframes garden-pick-pop { 0% { transform: translateY(40px) scale(.2) rotate(-12deg); opacity: 0; } 70% { transform: translateY(-6px) scale(1.12) rotate(4deg); opacity: 1; } 100% { transform: none; } }
+@keyframes garden-pick-spin { to { rotate: 360deg; } }
+@keyframes garden-pick-grow { from { transform: scale(.3); opacity: 0; } }
+@keyframes garden-pick-burst { 0% { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; } 100% { transform: rotate(var(--a)) translateY(-120px) scale(.3); opacity: 0; } }
+@keyframes garden-pick-up { from { transform: translateY(16px); opacity: 0; } }
+@keyframes garden-pick-fade { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .garden-pick, .garden-pick-art, .garden-pick-rays, .garden-pick-burst i, .garden-pick-text { animation: none !important; } }

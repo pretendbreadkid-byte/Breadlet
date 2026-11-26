@@ -16,13 +16,13 @@ import {
   type Crop, type FieldsView, type PlacedProp, type PropKind, type SeedName,
 } from "../../lib/fields";
 import { GardenBook, gardenBookSeen } from "./garden-book";
-import { Ambient, CropArt, GARDEN, GATE, Meadow, WORLD, gardenCollide, propCircles } from "./garden-art";
+import { Ambient, CropArt, GARDEN, GATE, Meadow, WALK_AREA, WORLD, gardenCollide, propCircles } from "./garden-art";
 
 const REACH = 120;
 // How long a visitor waits after the owner leaves before the garden closes on them.
 const OWNER_GONE_MS = 6000;
 
-const clamp = (x: number, y: number) => ({ x: Math.max(40, Math.min(WORLD.width - 40, x)), y: Math.max(90, Math.min(WORLD.height - 30, y)) });
+const clamp = (x: number, y: number) => ({ x: Math.max(WALK_AREA.left, Math.min(WALK_AREA.right, x)), y: Math.max(WALK_AREA.top, Math.min(WALK_AREA.bottom, y)) });
 type Point = { x: number; y: number };
 type Target = { kind: "plant"; id: string } | { kind: "spot"; x: number; y: number } | { kind: "place"; prop: PropKind; x: number; y: number };
 type Panel = "basket" | "people" | "props" | null;
@@ -44,7 +44,7 @@ const SEED_ART: Record<SeedName, string> = {
   "Ghost Pepper": "/assets/garden/seed-ghost-pepper.svg",
 };
 
-type GardenResponse = FieldsView & { tokens?: number; message?: string; breadlet?: string; payout?: number; crop?: Crop };
+type GardenResponse = FieldsView & { tokens?: number; message?: string; breadlet?: string; payout?: number; crop?: Crop; gardenTokensEarned?: number };
 const cropName = (crop: Crop) => `${sizeLabel(crop.size)} ${crop.seed}`;
 
 export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onExit, artFor }: {
@@ -68,6 +68,9 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const [heldId, setHeldId] = useState<string | null>(null);
   // Harvesting: your Breadlet takes out a trowel and digs for a moment.
   const [digging, setDigging] = useState(0);
+  // Picking a crop shows it off like opening a Breadlet: it pops up, then goes in the basket.
+  const [picked, setPicked] = useState<{ key: number; crop: Crop; breadlet?: string; tokens?: number } | null>(null);
+  useEffect(() => { if (!picked) return; const timer = window.setTimeout(() => setPicked(null), picked.breadlet ? 4500 : 2600); return () => window.clearTimeout(timer); }, [picked]);
   useEffect(() => { if (!digging) return; const timer = window.setTimeout(() => setDigging(0), 1100); return () => window.clearTimeout(timer); }, [digging]);
   const [giveTo, setGiveTo] = useState<string | null>(null);
   const [hotbarOpen, setHotbarOpen] = useState(true);
@@ -230,7 +233,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     if ((plant.plantedBy || fields.owner.id) !== player.id) return setToast(`That's ${plant.plantedByName || fields.owner.username}'s ${seed.name}.`);
     if (now < readyAt(plant, seed)) return setToast(`${seed.name} is still growing: ${clock(readyAt(plant, seed) - now)} left.`);
     setDigging(Date.now());
-    void post({ action: "harvest", plant: plant.id }).then((data) => data?.crop && float(plant.x, plant.y - 90, cropName(data.crop), "crop", data.crop.seed));
+    void post({ action: "harvest", plant: plant.id }).then((data) => { if (data?.crop) setPicked({ key: Date.now(), crop: data.crop, breadlet: data.breadlet, tokens: data.gardenTokensEarned }); });
   };
 
   // The fence is solid, so walking in or out of the garden goes through the gate.
@@ -565,6 +568,25 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
           </button>
         </div>
       </div>
+
+      {picked && (
+        <div key={picked.key} className={`garden-pick${picked.breadlet ? " is-breadlet" : ""}`} onPointerDown={(event) => { event.stopPropagation(); setPicked(null); }} role="status" aria-live="polite">
+          <div className="garden-pick-stage">
+            <span className="garden-pick-rays" aria-hidden="true" />
+            <span className="garden-pick-burst" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <i key={index} style={{ "--a": `${index * 36}deg` } as React.CSSProperties} />)}</span>
+            <img src={artFor(picked.breadlet || picked.crop.seed)} alt="" className="garden-pick-art" draggable={false} />
+          </div>
+          <div className="garden-pick-text">
+            <small>{picked.breadlet ? "WOW! A Breadlet grew!" : "You picked"}</small>
+            <b>{picked.breadlet ? `${picked.breadlet} Breadlet` : cropName(picked.crop)}</b>
+            <span className="garden-pick-tags">
+              <span><img src="/assets/Bread%20bucks.svg" alt="" />{cropValue(picked.crop.seed, picked.crop.size)}</span>
+              {picked.tokens ? <span><img src={GARDEN_TOKEN_ART} alt="" />+{picked.tokens}</span> : null}
+            </span>
+            {picked.breadlet && <small>It&apos;s in your Breadlets, and a {cropName(picked.crop)} went in your basket.</small>}
+          </div>
+        </div>
+      )}
 
       {bookOpen && <GardenBook seedArt={SEED_ART} artFor={artFor} onClose={() => setBookOpen(false)} />}
 
