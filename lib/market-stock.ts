@@ -14,6 +14,7 @@ export const marketPackStock: MarketPackStock[] = [
   { name: "Bread Bag", chance: 0.1 },
   { name: "Candy Bag", chance: 0.8 },
   { name: "Toxic Bag", chance: 0.8 },
+  { name: "Backyard Bag", chance: 0.6 },
 ];
 
 const hourlyRollFor = (hour: string, packName: string) => {

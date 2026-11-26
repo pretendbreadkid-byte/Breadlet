@@ -538,6 +538,41 @@ export const liveCapsules: Capsule[] = [
   {
     // Shows in the shop now, opens November 1 (seasonalPackOpensAt in market-stock.ts).
     // More Breadlets are coming to this pack.
+    name: "Backyard Bag",
+    price: 25,
+    // Same tier odds as the Toxic Bag (no Secret). The Queen Bee is the Breadled, 0.005% like the
+    // other Breadleds. Checked by npm run test:packs.
+    rarityChances: { Epic: 6, Legendary: 1.5, Mythic: 0.3 },
+    art: "/assets/bags/backyard-bag.webp",
+    pool: rewards([
+      ["Chalk", "Common"],
+      ["Shovel", "Common"],
+      ["Trowel", "Common"],
+      ["Frisbee", "Uncommon"],
+      ["Sand Pit", "Uncommon"],
+      ["Pool", "Uncommon"],
+      ["Cactus", "Rare"],
+      ["Bee Hive", "Rare"],
+      ["Sunflower", "Epic"],
+      ["Firefly", "Legendary"],
+      ["Garden Gnome", "Mythic"],
+      ["Queen Bee", "Breadled"],
+    ], {
+      Chalk: "/assets/breadlets/backyard-bag/chalk.webp",
+      Shovel: "/assets/breadlets/backyard-bag/shovel.webp",
+      Trowel: "/assets/breadlets/backyard-bag/trowel.webp",
+      Frisbee: "/assets/breadlets/backyard-bag/frisbee.webp",
+      "Sand Pit": "/assets/breadlets/backyard-bag/sand-pit.webp",
+      Pool: "/assets/breadlets/backyard-bag/pool.webp",
+      Cactus: "/assets/breadlets/backyard-bag/cactus.webp",
+      "Bee Hive": "/assets/breadlets/backyard-bag/bee-hive.webp",
+      Sunflower: "/assets/breadlets/backyard-bag/sunflower.webp",
+      Firefly: "/assets/breadlets/backyard-bag/firefly.webp",
+      "Garden Gnome": "/assets/breadlets/backyard-bag/garden-gnome.webp",
+      "Queen Bee": "/assets/breadlets/backyard-bag/queen-bee.webp",
+    }, { "Queen Bee": 0.005 }),
+  },
+  {
     name: "Fall Bag",
     price: 25,
     seasonal: true,
@@ -552,8 +587,15 @@ export const liveCapsules: Capsule[] = [
       ["Corn", "Rare"],
       ["Cooked Turkey", "Legendary"],
       ["Caramel Apple", "Secret"],
+      ["Pilgrim Ted", "Secret"],
       ["Tanuki", "Breadled"],
-    ], {}, { Tanuki: 0.005 }),
+      ["Autumn Kitsune", "Breadled"],
+    ], {
+      "Pilgrim Ted": "/assets/breadlets/fall-bag/pilgrim-ted.webp",
+      "Autumn Kitsune": "/assets/breadlets/fall-bag/autumn-kitsune.webp",
+    // 5 times as likely as the other Breadlet of the same rarity: Pilgrim Ted 0.05% (Caramel Apple
+    // 0.01%), Autumn Kitsune 0.025% (Tanuki 0.005%).
+    }, { Tanuki: 0.005, "Pilgrim Ted": 0.05, "Autumn Kitsune": 0.025 }),
   },
 ];
 
