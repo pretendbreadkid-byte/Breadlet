@@ -1,7 +1,7 @@
 "use client";
 
 // Games tab (test): the Breadlet Garden. A full-screen meadow you walk around as your equipped
-// Breadlet. Every player has their own garden: buy seeds from Ted's Seed Stand (down the path), plant
+// Breadlet. Every player has their own garden: get seeds from Goodybags (a 1 in 8 bonus), plant
 // them anywhere on the two dirt rows, come back and pick them into your basket. Owners invite players
 // with a link and choose who may plant and who may build (place props from the Props shop).
 // Everything that costs or pays is decided by /api/fields.
@@ -11,12 +11,12 @@ import { ArrowLeft, Boxes, Gauge, FlipHorizontal, Minus, Move, Plus, ChevronDown
 import { useSettings } from "./settings-tab";
 import { WalkChat, WalkerSprite, useWalkWorld } from "./walk-world";
 import {
-  DAILY_EARN_LIMIT, GARDEN_TOKEN_ART, MAX_BASKET, MAX_SEEDS_PER_BUY, PLANT_GAP, PROPS, SEEDS,
-  MAX_PROP_SCALE, MIN_PROP_SCALE, canPlaceProp, cropValue, nextSeedRestock, readyAt, seedStockFor, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
+  DAILY_EARN_LIMIT, GARDEN_TOKEN_ART, MAX_BASKET, PLANT_GAP, PROPS, SEEDS,
+  MAX_PROP_SCALE, MIN_PROP_SCALE, canPlaceProp, cropValue, readyAt, gardenInviteLink, inRow, propNamed, seedNamed, sizeLabel,
   type Crop, type FieldsView, type PlacedProp, type PropKind, type SeedName,
 } from "../../lib/fields";
 import { GardenBook, gardenBookSeen } from "./garden-book";
-import { Ambient, CropArt, GARDEN, GATE, Meadow, STAND, SeedStand, WORLD, gardenCollide, propCircles } from "./garden-art";
+import { Ambient, CropArt, GARDEN, GATE, Meadow, WORLD, gardenCollide, propCircles } from "./garden-art";
 
 const REACH = 120;
 // How long a visitor waits after the owner leaves before the garden closes on them.
@@ -24,8 +24,8 @@ const OWNER_GONE_MS = 6000;
 
 const clamp = (x: number, y: number) => ({ x: Math.max(40, Math.min(WORLD.width - 40, x)), y: Math.max(90, Math.min(WORLD.height - 30, y)) });
 type Point = { x: number; y: number };
-type Target = { kind: "stand" } | { kind: "plant"; id: string } | { kind: "spot"; x: number; y: number } | { kind: "place"; prop: PropKind; x: number; y: number };
-type Panel = "shop" | "basket" | "people" | "props" | null;
+type Target = { kind: "plant"; id: string } | { kind: "spot"; x: number; y: number } | { kind: "place"; prop: PropKind; x: number; y: number };
+type Panel = "basket" | "people" | "props" | null;
 
 const clock = (ms: number) => {
   const seconds = Math.max(0, Math.ceil(ms / 1000));
@@ -88,8 +88,6 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   // Performance mode (saved in settings): a plainer map with no butterflies or sparkles.
   const { settings: gardenSettings, update: updateSettings } = useSettings();
   const lite = gardenSettings.gardenPerformance;
-  const [buyWarn, setBuyWarn] = useState<{ seed: SeedName; amount: number; room: number } | null>(null);
-  const limitWarned = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const act = useRef<{ choose: (target: any) => void; viewportPoint: (x: number, y: number) => { x: number; y: number }; post: (body: Record<string, unknown>) => Promise<unknown> }>(null!);
   const [floaters, setFloaters] = useState<{ id: number; x: number; y: number; text: string; kind: "coins" | "puff" | "crop"; seed?: SeedName }[]>([]);
@@ -198,27 +196,25 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const freeSpot = (x: number, y: number) => inRow(x, y) && !plants.some((plant) => Math.hypot(plant.x - x, plant.y - y) < PLANT_GAP);
 
   const spotOf = (target: Target): Point => {
-    if (target.kind === "stand") return { x: STAND.x, y: STAND.y + 40 };
     if (target.kind === "plant") return plantById(target.id) || { x: -9999, y: -9999 };
     return { x: target.x, y: target.y };
   };
   const isNear = (target: Target) => {
     const spot = spotOf(target);
-    const reach = target.kind === "stand" ? REACH + 50 : target.kind === "place" ? REACH + 80 : REACH;
+    const reach = target.kind === "place" ? REACH + 80 : REACH;
     return Math.hypot(me.x - spot.x, me.y - spot.y) < reach;
   };
 
   const plantSeed = (x: number, y: number) => {
     if (!fields || !selected) return;
     if (!fields.canPlant) return setToast(`Ask ${fields.owner.username} to let you plant here.`);
-    if (fields.seeds[selected] < 1) return setToast(`You have no ${selected} seeds. Follow the path to Ted's Seed Stand!`);
+    if (fields.seeds[selected] < 1) return setToast(`You have no ${selected} seeds. Open Goodybags: 1 in 8 has a bonus seed!`);
     if (!freeSpot(x, y)) return setToast(inRow(x, y) ? "That's too close to another plant." : "Plant it on one of the dirt rows.");
     void post({ action: "plant", seed: selected, x: Math.round(x), y: Math.round(y) }).then((data) => data && float(x, y, "", "puff"));
   };
 
   const interact = (target: Target) => {
     if (!fields) return;
-    if (target.kind === "stand") return setPanel("shop");
     if (target.kind === "spot") return plantSeed(target.x, target.y);
     if (target.kind === "place") {
       void post({ action: "place", kind: target.prop, x: Math.round(target.x), y: Math.round(target.y) }).then((data) => {
@@ -261,7 +257,7 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     if (isNear(target)) return interact(target);
     pendingRef.current = target;
     const spot = spotOf(target);
-    goTo(spot.x, spot.y + (target.kind === "stand" ? 60 : target.kind === "place" ? 70 : 30));
+    goTo(spot.x, spot.y + (target.kind === "place" ? 70 : 30));
   };
   useEffect(() => {
     const pending = pendingRef.current;
@@ -290,7 +286,8 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
     goTo(point.x, point.y);
   };
 
-  const targets: Target[] = useMemo(() => [{ kind: "stand" }, ...plants.map((plant) => ({ kind: "plant" as const, id: plant.id }))], [plants]);
+  // Ted's Seed Stand is closed (seeds come from Goodybags now), so only plants can be walked up to.
+  const targets: Target[] = useMemo(() => [...plants.map((plant) => ({ kind: "plant" as const, id: plant.id }))], [plants]);
   const nearest = targets.filter(isNear).sort((a, b) => Math.hypot(me.x - spotOf(a).x, me.y - spotOf(a).y) - Math.hypot(me.x - spotOf(b).x, me.y - spotOf(b).y))[0] || null;
   const nearestPlant = nearest?.kind === "plant" ? plantById(nearest.id) : undefined;
   const nearestSeed = nearestPlant && seedNamed(nearestPlant.seed);
@@ -324,7 +321,6 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
   const hint = placing ? `Click the grass to place your ${placing} · Esc to stop`
     : nearestPlant && nearestSeed && nearestMine && nearestReady ? `Press E to pick your ${nearestPlant.size ? `${sizeLabel(nearestPlant.size)} ` : ""}${nearestSeed.name}`
     : canPlantHere ? `Press E or click a row to plant a ${selected} seed`
-    : nearest?.kind === "stand" ? "Press E to shop for seeds"
     : nearestPlant && nearestSeed ? (nearestMine ? `${nearestSeed.name} ready in ${clock(readyAt(nearestPlant, nearestSeed) - now)}` : `${nearestPlant.plantedByName || fields?.owner.username}'s ${nearestSeed.name}`)
     : selected && fields && !fields.canPlant ? `Only players ${fields.owner.username} allows can plant here`
     : selected ? "Click a dirt row to plant" : "WASD / arrow keys or click to walk";
@@ -423,19 +419,6 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
               </div>
             );
           }), [props, draft, editing, editId, propMenu, placing, busy, fields]);
-  const stockNow = seedStockFor(now);
-  // Buying more seeds than you could sell today gets a heads-up about the daily garden limit first.
-  const buySeeds = (name: SeedName, amount: number) => {
-    if (!fields) return;
-    const seed = seedNamed(name)!;
-    const room = Math.max(0, DAILY_EARN_LIMIT - fields.earnedToday);
-    const owned = SEEDS.reduce((sum, item) => sum + fields.seeds[item.name] * item.payout, 0) + basketValue;
-    if (!limitWarned.current && owned + seed.payout * amount > room) {
-      setBuyWarn({ seed: name, amount, room });
-      return;
-    }
-    void post({ action: "buy", seed: name, amount });
-  };
   const gardenMoney = <span className="garden-money garden-token-money" title="Garden Tokens"><img src={GARDEN_TOKEN_ART} alt="Garden Tokens" />{(fields?.gardenTokens || 0).toLocaleString()}</span>;
   const money = <span className="garden-money"><img src="/assets/Bread%20bucks.svg" alt="" />{tokens.toLocaleString()}</span>;
 
@@ -459,8 +442,6 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         className={`explore-viewport garden-viewport${placing ? " is-placing" : ""}${lite ? " is-lite" : ""}`}>
         <div data-walk-world className="garden-world" style={{ width: WORLD.width, height: WORLD.height }}>{/* the camera transform is set every frame by useWalkWorld */}
           <Meadow isOwner={fields ? fields.isOwner : !gardenId} lite={lite} />
-          <SeedStand near={nearest?.kind === "stand"} />
-          <button type="button" aria-label="Ted's Seed Stand" className="garden-stand-hit" style={{ left: STAND.x, top: STAND.y }} onPointerDown={(event) => { event.stopPropagation(); choose({ kind: "stand" }); }} />
 
           {plantLayer}
 
@@ -585,20 +566,6 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         </div>
       </div>
 
-      {buyWarn && (
-        <div className="garden-shop-layer garden-warn-layer" onPointerDown={() => setBuyWarn(null)}>
-          <section role="alertdialog" aria-modal="true" aria-labelledby="garden-warn-title" className="garden-warn" onPointerDown={(event) => event.stopPropagation()}>
-            <h2 id="garden-warn-title">That&apos;s a lot of seeds!</h2>
-            <p>You can only earn <b>{DAILY_EARN_LIMIT.toLocaleString()} Bread Bucks a day</b> from gardens{buyWarn.room < DAILY_EARN_LIMIT ? <>, and you have <b>{buyWarn.room.toLocaleString()}</b> left today</> : null}. Your seeds and crops could sell for more than that, so some of them will have to wait until tomorrow (midnight UTC) to sell.</p>
-            <p>You still get Garden Tokens for everything you pick.</p>
-            <div className="garden-warn-buttons">
-              <button type="button" onClick={() => setBuyWarn(null)}>Cancel</button>
-              <button type="button" className="is-go" onClick={() => { limitWarned.current = true; const { seed, amount } = buyWarn; setBuyWarn(null); void post({ action: "buy", seed, amount }); }}>Buy anyway</button>
-            </div>
-          </section>
-        </div>
-      )}
-
       {bookOpen && <GardenBook seedArt={SEED_ART} artFor={artFor} onClose={() => setBookOpen(false)} />}
 
       {panel === "basket" && fields && (
@@ -673,38 +640,6 @@ export function FieldsTab({ player, gardenId, tokens, onBalance, onBreadlet, onE
         </div>
       )}
 
-      {panel === "shop" && fields && (
-        <div className="garden-shop-layer" onPointerDown={() => setPanel(null)}>
-          <section role="dialog" aria-modal="true" aria-labelledby="garden-shop-title" className="garden-shop garden-seed-shop" onPointerDown={(event) => event.stopPropagation()}>
-            <header>
-              <img src="/assets/breadlets/other/ted.svg" alt="" />
-              <div><small>Ted&apos;s Seed Stand</small><h2 id="garden-shop-title">Fresh seeds!</h2></div>
-              {money}
-              <button type="button" onClick={() => setPanel(null)} aria-label="Close">×</button>
-            </header>
-            <div className="garden-shop-list">
-              <p className="garden-restock">New stock in {clock(nextSeedRestock(now) - now)}</p>
-              {SEEDS.map((seed) => (
-                <div key={seed.name} className={`garden-shop-row${stockNow[seed.name] ? "" : " is-out"}`}>
-                  <span className="garden-shop-art"><img src={SEED_ART[seed.name]} alt="" /></span>
-                  <span className="garden-shop-info">
-                    <b>{seed.name}</b>
-                    <small>{clock(seed.growMs)}{seed.regrowMs ? ` · then a pepper every ${clock(seed.regrowMs)}` : ""} · sells for ~<em>{seed.payout}</em></small>
-                    <small>{stockNow[seed.name] ? `You have ${fields.seeds[seed.name]}` : `Out of stock · ${Math.round(seed.stock * 100)}% chance each hour`}</small>
-                  </span>
-                  <span className="garden-shop-buy">
-                    {[1, 5].map((amount) => (
-                      <button key={amount} type="button" disabled={busy || !stockNow[seed.name] || tokens < seed.cost * amount} onClick={() => buySeeds(seed.name, Math.min(amount, MAX_SEEDS_PER_BUY))}>
-                        <span>x{amount}</span><img src="/assets/Bread%20bucks.svg" alt="" />{seed.cost * amount}
-                      </button>
-                    ))}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
     </div>,
     document.body,
   );

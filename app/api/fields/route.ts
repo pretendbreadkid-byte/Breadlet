@@ -296,21 +296,9 @@ export async function POST(request: Request) {
     return respond({ message: body.allow ? `They can ${what} in your garden now.` : `They can no longer ${what} in your garden.` });
   }
 
-  if (body.action === 'buy') {
-    const seed = seedNamed(body.seed);
-    const amount = Math.floor(Number(body.amount));
-    if (!seed) return fail('Pick a seed.');
-    if (!seedStockFor()[seed.name]) return fail(`${seed.name} seeds are out of stock. Ted restocks every hour.`);
-    if (!Number.isInteger(amount) || amount < 1 || amount > MAX_SEEDS_PER_BUY) return fail(`Buy 1 to ${MAX_SEEDS_PER_BUY} seeds at a time.`);
-    const paid = await changeTokens(database, userId, -seed.cost * amount);
-    if ('error' in paid) return fail(paid.error!);
-    const problem = await updateMine((state) => { state.seeds[seed.name] += amount; });
-    if (problem) {
-      await changeTokens(database, userId, seed.cost * amount);
-      return fail(problem, 409);
-    }
-    return respond({ tokens: paid.tokens, message: `Bought ${amount} ${seed.name} seed${amount === 1 ? '' : 's'}.` });
-  }
+  // Ted's Seed Shop is closed: seeds come from Goodybags now (a 1 in 8 bonus, lib/gameplay-actions).
+  if (body.action === 'buy') return fail("Ted's Seed Shop is closed. Seeds come from Goodybags now: 1 in 8 has a bonus seed!", 410);
+
 
   if (body.action === 'plant') {
     const seed = seedNamed(body.seed);

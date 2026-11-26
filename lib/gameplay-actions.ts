@@ -1,4 +1,4 @@
-import { luckyChanceFor as chanceFor, craftRecipeFor, dismantleBundleFor, isUntradableBreadlet, liveCapsules, packIsSafe, sellValueForBlook, untradableReason, wheelRewards } from './gameplay-catalog';
+import { luckyChanceFor as chanceFor, craftRecipeFor, dismantleBundleFor, isUntradableBreadlet, liveCapsules, packIsSafe, rollPackSeed, sellValueForBlook, untradableReason, wheelRewards } from './gameplay-catalog';
 import { isMarketPackInStock, isSeasonalPackLocked, seasonalPackOpensAt, type ForcedStock } from './market-stock';
 import type { Reward } from './gameplay-catalog';
 
@@ -17,7 +17,10 @@ export type GameplayPlan = {
   inventoryDelta: Record<string, number>;
   candyDelta: number;
   capsulesOpened: number;
-  results: { capsule: string; reward: Reward }[];
+  // seed: the bonus garden seed from that bag, if it had one (1 in 8).
+  results: { capsule: string; reward: Reward; seed?: string }[];
+  // Bonus garden seeds from bags, to add to the player's seed pouch.
+  seeds: Record<string, number>;
   crateReward?: (typeof wheelRewards)[number];
   sold: Record<string, number>;
   tokensEarned: number;
@@ -31,7 +34,7 @@ const integer = (value: unknown, maximum: number) => {
 
 export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySnapshot, random: () => number, now = new Date(), forcedStock: ForcedStock = {}): GameplayPlan {
   const action = String(body.action || '');
-  const plan: GameplayPlan = { action, tokenDelta: 0, materialDelta: {}, inventoryDelta: {}, candyDelta: 0, capsulesOpened: 0, results: [], sold: {}, tokensEarned: 0 };
+  const plan: GameplayPlan = { action, tokenDelta: 0, materialDelta: {}, inventoryDelta: {}, candyDelta: 0, capsulesOpened: 0, results: [], seeds: {}, sold: {}, tokensEarned: 0 };
   const addItem = (name: string, quantity: number) => { plan.inventoryDelta[name] = (plan.inventoryDelta[name] || 0) + quantity; };
   if (action === 'open') {
     if (!body.quantities || typeof body.quantities !== 'object' || Array.isArray(body.quantities)) throw new Error('Choose a Goodybag.');
@@ -59,7 +62,10 @@ export function planGameplay(body: Record<string, unknown>, snapshot: GameplaySn
         // Skip rewards at 0% (rotation items that aren't up today) so a roll can't land on one.
         const reward = capsule.pool.find((entry) => { const chance = chanceFor(capsule, entry, now); roll -= chance; return chance > 0 && roll < 0; }) || capsule.pool.filter((entry) => chanceFor(capsule, entry, now) > 0).at(-1)!;
         addItem(reward.name, 1);
-        plan.results.push({ capsule: capsule.name, reward });
+        // Paid bags also have a 1 in 8 chance of a bonus garden seed (counted in packIsSafe).
+        const seed = capsule.price > 0 ? rollPackSeed(random) : null;
+        if (seed) plan.seeds[seed] = (plan.seeds[seed] || 0) + 1;
+        plan.results.push({ capsule: capsule.name, reward, ...(seed ? { seed } : {}) });
       }
     }
   } else if (action === 'crate') {

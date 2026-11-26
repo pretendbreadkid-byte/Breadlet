@@ -250,7 +250,8 @@ export const liveCapsules: Capsule[] = [
     name: "Space Bag",
     price: 25,
     // Secret odds run 0.01% (smallest pack) to 0.09% (biggest pack) by pool size.
-    rarityChances: { Mythic: 0.3, Secret: 0.04 },
+    // Epic at 11% (it was 13%) to make room for the bonus garden seed (PACK_SEED_VALUE).
+    rarityChances: { Epic: 11, Mythic: 0.3, Secret: 0.04 },
     art: "/assets/space-bag-4.svg",
     pool: rewards([
       ["Mars", "Common"],
@@ -276,6 +277,8 @@ export const liveCapsules: Capsule[] = [
   {
     name: "Lost and Found Bag",
     price: 25,
+    // Legendary (the Tablet) at 5% (it was ~5.9%) to make room for the bonus garden seed.
+    rarityChances: { Legendary: 5 },
     art: "/assets/bags/lost-and-found-bag.svg",
     pool: rewards([
       ["Car Keys", "Common"],
@@ -649,6 +652,36 @@ export const powerHourAt = (now: number) => {
 export const MAX_PACK_RESALE_RATE = 0.9;
 const resaleOf = (reward: Reward) => sellValueForBlook(reward.name, reward.rarity);
 
+// Garden seeds from Goodybags. Every paid bag has a 1 in 8 chance of a bonus seed (it goes to your
+// garden's seed pouch). Then a second roll: most are Carrots or Potatoes, and only 4% are one of the
+// good seeds. value: the Bread Bucks the seed is worth on average once grown and sold (the crop's
+// payout in lib/fields.ts x the average crop size, 1.067; peppers keep fruiting, so they count as 10
+// picks). tests/pack-economy.test.cjs checks these match lib/fields.ts. The seed's value counts
+// toward the bag's payback, so bags still can't be farmed.
+export const PACK_SEED_CHANCE = 1 / 8;
+export const AVERAGE_CROP_SIZE = 0.6 + 1.4 / 3;
+export const PEPPER_PICKS_COUNTED = 10;
+export const PACK_SEEDS: { name: string; weight: number; payout: number; picks: number; rarity: string }[] = [
+  { name: "Carrot", weight: 88, payout: 12, picks: 1, rarity: "Common" },
+  { name: "Potato", weight: 8, payout: 55, picks: 1, rarity: "Uncommon" },
+  // The good ones (4%).
+  { name: "Pumpkin", weight: 2.5, payout: 120, picks: 1, rarity: "Rare" },
+  { name: "Avocado", weight: 0.7, payout: 210, picks: 1, rarity: "Epic" },
+  { name: "Pepper", weight: 0.5, payout: 33, picks: PEPPER_PICKS_COUNTED, rarity: "Epic" },
+  { name: "Ghost Pepper", weight: 0.2, payout: 74, picks: PEPPER_PICKS_COUNTED, rarity: "Legendary" },
+  { name: "Pumpkin Dragon", weight: 0.1, payout: 420, picks: 1, rarity: "Mythic" },
+];
+const seedWeightTotal = PACK_SEEDS.reduce((sum, seed) => sum + seed.weight, 0);
+// What the bonus seed adds to one bag on average, in Bread Bucks.
+export const PACK_SEED_VALUE = PACK_SEED_CHANCE * PACK_SEEDS.reduce((sum, seed) => sum + (seed.weight / seedWeightTotal) * seed.payout * seed.picks * AVERAGE_CROP_SIZE, 0);
+// Rolls a bag's bonus seed: null (7 in 8), or the seed's name.
+export const rollPackSeed = (random: () => number) => {
+  if (random() >= PACK_SEED_CHANCE) return null;
+  let roll = random() * seedWeightTotal;
+  return (PACK_SEEDS.find((seed) => (roll -= seed.weight) < 0) || PACK_SEEDS[0]).name;
+};
+const seedValueFor = (capsule: Capsule) => (capsule.price > 0 ? PACK_SEED_VALUE : 0);
+
 // Legendary and rarer Breadlets are up to 3x as likely; everything else shrinks so the odds still add
 // up. The boost is smaller for bags where 3x would push the average resale past the safe limit.
 const luckyRarity = (rarity: string) => rarityOrder.indexOf(rarity) >= rarityOrder.indexOf("Legendary");
@@ -659,7 +692,8 @@ export const powerHourLuckFor = (capsule: Capsule, date = new Date()) => {
     if (luckyRarity(item.rarity)) { lucky += chance; luckyValue += chance * resaleOf(item); }
     else { plain += chance; plainValue += chance * resaleOf(item); }
   }
-  const cap = capsule.price * MAX_PACK_RESALE_RATE * 0.97;
+  // The bonus seed's value takes up some of the room, so the boost is a bit smaller than before.
+  const cap = capsule.price * MAX_PACK_RESALE_RATE * 0.97 - seedValueFor(capsule);
   // Average resale with boost k is (plainValue + k * luckyValue) / (plain + k * lucky); solve for the cap.
   const room = luckyValue - cap * lucky;
   if (!lucky || room <= 0) return POWER_HOUR_LUCK;
@@ -680,4 +714,6 @@ export const packResaleFor = (capsule: Capsule, date = new Date()) => {
   const total = capsule.pool.reduce((sum, item) => sum + luckyChanceFor(capsule, item, date), 0);
   return total ? capsule.pool.reduce((sum, item) => sum + luckyChanceFor(capsule, item, date) * resaleOf(item), 0) / total : 0;
 };
-export const packIsSafe = (capsule: Capsule, date = new Date()) => capsule.price <= 0 || packResaleFor(capsule, date) < capsule.price * MAX_PACK_RESALE_RATE;
+// Breadlet resale plus the bonus seed's value.
+export const packPaybackFor = (capsule: Capsule, date = new Date()) => packResaleFor(capsule, date) + seedValueFor(capsule);
+export const packIsSafe = (capsule: Capsule, date = new Date()) => capsule.price <= 0 || packPaybackFor(capsule, date) < capsule.price * MAX_PACK_RESALE_RATE;

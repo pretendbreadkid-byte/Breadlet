@@ -52,7 +52,7 @@ const blocked = (x: number, y: number) =>
   || (Math.abs(x - SIGN.x) < 100 && y > SIGN.y - 150 && y < SIGN.y + 30)
   || TREES.some((tree) => Math.hypot(x - tree.x, y - tree.y + 60) < 125 * tree.size);
 
-// Things you can't walk through: the fence (except the gate), Ted's stand, the sign, the gate posts,
+// Things you can't walk through: the fence (except the gate), the sign, the gate posts,
 // tree trunks and props. Points are where a Breadlet's feet are.
 const SOLID_BOXES: [number, number, number, number][] = [
   [GARDEN.x - 24, GARDEN.y - 30, GARDEN.x + GARDEN.width + 24, GARDEN.y + 22],
@@ -60,7 +60,6 @@ const SOLID_BOXES: [number, number, number, number][] = [
   [GATE.x + 50, FRONT - 30, GARDEN.x + GARDEN.width + 24, FRONT + 22],
   [GARDEN.x - 24, GARDEN.y - 30, GARDEN.x + 22, FRONT + 22],
   [GARDEN.x + GARDEN.width - 22, GARDEN.y - 30, GARDEN.x + GARDEN.width + 24, FRONT + 22],
-  [STAND.x - 125, STAND.y - 80, STAND.x + 125, STAND.y + 8],
   [SIGN.x - 45, SIGN.y - 28, SIGN.x + 45, SIGN.y + 6],
 ];
 const SOLID_CIRCLES = [

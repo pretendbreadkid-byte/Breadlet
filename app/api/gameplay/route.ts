@@ -4,6 +4,7 @@ import { createClient } from '../../../lib/supabase/server';
 import { createAdminClient } from '../../../lib/supabase/admin';
 import { depositBankSpend } from '../../../lib/bank';
 import { planGameplay } from '../../../lib/gameplay-actions';
+import { addSeedsToPouch } from '../../../lib/garden-pouch';
 import { loadSiteEdits } from '../../../lib/site-edits-server';
 import type { GameplaySnapshot } from '../../../lib/gameplay-actions';
 import { GET as getPlayer } from '../player/route';
@@ -66,10 +67,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: missing ? 'Apply supabase/migrations/0015_secure_gameplay.sql to enable protected gameplay.' : error.message }, { status: missing ? 503 : 409 });
     }
     if (plan.tokenDelta < 0) await depositBankSpend(admin, user.id, -plan.tokenDelta);
+    // Bonus garden seeds from the bags go into the seed pouch. If that save fails, the seeds are
+    // dropped from the results so the reveal doesn't show a seed the player didn't get.
+    const seedsSaved = Object.keys(plan.seeds).length ? await addSeedsToPouch(admin, user.id, plan.seeds) : true;
+    const results = seedsSaved ? plan.results : plan.results.map(({ seed: _seed, ...result }) => result);
     const state = await getPlayer(request);
     if (!state.ok) return state;
     const player = await state.json();
-    return NextResponse.json({ player, results: plan.results, crateReward: plan.crateReward, sold: plan.sold, tokensEarned: plan.tokensEarned, tokens: player.profile.tokens });
+    return NextResponse.json({ player, results, crateReward: plan.crateReward, sold: plan.sold, tokensEarned: plan.tokensEarned, tokens: player.profile.tokens });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Invalid gameplay action.' }, { status: 400 });
   }

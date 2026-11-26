@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { DAILY_EARN_LIMIT, MAX_BASKET, PROPS, SEEDS, type SeedName } from "../../lib/fields";
+import { PACK_SEEDS } from "../../lib/gameplay-catalog";
 
 export const GARDEN_BOOK_SEEN_KEY = "breadlet-garden-book-seen";
 export const gardenBookSeen = () => {
@@ -17,13 +18,17 @@ const markSeen = () => {
 
 type Spread = { title: string; pictures: { src: string; label?: string }[]; lines: string[] };
 
+// How often a bag's bonus seed is this one.
+const seedTotal = PACK_SEEDS.reduce((sum, seed) => sum + seed.weight, 0);
+const seedOdds = (name: string) => `${+((((PACK_SEEDS.find((seed) => seed.name === name)?.weight || 0) / seedTotal) * 100).toFixed(1))}%`;
+
 const minutes = (ms: number) => (ms >= 3600000 ? `${ms / 3600000} hour${ms === 3600000 ? "" : "s"}` : `${ms / 60000} minutes`);
 
 export function GardenBook({ seedArt, artFor, onClose }: { seedArt: Record<SeedName, string>; artFor: (name: string) => string; onClose: () => void }) {
   const spreads: Spread[] = [
     {
       title: "The Breadlet Gardening Book",
-      pictures: [{ src: "/assets/garden/seed-shop.svg" }],
+      pictures: [{ src: seedArt.Carrot }],
       lines: [
         "Welcome to your garden!",
         "Grow crops on the two dirt rows, pick them into your basket, then sell them for Bread Bucks or give them to friends.",
@@ -34,7 +39,7 @@ export function GardenBook({ seedArt, artFor, onClose }: { seedArt: Record<SeedN
       title: "Planting",
       pictures: SEEDS.slice(0, 3).map((seed) => ({ src: seedArt[seed.name], label: seed.name })),
       lines: [
-        "Follow the path to Ted's Seed Stand and buy some seeds.",
+        "Get seeds from Goodybags: 1 in 8 bags has a bonus seed. Most are Carrots or Potatoes, and a few are rare ones.",
         "Pick a seed packet on your hotbar (keys 1 to 5). Click the same one again to put it away.",
         "Click anywhere on a dirt row (or press E while standing on one) to plant it. Plants need a little room, so don't plant them right on top of each other.",
       ],
@@ -43,8 +48,7 @@ export function GardenBook({ seedArt, artFor, onClose }: { seedArt: Record<SeedN
       title: seed.name,
       pictures: [{ src: seedArt[seed.name], label: "Seed" }, { src: artFor(seed.name), label: "Grown" }],
       lines: [
-        `Seed: ${seed.cost} Bread Bucks`,
-        seed.stock >= 1 ? `Always in stock at Ted's Seed Stand` : `In stock ${Math.round(seed.stock * 100)}% of hours (Ted restocks every hour)`,
+        `From Goodybags (${seedOdds(seed.name)} of bonus seeds)`,
         `Grows in ${minutes(seed.growMs)}`,
         ...(seed.regrowMs ? [`Stays planted and grows a new pepper every ${minutes(seed.regrowMs)}`] : []),
         `Gives ${seed.gardenTokens} Garden Token${seed.gardenTokens === 1 ? "" : "s"} when you pick it`,

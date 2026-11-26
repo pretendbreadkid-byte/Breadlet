@@ -10,18 +10,21 @@ export type SeedName = "Carrot" | "Potato" | "Pumpkin" | "Avocado" | "Pumpkin Dr
 // in the ground and grow a new crop in regrowMs.
 export type Seed = { name: SeedName; cost: number; growMs: number; payout: number; breadletChance: number; stock: number; gardenTokens: number; regrowMs?: number };
 
-// Every seed sells for more than it costs once grown; slower crops pay more per plant.
+// Seeds come from Goodybags (a 1 in 8 bonus, PACK_SEEDS in lib/gameplay-catalog.ts); Ted's Seed Shop
+// is closed. Payouts were cut by the old seed price when seeds became free, so each plant earns what
+// it did before. If you change a payout, change it in PACK_SEEDS too (the pack test checks).
+// cost and stock are left over from the shop. Slower crops pay more per plant.
 // Very rarely the harvest is the Breadlet itself (it goes to the inventory).
 export const SEEDS: Seed[] = [
-  { name: "Carrot", cost: 10, growMs: 2 * 60_000, payout: 22, breadletChance: 1 / 60, stock: 1, gardenTokens: 1 },
-  { name: "Potato", cost: 40, growMs: 10 * 60_000, payout: 95, breadletChance: 1 / 40, stock: 0.75, gardenTokens: 2 },
-  { name: "Pumpkin", cost: 90, growMs: 25 * 60_000, payout: 210, breadletChance: 1 / 35, stock: 0.5, gardenTokens: 4 },
-  { name: "Avocado", cost: 150, growMs: 60 * 60_000, payout: 360, breadletChance: 1 / 25, stock: 0.3, gardenTokens: 7 },
+  { name: "Carrot", cost: 10, growMs: 2 * 60_000, payout: 12, breadletChance: 1 / 60, stock: 1, gardenTokens: 1 },
+  { name: "Potato", cost: 40, growMs: 10 * 60_000, payout: 55, breadletChance: 1 / 40, stock: 0.75, gardenTokens: 2 },
+  { name: "Pumpkin", cost: 90, growMs: 25 * 60_000, payout: 120, breadletChance: 1 / 35, stock: 0.5, gardenTokens: 4 },
+  { name: "Avocado", cost: 150, growMs: 60 * 60_000, payout: 210, breadletChance: 1 / 25, stock: 0.3, gardenTokens: 7 },
   // The rare one: it can hatch the Pumpkin Dragon Breadlet (Unique, normally from the leaf shop).
-  { name: "Pumpkin Dragon", cost: 300, growMs: 2 * 60 * 60_000, payout: 720, breadletChance: 1 / 60, stock: 0.03, gardenTokens: 20 },
+  { name: "Pumpkin Dragon", cost: 300, growMs: 2 * 60 * 60_000, payout: 420, breadletChance: 1 / 60, stock: 0.03, gardenTokens: 20 },
   // Pepper plants: plant once, then pick peppers from them again and again.
-  { name: "Pepper", cost: 120, growMs: 45 * 60_000, regrowMs: 20 * 60_000, payout: 45, breadletChance: 1 / 200, stock: 0.4, gardenTokens: 2 },
-  { name: "Ghost Pepper", cost: 260, growMs: 90 * 60_000, regrowMs: 40 * 60_000, payout: 100, breadletChance: 1 / 300, stock: 0.15, gardenTokens: 4 },
+  { name: "Pepper", cost: 120, growMs: 45 * 60_000, regrowMs: 20 * 60_000, payout: 33, breadletChance: 1 / 200, stock: 0.4, gardenTokens: 2 },
+  { name: "Ghost Pepper", cost: 260, growMs: 90 * 60_000, regrowMs: 40 * 60_000, payout: 74, breadletChance: 1 / 300, stock: 0.15, gardenTokens: 4 },
 ];
 // When a plant's crop is ready to pick: the first time after growMs, then after each regrow.
 export const readyAt = (plant: { plantedAt: number; regrowAt?: number }, seed: Seed) => plant.regrowAt ?? plant.plantedAt + seed.growMs;

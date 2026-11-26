@@ -4727,3 +4727,6 @@ main.breadlet-blue-theme.breadlet-blue-theme [data-nav-id="calendar"] svg { anim
   100% { transform: rotate(150deg) scale(.6); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .garden-trowel img { animation: none; transform: rotate(160deg); } }
+
+/* Bonus garden seed after a pack's Breadlet. */
+.reveal-seed-note { margin-top: 10px; font-size: .9rem; font-weight: 800; opacity: .85; }

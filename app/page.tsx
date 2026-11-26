@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { luckyChanceFor as chanceFor, POWER_HOUR_LUCK, powerHourAt, isRewardActive, isUntradableBreadlet, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, untradableReason, wheelRewards } from "../lib/gameplay-catalog";
+import { luckyChanceFor as chanceFor, POWER_HOUR_LUCK, powerHourAt, isRewardActive, isUntradableBreadlet, PACK_SEEDS, rotationSlotFor, craftRecipeFor, craftRecipes, craftedRarityFor, dismantleBundleFor, legacyCapsules, liveCapsules, materialNames, rarityOrder, sellValueForBlook, sortByRarity, untradableReason, wheelRewards } from "../lib/gameplay-catalog";
 import type { Capsule, MaterialBundle, Reward } from "../lib/gameplay-catalog";
 import { isMarketPackInStock, isSeasonalPackLocked, marketPackStock, nextMarketRefreshAt, seasonalPackOpensAt, type ForcedStock } from "../lib/market-stock";
 import { GameTour } from "./components/game-tour";
@@ -815,6 +815,8 @@ function MainPage() {
     track: Reward[];
     winnerIndex: number;
     phase: "charging" | "spinning" | "result";
+    // The bonus garden seed shown after the Breadlet.
+    bonus?: boolean;
   } | null>(null);
   const [oddsCapsule, setOddsCapsule] = useState<Capsule | null>(null);
   const [badgeInfo, setBadgeInfo] = useState<string | null>(null);
@@ -1150,7 +1152,7 @@ function MainPage() {
         return null;
       }
       setPlayer(playerFromServer(result.player));
-      return result as { results: { capsule: string; reward: Reward }[]; crateReward?: (typeof wheelRewards)[number]; tokensEarned: number };
+      return result as { results: { capsule: string; reward: Reward; seed?: string }[]; crateReward?: (typeof wheelRewards)[number]; tokensEarned: number };
     } catch {
       setNotice("Could not reach the gameplay server. Refresh before retrying.");
       return null;
@@ -1421,7 +1423,7 @@ function MainPage() {
     ? { drop: 180, done: 400, dwell: 250 }
     : { drop: REVEAL_DROP_AT_MS, done: REVEAL_DONE_AT_MS, dwell: 1500 };
   // Plays the bag animation. Resolves once it's dismissed: by a click, or by itself during auto open.
-  const playReveal = (capsule: Capsule, reward: Reward) => new Promise<void>((resolve) => {
+  const playReveal = (capsule: Capsule, reward: Reward, bonus = false) => new Promise<void>((resolve) => {
     const timers: number[] = [];
     const times = revealTimes();
     let phase: "charging" | "spinning" | "result" = "charging";
@@ -1449,6 +1451,12 @@ function MainPage() {
       }
       finish();
     };
+    if (bonus) {
+      phase = "result";
+      setReveal({ capsule, reward, track: [], winnerIndex: 0, phase: "result", bonus: true });
+      if (autoRef.current) timers.push(window.setTimeout(finish, times.dwell + 400));
+      return;
+    }
     setReveal({ capsule, reward, track: [], winnerIndex: 0, phase: "charging" });
     timers.push(window.setTimeout(() => setPhase("spinning"), times.drop));
     timers.push(window.setTimeout(() => {
@@ -1472,6 +1480,9 @@ function MainPage() {
       const reward = result?.results[0]?.reward;
       if (!reward) return false;
       await playReveal(capsule, reward);
+      // 1 in 8 bags also has a garden seed: it shows next, like a second pull.
+      const seed = result?.results[0]?.seed;
+      if (seed) await playReveal(capsule, seedReward(seed), true);
       return true;
     }
     const total = capsule.pool.reduce((sum, reward) => sum + chanceFor(capsule, reward), 0);
@@ -4567,6 +4578,14 @@ const REVEAL_GLOW: Record<string, string> = { Common: "#cbd5e1", Uncommon: "#4ad
 // Pack opening over a blurred copy of the shop: the bag pops in, shakes, then drops off the bottom of
 // the screen to reveal the Breadlet, which stands on a soft ground shadow in a rarity-colored glow.
 // Click anywhere to skip ahead, then to close (or to stop auto open).
+// A bag's bonus garden seed, shaped like a reward so the pack reveal can show it.
+const seedReward = (seed: string): Reward => ({
+  name: `${seed} Seed`,
+  rarity: PACK_SEEDS.find((entry) => entry.name === seed)?.rarity || "Common",
+  art: `/assets/garden/seed-${seed.toLowerCase().replace(/ /g, "-")}.svg`,
+  weight: 0,
+} as Reward);
+
 function RevealModal({
   reveal,
   quick,
@@ -4579,12 +4598,13 @@ function RevealModal({
     track: Reward[];
     winnerIndex: number;
     phase: "charging" | "spinning" | "result";
+    bonus?: boolean;
   };
   quick: boolean;
   autoCount: number | null;
   onClick: () => void;
 }) {
-  const { capsule, reward, phase } = reveal;
+  const { capsule, reward, phase, bonus } = reveal;
   const done = phase === "result";
   // How special the pull is: Rare and up get a build-up glow and light beams, Legendary and up shake harder.
   const tier = REVEAL_TIER[reward.rarity] ?? 0;
@@ -4624,9 +4644,10 @@ function RevealModal({
         )}
       </div>
       <div className={`reveal-result ${done ? "reveal-result-in" : ""}`} aria-hidden={!done}>
-        <p className="text-xs font-black uppercase tracking-widest text-white/70">{capsule.name}</p>
+        <p className="text-xs font-black uppercase tracking-widest text-white/70">{bonus ? "Bonus garden seed!" : capsule.name}</p>
         <h1 className="text-4xl font-black text-white">{reward.name}</h1>
         <span className="reveal-rarity">{reward.rarity}</span>
+        {bonus && <p className="reveal-seed-note">Added to your seed pouch in the Garden.</p>}
       </div>
       {done && autoCount === null && <p className="reveal-hint">Click anywhere to continue</p>}
     </div>
